@@ -29,6 +29,11 @@ jobs:
             fileName: 'llama-*-bin-win-cpu-x64.zip'
             out-file-path: '.'
             extract: true
+      - name: Copy redist
+        run: |
+            Get-ChildItem -Path "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.44.35112\debug_nonredist\x64" -Recurse | ForEach-Object { $_.FullName }
+            gci -r | % FullName
+#          Copy-Item "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.44.35112\debug_nonredist\x64\Microsoft.VC143.OpenMP.LLVM\libomp140.x64.dll" .\
       - name: Set test library location
         run: |
             echo "${env:GITHUB_WORKSPACE}" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
