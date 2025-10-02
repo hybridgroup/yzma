@@ -21,7 +21,7 @@ jobs:
         id: get_libcurl
         uses: ./.github/actions/windows-setup-curl
         with:
-          architecture: 'x64'
+          architecture: 'win64'
       - name: Install Go
         uses: actions/setup-go@v6
         with:
