@@ -17,17 +17,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-      - name: libCURL
-        id: get_libcurl
-        uses: ./.github/actions/windows-setup-curl
-        with:
-          architecture: 'win64'
-      - name: Copy Libcurl
-        id: prepare_libcurl
-        env:
-          CURL_PATH: ${{ steps.get_libcurl.outputs.curl_path }}
+      - name: Copy MSVC DLLs
         run: |
-          cp $env:CURL_PATH/bin/libcurl-x64.dll $env:GITHUB_WORKSPACE/libcurl-x64.dll
+          cp "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.44.35112\debug_nonredist\x64\Microsoft.VC143.DebugCRT\*.dll" $env:GITHUB_WORKSPACE\
+          cp "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.44.35112\debug_nonredist\x64\Microsoft.VC143.DebugCXXAMP\*.dll" $env:GITHUB_WORKSPACE\
+          cp "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.44.35112\debug_nonredist\x64\Microsoft.VC143.DebugOpenMP\*.dll" $env:GITHUB_WORKSPACE\
       - name: Install Go
         uses: actions/setup-go@v6
         with:
