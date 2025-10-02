@@ -15,13 +15,13 @@ jobs:
   build-windows:
     runs-on: windows-2025
     steps:
-      - name: Install Latest VC Redistributable
-        shell: pwsh
-        run: |
-          curl -o VC_redist.x64.exe -L https://aka.ms/vs/17/release/vc_redist.x64.exe
-          Start-Process VC_redist.x64.exe -ArgumentList "/install /quiet /norestart" -Wait
       - name: Checkout
         uses: actions/checkout@v5
+      - name: libCURL
+        id: get_libcurl
+        uses: ./.github/actions/windows-setup-curl
+        with:
+          architecture: 'x64'
       - name: Install Go
         uses: actions/setup-go@v6
         with:
