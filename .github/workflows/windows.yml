@@ -15,6 +15,11 @@ jobs:
   build-windows:
     runs-on: windows-2025
     steps:
+      - name: Install Latest VC Redistributable
+        shell: pwsh
+        run: |
+          curl -o VC_redist.x64.exe -L https://aka.ms/vs/17/release/vc_redist.x64.exe
+          Start-Process VC_redist.x64.exe -ArgumentList "/install /quiet /norestart" -Wait
       - name: Checkout
         uses: actions/checkout@v5
       - name: Install Go
@@ -29,11 +34,6 @@ jobs:
             fileName: 'llama-*-bin-win-cpu-x64.zip'
             out-file-path: '.'
             extract: true
-      - name: Copy redist
-        run: |
-            Get-ChildItem -Path "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.44.35112" -Recurse | ForEach-Object { $_.FullName }
-            gci -r | % FullName
-            Copy-Item -Path "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\14.44.35112\debug_nonredist\x64\Microsoft.VC143.DebugCRT\*.dll" -Destination "${env:GITHUB_WORKSPACE}"
       - name: Set test library location
         run: |
             echo "${env:GITHUB_WORKSPACE}" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
