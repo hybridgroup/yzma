@@ -22,6 +22,12 @@ jobs:
         uses: ./.github/actions/windows-setup-curl
         with:
           architecture: 'win64'
+      - name: Copy Libcurl
+        id: prepare_libcurl
+        env:
+          CURL_PATH: ${{ steps.get_libcurl.outputs.curl_path }}
+        run: |
+          cp $env:CURL_PATH/bin/libcurl-x64.dll $env:GITHUB_WORKSPACE/libcurl-x64.dll
       - name: Install Go
         uses: actions/setup-go@v6
         with:
