@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
 	"github.com/hybridgroup/yzma/pkg/loader"
@@ -9,27 +10,20 @@ import (
 
 var (
 	modelFile            = "./models/SmolLM-135M.Q2_K.gguf"
-	prompt               = "Are you ready to rock?"
-	libPath              = "./lib"
+	prompt               = "Are you ready to go?"
+	libPath              = os.Getenv("YZMA_LIB")
 	responseLength int32 = 12
 )
 
 func main() {
-	lib, err := loader.LoadLibrary(libPath)
-	if err != nil {
-		panic(err)
-	}
-	if err := llama.Load(lib); err != nil {
-		panic(err)
-	}
-
+	lib, _ := loader.LoadLibrary(libPath)
+	llama.Load(lib)
 	llama.Init()
 
 	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
-	vocab := llama.ModelGetVocab(model)
+	lctx := llama.InitFromModel(model, llama.ContextDefaultParams())
 
-	sampler := llama.SamplerChainInit(llama.SamplerChainDefaultParams())
-	llama.SamplerChainAdd(sampler, llama.SamplerInitGreedy())
+	vocab := llama.ModelGetVocab(model)
 
 	// call once to get the size of the tokens from the prompt
 	count := llama.Tokenize(vocab, prompt, nil, true, false)
@@ -38,8 +32,11 @@ func main() {
 	tokens := make([]llama.Token, count)
 	llama.Tokenize(vocab, prompt, tokens, true, false)
 
-	lctx := llama.InitFromModel(model, llama.ContextDefaultParams())
 	batch := llama.BatchGetOne(tokens)
+
+	sampler := llama.SamplerChainInit(llama.SamplerChainDefaultParams())
+	llama.SamplerChainAdd(sampler, llama.SamplerInitGreedy())
+
 	for pos := int32(0); pos+batch.NTokens < count+responseLength; pos += batch.NTokens {
 		llama.Decode(lctx, batch)
 		token := llama.SamplerSample(sampler, lctx, -1)

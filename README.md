@@ -13,6 +13,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
 	"github.com/hybridgroup/yzma/pkg/loader"
@@ -20,8 +21,8 @@ import (
 
 var (
 	modelFile            = "./models/SmolLM-135M.Q2_K.gguf"
-	prompt               = "Are you ready to rock?"
-	libPath              = "./lib"
+	prompt               = "Are you ready to go?"
+	libPath              = os.Getenv("YZMA_LIB")
 	responseLength int32 = 12
 )
 
@@ -31,10 +32,9 @@ func main() {
 	llama.Init()
 
 	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
-	vocab := llama.ModelGetVocab(model)
+	lctx := llama.InitFromModel(model, llama.ContextDefaultParams())
 
-	sampler := llama.SamplerChainInit(llama.SamplerChainDefaultParams())
-	llama.SamplerChainAdd(sampler, llama.SamplerInitGreedy())
+	vocab := llama.ModelGetVocab(model)
 
 	// call once to get the size of the tokens from the prompt
 	count := llama.Tokenize(vocab, prompt, nil, true, false)
@@ -43,8 +43,11 @@ func main() {
 	tokens := make([]llama.Token, count)
 	llama.Tokenize(vocab, prompt, tokens, true, false)
 
-	lctx := llama.InitFromModel(model, llama.ContextDefaultParams())
 	batch := llama.BatchGetOne(tokens)
+
+	sampler := llama.SamplerChainInit(llama.SamplerChainDefaultParams())
+	llama.SamplerChainAdd(sampler, llama.SamplerInitGreedy())
+
 	for pos := int32(0); pos+batch.NTokens < count+responseLength; pos += batch.NTokens {
 		llama.Decode(lctx, batch)
 		token := llama.SamplerSample(sampler, lctx, -1)
@@ -71,7 +74,7 @@ Produces the following output:
 ```shell
 $ go run ./examples/hello/ 2>/dev/null
 
-The first thing you need to do is learn how to use a computer.
+The first thing you need to do is to get your hands on a computer.
 ```
 
 What's with the `2>/dev/null` at the end? That is the "easy way" to suppress the logging from `llama.cpp`.
