@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/jupiterrider/ffi"
@@ -8,35 +9,35 @@ import (
 
 func Load(lib ffi.Lib) error {
 	if err := loadFuncs(lib); err != nil {
-		return err
+		return fmt.Errorf("loadFuncs: %w", err)
 	}
 
 	if err := loadModelFuncs(lib); err != nil {
-		return err
+		return fmt.Errorf("loadModelFuncs: %w", err)
 	}
 
 	if err := loadBatchFuncs(lib); err != nil {
-		return err
+		return fmt.Errorf("loadBatchFuncs: %w", err)
 	}
 
 	if err := loadVocabFuncs(lib); err != nil {
-		return err
+		return fmt.Errorf("loadVocabFuncs: %w", err)
 	}
 
 	if err := loadSamplingFuncs(lib); err != nil {
-		return err
+		return fmt.Errorf("loadSamplingFuncs: %w", err)
 	}
 
 	if err := loadChatFuncs(lib); err != nil {
-		return err
+		return fmt.Errorf("loadChatFuncs: %w", err)
 	}
 
 	if err := loadContextFuncs(lib); err != nil {
-		return err
+		return fmt.Errorf("loadContextFuncs: %w", err)
 	}
 
 	if err := loadLogFuncs(lib); err != nil {
-		return err
+		return fmt.Errorf("loadLogFuncs: %w", err)
 	}
 
 	return nil
