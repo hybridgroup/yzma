@@ -158,7 +158,7 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 		return err
 	}
 
-	if samplerInitMinPFunc, err = lib.Prep("llama_sampler_init_top_p", &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeUint32); err != nil {
+	if samplerInitMinPFunc, err = lib.Prep("llama_sampler_init_min_p", &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeUint32); err != nil {
 		return err
 	}
 
@@ -241,7 +241,7 @@ func SamplerInitPenalties(lastN int32, repeat float32, freq float32, present flo
 func SamplerInitDry(vocab Vocab, nCtxTrain int32, multiplier float32, base float32, allowedLength int32, penaltyLast int32,
 	seqBreakers **byte, numBreakers uint32) Sampler {
 	var p Sampler
-	samplerInitDryFunc.Call(unsafe.Pointer(&p), unsafe.Pointer(&nCtxTrain), unsafe.Pointer(&multiplier), unsafe.Pointer(&base), unsafe.Pointer(&allowedLength), unsafe.Pointer(&penaltyLast),
+	samplerInitDryFunc.Call(unsafe.Pointer(&p), unsafe.Pointer(&vocab), unsafe.Pointer(&nCtxTrain), unsafe.Pointer(&multiplier), unsafe.Pointer(&base), unsafe.Pointer(&allowedLength), unsafe.Pointer(&penaltyLast),
 		unsafe.Pointer(seqBreakers), unsafe.Pointer(&numBreakers))
 
 	return p
@@ -355,7 +355,7 @@ func NewSampler(model Model, samplers []SamplerType) Sampler {
 	bias := SamplerInitLogitBias(nTokens, int32(len(logitBiasEOG)), unsafe.SliceData(logitBiasEOG))
 	SamplerChainAdd(sampler, bias)
 
-	for samplerType := range samplers {
+	for _, samplerType := range samplers {
 		switch samplerType {
 		case SamplerTypeDry:
 			seqBreakers := []string{"\n", ":", "\"", "*"}
