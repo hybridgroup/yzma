@@ -135,9 +135,12 @@ func TokenToPiece(vocab Vocab, token Token, buf []byte, lstrip int32, special bo
 	tokenToPieceFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&vocab), &token, unsafe.Pointer(&b),
 		&bLen, &lstrip, &special)
 
-	copy(buf, piece)
+	resLen := int32(result)
+	if resLen > 0 && resLen <= int32(len(piece)) {
+		copy(buf, piece[:resLen])
+	}
 
-	return int32(result)
+	return resLen
 }
 
 func Tokenize(vocab Vocab, text string, tokens []Token, addSpecial bool, parseSpecial bool) int32 {
@@ -151,6 +154,5 @@ func Tokenize(vocab Vocab, text string, tokens []Token, addSpecial bool, parseSp
 	tokenizeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&vocab), unsafe.Pointer(&txt), &txtLen,
 		unsafe.Pointer(&toks), &nTokensMax, &addSpecial, &parseSpecial)
 
-	// for whatever reason, llama.cpp returns a negative number.
-	return -int32(result)
+	return int32(result)
 }
