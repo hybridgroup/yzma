@@ -10,20 +10,20 @@ type (
 
 // Constants from llama.h
 const (
-	DEFAULT_SEED = 0xFFFFFFFF
-	TOKEN_NULL   = -1
+	DefaultSeed = 0xFFFFFFFF
+	TokenNull   = -1
 
 	// File magic numbers
-	FILE_MAGIC_GGLA = 0x67676c61
-	FILE_MAGIC_GGSN = 0x6767736e
-	FILE_MAGIC_GGSQ = 0x67677371
+	FileMagicGGLA = 0x67676c61
+	FileMagicGGSN = 0x6767736e
+	FileMagicGGSQ = 0x67677371
 
 	// Session constants
-	SESSION_MAGIC   = FILE_MAGIC_GGSN
-	SESSION_VERSION = 9
+	SessionMagic   = FileMagicGGSN
+	SessionVersion = 9
 
-	STATE_SEQ_MAGIC   = FILE_MAGIC_GGSQ
-	STATE_SEQ_VERSION = 2
+	StateSeqMagic   = FileMagicGGSQ
+	StateSeqVersion = 2
 
 	// maximum token value
 	MaxToken = 0x7fffffff
@@ -33,39 +33,39 @@ const (
 type VocabType int32
 
 const (
-	VOCAB_TYPE_NONE VocabType = iota
-	VOCAB_TYPE_SPM
-	VOCAB_TYPE_BPE
-	VOCAB_TYPE_WPM
-	VOCAB_TYPE_UGM
-	VOCAB_TYPE_RWKV
+	VocabTypeNone VocabType = iota
+	VocabTypeSPM
+	VocabTypeBPE
+	VocabTypeWPM
+	VocabTypeUGM
+	VocabTypeRWKV
 )
 
 type TokenType int32
 
 const (
-	TOKEN_TYPE_UNDEFINED TokenType = iota
-	TOKEN_TYPE_NORMAL
-	TOKEN_TYPE_UNKNOWN
-	TOKEN_TYPE_CONTROL
-	TOKEN_TYPE_USER_DEFINED
-	TOKEN_TYPE_UNUSED
-	TOKEN_TYPE_BYTE
+	TokenTypeUndefined TokenType = iota
+	TokenTypeNormal
+	TokenTypeUnknown
+	TokenTypeControl
+	TokenTypeUserDefined
+	TokenTypeUnused
+	TokenTypeByte
 )
 
 type TokenAttr int32
 
 const (
-	TOKEN_ATTR_UNDEFINED   TokenAttr = 0
-	TOKEN_ATTR_UNKNOWN     TokenAttr = 1 << 0
-	TOKEN_ATTR_UNUSED      TokenAttr = 1 << 1
-	TOKEN_ATTR_NORMAL      TokenAttr = 1 << 2
-	TOKEN_ATTR_CONTROL     TokenAttr = 1 << 3
-	TOKEN_ATTR_USER_DEF    TokenAttr = 1 << 4
-	TOKEN_ATTR_BYTE        TokenAttr = 1 << 5
-	TOKEN_ATTR_LSTRIP      TokenAttr = 1 << 6
-	TOKEN_ATTR_RSTRIP      TokenAttr = 1 << 7
-	TOKEN_ATTR_SINGLE_WORD TokenAttr = 1 << 8
+	TokenAttrUndefined  TokenAttr = 0
+	TokenAttrUnknown    TokenAttr = 1 << 0
+	TokenAttrUnused     TokenAttr = 1 << 1
+	TokenAttrNormal     TokenAttr = 1 << 2
+	TokenAttrControl    TokenAttr = 1 << 3
+	TokenAttrUserDef    TokenAttr = 1 << 4
+	TokenAttrByte       TokenAttr = 1 << 5
+	TokenAttrLstrip     TokenAttr = 1 << 6
+	TokenAttrRstrip     TokenAttr = 1 << 7
+	TokenAttrSingleWord TokenAttr = 1 << 8
 )
 
 type Ftype int32
@@ -139,34 +139,34 @@ const (
 type GpuBackend int32
 
 const (
-	GPU_BACKEND_NONE   GpuBackend = 0
-	GPU_BACKEND_CPU    GpuBackend = 1
-	GPU_BACKEND_CUDA   GpuBackend = 2
-	GPU_BACKEND_METAL  GpuBackend = 3
-	GPU_BACKEND_HIP    GpuBackend = 4
-	GPU_BACKEND_VULKAN GpuBackend = 5
-	GPU_BACKEND_OPENCL GpuBackend = 6
-	GPU_BACKEND_SYCL   GpuBackend = 7
+	GpuBackendNone   GpuBackend = 0
+	GpuBackendCPU    GpuBackend = 1
+	GpuBackendCUDA   GpuBackend = 2
+	GpuBackendMetal  GpuBackend = 3
+	GpuBackendHIP    GpuBackend = 4
+	GpuBackendVulkan GpuBackend = 5
+	GpuBackendOpenCL GpuBackend = 6
+	GpuBackendSYCL   GpuBackend = 7
 )
 
 // String returns the string representation of the GPU backend
 func (b GpuBackend) String() string {
 	switch b {
-	case GPU_BACKEND_NONE:
+	case GpuBackendNone:
 		return "None"
-	case GPU_BACKEND_CPU:
+	case GpuBackendCPU:
 		return "CPU"
-	case GPU_BACKEND_CUDA:
+	case GpuBackendCUDA:
 		return "CUDA"
-	case GPU_BACKEND_METAL:
+	case GpuBackendMetal:
 		return "Metal"
-	case GPU_BACKEND_HIP:
+	case GpuBackendHIP:
 		return "HIP"
-	case GPU_BACKEND_VULKAN:
+	case GpuBackendVulkan:
 		return "Vulkan"
-	case GPU_BACKEND_OPENCL:
+	case GpuBackendOpenCL:
 		return "OpenCL"
-	case GPU_BACKEND_SYCL:
+	case GpuBackendSYCL:
 		return "SYCL"
 	default:
 		return "Unknown"

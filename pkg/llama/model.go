@@ -170,10 +170,10 @@ func Warmup(lctx Context, model Model) {
 	bos := VocabBOS(vocab)
 	eos := VocabEOS(vocab)
 
-	if bos != TOKEN_NULL {
+	if bos != TokenNull {
 		tokens = append(tokens, bos)
 	}
-	if eos != TOKEN_NULL {
+	if eos != TokenNull {
 		tokens = append(tokens, eos)
 	}
 	if len(tokens) == 0 {
@@ -185,7 +185,7 @@ func Warmup(lctx Context, model Model) {
 		Encode(lctx, batch)
 
 		start := ModelDecoderStartToken(model)
-		if start == TOKEN_NULL {
+		if start == TokenNull {
 			start = bos
 		}
 		tokens = append([]Token{}, start)
