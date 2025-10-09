@@ -60,15 +60,25 @@ func main() {
 	defer llama.ModelFree(model)
 
 	ctxParams := llama.ContextDefaultParams()
-	ctxParams.NCtx = 4096
-	ctxParams.NBatch = 2048
+	ctxParams.NCtx = uint32(*contextSize)
+	ctxParams.NBatch = uint32(*batchSize)
 
 	lctx := llama.InitFromModel(model, ctxParams)
 	defer llama.Free(lctx)
 
 	vocab := llama.ModelGetVocab(model)
-	// TODO: pass in flags as params to samplers
-	sampler := llama.NewSampler(model, llama.DefaultSamplers)
+	sampler := llama.SamplerChainInit(llama.SamplerChainDefaultParams())
+	if *topK != 0 {
+		llama.SamplerChainAdd(sampler, llama.SamplerInitTopK(int32(*topK)))
+	}
+	if *topP < 1.0 {
+		llama.SamplerChainAdd(sampler, llama.SamplerInitTopP(float32(*topP), 1))
+	}
+	if *minP > 0 {
+		llama.SamplerChainAdd(sampler, llama.SamplerInitMinP(float32(*minP), 1))
+	}
+	llama.SamplerChainAdd(sampler, llama.SamplerInitTempExt(float32(*temperature), 0, 1.0))
+	llama.SamplerChainAdd(sampler, llama.SamplerInitDist(llama.DefaultSeed))
 	mtmdCtx := mtmd.InitFromFile(*projFile, model, mtmd.ContextParamsDefault())
 	defer mtmd.Free(mtmdCtx)
 
@@ -101,7 +111,12 @@ func main() {
 
 	fmt.Println()
 
-	for i := 0; i < llama.MaxToken; i++ {
+	maxTokens := *predictSize
+	if maxTokens < 0 {
+		maxTokens = llama.MaxToken
+	}
+
+	for i := 0; i < maxTokens; i++ {
 		token := llama.SamplerSample(sampler, lctx, -1)
 
 		if llama.VocabIsEOG(vocab, token) {

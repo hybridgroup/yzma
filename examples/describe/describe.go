@@ -9,6 +9,11 @@ import (
 	"github.com/hybridgroup/yzma/pkg/mtmd"
 )
 
+const (
+	defaultContextSize = 4096
+	defaultBatchSize   = 2048
+)
+
 func describe(tmpFile string) {
 	llama.Init()
 	defer llama.BackendFree()
@@ -20,8 +25,8 @@ func describe(tmpFile string) {
 	defer llama.ModelFree(model)
 
 	ctxParams := llama.ContextDefaultParams()
-	ctxParams.NCtx = 4096
-	ctxParams.NBatch = 2048
+	ctxParams.NCtx = defaultContextSize
+	ctxParams.NBatch = defaultBatchSize
 
 	lctx := llama.InitFromModel(model, ctxParams)
 	defer llama.Free(lctx)
