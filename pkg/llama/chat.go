@@ -39,6 +39,10 @@ func NewChatMessage(role, content string) ChatMessage {
 // ChatApplyTemplate applies a chat template to a slice of [ChatMessage], Set addAssistantPrompt to true to generate the
 // assistant prompt, for example on the first message.
 func ChatApplyTemplate(template string, chat []ChatMessage, addAssistantPrompt bool, buf []byte) int32 {
+	if len(chat) == 0 {
+		return 0
+	}
+
 	tmpl, _ := utils.BytePtrFromString(template)
 
 	c := unsafe.Pointer(&chat[0])

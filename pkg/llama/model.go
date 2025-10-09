@@ -153,6 +153,7 @@ func ModelDecoderStartToken(model Model) Token {
 	return Token(result)
 }
 
+// ModelNCtxTrain returns the context size used during training for the Model.
 func ModelNCtxTrain(model Model) int32 {
 	var result ffi.Arg
 	modelNCtxTrainFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))

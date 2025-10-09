@@ -397,7 +397,8 @@ func NewSampler(model Model, samplers []SamplerType) Sampler {
 			SamplerChainAdd(sampler, xtc)
 
 		case SamplerTypeInfill:
-			// TODO: add implementation
+			// Infill sampler not yet implemented in llama.cpp bindings
+			// See: https://github.com/ggml-org/llama.cpp/blob/master/include/llama.h
 
 		case SamplerTypePenalties:
 			penalties := SamplerInitPenalties(64, 1.0, 0, 0)
