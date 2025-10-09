@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
-	"github.com/hybridgroup/yzma/pkg/loader"
 )
 
 var (
@@ -41,12 +40,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	lib, err := loader.LoadLibrary(*libPath)
-	if err != nil {
-		fmt.Println("unable to load library", err.Error())
-		os.Exit(1)
-	}
-	if err := llama.Load(lib); err != nil {
+	if err := llama.Load(*libPath); err != nil {
 		fmt.Println("unable to load library", err.Error())
 		os.Exit(1)
 	}

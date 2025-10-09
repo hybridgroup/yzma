@@ -16,7 +16,6 @@ import (
 	"os"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
-	"github.com/hybridgroup/yzma/pkg/loader"
 )
 
 var (
@@ -27,8 +26,7 @@ var (
 )
 
 func main() {
-	lib, _ := loader.LoadLibrary(libPath)
-	llama.Load(lib)
+	llama.Load(libPath)
 	llama.Init()
 
 	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())

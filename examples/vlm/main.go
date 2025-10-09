@@ -8,7 +8,6 @@ import (
 	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
-	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/hybridgroup/yzma/pkg/mtmd"
 )
 
@@ -44,16 +43,11 @@ func main() {
 		os.Exit(0)
 	}
 
-	lib, err := loader.LoadLibrary(*libPath)
-	if err != nil {
+	if err := llama.Load(*libPath); err != nil {
 		fmt.Println("unable to load library", err.Error())
 		os.Exit(1)
 	}
-	if err := llama.Load(lib); err != nil {
-		fmt.Println("unable to load library", err.Error())
-		os.Exit(1)
-	}
-	if err := mtmd.Load(lib); err != nil {
+	if err := mtmd.Load(*libPath); err != nil {
 		fmt.Println("unable to load library", err.Error())
 		os.Exit(1)
 	}
