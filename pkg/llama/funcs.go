@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"fmt"
 	"unsafe"
 
 	"github.com/jupiterrider/ffi"
@@ -21,19 +22,19 @@ var (
 func loadFuncs(lib ffi.Lib) error {
 	var err error
 	if backendInitFunc, err = lib.Prep("llama_backend_init", &ffi.TypeVoid); err != nil {
-		return err
+		return fmt.Errorf("llama_backend_init: %w", err)
 	}
 
 	if backendFreeFunc, err = lib.Prep("llama_backend_free", &ffi.TypeVoid); err != nil {
-		return err
+		return fmt.Errorf("llama_backend_free: %w", err)
 	}
 
 	if ggmlBackendLoadAllFunc, err = lib.Prep("ggml_backend_load_all", &ffi.TypeVoid); err != nil {
-		return err
+		return fmt.Errorf("ggml_backend_load_all: %w", err)
 	}
 
 	if ggmlBackendLoadAllFromPath, err = lib.Prep("ggml_backend_load_all_from_path", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
-		return err
+		return fmt.Errorf("ggml_backend_load_all_from_path: %w", err)
 	}
 
 	return nil
