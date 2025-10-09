@@ -30,7 +30,7 @@ jobs:
           go-version: '1.25.1'
       - name: Install vcredist
         run: |
-            winget install Microsoft.VCRedist.2015+.x64 /silent /override /norestart
+            winget install Microsoft.VCRedist.2015+.x64 /silent /override /norestart /accept-source-agreements
       - name: Download llama.cpp
         uses: robinraju/release-downloader@v1
         with:
