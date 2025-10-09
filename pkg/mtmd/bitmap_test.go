@@ -8,7 +8,6 @@ import (
 	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
-	"github.com/hybridgroup/yzma/pkg/loader"
 )
 
 func TestBitmap(t *testing.T) {
@@ -31,15 +30,11 @@ func TestBitmap(t *testing.T) {
 func testSetup(t *testing.T) {
 	testPath := "../../lib"
 
-	lib, err := loader.LoadLibrary(testPath)
-	if err != nil {
-		t.Fatal("unable to load libary", err.Error())
+	if err := llama.Load(testPath); err != nil {
+		t.Fatal("unable to load library", err.Error())
 	}
-	if err := llama.Load(lib); err != nil {
-		t.Fatal("unable to load libary", err.Error())
-	}
-	if err := Load(lib); err != nil {
-		t.Fatal("unable to load libary", err.Error())
+	if err := Load(testPath); err != nil {
+		t.Fatal("unable to load library", err.Error())
 	}
 
 	llama.BackendInit()

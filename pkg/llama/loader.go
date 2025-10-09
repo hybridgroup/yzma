@@ -3,10 +3,24 @@ package llama
 import (
 	"os"
 
-	"github.com/jupiterrider/ffi"
+	"github.com/hybridgroup/yzma/pkg/loader"
 )
 
-func Load(lib ffi.Lib) error {
+func Load(path string) error {
+	lib, err := loader.LoadLibrary(path, "ggml")
+	if err != nil {
+		return err
+	}
+
+	if err := loadGGML(lib); err != nil {
+		return err
+	}
+
+	lib, err = loader.LoadLibrary(path, "llama")
+	if err != nil {
+		return err
+	}
+
 	if err := loadFuncs(lib); err != nil {
 		return err
 	}

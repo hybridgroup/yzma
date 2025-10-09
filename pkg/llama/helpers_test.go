@@ -2,17 +2,11 @@ package llama
 
 import (
 	"testing"
-
-	"github.com/hybridgroup/yzma/pkg/loader"
 )
 
 func testSetup(t *testing.T) {
 	testPath := "."
-	lib, err := loader.LoadLibrary(testPath)
-	if err != nil {
-		t.Fatal("unable to load library", err.Error())
-	}
-	if err := Load(lib); err != nil {
+	if err := Load(testPath); err != nil {
 		t.Fatal("unable to load library", err.Error())
 	}
 
