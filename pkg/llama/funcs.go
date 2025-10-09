@@ -2,6 +2,9 @@ package llama
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
 	"unsafe"
 
 	"github.com/jupiterrider/ffi"
@@ -27,6 +30,15 @@ func loadFuncs(lib ffi.Lib) error {
 
 	if backendFreeFunc, err = lib.Prep("llama_backend_free", &ffi.TypeVoid); err != nil {
 		return fmt.Errorf("llama_backend_free: %w", err)
+	}
+
+	if runtime.GOOS == "windows" {
+		path := os.Getenv("YZMA_LIB")
+		filename := filepath.Join(path, "ggml.dll")
+		lib, err = ffi.Load(filename)
+		if err != nil {
+			return fmt.Errorf("load ggml.dll: %w", err)
+		}
 	}
 
 	if ggmlBackendLoadAllFunc, err = lib.Prep("ggml_backend_load_all", &ffi.TypeVoid); err != nil {
