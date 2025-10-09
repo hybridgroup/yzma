@@ -75,7 +75,7 @@ func main() {
 		llama.SamplerChainAdd(sampler, llama.SamplerInitMinP(float32(*minP), 1))
 	}
 	llama.SamplerChainAdd(sampler, llama.SamplerInitTempExt(float32(*temperature), 0, 1.0))
-	llama.SamplerChainAdd(sampler, llama.SamplerInitDist(llama.DEFAULT_SEED))
+	llama.SamplerChainAdd(sampler, llama.SamplerInitDist(llama.DefaultSeed))
 
 	if *template == "" {
 		*template = llama.ModelChatTemplate(model, "")
@@ -128,7 +128,7 @@ func chat(text string, first bool) {
 		llama.Encode(lctx, batch)
 
 		start := llama.ModelDecoderStartToken(model)
-		if start == llama.TOKEN_NULL {
+		if start == llama.TokenNull {
 			start = llama.VocabBOS(vocab)
 		}
 

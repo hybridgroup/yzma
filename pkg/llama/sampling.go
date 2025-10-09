@@ -393,7 +393,7 @@ func NewSampler(model Model, samplers []SamplerType) Sampler {
 			SamplerChainAdd(sampler, temp)
 
 		case SamplerTypeXTC:
-			xtc := SamplerInitXTC(0, 0.1, 0, DEFAULT_SEED)
+			xtc := SamplerInitXTC(0, 0.1, 0, DefaultSeed)
 			SamplerChainAdd(sampler, xtc)
 
 		case SamplerTypeInfill:
@@ -410,7 +410,7 @@ func NewSampler(model Model, samplers []SamplerType) Sampler {
 	}
 
 	// always add this last
-	dist := SamplerInitDist(DEFAULT_SEED)
+	dist := SamplerInitDist(DefaultSeed)
 	SamplerChainAdd(sampler, dist)
 
 	return sampler
