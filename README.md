@@ -137,9 +137,9 @@ Sure! Let's go to the zoo and feed the llama. What kind of llama are you interes
 
 ## More info
 
-`yzma` is still a work in progress but it has support for some basic functionality.
+`yzma` is a work in progress but it already has support for a lot of basic functionality. See [ROADMAP.md](./ROADMAP.md) for a complete list.
 
-You can already use VLMs and other language models with full hardware acceleration.
+You can already use VLMs and other language models with full hardware acceleration on Linux, on macOS, and on Windows.
 
 Here are some advantages of `yzma` over other Go packages for `llama.cpp`:
 
