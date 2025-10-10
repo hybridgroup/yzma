@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"os"
 	"testing"
 )
 
@@ -10,10 +11,17 @@ func testSetup(t *testing.T) {
 		t.Fatal("unable to load library", err.Error())
 	}
 
-	BackendInit()
-	GGMLBackendLoadAll()
+	Init()
 }
 
 func testCleanup(t *testing.T) {
 	BackendFree()
+}
+
+func testModelFileName(t *testing.T) string {
+	if os.Getenv("YZMA_TEST_MODEL") == "" {
+		t.Skip("no YZMA_TEST_MODEL skipping test")
+	}
+
+	return os.Getenv("YZMA_TEST_MODEL")
 }
