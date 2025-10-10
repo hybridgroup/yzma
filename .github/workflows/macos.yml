@@ -34,11 +34,11 @@ jobs:
         run: |
             echo "YZMA_LIB=$GITHUB_WORKSPACE/lib" >> "$GITHUB_ENV"
             echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/lib" >> "$GITHUB_ENV"
-      - name: Run tests
-        run: go test -v ./...
       - name: Download test model
         run: |
             mkdir -p ./models
             curl -Lo ./models/SmolLM-135M.Q2_K.gguf https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf
+      - name: Run tests
+        run: YZMA_TEST_MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf go test -v ./...
       - name: Run inference test
         run: go run ./examples/hello
