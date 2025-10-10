@@ -77,6 +77,8 @@ The first thing you need to do is to get your hands on a computer.
 
 What's with the `2>/dev/null` at the end? That is the "easy way" to suppress the logging from `llama.cpp`.
 
+Didn't get any output? Run it again without the `2>/dev/null` to see any errors.
+
 ## Installation
 
 You will need to download the `llama.cpp` libraries for your platform. You can obtain them from https://github.com/ggml-org/llama.cpp/releases
@@ -100,7 +102,8 @@ export YZMA_LIB=/home/ron/Development/yzma/lib
 This example uses the [`Qwen2.5-VL-3B-Instruct-Q8_0`](https://huggingface.co/ggml-org/Qwen2.5-VL-3B-Instruct-GGUF) VLM model to process both a text prompt and an image, then displays the result.
 
 ```shell
-$ go run ./examples/vlm/ -model ./models/Qwen2.5-VL-3B-Instruct-Q8_0.gguf -proj ./models/mmproj-Qwen2.5-VL-3B-Instruct-Q8_0.gguf -image ./images/domestic_llama.jpg -prompt "What is in this picture?" 2>/dev/null
+$ go run ./examples/vlm/ -model ./models/Qwen2.5-VL-3B-Instruct-Q8_0.gguf -mmproj ./models/mmproj-Qwen2.5-VL-3B-Instruct-Q8_0.gguf -image ./images/domestic_llama.jpg -p "What is in this picture?" 2>/dev/null
+
 Loading model ./models/Qwen2.5-VL-3B-Instruct-Q8_0.gguf
 encoding image slice...
 image slice encoded in 966 ms
@@ -134,6 +137,10 @@ Sure! Let's go to the zoo and feed the llama. What kind of llama are you interes
 ```
 
 [See the code here](./examples/chat/main.go).
+
+### Additional examples
+
+See the [examples](./examples/) directory for more examples of how to use `yzma`.
 
 ## More info
 
