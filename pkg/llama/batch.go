@@ -34,7 +34,7 @@ func loadBatchFuncs(lib ffi.Lib) error {
 		return loadError("llama_batch_init", err)
 	}
 
-	if batchFreeFunc, err = lib.Prep("llama_batch_free", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
+	if batchFreeFunc, err = lib.Prep("llama_batch_free", &ffi.TypeVoid, &FFITypeBatch); err != nil {
 		return loadError("llama_batch_free", err)
 	}
 
@@ -54,7 +54,7 @@ func loadBatchFuncs(lib ffi.Lib) error {
 // All members are left uninitialized.
 func BatchInit(nTokens int32, embd int32, nSeqMax int32) Batch {
 	var batch Batch
-	batchInitFunc.Call(unsafe.Pointer(&batch), unsafe.Pointer(&nTokens), unsafe.Pointer(&embd), unsafe.Pointer(&nSeqMax))
+	batchInitFunc.Call(unsafe.Pointer(&batch), &nTokens, &embd, &nSeqMax)
 
 	return batch
 }
