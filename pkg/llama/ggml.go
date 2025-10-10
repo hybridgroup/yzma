@@ -18,11 +18,11 @@ func loadGGML(lib ffi.Lib) error {
 	var err error
 
 	if ggmlBackendLoadAllFunc, err = lib.Prep("ggml_backend_load_all", &ffi.TypeVoid); err != nil {
-		return err
+		return loadError("ggml_backend_load_all", err)
 	}
 
 	if ggmlBackendLoadAllFromPath, err = lib.Prep("ggml_backend_load_all_from_path", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
-		return err
+		return loadError("ggml_backend_load_all_from_path", err)
 	}
 
 	return nil

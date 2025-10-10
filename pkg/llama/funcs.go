@@ -13,11 +13,11 @@ var (
 func loadFuncs(lib ffi.Lib) error {
 	var err error
 	if backendInitFunc, err = lib.Prep("llama_backend_init", &ffi.TypeVoid); err != nil {
-		return err
+		return loadError("llama_backend_init", err)
 	}
 
 	if backendFreeFunc, err = lib.Prep("llama_backend_free", &ffi.TypeVoid); err != nil {
-		return err
+		return loadError("llama_backend_free", err)
 	}
 
 	return nil

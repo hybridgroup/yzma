@@ -21,7 +21,7 @@ func loadLogFuncs(lib ffi.Lib) error {
 	var err error
 
 	if logSetFunc, err = lib.Prep("llama_log_set", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
-		return err
+		return loadError("llama_log_set", err)
 	}
 	logSet = func(cb LogCallback, data uintptr) {
 		logSetFunc.Call(nil, unsafe.Pointer(&cb), unsafe.Pointer(&data))

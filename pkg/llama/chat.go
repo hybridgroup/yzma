@@ -22,7 +22,8 @@ func loadChatFuncs(lib ffi.Lib) error {
 	var err error
 	if chatApplyTemplateFunc, err = lib.Prep("llama_chat_apply_template", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32,
 		&ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
-		return err
+
+		return loadError("llama_chat_apply_template", err)
 	}
 
 	return nil

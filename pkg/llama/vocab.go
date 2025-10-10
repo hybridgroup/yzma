@@ -48,38 +48,41 @@ var (
 
 func loadVocabFuncs(lib ffi.Lib) error {
 	var err error
+
 	if modelGetVocabFunc, err = lib.Prep("llama_model_get_vocab", &ffi.TypePointer, &ffi.TypePointer); err != nil {
-		return err
+		return loadError("llama_model_get_vocab", err)
 	}
 
 	if vocabBOSFunc, err = lib.Prep("llama_vocab_bos", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
-		return err
+		return loadError("llama_vocab_bos", err)
 	}
 
 	if vocabEOSFunc, err = lib.Prep("llama_vocab_eos", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
-		return err
+		return loadError("llama_vocab_eos", err)
 	}
 
 	if vocabIsEOGFunc, err = lib.Prep("llama_vocab_is_eog", &ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
-		return err
+		return loadError("llama_vocab_is_eog", err)
 	}
 
 	if vocabIsControlFunc, err = lib.Prep("llama_vocab_is_control", &ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
-		return err
+		return loadError("llama_vocab_is_control", err)
 	}
 
 	if vocabNTokensFunc, err = lib.Prep("llama_vocab_n_tokens", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
-		return err
+		return loadError("llama_vocab_n_tokens", err)
 	}
 
 	if tokenToPieceFunc, err = lib.Prep("llama_token_to_piece", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32,
 		&ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeUint8); err != nil {
-		return err
+
+		return loadError("llama_token_to_piece", err)
 	}
 
 	if tokenizeFunc, err = lib.Prep("llama_tokenize", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32,
 		&ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeUint8, &ffi.TypeUint8); err != nil {
-		return err
+
+		return loadError("llama_tokenize", err)
 	}
 
 	return nil
