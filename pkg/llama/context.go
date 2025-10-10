@@ -62,44 +62,45 @@ var (
 
 func loadContextFuncs(lib ffi.Lib) error {
 	var err error
+
 	if contextDefaultParamsFunc, err = lib.Prep("llama_context_default_params", &FFITypeContextParams); err != nil {
-		return err
+		return loadError("llama_context_default_params", err)
 	}
 
 	if freeFunc, err = lib.Prep("llama_free", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
-		return err
+		return loadError("llama_free", err)
 	}
 
 	if setWarmupFunc, err = lib.Prep("llama_set_warmup", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeUint8); err != nil {
-		return err
+		return loadError("llama_set_warmup", err)
 	}
 
 	if encodeFunc, err = lib.Prep("llama_encode", &ffi.TypeSint32, &ffi.TypePointer, &FFITypeBatch); err != nil {
-		return err
+		return loadError("llama_encode", err)
 	}
 
 	if decodeFunc, err = lib.Prep("llama_decode", &ffi.TypeSint32, &ffi.TypePointer, &FFITypeBatch); err != nil {
-		return err
+		return loadError("llama_decode", err)
 	}
 
 	if perfContextResetFunc, err = lib.Prep("llama_perf_context_reset", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
-		return err
+		return loadError("llama_perf_context_reset", err)
 	}
 
 	if memoryClearFunc, err = lib.Prep("llama_memory_clear", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeUint8); err != nil {
-		return err
+		return loadError("llama_memory_clear", err)
 	}
 
 	if getMemoryFunc, err = lib.Prep("llama_get_memory", &ffi.TypePointer, &ffi.TypePointer); err != nil {
-		return err
+		return loadError("llama_get_memory", err)
 	}
 
 	if memorySeqRmFunc, err = lib.Prep("llama_memory_seq_rm", &ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32); err != nil {
-		return err
+		return loadError("llama_memory_seq_rm", err)
 	}
 
 	if synchronizeFunc, err = lib.Prep("llama_synchronize", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
-		return err
+		return loadError("llama_synchronize", err)
 	}
 
 	return nil

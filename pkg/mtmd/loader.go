@@ -1,6 +1,7 @@
 package mtmd
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/hybridgroup/yzma/pkg/loader"
@@ -23,4 +24,8 @@ func Load(path string) error {
 	}
 
 	return nil
+}
+
+func loadError(name string, err error) error {
+	return fmt.Errorf("could not load '': %w", err)
 }

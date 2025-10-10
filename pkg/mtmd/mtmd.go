@@ -105,44 +105,45 @@ func loadFuncs(lib ffi.Lib) error {
 	var err error
 
 	if defaultMarkerFunc, err = lib.Prep("mtmd_default_marker", &ffi.TypePointer); err != nil {
-		return err
+		return loadError("mtmd_default_marker", err)
 	}
 
 	if contextParamsDefaultFunc, err = lib.Prep("mtmd_context_params_default", &FFITypeContextParams); err != nil {
-		return err
+		return loadError("mtmd_context_params_default", err)
 	}
 
 	if initFromFileFunc, err = lib.Prep("mtmd_init_from_file", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &FFITypeContextParams); err != nil {
-		return err
+		return loadError("mtmd_init_from_file", err)
 	}
 
 	if freeFunc, err = lib.Prep("mtmd_free", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
-		return err
+		return loadError("mtmd_free", err)
 	}
 
 	if supportVisionFunc, err = lib.Prep("mtmd_support_vision", &ffi.TypeUint8, &ffi.TypePointer); err != nil {
-		return err
+		return loadError("mtmd_support_vision", err)
 	}
 
 	if inputChunksInitFunc, err = lib.Prep("mtmd_input_chunks_init", &ffi.TypePointer); err != nil {
-		return err
+		return loadError("mtmd_input_chunks_init", err)
 	}
 
 	if inputChunksFreeFunc, err = lib.Prep("mtmd_input_chunks_free", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
-		return err
+		return loadError("mtmd_input_chunks_free", err)
 	}
 
 	if inputChunksSizeFunc, err = lib.Prep("mtmd_input_chunks_size", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
-		return err
+		return loadError("mtmd_input_chunks_size", err)
 	}
 
 	if tokenizeFunc, err = lib.Prep("mtmd_tokenize", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint64); err != nil {
-		return err
+		return loadError("mtmd_tokenize", err)
 	}
 
 	if helperEvalChunksFunc, err = lib.Prep("mtmd_helper_eval_chunks", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer,
 		&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeUint8, &ffi.TypePointer); err != nil {
-		return err
+
+		return loadError("mtmd_helper_eval_chunks", err)
 	}
 
 	return nil

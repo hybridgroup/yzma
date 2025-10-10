@@ -31,15 +31,15 @@ func loadBatchFuncs(lib ffi.Lib) error {
 	var err error
 
 	if batchInitFunc, err = lib.Prep("llama_batch_init", &FFITypeBatch, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32); err != nil {
-		return err
+		return loadError("llama_batch_init", err)
 	}
 
 	if batchFreeFunc, err = lib.Prep("llama_batch_free", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
-		return err
+		return loadError("llama_batch_free", err)
 	}
 
 	if batchGetOneFunc, err = lib.Prep("llama_batch_get_one", &FFITypeBatch, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
-		return err
+		return loadError("llama_batch_get_one", err)
 	}
 
 	return nil

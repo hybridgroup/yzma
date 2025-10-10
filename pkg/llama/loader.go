@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/hybridgroup/yzma/pkg/loader"
@@ -67,4 +68,8 @@ func Init() {
 	}
 
 	GGMLBackendLoadAll()
+}
+
+func loadError(name string, err error) error {
+	return fmt.Errorf("could not load '': %w", err)
 }
