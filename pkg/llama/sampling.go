@@ -184,7 +184,7 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 		return loadError("llama_sampler_accept", err)
 	}
 
-	if samplerFreeFunc, err = lib.Prep("llama_sampler_free", &ffi.TypePointer); err != nil {
+	if samplerFreeFunc, err = lib.Prep("llama_sampler_free", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
 		return loadError("llama_sampler_free", err)
 	}
 
