@@ -58,6 +58,24 @@ var (
 
 	// LLAMA_API void llama_synchronize(struct llama_context * ctx);
 	synchronizeFunc ffi.Fun
+
+	// LLAMA_API  enum llama_pooling_type   llama_pooling_type(const struct llama_context * ctx); // TODO: rename to llama_get_pooling_type
+	poolingTypeFunc ffi.Fun
+
+	// Get the embeddings for the ith token. For positive indices, Equivalent to:
+	// llama_get_embeddings(ctx) + ctx->output_ids[i]*n_embd
+	// Negative indicies can be used to access embeddings in reverse order, -1 is the last embedding.
+	// shape: [n_embd] (1-dimensional)
+	// returns NULL for invalid ids.
+	// LLAMA_API float * llama_get_embeddings_ith(struct llama_context * ctx, int32_t i);
+	getEmbeddingsIthFunc ffi.Fun
+
+	// Get the embeddings for a sequence id
+	// Returns NULL if pooling_type is LLAMA_POOLING_TYPE_NONE
+	// when pooling_type == LLAMA_POOLING_TYPE_RANK, returns float[n_cls_out] with the rank(s) of the sequence
+	// otherwise: float[n_embd] (1-dimensional)
+	// LLAMA_API float * llama_get_embeddings_seq(struct llama_context * ctx, llama_seq_id seq_id);
+	getEmbeddingsSeqFunc ffi.Fun
 )
 
 func loadContextFuncs(lib ffi.Lib) error {
@@ -101,6 +119,18 @@ func loadContextFuncs(lib ffi.Lib) error {
 
 	if synchronizeFunc, err = lib.Prep("llama_synchronize", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
 		return loadError("llama_synchronize", err)
+	}
+
+	if poolingTypeFunc, err = lib.Prep("llama_pooling_type", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_pooling_type", err)
+	}
+
+	if getEmbeddingsIthFunc, err = lib.Prep("llama_get_embeddings_ith", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_get_embeddings_ith", err)
+	}
+
+	if getEmbeddingsSeqFunc, err = lib.Prep("llama_get_embeddings_seq", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_get_embeddings_seq", err)
 	}
 
 	return nil
@@ -175,4 +205,28 @@ func GetMemory(ctx Context) Memory {
 // and is not necessary to call it explicitly in most cases.
 func Synchronize(ctx Context) {
 	synchronizeFunc.Call(nil, unsafe.Pointer(&ctx))
+}
+
+// GetPoolingType returns the PoolingType for this context.
+func GetPoolingType(ctx Context) PoolingType {
+	var result ffi.Arg
+	poolingTypeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+
+	return PoolingType(result)
+}
+
+// GetEmbeddingsIth gets the embeddings for the ith token.
+func GetEmbeddingsIth(ctx Context, i int32) []float32 {
+	var result ffi.Arg
+	getEmbeddingsIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &i)
+
+	return unsafe.Slice(((*float32)(unsafe.Pointer(&result))), i)
+}
+
+// GetEmbeddingsSeq gets the embeddings for this sequence ID.
+func GetEmbeddingsSeq(ctx Context, seqID SeqId, i int32) []float32 {
+	var result ffi.Arg
+	getEmbeddingsSeqFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &seqID)
+
+	return unsafe.Slice(((*float32)(unsafe.Pointer(&result))), i)
 }
