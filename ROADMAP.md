@@ -25,19 +25,36 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_tokenize`
 - [x] `llama_vocab_bos`
 - [x] `llama_vocab_eos`
+- [x] `llama_vocab_eot`
+- [x] `llama_vocab_fim_mid`
+- [x] `llama_vocab_fim_pad`
+- [x] `llama_vocab_fim_pre`
+- [x] `llama_vocab_fim_rep`
+- [x] `llama_vocab_fim_sep`
+- [x] `llama_vocab_fim_suf`
+- [x] `llama_vocab_get_add_bos`
+- [x] `llama_vocab_get_add_eos`
+- [x] `llama_vocab_get_add_sep`
 - [x] `llama_vocab_is_control`
 - [x] `llama_vocab_is_eog`
+- [x] `llama_vocab_mask`
 - [x] `llama_vocab_n_tokens`
+- [x] `llama_vocab_nl`
+- [x] `llama_vocab_pad`
+- [x] `llama_vocab_sep`
 
 ### Context Functions
 - [x] `llama_context_default_params`
 - [x] `llama_decode`
 - [x] `llama_encode`
 - [x] `llama_free`
+- [x] `llama_get_embeddings_ith`
+- [x] `llama_get_embeddings_seq`
 - [x] `llama_get_memory`
 - [x] `llama_memory_clear`
 - [x] `llama_memory_seq_rm`
 - [x] `llama_perf_context_reset`
+- [x] `llama_pooling_type`
 - [x] `llama_set_warmup`
 - [x] `llama_synchronize`
 
@@ -89,8 +106,6 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [ ] `llama_attach_threadpool`
 - [ ] `llama_clear_adapter_lora`
 - [ ] `llama_detach_threadpool`
-- [ ] `llama_get_embeddings_ith`
-- [ ] `llama_get_embeddings_seq`
 - [ ] `llama_get_embeddings`
 - [ ] `llama_get_logits_ith`
 - [ ] `llama_get_logits`
@@ -130,7 +145,6 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [ ] `llama_opt_epoch`
 - [ ] `llama_opt_init`
 - [ ] `llama_opt_param_filter_all`
-- [ ] `llama_pooling_type`
 - [ ] `llama_rm_adapter_lora`
 - [ ] `llama_set_adapter_lora`
 - [ ] `llama_set_causal_attn`
@@ -153,21 +167,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [ ] `llama_supports_mmap`
 - [ ] `llama_supports_rpc`
 - [ ] `llama_time_us`
-- [ ] `llama_vocab_eot`
-- [ ] `llama_vocab_fim_mid`
-- [ ] `llama_vocab_fim_pad`
-- [ ] `llama_vocab_fim_pre`
-- [ ] `llama_vocab_fim_rep`
-- [ ] `llama_vocab_fim_sep`
-- [ ] `llama_vocab_fim_suf`
-- [ ] `llama_vocab_get_add_bos`
-- [ ] `llama_vocab_get_add_eos`
-- [ ] `llama_vocab_get_add_sep`
 - [ ] `llama_vocab_get_attr`
 - [ ] `llama_vocab_get_score`
 - [ ] `llama_vocab_get_text`
-- [ ] `llama_vocab_mask`
-- [ ] `llama_vocab_nl`
-- [ ] `llama_vocab_pad`
-- [ ] `llama_vocab_sep`
 - [ ] `llama_vocab_type`
