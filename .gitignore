@@ -2,3 +2,4 @@ lib/
 *.so
 *.dylib
 *.dll
+/models

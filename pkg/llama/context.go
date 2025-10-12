@@ -6,17 +6,22 @@ import (
 	"github.com/jupiterrider/ffi"
 )
 
-var (
-	FFITypeContextParams = ffi.NewType(&ffi.TypeUint32, &ffi.TypeUint32, &ffi.TypeUint32, &ffi.TypeUint32,
-		&ffi.TypeSint32, &ffi.TypeSint32,
-		&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32,
-		&ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat,
-		&ffi.TypeUint32, &ffi.TypeFloat,
-		&ffi.TypePointer, &ffi.TypePointer,
-		&ffi.TypeSint32, &ffi.TypeSint32,
-		&ffi.TypePointer, &ffi.TypePointer,
-		&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8)
-)
+var FFITypeContextParams = ffi.NewType(
+	&ffi.TypeUint32, &ffi.TypeUint32,
+	&ffi.TypeUint32, &ffi.TypeUint32,
+	&ffi.TypeSint32, &ffi.TypeSint32,
+	&ffi.TypeSint32, &ffi.TypeSint32,
+	&ffi.TypeSint32, &ffi.TypeSint32,
+	&ffi.TypeFloat, &ffi.TypeFloat,
+	&ffi.TypeFloat, &ffi.TypeFloat,
+	&ffi.TypeFloat, &ffi.TypeFloat,
+	&ffi.TypeUint32, &ffi.TypeFloat,
+	&ffi.TypePointer, &ffi.TypePointer,
+	&ffi.TypeSint32, &ffi.TypeSint32,
+	&ffi.TypePointer, &ffi.TypePointer,
+	&ffi.TypeUint8, &ffi.TypeUint8,
+	&ffi.TypeUint8, &ffi.TypeUint8,
+	&ffi.TypeUint8, &ffi.TypeUint8)
 
 var (
 	// LLAMA_API struct llama_context_params        llama_context_default_params(void);
@@ -220,7 +225,7 @@ func GetEmbeddingsIth(ctx Context, i int32) []float32 {
 	var result ffi.Arg
 	getEmbeddingsIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &i)
 
-	return unsafe.Slice(((*float32)(unsafe.Pointer(&result))), i)
+	return unsafe.Slice(((*float32)(unsafe.Pointer(uintptr(result)))), i)
 }
 
 // GetEmbeddingsSeq gets the embeddings for this sequence ID.
@@ -228,5 +233,5 @@ func GetEmbeddingsSeq(ctx Context, seqID SeqId, i int32) []float32 {
 	var result ffi.Arg
 	getEmbeddingsSeqFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &seqID)
 
-	return unsafe.Slice(((*float32)(unsafe.Pointer(&result))), i)
+	return unsafe.Slice(((*float32)(unsafe.Pointer(uintptr(result)))), i)
 }

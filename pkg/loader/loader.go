@@ -9,7 +9,7 @@ import (
 	"github.com/jupiterrider/ffi"
 )
 
-// The path can be an empty string to use the location as set by the YZMA_LIB env variable.
+// LoadLibrary The path can be an empty string to use the location as set by the YZMA_LIB env variable.
 // The lib should be the "short name" for the library, for example:
 // gguf, llama, mtmd
 func LoadLibrary(path, lib string) (ffi.Lib, error) {

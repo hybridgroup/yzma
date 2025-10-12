@@ -14,7 +14,7 @@ func testSetup(t *testing.T) {
 	Init()
 }
 
-func testCleanup(t *testing.T) {
+func testCleanup(_ *testing.T) {
 	BackendFree()
 }
 
