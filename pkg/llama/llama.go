@@ -105,12 +105,12 @@ const (
 type PoolingType int32
 
 const (
-	POOLING_TYPE_UNSPECIFIED PoolingType = -1
-	POOLING_TYPE_NONE        PoolingType = 0
-	POOLING_TYPE_MEAN        PoolingType = 1
-	POOLING_TYPE_CLS         PoolingType = 2
-	POOLING_TYPE_LAST        PoolingType = 3
-	POOLING_TYPE_RANK        PoolingType = 4
+	PoolingTypeUnspecified PoolingType = -1
+	PoolingTypeNone        PoolingType = 0
+	PoolingTypeMean        PoolingType = 1
+	PoolingTypeCLS         PoolingType = 2
+	PoolingTypeLast        PoolingType = 3
+	PoolingTypeRank        PoolingType = 4
 )
 
 type AttentionType int32

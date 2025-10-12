@@ -45,6 +45,21 @@ var (
 
 	// LLAMA_API int32_t llama_model_n_ctx_train(const struct llama_model * model);
 	modelNCtxTrainFunc ffi.Fun
+
+	// LLAMA_API int32_t llama_model_n_embd     (const struct llama_model * model);
+	modelNEmbdFunc ffi.Fun
+
+	// LLAMA_API int32_t llama_model_n_layer    (const struct llama_model * model);
+	modelNLayerFunc ffi.Fun
+
+	// LLAMA_API int32_t llama_model_n_head     (const struct llama_model * model);
+	modelNHeadFunc ffi.Fun
+
+	// LLAMA_API int32_t llama_model_n_head_kv  (const struct llama_model * model);
+	modelNHeadKVFunc ffi.Fun
+
+	// LLAMA_API int32_t llama_model_n_swa      (const struct llama_model * model);
+	modelNSWAFunc ffi.Fun
 )
 
 func loadModelFuncs(lib ffi.Lib) error {
@@ -84,6 +99,26 @@ func loadModelFuncs(lib ffi.Lib) error {
 
 	if modelNCtxTrainFunc, err = lib.Prep("llama_model_n_ctx_train", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
 		return loadError("llama_model_n_ctx_train", err)
+	}
+
+	if modelNEmbdFunc, err = lib.Prep("llama_model_n_embd", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_n_embd", err)
+	}
+
+	if modelNLayerFunc, err = lib.Prep("llama_model_n_layer", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_n_embd", err)
+	}
+
+	if modelNHeadFunc, err = lib.Prep("llama_model_n_head", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_n_head", err)
+	}
+
+	if modelNHeadKVFunc, err = lib.Prep("llama_model_n_head_kv", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_n_head_kv", err)
+	}
+
+	if modelNSWAFunc, err = lib.Prep("llama_model_n_swa", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_n_swa", err)
 	}
 
 	return nil
@@ -156,6 +191,41 @@ func ModelDecoderStartToken(model Model) Token {
 func ModelNCtxTrain(model Model) int32 {
 	var result ffi.Arg
 	modelNCtxTrainFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
+
+	return int32(result)
+}
+
+func ModelNEmbd(model Model) int32 {
+	var result ffi.Arg
+	modelNEmbdFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
+
+	return int32(result)
+}
+
+func ModelNLayer(model Model) int32 {
+	var result ffi.Arg
+	modelNLayerFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
+
+	return int32(result)
+}
+
+func ModelNHead(model Model) int32 {
+	var result ffi.Arg
+	modelNHeadFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
+
+	return int32(result)
+}
+
+func ModelNHeadKV(model Model) int32 {
+	var result ffi.Arg
+	modelNHeadKVFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
+
+	return int32(result)
+}
+
+func ModelNSWA(model Model) int32 {
+	var result ffi.Arg
+	modelNSWAFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 
 	return int32(result)
 }
