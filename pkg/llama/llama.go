@@ -185,10 +185,12 @@ const (
 )
 
 // Opaque types (represented as pointers)
-type Model uintptr
-type Context uintptr
-type Vocab uintptr
-type AdapterLora uintptr
+type (
+	Model       uintptr
+	Context     uintptr
+	Vocab       uintptr
+	AdapterLora uintptr
+)
 
 // Structs
 type TokenData struct {

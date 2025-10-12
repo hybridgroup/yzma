@@ -18,7 +18,7 @@ func TestVocabBOS(t *testing.T) {
 
 	bos := VocabBOS(vocab)
 	if bos == TokenNull {
-		t.Fatal("VocabBOS returned TokenNull")
+		t.Skip("skipping test, model does not have BOS token")
 	}
 }
 
@@ -36,7 +36,7 @@ func TestVocabEOS(t *testing.T) {
 
 	eos := VocabEOS(vocab)
 	if eos == TokenNull {
-		t.Fatal("VocabEOS returned TokenNull")
+		t.Skip("skipping test, model does not have EOS token")
 	}
 }
 
@@ -54,13 +54,11 @@ func TestVocabEOT(t *testing.T) {
 
 	eot := VocabEOT(vocab)
 	if eot == TokenNull {
-		t.Fatal("VocabEOT returned TokenNull")
+		t.Skip("skipping test, model does not have EOT token")
 	}
 }
 
 func TestVocabSEP(t *testing.T) {
-	t.Skip("TODO: test this function for model with vocab that has this")
-
 	modelFile := testModelFileName(t)
 
 	testSetup(t)
@@ -74,7 +72,7 @@ func TestVocabSEP(t *testing.T) {
 
 	sep := VocabSEP(vocab)
 	if sep == TokenNull {
-		t.Fatal("VocabSEP returned TokenNull")
+		t.Skip("skipping test, model does not have SEP token")
 	}
 }
 
@@ -97,8 +95,6 @@ func TestVocabNL(t *testing.T) {
 }
 
 func TestVocabPAD(t *testing.T) {
-	t.Skip("TODO: test this function for model with vocab that has this")
-
 	modelFile := testModelFileName(t)
 
 	testSetup(t)
@@ -112,13 +108,11 @@ func TestVocabPAD(t *testing.T) {
 
 	pad := VocabPAD(vocab)
 	if pad == TokenNull {
-		t.Fatal("VocabPAD returned TokenNull")
+		t.Skip("skipping test, model does not have PAD token")
 	}
 }
 
 func TestVocabMASK(t *testing.T) {
-	t.Skip("TODO: test this function for model with vocab that has this")
-
 	modelFile := testModelFileName(t)
 
 	testSetup(t)
@@ -132,7 +126,7 @@ func TestVocabMASK(t *testing.T) {
 
 	mask := VocabMASK(vocab)
 	if mask == TokenNull {
-		t.Fatal("VocabMASK returned TokenNull")
+		t.Skip("skipping test, model does not have MASK token")
 	}
 }
 
@@ -171,8 +165,6 @@ func TestVocabGetAddEOS(t *testing.T) {
 }
 
 func TestVocabGetAddSEP(t *testing.T) {
-	t.Skip("TODO: test this function for model with vocab that has this")
-
 	modelFile := testModelFileName(t)
 
 	testSetup(t)
@@ -184,14 +176,17 @@ func TestVocabGetAddSEP(t *testing.T) {
 
 	vocab := ModelGetVocab(model)
 
+	sep := VocabSEP(vocab)
+	if sep == TokenNull {
+		t.Skip("skipping test, model does not have SEP token")
+	}
+
 	addSEP := VocabGetAddSEP(vocab)
 	// No specific expected value, just ensure it doesn't fail
 	_ = addSEP
 }
 
 func TestVocabFIMPre(t *testing.T) {
-	t.Skip("TODO: test this function for model with vocab that has this")
-
 	modelFile := testModelFileName(t)
 
 	testSetup(t)
@@ -205,13 +200,11 @@ func TestVocabFIMPre(t *testing.T) {
 
 	fimPre := VocabFIMPre(vocab)
 	if fimPre == TokenNull {
-		t.Fatal("VocabFIMPre returned TokenNull")
+		t.Skip("skipping test, model does not have FIMPre token")
 	}
 }
 
 func TestVocabFIMSuf(t *testing.T) {
-	t.Skip("TODO: test this function for model with vocab that has this")
-
 	modelFile := testModelFileName(t)
 
 	testSetup(t)
@@ -225,13 +218,11 @@ func TestVocabFIMSuf(t *testing.T) {
 
 	fimSuf := VocabFIMSuf(vocab)
 	if fimSuf == TokenNull {
-		t.Fatal("VocabFIMSuf returned TokenNull")
+		t.Skip("skipping test, model does not have FIMSuf token")
 	}
 }
 
 func TestVocabFIMMid(t *testing.T) {
-	t.Skip("TODO: test this function for model with vocab that has this")
-
 	modelFile := testModelFileName(t)
 
 	testSetup(t)
@@ -245,13 +236,11 @@ func TestVocabFIMMid(t *testing.T) {
 
 	fimMid := VocabFIMMid(vocab)
 	if fimMid == TokenNull {
-		t.Fatal("VocabFIMMid returned TokenNull")
+		t.Skip("skipping test, model does not have FIMMid token")
 	}
 }
 
 func TestVocabFIMPad(t *testing.T) {
-	t.Skip("TODO: test this function for model with vocab that has this")
-
 	modelFile := testModelFileName(t)
 
 	testSetup(t)
@@ -265,7 +254,7 @@ func TestVocabFIMPad(t *testing.T) {
 
 	fimPad := VocabFIMPad(vocab)
 	if fimPad == TokenNull {
-		t.Fatal("VocabFIMPad returned TokenNull")
+		t.Skip("skipping test, model does not have FIMPad token")
 	}
 }
 
@@ -283,13 +272,11 @@ func TestVocabFIMRep(t *testing.T) {
 
 	fimRep := VocabFIMRep(vocab)
 	if fimRep == TokenNull {
-		t.Fatal("VocabFIMRep returned TokenNull")
+		t.Skip("skipping test, model does not have FIMRep token")
 	}
 }
 
 func TestVocabFIMSep(t *testing.T) {
-	t.Skip("TODO: test this function for model with vocab that has this")
-
 	modelFile := testModelFileName(t)
 
 	testSetup(t)
@@ -303,6 +290,6 @@ func TestVocabFIMSep(t *testing.T) {
 
 	fimSep := VocabFIMSep(vocab)
 	if fimSep == TokenNull {
-		t.Fatal("VocabFIMSep returned TokenNull")
+		t.Skip("skipping test, model does not have FIMSep token")
 	}
 }

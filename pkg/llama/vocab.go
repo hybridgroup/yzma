@@ -69,12 +69,12 @@ var (
 	vocabNTokensFunc ffi.Fun
 
 	// LLAMA_API int32_t llama_token_to_piece(
-	// 		const struct llama_vocab * vocab,
-	// 					llama_token   token,
-	// 							char * buf,
-	// 						int32_t   length,
-	// 						int32_t   lstrip,
-	// 							bool   special);
+	//              const struct llama_vocab * vocab,
+	//                           llama_token   token,
+	//                                  char * buf,
+	//                               int32_t   length,
+	//                               int32_t   lstrip,
+	//                               bool   special);
 	tokenToPieceFunc ffi.Fun
 
 	// LLAMA_API int32_t llama_tokenize(
@@ -173,13 +173,11 @@ func loadVocabFuncs(lib ffi.Lib) error {
 
 	if tokenToPieceFunc, err = lib.Prep("llama_token_to_piece", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32,
 		&ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeUint8); err != nil {
-
 		return loadError("llama_token_to_piece", err)
 	}
 
 	if tokenizeFunc, err = lib.Prep("llama_tokenize", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32,
 		&ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeUint8, &ffi.TypeUint8); err != nil {
-
 		return loadError("llama_tokenize", err)
 	}
 
@@ -192,12 +190,14 @@ func ModelGetVocab(model Model) Vocab {
 
 	return vocab
 }
+
 func VocabBOS(vocab Vocab) Token {
 	var token ffi.Arg
 	vocabBOSFunc.Call(unsafe.Pointer(&token), unsafe.Pointer(&vocab))
 
 	return Token(token)
 }
+
 func VocabEOS(vocab Vocab) Token {
 	var token ffi.Arg
 	vocabEOSFunc.Call(unsafe.Pointer(&token), unsafe.Pointer(&vocab))
@@ -328,13 +328,15 @@ func Tokenize(vocab Vocab, text string, tokens []Token, addSpecial bool, parseSp
 	txt, _ := utils.BytePtrFromString(text)
 	txtLen := int32(len(text))
 
-	toks := unsafe.SliceData(tokens)
-	nTokensMax := len(tokens)
+	var toks *Token
+	if len(tokens) > 0 {
+		toks = unsafe.SliceData(tokens)
+	}
+	nTokensMax := int32(len(tokens))
 
 	var result ffi.Arg
 	tokenizeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&vocab), unsafe.Pointer(&txt), &txtLen,
 		unsafe.Pointer(&toks), &nTokensMax, &addSpecial, &parseSpecial)
 
-	// for whatever reason, llama.cpp returns a negative number.
 	return -int32(result)
 }
