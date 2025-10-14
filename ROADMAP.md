@@ -55,12 +55,21 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_get_embeddings_ith`
 - [x] `llama_get_embeddings_seq`
 - [x] `llama_get_memory`
-- [x] `llama_memory_clear`
-- [x] `llama_memory_seq_rm`
 - [x] `llama_perf_context_reset`
 - [x] `llama_pooling_type`
 - [x] `llama_set_warmup`
 - [x] `llama_synchronize`
+
+### Memory Functions
+- [x] `llama_memory_can_shift`
+- [x] `llama_memory_clear`
+- [x] `llama_memory_seq_add`
+- [x] `llama_memory_seq_cp`
+- [x] `llama_memory_seq_div`
+- [x] `llama_memory_seq_keep`
+- [x] `llama_memory_seq_pos_max`
+- [x] `llama_memory_seq_pos_min`
+- [x] `llama_memory_seq_rm`
 
 ### Batch Functions
 - [x] `llama_batch_free`
@@ -116,13 +125,6 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [ ] `llama_get_model`
 - [ ] `llama_max_devices`
 - [ ] `llama_max_parallel_sequences`
-- [ ] `llama_memory_can_shift`
-- [ ] `llama_memory_seq_add`
-- [ ] `llama_memory_seq_cp`
-- [ ] `llama_memory_seq_div`
-- [ ] `llama_memory_seq_keep`
-- [ ] `llama_memory_seq_pos_max`
-- [ ] `llama_memory_seq_pos_min`
 - [ ] `llama_model_cls_label`
 - [ ] `llama_model_desc`
 - [ ] `llama_model_is_diffusion`
