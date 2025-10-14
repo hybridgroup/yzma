@@ -7,6 +7,13 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 ### Backend Functions
 - [x] `llama_backend_free`
 - [x] `llama_backend_init`
+- [x] `llama_max_devices`
+- [x] `llama_max_parallel_sequences`
+- [x] `llama_supports_gpu_offload`
+- [x] `llama_supports_mlock`
+- [x] `llama_supports_mmap`
+- [x] `llama_supports_rpc`
+- [x] `llama_time_us`
 
 ### Model Functions
 - [x] `llama_init_from_model`
@@ -137,8 +144,6 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [ ] `llama_get_logits_ith`
 - [ ] `llama_get_logits`
 - [ ] `llama_get_model`
-- [ ] `llama_max_devices`
-- [ ] `llama_max_parallel_sequences`
 - [ ] `llama_model_load_from_splits`
 - [ ] `llama_model_quantize_default_params`
 - [ ] `llama_model_quantize`
@@ -167,8 +172,3 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [ ] `llama_state_seq_set_data_ext`
 - [ ] `llama_state_seq_set_data`
 - [ ] `llama_state_set_data`
-- [ ] `llama_supports_gpu_offload`
-- [ ] `llama_supports_mlock`
-- [ ] `llama_supports_mmap`
-- [ ] `llama_supports_rpc`
-- [ ] `llama_time_us`
