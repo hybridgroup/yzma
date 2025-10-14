@@ -96,10 +96,10 @@ const (
 type RopeScalingType int32
 
 const (
-	ROPE_SCALING_TYPE_UNSPECIFIED RopeScalingType = -1
-	ROPE_SCALING_TYPE_NONE        RopeScalingType = 0
-	ROPE_SCALING_TYPE_LINEAR      RopeScalingType = 1
-	ROPE_SCALING_TYPE_YARN        RopeScalingType = 2
+	RopeScalingTypeUnspecified RopeScalingType = -1
+	RopeScalingTypeNone        RopeScalingType = 0
+	RopeScalingTypeLinear      RopeScalingType = 1
+	RopeScalingTypeYARN        RopeScalingType = 2
 )
 
 type PoolingType int32
