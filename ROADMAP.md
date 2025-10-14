@@ -76,6 +76,11 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_get_embeddings_ith`
 - [x] `llama_get_embeddings_seq`
 - [x] `llama_get_memory`
+- [x] `llama_get_model`
+- [x] `llama_n_batch`
+- [x] `llama_n_ctx`
+- [x] `llama_n_seq_max`
+- [x] `llama_n_ubatch`
 - [x] `llama_perf_context_reset`
 - [x] `llama_pooling_type`
 - [x] `llama_set_warmup`
@@ -143,14 +148,9 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [ ] `llama_get_embeddings`
 - [ ] `llama_get_logits_ith`
 - [ ] `llama_get_logits`
-- [ ] `llama_get_model`
 - [ ] `llama_model_load_from_splits`
 - [ ] `llama_model_quantize_default_params`
 - [ ] `llama_model_quantize`
-- [ ] `llama_n_batch`
-- [ ] `llama_n_ctx`
-- [ ] `llama_n_seq_max`
-- [ ] `llama_n_ubatch`
 - [ ] `llama_numa_init`
 - [ ] `llama_opt_epoch`
 - [ ] `llama_opt_init`
