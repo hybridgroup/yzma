@@ -144,7 +144,7 @@ See the [examples](./examples/) directory for more examples of how to use `yzma`
 
 ## More info
 
-`yzma` is a work in progress but it already has support for a lot of basic functionality. See [ROADMAP.md](./ROADMAP.md) for a complete list.
+`yzma` is a work in progress but it already has support for over 70% of `llama.cpp` functionality. See [ROADMAP.md](./ROADMAP.md) for a complete list.
 
 You can already use VLMs and other language models with full hardware acceleration on Linux, on macOS, and on Windows.
 

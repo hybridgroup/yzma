@@ -2,7 +2,7 @@
 
 This is a list of all functions exposed by `llama.cpp` and the current state of the associated `yzma` wrapper.
 
-## Functions in `llama.cpp` with wrappers
+## Completed wrappers
 
 ### Backend Functions
 - [x] `llama_backend_free`
