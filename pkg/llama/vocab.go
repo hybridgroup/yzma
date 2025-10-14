@@ -86,6 +86,18 @@ var (
 	//                         bool   add_special,
 	//                         bool   parse_special);
 	tokenizeFunc ffi.Fun
+
+	// LLAMA_API enum llama_token_attr llama_vocab_get_attr(const struct llama_vocab * vocab, llama_token token);
+	vocabGetAttrFunc ffi.Fun
+
+	// LLAMA_API float llama_vocab_get_score(const struct llama_vocab * vocab, llama_token token);
+	vocabGetScoreFunc ffi.Fun
+
+	// LLAMA_API const char * llama_vocab_get_text(const struct llama_vocab * vocab, llama_token token);
+	vocabGetTextFunc ffi.Fun
+
+	// LLAMA_API enum llama_vocab_type llama_vocab_type(const struct llama_vocab * vocab);
+	vocabTypeFunc ffi.Fun
 )
 
 func loadVocabFuncs(lib ffi.Lib) error {
@@ -179,6 +191,22 @@ func loadVocabFuncs(lib ffi.Lib) error {
 	if tokenizeFunc, err = lib.Prep("llama_tokenize", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32,
 		&ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeUint8, &ffi.TypeUint8); err != nil {
 		return loadError("llama_tokenize", err)
+	}
+
+	if vocabGetAttrFunc, err = lib.Prep("llama_vocab_get_attr", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_vocab_get_attr", err)
+	}
+
+	if vocabGetScoreFunc, err = lib.Prep("llama_vocab_get_score", &ffi.TypeFloat, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_vocab_get_score", err)
+	}
+
+	if vocabGetTextFunc, err = lib.Prep("llama_vocab_get_text", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_vocab_get_text", err)
+	}
+
+	if vocabTypeFunc, err = lib.Prep("llama_vocab_type", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_vocab_type", err)
 	}
 
 	return nil
@@ -339,4 +367,38 @@ func Tokenize(vocab Vocab, text string, tokens []Token, addSpecial bool, parseSp
 		unsafe.Pointer(&toks), &nTokensMax, &addSpecial, &parseSpecial)
 
 	return -int32(result)
+}
+
+// VocabGetAttr retrieves the attribute of a given token in the vocabulary.
+func VocabGetAttr(vocab Vocab, token Token) TokenAttr {
+	var attr ffi.Arg
+	vocabGetAttrFunc.Call(unsafe.Pointer(&attr), unsafe.Pointer(&vocab), unsafe.Pointer(&token))
+	return TokenAttr(int32(attr))
+}
+
+// VocabGetScore retrieves the score of a given token in the vocabulary.
+func VocabGetScore(vocab Vocab, token Token) float32 {
+	var score ffi.Arg
+	vocabGetScoreFunc.Call(unsafe.Pointer(&score), unsafe.Pointer(&vocab), unsafe.Pointer(&token))
+	return float32(score)
+}
+
+// VocabGetText retrieves the text representation of a given token in the vocabulary.
+func VocabGetText(vocab Vocab, token Token) string {
+	var textPtr *byte
+	vocabGetTextFunc.Call(unsafe.Pointer(&textPtr), unsafe.Pointer(&vocab), unsafe.Pointer(&token))
+
+	if textPtr == nil {
+		return ""
+	}
+
+	return utils.BytePtrToString(textPtr)
+}
+
+// VocabType retrieves the type of the vocabulary.
+func GetVocabType(vocab Vocab) VocabType {
+	var vocabType ffi.Arg
+	vocabTypeFunc.Call(unsafe.Pointer(&vocabType), unsafe.Pointer(&vocab))
+
+	return VocabType(int32(vocabType))
 }

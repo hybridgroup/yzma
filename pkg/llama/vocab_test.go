@@ -293,3 +293,95 @@ func TestVocabFIMSep(t *testing.T) {
 		t.Skip("skipping test, model does not have FIMSep token")
 	}
 }
+
+func TestVocabGetAttr(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ModelDefaultParams()
+	model := ModelLoadFromFile(modelFile, params)
+	defer ModelFree(model)
+
+	vocab := ModelGetVocab(model)
+
+	// Use a valid token for testing, e.g., BOS token
+	token := VocabBOS(vocab)
+	if token == TokenNull {
+		t.Skip("skipping test, model does not have BOS token")
+	}
+
+	attr := VocabGetAttr(vocab, token)
+	// No specific expected value, just ensure it doesn't fail
+	t.Logf("VocabGetAttr returned attribute: %d for token: %d", attr, token)
+}
+
+func TestVocabGetScore(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ModelDefaultParams()
+	model := ModelLoadFromFile(modelFile, params)
+	defer ModelFree(model)
+
+	vocab := ModelGetVocab(model)
+
+	// Use a valid token for testing, e.g., BOS token
+	token := VocabBOS(vocab)
+	if token == TokenNull {
+		t.Skip("skipping test, model does not have BOS token")
+	}
+
+	score := VocabGetScore(vocab, token)
+	if score < 0 {
+		t.Fatalf("VocabGetScore returned an invalid score: %f for token: %d", score, token)
+	}
+
+	t.Logf("VocabGetScore returned score: %f for token: %d", score, token)
+}
+
+func TestVocabGetText(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ModelDefaultParams()
+	model := ModelLoadFromFile(modelFile, params)
+	defer ModelFree(model)
+
+	vocab := ModelGetVocab(model)
+
+	// Use a valid token for testing, e.g., BOS token
+	token := VocabBOS(vocab)
+	if token == TokenNull {
+		t.Skip("skipping test, model does not have BOS token")
+	}
+
+	text := VocabGetText(vocab, token)
+	if text == "" {
+		t.Fatalf("VocabGetText returned an empty string for token: %d", token)
+	}
+
+	t.Logf("VocabGetText returned text: %s for token: %d", text, token)
+}
+
+func TestGetVocabType(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ModelDefaultParams()
+	model := ModelLoadFromFile(modelFile, params)
+	defer ModelFree(model)
+
+	vocab := ModelGetVocab(model)
+
+	vocabType := GetVocabType(vocab)
+	// No specific expected value, just ensure it doesn't fail
+	t.Logf("VocabType returned type: %d", vocabType)
+}

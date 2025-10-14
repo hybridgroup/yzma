@@ -35,6 +35,9 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_vocab_get_add_bos`
 - [x] `llama_vocab_get_add_eos`
 - [x] `llama_vocab_get_add_sep`
+- [x] `llama_vocab_get_attr`
+- [x] `llama_vocab_get_score`
+- [x] `llama_vocab_get_text`
 - [x] `llama_vocab_is_control`
 - [x] `llama_vocab_is_eog`
 - [x] `llama_vocab_mask`
@@ -42,6 +45,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_vocab_nl`
 - [x] `llama_vocab_pad`
 - [x] `llama_vocab_sep`
+- [x] `llama_vocab_type`
 
 ### Context Functions
 - [x] `llama_context_default_params`
@@ -167,7 +171,3 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [ ] `llama_supports_mmap`
 - [ ] `llama_supports_rpc`
 - [ ] `llama_time_us`
-- [ ] `llama_vocab_get_attr`
-- [ ] `llama_vocab_get_score`
-- [ ] `llama_vocab_get_text`
-- [ ] `llama_vocab_type`
