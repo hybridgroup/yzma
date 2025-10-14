@@ -60,6 +60,33 @@ var (
 
 	// LLAMA_API int32_t llama_model_n_swa      (const struct llama_model * model);
 	modelNSWAFunc ffi.Fun
+
+	// LLAMA_API uint32_t llama_model_n_cls_out(const struct llama_model * model);
+	modelNClsOutFunc ffi.Fun
+
+	// LLAMA_API const char * llama_model_cls_label(const struct llama_model * model, uint32_t i);
+	modelClsLabelFunc ffi.Fun
+
+	// LLAMA_API int32_t llama_model_desc(const struct llama_model * model, char * buf, size_t buf_size);
+	modelDescFunc ffi.Fun
+
+	// LLAMA_API uint64_t llama_model_size(const struct llama_model * model);
+	modelSizeFunc ffi.Fun
+
+	// LLAMA_API bool llama_model_is_recurrent(const struct llama_model * model);
+	modelIsRecurrentFunc ffi.Fun
+
+	// LLAMA_API bool llama_model_is_hybrid(const struct llama_model * model);
+	modelIsHybridFunc ffi.Fun
+
+	// LLAMA_API bool llama_model_is_diffusion(const struct llama_model * model);
+	modelIsDiffusionFunc ffi.Fun
+
+	// LLAMA_API float llama_model_rope_freq_scale_train(const struct llama_model * model);
+	modelRopeFreqScaleTrainFunc ffi.Fun
+
+	// LLAMA_API enum llama_rope_type llama_model_rope_type(const struct llama_model * model);
+	modelRopeTypeFunc ffi.Fun
 )
 
 func loadModelFuncs(lib ffi.Lib) error {
@@ -119,6 +146,42 @@ func loadModelFuncs(lib ffi.Lib) error {
 
 	if modelNSWAFunc, err = lib.Prep("llama_model_n_swa", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
 		return loadError("llama_model_n_swa", err)
+	}
+
+	if modelNClsOutFunc, err = lib.Prep("llama_model_n_cls_out", &ffi.TypeUint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_n_cls_out", err)
+	}
+
+	if modelClsLabelFunc, err = lib.Prep("llama_model_cls_label", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+		return loadError("llama_model_cls_label", err)
+	}
+
+	if modelDescFunc, err = lib.Prep("llama_model_desc", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+		return loadError("llama_model_desc", err)
+	}
+
+	if modelSizeFunc, err = lib.Prep("llama_model_size", &ffi.TypeUint64, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_size", err)
+	}
+
+	if modelIsRecurrentFunc, err = lib.Prep("llama_model_is_recurrent", &ffi.TypeUint8, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_is_recurrent", err)
+	}
+
+	if modelIsHybridFunc, err = lib.Prep("llama_model_is_hybrid", &ffi.TypeUint8, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_is_hybrid", err)
+	}
+
+	if modelIsDiffusionFunc, err = lib.Prep("llama_model_is_diffusion", &ffi.TypeUint8, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_is_diffusion", err)
+	}
+
+	if modelRopeFreqScaleTrainFunc, err = lib.Prep("llama_model_rope_freq_scale_train", &ffi.TypeFloat, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_rope_freq_scale_train", err)
+	}
+
+	if modelRopeTypeFunc, err = lib.Prep("llama_model_rope_type", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_rope_type", err)
 	}
 
 	return nil
@@ -228,6 +291,83 @@ func ModelNSWA(model Model) int32 {
 	modelNSWAFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 
 	return int32(result)
+}
+
+// ModelNClsOut returns the number of classifier outputs (only valid for classifier models).
+func ModelNClsOut(model Model) uint32 {
+	var nClsOut ffi.Arg
+	modelNClsOutFunc.Call(unsafe.Pointer(&nClsOut), unsafe.Pointer(&model))
+	return uint32(nClsOut)
+}
+
+// ModelClsLabel returns the label of a classifier output by index.
+func ModelClsLabel(model Model, index uint32) string {
+	var labelPtr *byte
+	modelClsLabelFunc.Call(unsafe.Pointer(&labelPtr), unsafe.Pointer(&model), unsafe.Pointer(&index))
+
+	if labelPtr == nil {
+		return ""
+	}
+
+	return utils.BytePtrToString(labelPtr)
+}
+
+// ModelDesc retrieves a string describing the model type.
+func ModelDesc(model Model) string {
+	buf := make([]byte, 128)
+	b := unsafe.SliceData(buf)
+	bLen := int32(len(buf))
+
+	var result ffi.Arg
+	modelDescFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model), unsafe.Pointer(&b), &bLen)
+
+	if int32(result) < 0 {
+		return ""
+	}
+
+	return string(buf[:int32(result)])
+}
+
+// ModelSize returns the total size of all tensors in the model in bytes.
+func ModelSize(model Model) uint64 {
+	var size ffi.Arg
+	modelSizeFunc.Call(unsafe.Pointer(&size), unsafe.Pointer(&model))
+	return uint64(size)
+}
+
+// ModelIsRecurrent returns true if the model is recurrent.
+func ModelIsRecurrent(model Model) bool {
+	var result ffi.Arg
+	modelIsRecurrentFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
+	return result.Bool()
+}
+
+// ModelIsHybrid returns true if the model is hybrid.
+func ModelIsHybrid(model Model) bool {
+	var result ffi.Arg
+	modelIsHybridFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
+	return result.Bool()
+}
+
+// ModelIsDiffusion returns true if the model is diffusion-based.
+func ModelIsDiffusion(model Model) bool {
+	var result ffi.Arg
+	modelIsDiffusionFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
+	return result.Bool()
+}
+
+// ModelRopeFreqScaleTrain retrieves the model's RoPE frequency scaling factor.
+func ModelRopeFreqScaleTrain(model Model) float32 {
+	var freqScale ffi.Arg
+	modelRopeFreqScaleTrainFunc.Call(unsafe.Pointer(&freqScale), unsafe.Pointer(&model))
+	return float32(freqScale)
+}
+
+// ModelRopeType retrieves the RoPE type of the model.
+func ModelRopeType(model Model) RopeScalingType {
+	var ropeType ffi.Arg
+	modelRopeTypeFunc.Call(unsafe.Pointer(&ropeType), unsafe.Pointer(&model))
+	return RopeScalingType(int32(ropeType))
 }
 
 // Warmup is to warm-up a model.

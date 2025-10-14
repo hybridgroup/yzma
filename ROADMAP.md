@@ -11,13 +11,27 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 ### Model Functions
 - [x] `llama_init_from_model`
 - [x] `llama_model_chat_template`
+- [x] `llama_model_cls_label`
 - [x] `llama_model_decoder_start_token`
 - [x] `llama_model_default_params`
+- [x] `llama_model_desc`
 - [x] `llama_model_free`
 - [x] `llama_model_has_decoder`
 - [x] `llama_model_has_encoder`
+- [x] `llama_model_is_diffusion`
+- [x] `llama_model_is_hybrid`
+- [x] `llama_model_is_recurrent`
 - [x] `llama_model_load_from_file`
+- [x] `llama_model_n_cls_out`
 - [x] `llama_model_n_ctx_train`
+- [x] `llama_model_n_embd`
+- [x] `llama_model_n_head_kv`
+- [x] `llama_model_n_head`
+- [x] `llama_model_n_layer`
+- [x] `llama_model_n_swa`
+- [x] `llama_model_rope_freq_scale_train`
+- [x] `llama_model_rope_type`
+- [x] `llama_model_size`
 
 ### Vocab Functions
 - [x] `llama_model_get_vocab`
@@ -125,24 +139,9 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [ ] `llama_get_model`
 - [ ] `llama_max_devices`
 - [ ] `llama_max_parallel_sequences`
-- [ ] `llama_model_cls_label`
-- [ ] `llama_model_desc`
-- [ ] `llama_model_is_diffusion`
-- [ ] `llama_model_is_hybrid`
-- [ ] `llama_model_is_recurrent`
 - [ ] `llama_model_load_from_splits`
-- [ ] `llama_model_n_cls_out`
-- [ ] `llama_model_n_ctx_train`
-- [ ] `llama_model_n_embd`
-- [ ] `llama_model_n_head_kv`
-- [ ] `llama_model_n_head`
-- [ ] `llama_model_n_layer`
-- [ ] `llama_model_n_swa`
 - [ ] `llama_model_quantize_default_params`
 - [ ] `llama_model_quantize`
-- [ ] `llama_model_rope_freq_scale_train`
-- [ ] `llama_model_rope_type`
-- [ ] `llama_model_size`
 - [ ] `llama_n_batch`
 - [ ] `llama_n_ctx`
 - [ ] `llama_n_seq_max`
