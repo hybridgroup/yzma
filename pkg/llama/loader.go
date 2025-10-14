@@ -22,7 +22,7 @@ func Load(path string) error {
 		return err
 	}
 
-	if err := loadFuncs(lib); err != nil {
+	if err := loadBackendFuncs(lib); err != nil {
 		return err
 	}
 
