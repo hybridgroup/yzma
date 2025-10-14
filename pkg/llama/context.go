@@ -69,6 +69,21 @@ var (
 	// otherwise: float[n_embd] (1-dimensional)
 	// LLAMA_API float * llama_get_embeddings_seq(struct llama_context * ctx, llama_seq_id seq_id);
 	getEmbeddingsSeqFunc ffi.Fun
+
+	// LLAMA_API uint32_t llama_n_ctx(const struct llama_context * ctx);
+	nCtxFunc ffi.Fun
+
+	// LLAMA_API uint32_t llama_n_batch(const struct llama_context * ctx);
+	nBatchFunc ffi.Fun
+
+	// LLAMA_API uint32_t llama_n_ubatch(const struct llama_context * ctx);
+	nUBatchFunc ffi.Fun
+
+	// LLAMA_API uint32_t llama_n_seq_max(const struct llama_context * ctx);
+	nSeqMaxFunc ffi.Fun
+
+	// LLAMA_API const struct llama_model * llama_get_model(const struct llama_context * ctx);
+	getModelFunc ffi.Fun
 )
 
 func loadContextFuncs(lib ffi.Lib) error {
@@ -116,6 +131,26 @@ func loadContextFuncs(lib ffi.Lib) error {
 
 	if getEmbeddingsSeqFunc, err = lib.Prep("llama_get_embeddings_seq", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
 		return loadError("llama_get_embeddings_seq", err)
+	}
+
+	if nCtxFunc, err = lib.Prep("llama_n_ctx", &ffi.TypeUint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_n_ctx", err)
+	}
+
+	if nBatchFunc, err = lib.Prep("llama_n_batch", &ffi.TypeUint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_n_batch", err)
+	}
+
+	if nUBatchFunc, err = lib.Prep("llama_n_ubatch", &ffi.TypeUint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_n_ubatch", err)
+	}
+
+	if nSeqMaxFunc, err = lib.Prep("llama_n_seq_max", &ffi.TypeUint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_n_seq_max", err)
+	}
+
+	if getModelFunc, err = lib.Prep("llama_get_model", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("llama_get_model", err)
 	}
 
 	return nil
@@ -196,4 +231,40 @@ func GetEmbeddingsSeq(ctx Context, seqID SeqId, i int32) []float32 {
 	getEmbeddingsSeqFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &seqID)
 
 	return unsafe.Slice(((*float32)(unsafe.Pointer(uintptr(result)))), i)
+}
+
+// NCtx returns the number of context tokens.
+func NCtx(ctx Context) uint32 {
+	var result ffi.Arg
+	nCtxFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+	return uint32(result)
+}
+
+// NBatch returns the number of batch tokens.
+func NBatch(ctx Context) uint32 {
+	var result ffi.Arg
+	nBatchFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+	return uint32(result)
+}
+
+// NUBatch returns the number of micro-batch tokens.
+func NUBatch(ctx Context) uint32 {
+	var result ffi.Arg
+	nUBatchFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+	return uint32(result)
+}
+
+// NSeqMax returns the maximum number of sequences.
+func NSeqMax(ctx Context) uint32 {
+	var result ffi.Arg
+	nSeqMaxFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+	return uint32(result)
+}
+
+// GetModel retrieves the model associated with the given context.
+func GetModel(ctx Context) Model {
+	var model Model
+	getModelFunc.Call(unsafe.Pointer(&model), unsafe.Pointer(&ctx))
+
+	return model
 }
