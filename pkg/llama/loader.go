@@ -50,6 +50,10 @@ func Load(path string) error {
 		return err
 	}
 
+	if err := loadMemoryFuncs(lib); err != nil {
+		return err
+	}
+
 	if err := loadLogFuncs(lib); err != nil {
 		return err
 	}
