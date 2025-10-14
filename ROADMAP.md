@@ -129,6 +129,26 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 ### Chat Functions
 - [x] `llama_chat_apply_template`
 
+### `mtmd` Functions
+
+Note that these functions are considered by `llama.cpp` to be experimental, and are subject to change.
+
+- [x] `mtmd_bitmap_free`
+- [x] `mtmd_bitmap_get_n_bytes`
+- [x] `mtmd_bitmap_init`
+- [x] `mtmd_context_params_default`
+- [x] `mtmd_default_marker`
+- [x] `mtmd_free`
+- [x] `mtmd_helper_bitmap_init_from_buf`
+- [x] `mtmd_helper_bitmap_init_from_file`
+- [x] `mtmd_helper_eval_chunks`
+- [x] `mtmd_init_from_file`
+- [x] `mtmd_input_chunks_free`
+- [x] `mtmd_input_chunks_init`
+- [x] `mtmd_input_chunks_size`
+- [x] `mtmd_support_vision`
+- [x] `mtmd_tokenize`
+
 ---
 
 ## Functions in `llama.cpp` still needing wrappers
@@ -172,3 +192,36 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [ ] `llama_state_seq_set_data_ext`
 - [ ] `llama_state_seq_set_data`
 - [ ] `llama_state_set_data`
+
+### `mtmd` Functions still needing wrappers
+
+Note that these functions are considered by `llama.cpp` to be experimental, and are subject to change.
+
+- [ ] `mtmd_bitmap_get_data`
+- [ ] `mtmd_bitmap_get_id`
+- [ ] `mtmd_bitmap_get_nx`
+- [ ] `mtmd_bitmap_get_ny`
+- [ ] `mtmd_bitmap_init_from_audio`
+- [ ] `mtmd_bitmap_is_audio`
+- [ ] `mtmd_bitmap_set_id`
+- [ ] `mtmd_decode_use_mrope`
+- [ ] `mtmd_decode_use_non_causal`
+- [ ] `mtmd_encode_chunk`
+- [ ] `mtmd_encode`
+- [ ] `mtmd_get_audio_bitrate`
+- [ ] `mtmd_get_output_embd`
+- [ ] `mtmd_image_tokens_get_id`
+- [ ] `mtmd_image_tokens_get_n_pos`
+- [ ] `mtmd_image_tokens_get_n_tokens`
+- [ ] `mtmd_image_tokens_get_nx`
+- [ ] `mtmd_image_tokens_get_ny`
+- [ ] `mtmd_input_chunk_copy`
+- [ ] `mtmd_input_chunk_free`
+- [ ] `mtmd_input_chunk_get_id`
+- [ ] `mtmd_input_chunk_get_n_pos`
+- [ ] `mtmd_input_chunk_get_n_tokens`
+- [ ] `mtmd_input_chunk_get_tokens_image`
+- [ ] `mtmd_input_chunk_get_tokens_text`
+- [ ] `mtmd_input_chunk_get_type`
+- [ ] `mtmd_input_chunks_get`
+- [ ] `mtmd_support_audio`
