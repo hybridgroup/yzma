@@ -3,19 +3,9 @@ package mtmd
 import (
 	"unsafe"
 
+	"github.com/hybridgroup/yzma/pkg/utils"
 	"github.com/jupiterrider/ffi"
 )
-
-// // if bitmap is image:
-// //     length of data must be nx * ny * 3
-// //     the data is in RGBRGBRGB... format
-// MTMD_API uint32_t              mtmd_bitmap_get_nx     (const mtmd_bitmap * bitmap);
-// MTMD_API uint32_t              mtmd_bitmap_get_ny     (const mtmd_bitmap * bitmap);
-// MTMD_API const unsigned char * mtmd_bitmap_get_data   (const mtmd_bitmap * bitmap);
-// // bitmap ID is optional, but useful for KV cache tracking
-// // these getters/setters are dedicated functions, so you can for example calculate the hash of the image based on mtmd_bitmap_get_data()
-// MTMD_API const char * mtmd_bitmap_get_id(const mtmd_bitmap * bitmap);
-// MTMD_API void         mtmd_bitmap_set_id(mtmd_bitmap * bitmap, const char * id);
 
 // Opaque types (represented as pointers)
 type Bitmap uintptr
@@ -35,6 +25,24 @@ var (
 
 	// MTMD_API mtmd_bitmap * mtmd_helper_bitmap_init_from_buf(mtmd_context * ctx, const unsigned char * buf, size_t len);
 	bitmapInitFromBufFunc ffi.Fun
+
+	// MTMD_API uint32_t mtmd_bitmap_get_nx(const mtmd_bitmap * bitmap);
+	bitmapGetNxFunc ffi.Fun
+
+	// MTMD_API uint32_t mtmd_bitmap_get_ny(const mtmd_bitmap * bitmap);
+	bitmapGetNyFunc ffi.Fun
+
+	// MTMD_API const unsigned char * mtmd_bitmap_get_data(const mtmd_bitmap * bitmap);
+	bitmapGetDataFunc ffi.Fun
+
+	// MTMD_API bool mtmd_bitmap_is_audio(const mtmd_bitmap * bitmap);
+	bitmapIsAudioFunc ffi.Fun
+
+	// MTMD_API const char * mtmd_bitmap_get_id(const mtmd_bitmap * bitmap);
+	bitmapGetIdFunc ffi.Fun
+
+	// MTMD_API void mtmd_bitmap_set_id(mtmd_bitmap * bitmap, const char * id);
+	bitmapSetIdFunc ffi.Fun
 )
 
 func loadBitmapFuncs(lib ffi.Lib) error {
@@ -58,6 +66,30 @@ func loadBitmapFuncs(lib ffi.Lib) error {
 
 	if bitmapInitFromBufFunc, err = lib.Prep("mtmd_helper_bitmap_init_from_buf", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
 		return loadError("mtmd_helper_bitmap_init_from_buf", err)
+	}
+
+	if bitmapGetNxFunc, err = lib.Prep("mtmd_bitmap_get_nx", &ffi.TypeUint32, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_bitmap_get_nx", err)
+	}
+
+	if bitmapGetNyFunc, err = lib.Prep("mtmd_bitmap_get_ny", &ffi.TypeUint32, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_bitmap_get_ny", err)
+	}
+
+	if bitmapGetDataFunc, err = lib.Prep("mtmd_bitmap_get_data", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_bitmap_get_data", err)
+	}
+
+	if bitmapIsAudioFunc, err = lib.Prep("mtmd_bitmap_is_audio", &ffi.TypeUint8, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_bitmap_is_audio", err)
+	}
+
+	if bitmapGetIdFunc, err = lib.Prep("mtmd_bitmap_get_id", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_bitmap_get_id", err)
+	}
+
+	if bitmapSetIdFunc, err = lib.Prep("mtmd_bitmap_set_id", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_bitmap_set_id", err)
 	}
 
 	return nil
@@ -99,4 +131,58 @@ func BitmapInitFromBuf(ctx Context, buf *byte, len uint64) Bitmap {
 	bitmapInitFromBufFunc.Call(unsafe.Pointer(&bitmap), unsafe.Pointer(&ctx), unsafe.Pointer(&buf), &len)
 
 	return bitmap
+}
+
+// BitmapGetNx retrieves the width (nx) of the bitmap.
+func BitmapGetNx(bitmap Bitmap) uint32 {
+	var result ffi.Arg
+	bitmapGetNxFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&bitmap))
+	return uint32(result)
+}
+
+// BitmapGetNy retrieves the height (ny) of the bitmap.
+func BitmapGetNy(bitmap Bitmap) uint32 {
+	var result ffi.Arg
+	bitmapGetNyFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&bitmap))
+	return uint32(result)
+}
+
+// BitmapGetData retrieves the raw data of the bitmap.
+func BitmapGetData(bitmap Bitmap) []byte {
+	var dataPtr *byte
+	bitmapGetDataFunc.Call(unsafe.Pointer(&dataPtr), unsafe.Pointer(&bitmap))
+
+	if dataPtr == nil {
+		return nil
+	}
+
+	nx := BitmapGetNx(bitmap)
+	ny := BitmapGetNy(bitmap)
+	size := nx * ny * 3
+	return unsafe.Slice((*byte)(dataPtr), size)
+}
+
+// BitmapIsAudio checks if the bitmap represents audio data.
+func BitmapIsAudio(bitmap Bitmap) bool {
+	var result ffi.Arg
+	bitmapIsAudioFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&bitmap))
+	return result.Bool()
+}
+
+// BitmapGetId retrieves the ID of the bitmap.
+func BitmapGetId(bitmap Bitmap) string {
+	var idPtr *byte
+	bitmapGetIdFunc.Call(unsafe.Pointer(&idPtr), unsafe.Pointer(&bitmap))
+
+	if idPtr == nil {
+		return ""
+	}
+
+	return utils.BytePtrToString(idPtr)
+}
+
+// BitmapSetId sets the ID of the bitmap.
+func BitmapSetId(bitmap Bitmap, id string) {
+	idPtr, _ := utils.BytePtrFromString(id)
+	bitmapSetIdFunc.Call(nil, unsafe.Pointer(&bitmap), unsafe.Pointer(&idPtr))
 }
