@@ -29,7 +29,7 @@ func main() {
 	}
 
 	if !*verbose {
-		llama.LogSet(llama.LogSilent(), uintptr(0))
+		llama.LogSet(llama.LogSilent())
 	}
 
 	llama.Init()

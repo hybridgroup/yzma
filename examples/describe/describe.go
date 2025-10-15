@@ -13,9 +13,16 @@ func describe(tmpFile string) {
 	llama.Init()
 	defer llama.BackendFree()
 
-	if *verbose {
+	mtmdCtxParams := mtmd.ContextParamsDefault()
+
+	switch {
+	case *verbose:
 		fmt.Println("Using model", path.Join(*modelsDir, *modelFile))
+	default:
+		llama.LogSet(llama.LogSilent())
+		mtmdCtxParams.Verbosity = llama.LogLevelContinue
 	}
+
 	model := llama.ModelLoadFromFile(path.Join(*modelsDir, *modelFile), llama.ModelDefaultParams())
 	defer llama.ModelFree(model)
 
@@ -29,7 +36,7 @@ func describe(tmpFile string) {
 	vocab := llama.ModelGetVocab(model)
 	sampler := llama.NewSampler(model, llama.DefaultSamplers)
 
-	mtmdCtx := mtmd.InitFromFile(path.Join(*modelsDir, *projFile), model, mtmd.ContextParamsDefault())
+	mtmdCtx := mtmd.InitFromFile(path.Join(*modelsDir, *projFile), model, mtmdCtxParams)
 	defer mtmd.Free(mtmdCtx)
 
 	template = llama.ModelChatTemplate(model, "")
