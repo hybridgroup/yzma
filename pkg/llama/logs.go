@@ -49,7 +49,7 @@ func loadLogFuncs(lib ffi.Lib) error {
 }
 
 // LogSet sets the logging mode. Pass [LogSilent()] to turn logging off. Pass nil to use stdout.
-// Note that you cannot turn logging off when using the [mtmd] package at the moment.
+// Note that if you turn logging off when using the [mtmd] package, you must also set Verbosity > 10.
 func LogSet(cb LogCallback, data uintptr) {
 	logSet(cb, data)
 }
