@@ -134,8 +134,15 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 Note that these functions are considered by `llama.cpp` to be experimental, and are subject to change.
 
 - [x] `mtmd_bitmap_free`
+- [x] `mtmd_bitmap_get_data`
+- [x] `mtmd_bitmap_get_id`
 - [x] `mtmd_bitmap_get_n_bytes`
+- [x] `mtmd_bitmap_get_nx`
+- [x] `mtmd_bitmap_get_ny`
+- [x] `mtmd_bitmap_init_from_audio`
 - [x] `mtmd_bitmap_init`
+- [x] `mtmd_bitmap_is_audio`
+- [x] `mtmd_bitmap_set_id`
 - [x] `mtmd_context_params_default`
 - [x] `mtmd_default_marker`
 - [x] `mtmd_free`
@@ -197,13 +204,7 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 
 Note that these functions are considered by `llama.cpp` to be experimental, and are subject to change.
 
-- [ ] `mtmd_bitmap_get_data`
-- [ ] `mtmd_bitmap_get_id`
-- [ ] `mtmd_bitmap_get_nx`
-- [ ] `mtmd_bitmap_get_ny`
 - [ ] `mtmd_bitmap_init_from_audio`
-- [ ] `mtmd_bitmap_is_audio`
-- [ ] `mtmd_bitmap_set_id`
 - [ ] `mtmd_decode_use_mrope`
 - [ ] `mtmd_decode_use_non_causal`
 - [ ] `mtmd_encode_chunk`
