@@ -8,7 +8,7 @@ func TestLogSilent(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	LogSet(LogSilent(), uintptr(0))
+	LogSet(LogSilent(), uintptr(1))
 
 	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
 	defer ModelFree(model)
