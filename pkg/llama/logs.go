@@ -27,20 +27,6 @@ func loadLogFuncs(lib ffi.Lib) error {
 		return loadError("llama_log_set", err)
 	}
 
-	logSilent = ffi.ClosureAlloc(unsafe.Sizeof(ffi.Closure{}), &callback)
-
-	if status := ffi.PrepCif(&cifCallback, ffi.DefaultAbi, 3, &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer); status != ffi.OK {
-		panic(status)
-	}
-
-	cbFn = ffi.NewCallback(silentLogCallbackFunc)
-
-	if logSilent != nil {
-		if status := ffi.PrepClosureLoc(logSilent, &cifCallback, cbFn, nil, callback); status != ffi.OK {
-			panic(status)
-		}
-	}
-
 	return nil
 }
 
@@ -56,6 +42,20 @@ func logSet(cb LogCallback, data uintptr) {
 
 // LogSilent is a callback function that you can pass into the [LogSet] function to turn logging off.
 func LogSilent() *ffi.Closure {
+	logSilent = ffi.ClosureAlloc(unsafe.Sizeof(ffi.Closure{}), &callback)
+
+	if status := ffi.PrepCif(&cifCallback, ffi.DefaultAbi, 3, &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer); status != ffi.OK {
+		panic(status)
+	}
+
+	cbFn = ffi.NewCallback(silentLogCallbackFunc)
+
+	if logSilent != nil {
+		if status := ffi.PrepClosureLoc(logSilent, &cifCallback, cbFn, nil, callback); status != ffi.OK {
+			panic(status)
+		}
+	}
+
 	return logSilent
 }
 
