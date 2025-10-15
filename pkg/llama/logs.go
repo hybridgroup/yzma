@@ -31,7 +31,7 @@ func loadLogFuncs(lib ffi.Lib) error {
 	logSilent = ffi.ClosureAlloc(unsafe.Sizeof(ffi.Closure{}), &callback)
 
 	var cifCallback ffi.Cif
-	if status := ffi.PrepCif(&cifCallback, ffi.DefaultAbi, 0, &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer); status != ffi.OK {
+	if status := ffi.PrepCif(&cifCallback, ffi.DefaultAbi, 3, &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer); status != ffi.OK {
 		panic(status)
 	}
 
@@ -49,7 +49,7 @@ func loadLogFuncs(lib ffi.Lib) error {
 }
 
 // LogSet sets the logging mode. Pass [LogSilent()] to turn logging off. Pass nil to use stdout.
-// Note that you cannot turn logging off when using the [mtmd] package at the moment.
+// Note that if you turn logging off when using the [mtmd] package, you must also set Verbosity > 10.
 func LogSet(cb LogCallback, data uintptr) {
 	logSet(cb, data)
 }
