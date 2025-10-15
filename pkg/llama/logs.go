@@ -15,6 +15,8 @@ var (
 
 	// static void llama_log_callback_null(ggml_log_level level, const char * text, void * user_data) { (void) level; (void) text; (void) user_data; }
 	logSilent *ffi.Closure
+
+	callback unsafe.Pointer
 )
 
 func loadLogFuncs(lib ffi.Lib) error {
@@ -27,7 +29,6 @@ func loadLogFuncs(lib ffi.Lib) error {
 		logSetFunc.Call(nil, unsafe.Pointer(&cb), unsafe.Pointer(&data))
 	}
 
-	var callback unsafe.Pointer
 	logSilent = ffi.ClosureAlloc(unsafe.Sizeof(ffi.Closure{}), &callback)
 
 	var cifCallback ffi.Cif
@@ -35,9 +36,7 @@ func loadLogFuncs(lib ffi.Lib) error {
 		panic(status)
 	}
 
-	fn := ffi.NewCallback(func(cif *ffi.Cif, ret unsafe.Pointer, args *unsafe.Pointer, userData unsafe.Pointer) uintptr {
-		return 0
-	})
+	fn := ffi.NewCallback(silentLogCallbackFunc)
 
 	if logSilent != nil {
 		if status := ffi.PrepClosureLoc(logSilent, &cifCallback, fn, nil, callback); status != ffi.OK {
@@ -49,7 +48,7 @@ func loadLogFuncs(lib ffi.Lib) error {
 }
 
 // LogSet sets the logging mode. Pass [LogSilent()] to turn logging off. Pass nil to use stdout.
-// Note that if you turn logging off when using the [mtmd] package, you must also set Verbosity > 10.
+// Note that if you turn logging off when using the [mtmd] package, you must also set Verbosity > 5.
 func LogSet(cb LogCallback, data uintptr) {
 	logSet(cb, data)
 }
@@ -57,4 +56,8 @@ func LogSet(cb LogCallback, data uintptr) {
 // LogSilent is a callback function that you can pass into the [LogSet] function to turn logging off.
 func LogSilent() *ffi.Closure {
 	return logSilent
+}
+
+func silentLogCallbackFunc(cif *ffi.Cif, ret unsafe.Pointer, args *unsafe.Pointer, userData unsafe.Pointer) uintptr {
+	return 0
 }
