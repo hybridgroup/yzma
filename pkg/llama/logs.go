@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"runtime"
 	"unsafe"
 
 	"github.com/jupiterrider/ffi"
@@ -33,6 +34,10 @@ func loadLogFuncs(lib ffi.Lib) error {
 // LogSet sets the logging mode. Pass [LogSilent()] to turn logging off. Pass nil to use stdout.
 // Note that if you turn logging off when using the [mtmd] package, you must also set Verbosity > 5.
 func LogSet(cb LogCallback, data uintptr) {
+	if runtime.GOOS == "darwin" {
+		// setting log callback currently causes a SIGBUS: bus error on macOS. so don't do it.
+		return
+	}
 	logSet(cb, data)
 }
 
