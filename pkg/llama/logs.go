@@ -50,14 +50,14 @@ func loadLogFuncs(lib ffi.Lib) error {
 }
 
 // LogSet sets the logging mode. Pass [LogSilent()] to turn logging off. Pass nil to use stdout.
-// Note that if you turn logging off when using the [mtmd] package, you must also set Verbosity > 10.
-func LogSet(cb LogCallback, data uintptr) {
+// Note that if you turn logging off when using the [mtmd] package, you must also set Verbosity = llama.LogLevelContinue.
+func LogSet(cb LogCallback) {
 	// calling LogSet on macOS currently results in a SIGBUS error.
 	// TODO: solve this. For now, you cannot disable logging on macOS.
 	if runtime.GOOS == "darwin" {
 		return
 	}
-	logSet(cb, data)
+	logSet(cb, uintptr(0))
 }
 
 // LogSilent is a callback function that you can pass into the [LogSet] function to turn logging off.
