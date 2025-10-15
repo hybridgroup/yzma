@@ -39,7 +39,7 @@ jobs:
             mkdir -p ./models
             curl -Lo ./models/SmolLM-135M.Q2_K.gguf https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf
       - name: Run tests
-        run: YZMA_TEST_MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf go test -v ./...
+        run: YZMA_TEST_MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf CGO_ENABLED=0 go test -v ./...
       - name: Run inference test
         run: go run ./examples/hello
       - name: Run embedding test
