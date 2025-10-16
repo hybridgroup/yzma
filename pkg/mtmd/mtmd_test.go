@@ -82,7 +82,7 @@ func TestTokenize(t *testing.T) {
 
 	text := NewInputText("Here is an image: <__media__>", true, true)
 
-	data, x, y, err := openFile("../../images/domestic_llama.jpg")
+	data, x, y, err := openImageFile("../../images/domestic_llama.jpg")
 	if err != nil {
 		t.Fatal("could not open image file")
 	}
