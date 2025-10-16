@@ -10,7 +10,7 @@ func TestBitmap(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	data, x, y, err := openFile("../../images/domestic_llama.jpg")
+	data, x, y, err := openImageFile("../../images/domestic_llama.jpg")
 	if err != nil {
 		t.Fatal("count not open file")
 	}
@@ -27,7 +27,7 @@ func TestBitmapGetNxAndNy(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	data, x, y, err := openFile("../../images/domestic_llama.jpg")
+	data, x, y, err := openImageFile("../../images/domestic_llama.jpg")
 	if err != nil {
 		t.Fatal("could not open file")
 	}
@@ -49,7 +49,7 @@ func TestBitmapGetData(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	data, x, y, err := openFile("../../images/domestic_llama.jpg")
+	data, x, y, err := openImageFile("../../images/domestic_llama.jpg")
 	if err != nil {
 		t.Fatal("could not open file")
 	}
@@ -69,7 +69,7 @@ func TestBitmapIsAudio(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	data, x, y, err := openFile("../../images/domestic_llama.jpg")
+	data, x, y, err := openImageFile("../../images/domestic_llama.jpg")
 	if err != nil {
 		t.Fatal("could not open file")
 	}
@@ -89,7 +89,7 @@ func TestBitmapGetAndSetId(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	data, x, y, err := openFile("../../images/domestic_llama.jpg")
+	data, x, y, err := openImageFile("../../images/domestic_llama.jpg")
 	if err != nil {
 		t.Fatal("could not open file")
 	}

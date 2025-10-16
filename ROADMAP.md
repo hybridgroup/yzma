@@ -150,7 +150,16 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [x] `mtmd_helper_bitmap_init_from_file`
 - [x] `mtmd_helper_eval_chunks`
 - [x] `mtmd_init_from_file`
+- [x] `mtmd_input_chunk_copy`
+- [x] `mtmd_input_chunk_free`
+- [x] `mtmd_input_chunk_get_id`
+- [x] `mtmd_input_chunk_get_n_pos`
+- [x] `mtmd_input_chunk_get_n_tokens`
+- [x] `mtmd_input_chunk_get_tokens_image`
+- [x] `mtmd_input_chunk_get_tokens_text`
+- [x] `mtmd_input_chunk_get_type`
 - [x] `mtmd_input_chunks_free`
+- [x] `mtmd_input_chunks_get`
 - [x] `mtmd_input_chunks_init`
 - [x] `mtmd_input_chunks_size`
 - [x] `mtmd_support_vision`
@@ -216,13 +225,5 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `mtmd_image_tokens_get_n_tokens`
 - [ ] `mtmd_image_tokens_get_nx`
 - [ ] `mtmd_image_tokens_get_ny`
-- [ ] `mtmd_input_chunk_copy`
-- [ ] `mtmd_input_chunk_free`
-- [ ] `mtmd_input_chunk_get_id`
-- [ ] `mtmd_input_chunk_get_n_pos`
-- [ ] `mtmd_input_chunk_get_n_tokens`
 - [ ] `mtmd_input_chunk_get_tokens_image`
-- [ ] `mtmd_input_chunk_get_tokens_text`
-- [ ] `mtmd_input_chunk_get_type`
-- [ ] `mtmd_input_chunks_get`
 - [ ] `mtmd_support_audio`

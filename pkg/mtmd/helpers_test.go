@@ -4,6 +4,7 @@ import (
 	"image"
 	"os"
 	"testing"
+	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
 )
@@ -41,7 +42,26 @@ func testCleanup(t *testing.T) {
 	llama.BackendFree()
 }
 
-func openFile(path string) ([]byte, uint32, uint32, error) {
+func testSetupChunks(t *testing.T, ctx Context, chunks InputChunks) {
+	text := NewInputText("Here is an image: <__media__>", true, true)
+
+	data, x, y, err := openImageFile("../../images/domestic_llama.jpg")
+	if err != nil {
+		t.Fatal("could not open image file")
+	}
+
+	bitmap := BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
+	defer BitmapFree(bitmap)
+
+	bitmaps := []Bitmap{bitmap} // Replace with actual bitmap data if available
+
+	result := Tokenize(ctx, chunks, text, bitmaps)
+	if result != 0 {
+		t.Fatalf("Tokenize failed with result: %d", result)
+	}
+}
+
+func openImageFile(path string) ([]byte, uint32, uint32, error) {
 	// Open the file
 	file, err := os.Open(path)
 	if err != nil {
