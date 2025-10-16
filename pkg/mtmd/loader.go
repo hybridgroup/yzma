@@ -23,6 +23,10 @@ func Load(path string) error {
 		return err
 	}
 
+	if err := loadChunkFuncs(lib); err != nil {
+		return err
+	}
+
 	return nil
 }
 

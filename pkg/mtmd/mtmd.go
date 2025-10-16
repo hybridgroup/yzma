@@ -8,15 +8,6 @@ import (
 	"github.com/jupiterrider/ffi"
 )
 
-// enum mtmd_input_chunk_type
-type InputChunkType int32
-
-const (
-	InputChunkTypeText InputChunkType = iota
-	InputChunkTypeImage
-	InputChunkTypeAudio
-)
-
 //	struct mtmd_input_text {
 //	    const char * text;
 //	    bool add_special;
@@ -74,15 +65,6 @@ var (
 	// MTMD_API bool mtmd_support_vision(mtmd_context * ctx);
 	supportVisionFunc ffi.Fun
 
-	// MTMD_API mtmd_input_chunks *      mtmd_input_chunks_init(void);
-	inputChunksInitFunc ffi.Fun
-
-	// MTMD_API void mtmd_input_chunks_free(mtmd_input_chunks * chunks);
-	inputChunksFreeFunc ffi.Fun
-
-	// MTMD_API size_t mtmd_input_chunks_size(const mtmd_input_chunks * chunks);
-	inputChunksSizeFunc ffi.Fun
-
 	// MTMD_API int32_t mtmd_tokenize(mtmd_context * ctx,
 	//                            mtmd_input_chunks * output,
 	//                            const mtmd_input_text * text,
@@ -122,18 +104,6 @@ func loadFuncs(lib ffi.Lib) error {
 
 	if supportVisionFunc, err = lib.Prep("mtmd_support_vision", &ffi.TypeUint8, &ffi.TypePointer); err != nil {
 		return loadError("mtmd_support_vision", err)
-	}
-
-	if inputChunksInitFunc, err = lib.Prep("mtmd_input_chunks_init", &ffi.TypePointer); err != nil {
-		return loadError("mtmd_input_chunks_init", err)
-	}
-
-	if inputChunksFreeFunc, err = lib.Prep("mtmd_input_chunks_free", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
-		return loadError("mtmd_input_chunks_free", err)
-	}
-
-	if inputChunksSizeFunc, err = lib.Prep("mtmd_input_chunks_size", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
-		return loadError("mtmd_input_chunks_size", err)
 	}
 
 	if tokenizeFunc, err = lib.Prep("mtmd_tokenize", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint64); err != nil {
@@ -181,28 +151,6 @@ func SupportVision(ctx Context) bool {
 	supportVisionFunc.Call(&result, unsafe.Pointer(&ctx))
 
 	return result.Bool()
-}
-
-// InputChunksInit initializes a list of InputChunk.
-// It can only be populated via Tokenize().
-func InputChunksInit() InputChunks {
-	var chunks InputChunks
-	inputChunksInitFunc.Call(unsafe.Pointer(&chunks))
-
-	return chunks
-}
-
-// InputChunksFree frees the InputChunks.
-func InputChunksFree(chunks InputChunks) {
-	inputChunksFreeFunc.Call(nil, unsafe.Pointer(&chunks))
-}
-
-// InputChunksSize returns the number of InputChunk in the list.
-func InputChunksSize(chunks InputChunks) uint32 {
-	var result ffi.Arg
-	inputChunksSizeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&chunks))
-
-	return uint32(result)
 }
 
 // Tokenize an input text prompt and a list of bitmaps (images/audio)
