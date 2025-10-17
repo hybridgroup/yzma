@@ -133,3 +133,57 @@ func TestHelperEvalChunks(t *testing.T) {
 
 	t.Log("HelperEvalChunks successfully evaluated the chunks")
 }
+
+func TestDecodeUseNonCausal(t *testing.T) {
+	modelFile := testModelFileName(t)
+	mmprojFile := testMMProjFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	defer llama.ModelFree(model)
+
+	params := ContextParamsDefault()
+	ctx := InitFromFile(mmprojFile, model, params)
+	defer Free(ctx)
+
+	useNonCausal := DecodeUseNonCausal(ctx)
+	t.Logf("DecodeUseNonCausal returned: %v", useNonCausal)
+}
+
+func TestDecodeUseMRope(t *testing.T) {
+	modelFile := testModelFileName(t)
+	mmprojFile := testMMProjFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	defer llama.ModelFree(model)
+
+	params := ContextParamsDefault()
+	ctx := InitFromFile(mmprojFile, model, params)
+	defer Free(ctx)
+
+	useMRope := DecodeUseMRope(ctx)
+	t.Logf("DecodeUseMRope returned: %v", useMRope)
+}
+
+func TestSupportAudio(t *testing.T) {
+	modelFile := testModelFileName(t)
+	mmprojFile := testMMProjFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	defer llama.ModelFree(model)
+
+	params := ContextParamsDefault()
+	ctx := InitFromFile(mmprojFile, model, params)
+	defer Free(ctx)
+
+	supportsAudio := SupportAudio(ctx)
+	t.Logf("SupportAudio returned: %v", supportsAudio)
+}
