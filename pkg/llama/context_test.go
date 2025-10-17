@@ -149,3 +149,111 @@ func TestGetModel(t *testing.T) {
 
 	t.Logf("GetModel successfully retrieved the model: %v", retrievedModel)
 }
+
+func TestGetLogitsIth(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	defer ModelFree(model)
+
+	ctx := InitFromModel(model, ContextDefaultParams())
+	defer Free(ctx)
+
+	// tokenize prompt
+	prompt := "This is a test"
+	vocab := ModelGetVocab(model)
+	count := Tokenize(vocab, prompt, nil, true, true)
+	tokens := make([]Token, count)
+	Tokenize(vocab, prompt, tokens, true, true)
+
+	// create batch and decode
+	batch := BatchGetOne(tokens)
+	Decode(ctx, batch)
+
+	nVocab := int(VocabNTokens(vocab))
+	logits := GetLogitsIth(ctx, -1, nVocab)
+	if logits == nil {
+		t.Fatal("GetLogitsIth returned nil")
+	}
+	t.Logf("GetLogitsIth returned %d logits", len(logits))
+}
+
+func TestGetEmbeddingsIth(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	defer ModelFree(model)
+
+	params := ContextDefaultParams()
+	params.PoolingType = PoolingTypeMean
+	params.Embeddings = 1
+
+	ctx := InitFromModel(model, params)
+	defer Free(ctx)
+
+	// Tokenize a prompt
+	prompt := "This is a test"
+	vocab := ModelGetVocab(model)
+	count := Tokenize(vocab, prompt, nil, true, true)
+	tokens := make([]Token, count)
+	Tokenize(vocab, prompt, tokens, true, true)
+
+	// Create batch and decode
+	batch := BatchGetOne(tokens)
+	Decode(ctx, batch)
+
+	nEmbeddings := VocabNTokens(vocab)
+	embeddings := GetEmbeddingsIth(ctx, -1, nEmbeddings) // Get embeddings for the last token
+	if embeddings == nil {
+		t.Fatal("GetEmbeddingsIth returned nil")
+	}
+	if len(embeddings) != int(nEmbeddings) {
+		t.Fatalf("GetEmbeddingsIth returned %d embeddings, expected %d", len(embeddings), nEmbeddings)
+	}
+	t.Logf("GetEmbeddingsIth returned %d embeddings", len(embeddings))
+}
+
+func TestGetEmbeddingsSeq(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	defer ModelFree(model)
+
+	params := ContextDefaultParams()
+	params.PoolingType = PoolingTypeMean
+	params.Embeddings = 1
+
+	ctx := InitFromModel(model, params)
+	defer Free(ctx)
+
+	// Tokenize a prompt
+	prompt := "This is a test"
+	vocab := ModelGetVocab(model)
+	count := Tokenize(vocab, prompt, nil, true, true)
+	tokens := make([]Token, count)
+	Tokenize(vocab, prompt, tokens, true, true)
+
+	// Create batch and decode
+	batch := BatchGetOne(tokens)
+	Decode(ctx, batch)
+
+	seqID := SeqId(0)
+	nEmbeddings := int32(VocabNTokens(vocab))
+	embeddings := GetEmbeddingsSeq(ctx, seqID, nEmbeddings)
+	if embeddings == nil {
+		t.Fatal("GetEmbeddingsSeq returned nil")
+	}
+	if len(embeddings) != int(nEmbeddings) {
+		t.Fatalf("GetEmbeddingsSeq returned %d embeddings, expected %d", len(embeddings), nEmbeddings)
+	}
+	t.Logf("GetEmbeddingsSeq returned %d embeddings", len(embeddings))
+}

@@ -70,6 +70,9 @@ var (
 	// LLAMA_API float * llama_get_embeddings_seq(struct llama_context * ctx, llama_seq_id seq_id);
 	getEmbeddingsSeqFunc ffi.Fun
 
+	// LLAMA_API float * llama_get_logits_ith(struct llama_context * ctx, int32_t i);
+	getLogitsIthFunc ffi.Fun
+
 	// LLAMA_API uint32_t llama_n_ctx(const struct llama_context * ctx);
 	nCtxFunc ffi.Fun
 
@@ -131,6 +134,10 @@ func loadContextFuncs(lib ffi.Lib) error {
 
 	if getEmbeddingsSeqFunc, err = lib.Prep("llama_get_embeddings_seq", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
 		return loadError("llama_get_embeddings_seq", err)
+	}
+
+	if getLogitsIthFunc, err = lib.Prep("llama_get_logits_ith", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_get_logits_ith", err)
 	}
 
 	if nCtxFunc, err = lib.Prep("llama_n_ctx", &ffi.TypeUint32, &ffi.TypePointer); err != nil {
@@ -218,19 +225,39 @@ func GetPoolingType(ctx Context) PoolingType {
 }
 
 // GetEmbeddingsIth gets the embeddings for the ith token.
-func GetEmbeddingsIth(ctx Context, i int32) []float32 {
-	var result ffi.Arg
+func GetEmbeddingsIth(ctx Context, i int32, nVocab int32) []float32 {
+	var result *float32
 	getEmbeddingsIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &i)
 
-	return unsafe.Slice(((*float32)(unsafe.Pointer(uintptr(result)))), i)
+	if result == nil {
+		return nil
+	}
+
+	return unsafe.Slice(result, nVocab)
 }
 
 // GetEmbeddingsSeq gets the embeddings for this sequence ID.
-func GetEmbeddingsSeq(ctx Context, seqID SeqId, i int32) []float32 {
-	var result ffi.Arg
+func GetEmbeddingsSeq(ctx Context, seqID SeqId, nVocab int32) []float32 {
+	var result *float32
 	getEmbeddingsSeqFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &seqID)
 
-	return unsafe.Slice(((*float32)(unsafe.Pointer(uintptr(result)))), i)
+	if result == nil {
+		return nil
+	}
+
+	return unsafe.Slice(result, nVocab)
+}
+
+// GetLogitsIth retrieves the logits for the ith token.
+func GetLogitsIth(ctx Context, i int32, nVocab int) []float32 {
+	var logitsPtr *float32
+	getLogitsIthFunc.Call(unsafe.Pointer(&logitsPtr), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
+
+	if logitsPtr == nil {
+		return nil
+	}
+
+	return unsafe.Slice(logitsPtr, nVocab)
 }
 
 // NCtx returns the number of context tokens.
