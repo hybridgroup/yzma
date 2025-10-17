@@ -81,6 +81,15 @@ var (
 	//                                          bool logits_last,
 	//                                          llama_pos * new_n_past);
 	helperEvalChunksFunc ffi.Fun
+
+	// MTMD_API bool mtmd_decode_use_non_causal(mtmd_context * ctx);
+	decodeUseNonCausalFunc ffi.Fun
+
+	// MTMD_API bool mtmd_decode_use_mrope(mtmd_context * ctx);
+	decodeUseMRopeFunc ffi.Fun
+
+	// MTMD_API bool mtmd_support_audio(mtmd_context * ctx);
+	supportAudioFunc ffi.Fun
 )
 
 func loadFuncs(lib ffi.Lib) error {
@@ -114,6 +123,18 @@ func loadFuncs(lib ffi.Lib) error {
 		&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeUint8, &ffi.TypePointer); err != nil {
 
 		return loadError("mtmd_helper_eval_chunks", err)
+	}
+
+	if decodeUseNonCausalFunc, err = lib.Prep("mtmd_decode_use_non_causal", &ffi.TypeUint8, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_decode_use_non_causal", err)
+	}
+
+	if decodeUseMRopeFunc, err = lib.Prep("mtmd_decode_use_mrope", &ffi.TypeUint8, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_decode_use_mrope", err)
+	}
+
+	if supportAudioFunc, err = lib.Prep("mtmd_support_audio", &ffi.TypeUint8, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_support_audio", err)
 	}
 
 	return nil
@@ -208,4 +229,25 @@ func HelperEvalChunks(ctx Context, lctx llama.Context, chunks InputChunks, nPast
 		unsafe.Pointer(&nBatch), unsafe.Pointer(&logitsLast), unsafe.Pointer(&newNPast))
 
 	return int32(result)
+}
+
+// DecodeUseNonCausal checks if the non-causal mask needs to be set before llama_decode.
+func DecodeUseNonCausal(ctx Context) bool {
+	var result ffi.Arg
+	decodeUseNonCausalFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+	return result.Bool()
+}
+
+// DecodeUseMRope checks if the current model uses M-RoPE for llama_decode.
+func DecodeUseMRope(ctx Context) bool {
+	var result ffi.Arg
+	decodeUseMRopeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+	return result.Bool()
+}
+
+// SupportAudio checks if the current model supports audio input.
+func SupportAudio(ctx Context) bool {
+	var result ffi.Arg
+	supportAudioFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+	return result.Bool()
 }

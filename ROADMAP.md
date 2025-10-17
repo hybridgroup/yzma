@@ -144,6 +144,8 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [x] `mtmd_bitmap_is_audio`
 - [x] `mtmd_bitmap_set_id`
 - [x] `mtmd_context_params_default`
+- [x] `mtmd_decode_use_mrope`
+- [x] `mtmd_decode_use_non_causal`
 - [x] `mtmd_default_marker`
 - [x] `mtmd_free`
 - [x] `mtmd_helper_bitmap_init_from_buf`
@@ -162,6 +164,7 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [x] `mtmd_input_chunks_get`
 - [x] `mtmd_input_chunks_init`
 - [x] `mtmd_input_chunks_size`
+- [x] `mtmd_support_audio`
 - [x] `mtmd_support_vision`
 - [x] `mtmd_tokenize`
 
@@ -214,8 +217,6 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 Note that these functions are considered by `llama.cpp` to be experimental, and are subject to change.
 
 - [ ] `mtmd_bitmap_init_from_audio`
-- [ ] `mtmd_decode_use_mrope`
-- [ ] `mtmd_decode_use_non_causal`
 - [ ] `mtmd_encode_chunk`
 - [ ] `mtmd_encode`
 - [ ] `mtmd_get_audio_bitrate`
@@ -226,4 +227,3 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `mtmd_image_tokens_get_nx`
 - [ ] `mtmd_image_tokens_get_ny`
 - [ ] `mtmd_input_chunk_get_tokens_image`
-- [ ] `mtmd_support_audio`
