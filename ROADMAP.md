@@ -84,6 +84,8 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_n_ubatch`
 - [x] `llama_perf_context_reset`
 - [x] `llama_pooling_type`
+- [x] `llama_set_causal_attn`
+- [x] `llama_set_embeddings`
 - [x] `llama_set_warmup`
 - [x] `llama_synchronize`
 
@@ -196,8 +198,6 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `llama_opt_param_filter_all`
 - [ ] `llama_rm_adapter_lora`
 - [ ] `llama_set_adapter_lora`
-- [ ] `llama_set_causal_attn`
-- [ ] `llama_set_embeddings`
 - [ ] `llama_state_get_data`
 - [ ] `llama_state_get_size`
 - [ ] `llama_state_load_file`
