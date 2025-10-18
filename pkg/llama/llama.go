@@ -71,26 +71,26 @@ const (
 type Ftype int32
 
 const (
-	FTYPE_ALL_F32        Ftype = 0
-	FTYPE_MOSTLY_F16     Ftype = 1
-	FTYPE_MOSTLY_Q4_0    Ftype = 2
-	FTYPE_MOSTLY_Q4_1    Ftype = 3
-	FTYPE_MOSTLY_Q8_0    Ftype = 7
-	FTYPE_MOSTLY_Q5_0    Ftype = 8
-	FTYPE_MOSTLY_Q5_1    Ftype = 9
-	FTYPE_MOSTLY_Q2_K    Ftype = 10
-	FTYPE_MOSTLY_Q3_K_S  Ftype = 11
-	FTYPE_MOSTLY_Q3_K_M  Ftype = 12
-	FTYPE_MOSTLY_Q3_K_L  Ftype = 13
-	FTYPE_MOSTLY_Q4_K_S  Ftype = 14
-	FTYPE_MOSTLY_Q4_K_M  Ftype = 15
-	FTYPE_MOSTLY_Q5_K_S  Ftype = 16
-	FTYPE_MOSTLY_Q5_K_M  Ftype = 17
-	FTYPE_MOSTLY_Q6_K    Ftype = 18
-	FTYPE_MOSTLY_IQ2_XXS Ftype = 19
-	FTYPE_MOSTLY_IQ2_XS  Ftype = 20
-	FTYPE_MOSTLY_Q2_K_S  Ftype = 21
-	FTYPE_MOSTLY_IQ3_XS  Ftype = 22
+	FtypeAllF32        Ftype = 0
+	FtypeMostlyF16     Ftype = 1
+	FtypeMostlyQ4_0    Ftype = 2
+	FtypeMostlyQ4_1    Ftype = 3
+	FtypeMostlyQ8_0    Ftype = 7
+	FtypeMostlyQ5_0    Ftype = 8
+	FtypeMostlyQ5_1    Ftype = 9
+	FtypeMostlyQ2_K    Ftype = 10
+	FtypeMostlyQ3_K_S  Ftype = 11
+	FtypeMostlyQ3_K_M  Ftype = 12
+	FtypeMostlyQ3_K_L  Ftype = 13
+	FtypeMostlyQ4_K_S  Ftype = 14
+	FtypeMostlyQ4_K_M  Ftype = 15
+	FtypeMostlyQ5_K_S  Ftype = 16
+	FtypeMostlyQ5_K_M  Ftype = 17
+	FtypeMostlyQ6_K    Ftype = 18
+	FtypeMostlyIQ2_XXS Ftype = 19
+	FtypeMostlyIQ2_XS  Ftype = 20
+	FtypeMostlyQ2_K_S  Ftype = 21
+	FtypeMostlyIQ3_XS  Ftype = 22
 )
 
 type RopeScalingType int32
@@ -116,24 +116,24 @@ const (
 type AttentionType int32
 
 const (
-	ATTENTION_TYPE_CAUSAL     AttentionType = 0
-	ATTENTION_TYPE_NON_CAUSAL AttentionType = 1
+	AttentionTypeCausal    AttentionType = 0
+	AttentionTypeNonCausal AttentionType = 1
 )
 
 type FlashAttentionType int32
 
 const (
-	LLAMA_FLASH_ATTN_TYPE_AUTO     FlashAttentionType = -1
-	LLAMA_FLASH_ATTN_TYPE_DISABLED FlashAttentionType = 0
-	LLAMA_FLASH_ATTN_TYPE_ENABLED  FlashAttentionType = 1
+	FlashAttentionTypeAuto     FlashAttentionType = -1
+	FlashAttentionTypeDisabled FlashAttentionType = 0
+	FlashAttentionTypeEnabled  FlashAttentionType = 1
 )
 
 type SplitMode int32
 
 const (
-	SPLIT_MODE_NONE  SplitMode = 0
-	SPLIT_MODE_LAYER SplitMode = 1
-	SPLIT_MODE_ROW   SplitMode = 2
+	SplitModeNone  SplitMode = 0
+	SplitModeLayer SplitMode = 1
+	SplitModeRow   SplitMode = 2
 )
 
 type GpuBackend int32
@@ -276,11 +276,13 @@ type ModelQuantizeParams struct {
 	TokenEmbeddingType   int32 // itoken embeddings tensor type
 	AllowRequantize      uint8 // allow quantizing non-f32/f16 tensors (bool as uint8)
 	QuantizeOutputTensor uint8 // quantize output.weight (bool as uint8)
-	OnlyF32              uint8 // quantize only f32 tensors (bool as uint8)
-	PureF16              uint8 // disable k-quant mixtures and quantize all tensors to the same type (bool as uint8)
+	OnlyCopy             uint8 // only copy tensors - ftype, allow_requantize and quantize_output_tensor are ignored
+	Pure                 uint8 // quantize all tensors to the default type
 	KeepSplit            uint8 // keep split tensors (bool as uint8)
-	IMatrix              *byte // importance matrix data
-	KqsWarning           uint8 // warning for quantization quality loss (bool as uint8)
+	IMatrix              *byte // pointer to importance matrix data
+	KvOverrides          *byte // pointer to vector containing overrides
+	TensorTypes          *byte // pointer to vector containing tensor types
+	PruneLayers          *byte // pointer to vector containing layer indices to prune
 }
 
 // Chat message
