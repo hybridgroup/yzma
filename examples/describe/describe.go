@@ -70,9 +70,9 @@ func describe(tmpFile string) {
 		}
 
 		buf := make([]byte, 128)
-		llama.TokenToPiece(vocab, token, buf, 0, true)
+		l := llama.TokenToPiece(vocab, token, buf, 0, true)
 
-		fmt.Print(string(buf))
+		fmt.Print(string(buf[:l]))
 
 		batch.Token = &token
 		batch.Pos = &n
