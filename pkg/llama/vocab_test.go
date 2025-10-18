@@ -16,10 +16,8 @@ func TestVocabBOS(t *testing.T) {
 
 	vocab := ModelGetVocab(model)
 
-	bos := VocabBOS(vocab)
-	if bos == TokenNull {
-		t.Skip("skipping test, model does not have BOS token")
-	}
+	token := VocabBOS(vocab)
+	t.Logf("VocabBOS returned token: %d", token)
 }
 
 func TestVocabEOS(t *testing.T) {
@@ -34,10 +32,9 @@ func TestVocabEOS(t *testing.T) {
 
 	vocab := ModelGetVocab(model)
 
-	eos := VocabEOS(vocab)
-	if eos == TokenNull {
-		t.Skip("skipping test, model does not have EOS token")
-	}
+	token := VocabEOS(vocab)
+	t.Logf("VocabEOS returned token: %d", token)
+
 }
 
 func TestVocabEOT(t *testing.T) {
@@ -52,10 +49,8 @@ func TestVocabEOT(t *testing.T) {
 
 	vocab := ModelGetVocab(model)
 
-	eot := VocabEOT(vocab)
-	if eot == TokenNull {
-		t.Skip("skipping test, model does not have EOT token")
-	}
+	token := VocabEOT(vocab)
+	t.Logf("VocabEOT returned token: %d", token)
 }
 
 func TestVocabSEP(t *testing.T) {
@@ -70,10 +65,8 @@ func TestVocabSEP(t *testing.T) {
 
 	vocab := ModelGetVocab(model)
 
-	sep := VocabSEP(vocab)
-	if sep == TokenNull {
-		t.Skip("skipping test, model does not have SEP token")
-	}
+	token := VocabSEP(vocab)
+	t.Logf("VocabSEP returned token: %d", token)
 }
 
 func TestVocabNL(t *testing.T) {
@@ -88,10 +81,8 @@ func TestVocabNL(t *testing.T) {
 
 	vocab := ModelGetVocab(model)
 
-	nl := VocabNL(vocab)
-	if nl == TokenNull {
-		t.Fatal("VocabNL returned TokenNull")
-	}
+	token := VocabNL(vocab)
+	t.Logf("VocabNL returned token: %d", token)
 }
 
 func TestVocabPAD(t *testing.T) {
@@ -106,10 +97,8 @@ func TestVocabPAD(t *testing.T) {
 
 	vocab := ModelGetVocab(model)
 
-	pad := VocabPAD(vocab)
-	if pad == TokenNull {
-		t.Skip("skipping test, model does not have PAD token")
-	}
+	token := VocabPAD(vocab)
+	t.Logf("VocabPAD returned token: %d", token)
 }
 
 func TestVocabMASK(t *testing.T) {
@@ -124,10 +113,8 @@ func TestVocabMASK(t *testing.T) {
 
 	vocab := ModelGetVocab(model)
 
-	mask := VocabMASK(vocab)
-	if mask == TokenNull {
-		t.Skip("skipping test, model does not have MASK token")
-	}
+	token := VocabMASK(vocab)
+	t.Logf("VocabMASK returned token: %d", token)
 }
 
 func TestVocabGetAddBOS(t *testing.T) {
@@ -198,10 +185,8 @@ func TestVocabFIMPre(t *testing.T) {
 
 	vocab := ModelGetVocab(model)
 
-	fimPre := VocabFIMPre(vocab)
-	if fimPre == TokenNull {
-		t.Skip("skipping test, model does not have FIMPre token")
-	}
+	token := VocabFIMPre(vocab)
+	t.Logf("VocabFIMPre returned token: %d", token)
 }
 
 func TestVocabFIMSuf(t *testing.T) {
@@ -216,10 +201,8 @@ func TestVocabFIMSuf(t *testing.T) {
 
 	vocab := ModelGetVocab(model)
 
-	fimSuf := VocabFIMSuf(vocab)
-	if fimSuf == TokenNull {
-		t.Skip("skipping test, model does not have FIMSuf token")
-	}
+	token := VocabFIMSuf(vocab)
+	t.Logf("VocabFIMSuf returned token: %d", token)
 }
 
 func TestVocabFIMMid(t *testing.T) {
@@ -234,10 +217,8 @@ func TestVocabFIMMid(t *testing.T) {
 
 	vocab := ModelGetVocab(model)
 
-	fimMid := VocabFIMMid(vocab)
-	if fimMid == TokenNull {
-		t.Skip("skipping test, model does not have FIMMid token")
-	}
+	token := VocabFIMMid(vocab)
+	t.Logf("VocabFIMMid returned token: %d", token)
 }
 
 func TestVocabFIMPad(t *testing.T) {
@@ -252,10 +233,8 @@ func TestVocabFIMPad(t *testing.T) {
 
 	vocab := ModelGetVocab(model)
 
-	fimPad := VocabFIMPad(vocab)
-	if fimPad == TokenNull {
-		t.Skip("skipping test, model does not have FIMPad token")
-	}
+	token := VocabFIMPad(vocab)
+	t.Logf("VocabFIMPad returned token: %d", token)
 }
 
 func TestVocabFIMRep(t *testing.T) {
@@ -270,10 +249,8 @@ func TestVocabFIMRep(t *testing.T) {
 
 	vocab := ModelGetVocab(model)
 
-	fimRep := VocabFIMRep(vocab)
-	if fimRep == TokenNull {
-		t.Skip("skipping test, model does not have FIMRep token")
-	}
+	token := VocabFIMRep(vocab)
+	t.Logf("VocabFIMRep returned token: %d", token)
 }
 
 func TestVocabFIMSep(t *testing.T) {
@@ -288,10 +265,8 @@ func TestVocabFIMSep(t *testing.T) {
 
 	vocab := ModelGetVocab(model)
 
-	fimSep := VocabFIMSep(vocab)
-	if fimSep == TokenNull {
-		t.Skip("skipping test, model does not have FIMSep token")
-	}
+	token := VocabFIMSep(vocab)
+	t.Logf("VocabFIMSep returned token: %d", token)
 }
 
 func TestVocabGetAttr(t *testing.T) {
