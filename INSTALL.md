@@ -2,6 +2,16 @@
 
 Here is information on how to install the requirements for running an application using `llama.cpp`.
 
+We have a helpful bash script you can use to download the latest binaries.
+
+For example:
+
+```
+./download_llama.sh linux cuda
+```
+
+Once you have downloaded it, unzip the downloaded file to the correct location for your configuration.
+
 ## Linux
 
 You will need to download the `llama.cpp` libraries for Linux. Choose the download option that matches your desired configuration.
