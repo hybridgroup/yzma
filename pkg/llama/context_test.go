@@ -257,3 +257,45 @@ func TestGetEmbeddingsSeq(t *testing.T) {
 	}
 	t.Logf("GetEmbeddingsSeq returned %d embeddings", len(embeddings))
 }
+
+func TestSetEmbeddings(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	defer ModelFree(model)
+
+	ctx := InitFromModel(model, ContextDefaultParams())
+	defer Free(ctx)
+
+	// Enable embeddings
+	SetEmbeddings(ctx, true)
+	t.Log("SetEmbeddings successfully set embeddings to true")
+
+	// Disable embeddings
+	SetEmbeddings(ctx, false)
+	t.Log("SetEmbeddings successfully set embeddings to false")
+}
+
+func TestSetCausalAttn(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	defer ModelFree(model)
+
+	ctx := InitFromModel(model, ContextDefaultParams())
+	defer Free(ctx)
+
+	// Enable causal attention
+	SetCausalAttn(ctx, true)
+	t.Log("SetCausalAttn successfully set causal attention to true")
+
+	// Disable causal attention
+	SetCausalAttn(ctx, false)
+	t.Log("SetCausalAttn successfully set causal attention to false")
+}

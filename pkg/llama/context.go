@@ -87,6 +87,12 @@ var (
 
 	// LLAMA_API const struct llama_model * llama_get_model(const struct llama_context * ctx);
 	getModelFunc ffi.Fun
+
+	// LLAMA_API void llama_set_embeddings(struct llama_context * ctx, bool embeddings);
+	setEmbeddingsFunc ffi.Fun
+
+	// LLAMA_API void llama_set_causal_attn(struct llama_context * ctx, bool causal_attn);
+	setCausalAttnFunc ffi.Fun
 )
 
 func loadContextFuncs(lib ffi.Lib) error {
@@ -158,6 +164,14 @@ func loadContextFuncs(lib ffi.Lib) error {
 
 	if getModelFunc, err = lib.Prep("llama_get_model", &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return loadError("llama_get_model", err)
+	}
+
+	if setEmbeddingsFunc, err = lib.Prep("llama_set_embeddings", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeUint8); err != nil {
+		return loadError("llama_set_embeddings", err)
+	}
+
+	if setCausalAttnFunc, err = lib.Prep("llama_set_causal_attn", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeUint8); err != nil {
+		return loadError("llama_set_causal_attn", err)
 	}
 
 	return nil
@@ -294,4 +308,14 @@ func GetModel(ctx Context) Model {
 	getModelFunc.Call(unsafe.Pointer(&model), unsafe.Pointer(&ctx))
 
 	return model
+}
+
+// SetEmbeddings sets whether the context outputs embeddings or not.
+func SetEmbeddings(ctx Context, embeddings bool) {
+	setEmbeddingsFunc.Call(nil, unsafe.Pointer(&ctx), &embeddings)
+}
+
+// SetCausalAttn sets whether to use causal attention or not.
+func SetCausalAttn(ctx Context, causalAttn bool) {
+	setCausalAttnFunc.Call(nil, unsafe.Pointer(&ctx), &causalAttn)
 }
