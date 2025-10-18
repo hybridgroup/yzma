@@ -2,9 +2,9 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/hybridgroup/yzma.svg)](https://pkg.go.dev/github.com/hybridgroup/yzma) [![Linux](https://github.com/hybridgroup/yzma/actions/workflows/linux.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/linux.yml) [![macOS](https://github.com/hybridgroup/yzma/actions/workflows/macos.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/macos.yml) [![Windows](https://github.com/hybridgroup/yzma/actions/workflows/windows.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/windows.yml)
 
-`yzma` lets you use Go to perform local inference with Vision Language Models (VLMs), Large Language Models (LLMs), Small Language Models (SLMs), and Tiny Language Models (TLMs) by using the [`llama.cpp`](https://github.com/ggml-org/llama.cpp) libraries all running on your own hardware.
+`yzma` lets you use Go for local inference with Vision Language Models (VLMs), Large Language Models (LLMs), Small Language Models (SLMs), and Tiny Language Models (TLMs) using [`llama.cpp`](https://github.com/ggml-org/llama.cpp) libraries all running on your own hardware.
 
-It uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so calls can be made directly to `llama.cpp` without CGo.
+You can use VLMs and other language models with full hardware acceleration on Linux, on macOS, and on Windows. It uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed.
 
 This example uses the [SmolLM-135M](https://huggingface.co/QuantFactory/SmolLM-135M-GGUF) model:
 
@@ -81,19 +81,9 @@ Didn't get any output? Run it again without the `2>/dev/null` to see any errors.
 
 ## Installation
 
-You will need to download the `llama.cpp` libraries for your platform. You can obtain them from https://github.com/ggml-org/llama.cpp/releases
+You will need to download the `llama.cpp` prebuilt libraries for your platform.
 
-Extract the library files into a directory on your local machine.
-
-For Linux, they have the `.so` file extension. For example, `libllama.so`, `libmtmd.so` and so on. When using macOS, they have a `.dylib` file extension. And on Windows, they have a `.dll` file extension. You do not need the other downloaded files to use the `llama.cpp` libraries with `yzma`.
-
-***Important Note***
-You currently need to set both the `LD_LIBRARY_PATH` and the `YZMA_LIB` env variable to the directory with your llama.cpp library files. For example:
-
-```shell
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/home/ron/Development/yzma/lib
-export YZMA_LIB=/home/ron/Development/yzma/lib
-```
+See [INSTALL.md](./INSTALL.md) for detailed information on installation on Linux, macOS, and Windows.
 
 ## Examples
 
@@ -144,7 +134,7 @@ See the [examples](./examples/) directory for more examples of how to use `yzma`
 
 ## More info
 
-`yzma` is a work in progress but it already has support for over 70% of `llama.cpp` functionality. See [ROADMAP.md](./ROADMAP.md) for a complete list.
+`yzma` currently has support for over 75% of `llama.cpp` functionality. See [ROADMAP.md](./ROADMAP.md) for a complete list.
 
 You can already use VLMs and other language models with full hardware acceleration on Linux, on macOS, and on Windows.
 
