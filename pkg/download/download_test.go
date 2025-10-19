@@ -36,7 +36,7 @@ func TestGetLinuxCPU(t *testing.T) {
 		t.Fatalf("Get() failed: %v", err)
 	}
 
-	expectedFile := filepath.Join(dest, "llama-b6795-bin-ubuntu-x64.zip")
+	expectedFile := filepath.Join(dest, "libllama.so")
 	if _, err := os.Stat(expectedFile); os.IsNotExist(err) {
 		t.Fatalf("Downloaded file not found: %s", expectedFile)
 	}
