@@ -203,3 +203,50 @@ func TestInputChunkCopyAndFree(t *testing.T) {
 	InputChunkFree(copy)
 	t.Log("InputChunkFree successfully freed the copied chunk")
 }
+
+func TestInputChunkGetTokensImage(t *testing.T) {
+	modelFile := testModelFileName(t)
+	mmprojFile := testMMProjFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	defer llama.ModelFree(model)
+
+	params := ContextParamsDefault()
+	ctx := InitFromFile(mmprojFile, model, params)
+	defer Free(ctx)
+
+	chunks := InputChunksInit()
+	defer InputChunksFree(chunks)
+
+	testSetupChunks(t, ctx, chunks)
+
+	idx := uint32(1)
+	chunk := InputChunksGet(chunks, idx)
+	if chunk == InputChunk(0) {
+		t.Fatalf("InputChunksGet returned an invalid chunk for index %d", idx)
+	}
+
+	t.Logf("InputChunksGet successfully retrieved chunk at index %d", idx)
+
+	tokens := InputChunkGetTokensImage(chunk)
+	if tokens == ImageTokens(0) {
+		t.Fatalf("InputChunkGetTokensImage returned a nil pointer")
+	}
+
+	t.Logf("InputChunkGetTokensImage returned image tokens")
+
+	nTokens := ImageTokensGetNTokens(tokens)
+	nx := ImageTokensGetNX(tokens)
+	ny := ImageTokensGetNY(tokens)
+	id := ImageTokensGetId(tokens)
+	nPos := ImageTokensGetNPos(tokens)
+
+	t.Logf("n_tokens: %d", nTokens)
+	t.Logf("nx:      %d", nx)
+	t.Logf("ny:      %d", ny)
+	t.Logf("id:      %s", id)
+	t.Logf("n_pos:   %d", nPos)
+}
