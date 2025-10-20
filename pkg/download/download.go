@@ -137,3 +137,17 @@ func VersionIsValid(version string) error {
 
 	return nil
 }
+
+// LibraryName returns the name for the llama.cpp library for any given OS.
+func LibraryName(os string) string {
+	switch os {
+	case "linux", "freebsd":
+		return "libllama.so"
+	case "windows":
+		return "llama.dll"
+	case "darwin":
+		return "libllama.dylib"
+	default:
+		return "unknown"
+	}
+}
