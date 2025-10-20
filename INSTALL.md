@@ -2,7 +2,15 @@
 
 Here is information on how to install the requirements for running an application using `llama.cpp`.
 
-We have a helpful bash script you can use to download the latest binaries.
+## Programmatic Installation
+
+Want to use Go code to install the `llama.cpp` precompiled binaries? We have the `download` package for that!
+
+Check out the [installer example code](./examples/installer/).
+
+## Installation via bash script
+
+We also have a helpful bash script you can use to download the latest binaries.
 
 For example:
 
