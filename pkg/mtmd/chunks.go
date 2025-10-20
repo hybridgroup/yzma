@@ -53,6 +53,22 @@ var (
 
 	// MTMD_API void mtmd_input_chunk_free(mtmd_input_chunk * chunk);
 	inputChunkFreeFunc ffi.Fun
+
+	// MTMD_API size_t       mtmd_image_tokens_get_n_tokens(const mtmd_image_tokens * image_tokens); // TODO: deprecate
+	inputImageTokensGetNTokensFunc ffi.Fun
+
+	// MTMD_API size_t       mtmd_image_tokens_get_nx      (const mtmd_image_tokens * image_tokens);
+	inputImageTokensGetNXFunc ffi.Fun
+
+	// MTMD_API size_t       mtmd_image_tokens_get_ny      (const mtmd_image_tokens * image_tokens);
+	inputImageTokensGetNYFunc ffi.Fun
+
+	// MTMD_API const char * mtmd_image_tokens_get_id      (const mtmd_image_tokens * image_tokens); // TODO: deprecate
+	inputImageTokensGetIdFunc ffi.Fun
+
+	// number of temporal positions (always 1 for M-RoPE, n_tokens otherwise)
+	// MTMD_API llama_pos    mtmd_image_tokens_get_n_pos   (const mtmd_image_tokens * image_tokens); // TODO: deprecate
+	inputImageTokensGetNPosFunc ffi.Fun
 )
 
 func loadChunkFuncs(lib ffi.Lib) error {
@@ -100,6 +116,30 @@ func loadChunkFuncs(lib ffi.Lib) error {
 
 	if inputChunkFreeFunc, err = lib.Prep("mtmd_input_chunk_free", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
 		return loadError("mtmd_input_chunk_free", err)
+	}
+
+	if inputChunkGetTokensImageFunc, err = lib.Prep("mtmd_input_chunk_get_tokens_image", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_input_chunk_get_tokens_image", err)
+	}
+
+	if inputImageTokensGetNTokensFunc, err = lib.Prep("mtmd_image_tokens_get_n_tokens", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_image_tokens_get_n_tokens", err)
+	}
+
+	if inputImageTokensGetNXFunc, err = lib.Prep("mtmd_image_tokens_get_nx", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_image_tokens_get_nx", err)
+	}
+
+	if inputImageTokensGetNYFunc, err = lib.Prep("mtmd_image_tokens_get_ny", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_image_tokens_get_ny", err)
+	}
+
+	if inputImageTokensGetIdFunc, err = lib.Prep("mtmd_image_tokens_get_id", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_image_tokens_get_id", err)
+	}
+
+	if inputImageTokensGetNPosFunc, err = lib.Prep("mtmd_image_tokens_get_n_pos", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_image_tokens_get_n_pos", err)
 	}
 
 	return nil
@@ -190,4 +230,51 @@ func InputChunkCopy(chunk InputChunk) InputChunk {
 // InputChunkFree frees the input chunk.
 func InputChunkFree(chunk InputChunk) {
 	inputChunkFreeFunc.Call(nil, unsafe.Pointer(&chunk))
+}
+
+// InputChunkGetTokensImage retrieves the image tokens in the input chunk.
+func InputChunkGetTokensImage(chunk InputChunk) ImageTokens {
+	var result ffi.Arg
+	inputChunkGetTokensImageFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&chunk))
+	return ImageTokens(result)
+}
+
+// ImageTokensGetNTokens returns the number of tokens in the image.
+func ImageTokensGetNTokens(imageTokens ImageTokens) uint32 {
+	var result ffi.Arg
+	inputImageTokensGetNTokensFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&imageTokens))
+	return uint32(result)
+}
+
+// ImageTokensGetX returns the x size of the image tokens.
+func ImageTokensGetNX(imageTokens ImageTokens) uint32 {
+	var result ffi.Arg
+	inputImageTokensGetNXFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&imageTokens))
+	return uint32(result)
+}
+
+// ImageTokensGetY returns the y size of the image tokens.
+func ImageTokensGetNY(imageTokens ImageTokens) uint32 {
+	var result ffi.Arg
+	inputImageTokensGetNYFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&imageTokens))
+	return uint32(result)
+}
+
+// ImageTokensGetId returns the id of the image tokens.
+func ImageTokensGetId(imageTokens ImageTokens) string {
+	var idPtr *byte
+	inputImageTokensGetIdFunc.Call(unsafe.Pointer(&idPtr), unsafe.Pointer(&imageTokens))
+
+	if idPtr == nil {
+		return ""
+	}
+
+	return utils.BytePtrToString(idPtr)
+}
+
+// ImageTokensGetNPos returns the npos of the image tokens.
+func ImageTokensGetNPos(imageTokens ImageTokens) llama.Pos {
+	var result ffi.Arg
+	inputImageTokensGetNPosFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&imageTokens))
+	return llama.Pos(result)
 }
