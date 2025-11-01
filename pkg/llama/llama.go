@@ -39,6 +39,18 @@ const (
 	VocabTypeWPM
 	VocabTypeUGM
 	VocabTypeRWKV
+	VocabTypePLAMO2
+)
+
+type RoPEType int32
+
+const (
+	RoPETypeNone   RoPEType = -1
+	RoPETypeNorm   RoPEType = 0
+	RoPETypeNEOX   RoPEType = 2
+	RoPETypeMROPE  RoPEType = 8
+	RoPETypeIMROPE RoPEType = 40
+	RoPETypeVision RoPEType = 24
 )
 
 type TokenType int32
@@ -63,34 +75,49 @@ const (
 	TokenAttrControl    TokenAttr = 1 << 3
 	TokenAttrUserDef    TokenAttr = 1 << 4
 	TokenAttrByte       TokenAttr = 1 << 5
-	TokenAttrLstrip     TokenAttr = 1 << 6
-	TokenAttrRstrip     TokenAttr = 1 << 7
-	TokenAttrSingleWord TokenAttr = 1 << 8
+	TokenAttrNormalized TokenAttr = 1 << 6
+	TokenAttrLstrip     TokenAttr = 1 << 7
+	TokenAttrRstrip     TokenAttr = 1 << 8
+	TokenAttrSingleWord TokenAttr = 1 << 9
 )
 
 type Ftype int32
 
 const (
-	FtypeAllF32        Ftype = 0
-	FtypeMostlyF16     Ftype = 1
-	FtypeMostlyQ4_0    Ftype = 2
-	FtypeMostlyQ4_1    Ftype = 3
-	FtypeMostlyQ8_0    Ftype = 7
-	FtypeMostlyQ5_0    Ftype = 8
-	FtypeMostlyQ5_1    Ftype = 9
-	FtypeMostlyQ2_K    Ftype = 10
-	FtypeMostlyQ3_K_S  Ftype = 11
-	FtypeMostlyQ3_K_M  Ftype = 12
-	FtypeMostlyQ3_K_L  Ftype = 13
-	FtypeMostlyQ4_K_S  Ftype = 14
-	FtypeMostlyQ4_K_M  Ftype = 15
-	FtypeMostlyQ5_K_S  Ftype = 16
-	FtypeMostlyQ5_K_M  Ftype = 17
-	FtypeMostlyQ6_K    Ftype = 18
-	FtypeMostlyIQ2_XXS Ftype = 19
-	FtypeMostlyIQ2_XS  Ftype = 20
-	FtypeMostlyQ2_K_S  Ftype = 21
-	FtypeMostlyIQ3_XS  Ftype = 22
+	FtypeAllF32          Ftype = 0
+	FtypeMostlyF16       Ftype = 1
+	FtypeMostlyQ4_0      Ftype = 2
+	FtypeMostlyQ4_1      Ftype = 3
+	FtypeMostlyQ8_0      Ftype = 7
+	FtypeMostlyQ5_0      Ftype = 8
+	FtypeMostlyQ5_1      Ftype = 9
+	FtypeMostlyQ2_K      Ftype = 10
+	FtypeMostlyQ3_K_S    Ftype = 11
+	FtypeMostlyQ3_K_M    Ftype = 12
+	FtypeMostlyQ3_K_L    Ftype = 13
+	FtypeMostlyQ4_K_S    Ftype = 14
+	FtypeMostlyQ4_K_M    Ftype = 15
+	FtypeMostlyQ5_K_S    Ftype = 16
+	FtypeMostlyQ5_K_M    Ftype = 17
+	FtypeMostlyQ6_K      Ftype = 18
+	FtypeMostlyIQ2_XXS   Ftype = 19
+	FtypeMostlyIQ2_XS    Ftype = 20
+	FtypeMostlyQ2_K_S    Ftype = 21
+	FtypeMostlyIQ3_XS    Ftype = 22
+	FtypeMostlyIQ3_XXS   Ftype = 23
+	FtypeMostlyIQ1_S     Ftype = 24
+	FtypeMostlyIQ4_NL    Ftype = 25
+	FtypeMostlyIQ3_S     Ftype = 26
+	FtypeMostlyIQ3_M     Ftype = 27
+	FtypeMostlyIQ2_S     Ftype = 28
+	FtypeMostlyIQ2_M     Ftype = 29
+	FtypeMostlyIQ4_XS    Ftype = 30
+	FtypeMostlyIQ1_M     Ftype = 31
+	FtypeMostlyBF16      Ftype = 32
+	FtypeMostlyTQ1_0     Ftype = 36
+	FtypeMostlyTQ2_0     Ftype = 37
+	FtypeMostlyMXFP4_MOE Ftype = 38
+	FtypeGUESSED         Ftype = 1024
 )
 
 type RopeScalingType int32
@@ -100,6 +127,7 @@ const (
 	RopeScalingTypeNone        RopeScalingType = 0
 	RopeScalingTypeLinear      RopeScalingType = 1
 	RopeScalingTypeYARN        RopeScalingType = 2
+	RopeScalingTypeLongROPE    RopeScalingType = 4
 )
 
 type PoolingType int32
