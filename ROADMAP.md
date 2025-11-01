@@ -193,6 +193,7 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `llama_attach_threadpool`
 - [ ] `llama_clear_adapter_lora`
 - [ ] `llama_detach_threadpool`
+- [ ] `llama_flash_attn_type_name`
 - [ ] `llama_get_embeddings`
 - [ ] `llama_get_logits`
 - [ ] `llama_model_load_from_splits`
