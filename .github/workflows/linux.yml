@@ -53,4 +53,4 @@ jobs:
       - name: Run inference test
         run: go run ./examples/hello
       - name: Run embedding test
-        run: go run ./examples/embeddings -model $GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf -prompt "Hello World"
+        run: go run ./examples/embeddings -model $GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf -p "Hello World"
