@@ -87,6 +87,22 @@ var (
 
 	// LLAMA_API enum llama_rope_type llama_model_rope_type(const struct llama_model * model);
 	modelRopeTypeFunc ffi.Fun
+
+	// Get metadata value as a string by key name
+	// LLAMA_API int32_t llama_model_meta_val_str(const struct llama_model * model, const char * key, char * buf, size_t buf_size);
+	modelMetaValStrFunc ffi.Fun
+
+	// Get the number of metadata key/value pairs
+	// LLAMA_API int32_t llama_model_meta_count(const struct llama_model * model);
+	modelMetaCountFunc ffi.Fun
+
+	// Get metadata key name by index
+	// LLAMA_API int32_t llama_model_meta_key_by_index(const struct llama_model * model, int32_t i, char * buf, size_t buf_size);
+	modelMetaKeyByIndexFunc ffi.Fun
+
+	// Get metadata value as a string by index
+	// LLAMA_API int32_t llama_model_meta_val_str_by_index(const struct llama_model * model, int32_t i, char * buf, size_t buf_size);
+	modelMetaValStrByIndexFunc ffi.Fun
 )
 
 func loadModelFuncs(lib ffi.Lib) error {
@@ -182,6 +198,22 @@ func loadModelFuncs(lib ffi.Lib) error {
 
 	if modelRopeTypeFunc, err = lib.Prep("llama_model_rope_type", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
 		return loadError("llama_model_rope_type", err)
+	}
+
+	if modelMetaValStrFunc, err = lib.Prep("llama_model_meta_val_str", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+		return loadError("llama_model_meta_val_str", err)
+	}
+
+	if modelMetaCountFunc, err = lib.Prep("llama_model_meta_count", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_meta_count", err)
+	}
+
+	if modelMetaKeyByIndexFunc, err = lib.Prep("llama_model_meta_key_by_index", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+		return loadError("llama_model_meta_key_by_index", err)
+	}
+
+	if modelMetaValStrByIndexFunc, err = lib.Prep("llama_model_meta_val_str_by_index", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+		return loadError("llama_model_meta_val_str_by_index", err)
 	}
 
 	return nil
@@ -413,4 +445,72 @@ func Warmup(lctx Context, model Model) {
 
 	// llama_perf_context_reset(lctx);
 	SetWarmup(lctx, false)
+}
+
+// ModelMetaValStr gets metadata value as a string by key name.
+// Returns the string and true on success, or "" and false on failure.
+func ModelMetaValStr(model Model, key string) (string, bool) {
+	buf := make([]byte, 128)
+	b := unsafe.SliceData(buf)
+	bLen := int32(len(buf))
+	keyPtr, _ := utils.BytePtrFromString(key)
+	var result ffi.Arg
+	modelMetaValStrFunc.Call(
+		unsafe.Pointer(&result),
+		unsafe.Pointer(&model),
+		unsafe.Pointer(&keyPtr),
+		unsafe.Pointer(&b),
+		&bLen,
+	)
+	if int32(result) < 0 {
+		return "", false
+	}
+	return string(buf[:int32(result)]), true
+}
+
+// ModelMetaCount gets the number of metadata key/value pairs.
+func ModelMetaCount(model Model) int32 {
+	var result ffi.Arg
+	modelMetaCountFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
+	return int32(result)
+}
+
+// ModelMetaKeyByIndex gets metadata key name by index.
+// Returns the string and true on success, or "" and false on failure.
+func ModelMetaKeyByIndex(model Model, i int32) (string, bool) {
+	buf := make([]byte, 128)
+	b := unsafe.SliceData(buf)
+	bLen := int32(len(buf))
+
+	var result ffi.Arg
+	modelMetaKeyByIndexFunc.Call(
+		unsafe.Pointer(&result),
+		unsafe.Pointer(&model),
+		&i,
+		unsafe.Pointer(&b),
+		&bLen)
+	if int32(result) < 0 {
+		return "", false
+	}
+	return string(buf[:int32(result)]), true
+}
+
+// ModelMetaValStrByIndex gets metadata value as a string by index.
+// Returns the string and true on success, or "" and false on failure.
+func ModelMetaValStrByIndex(model Model, i int32) (string, bool) {
+	buf := make([]byte, 128)
+	b := unsafe.SliceData(buf)
+	bLen := int32(len(buf))
+
+	var result ffi.Arg
+	modelMetaValStrByIndexFunc.Call(
+		unsafe.Pointer(&result),
+		unsafe.Pointer(&model),
+		&i,
+		unsafe.Pointer(&b),
+		&bLen)
+	if int32(result) < 0 {
+		return "", false
+	}
+	return string(buf[:int32(result)]), true
 }
