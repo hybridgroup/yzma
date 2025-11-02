@@ -68,3 +68,21 @@ func TestTimeUs(t *testing.T) {
 	}
 	t.Logf("TimeUs returned: %d microseconds", time)
 }
+
+func TestFlashAttnTypeName(t *testing.T) {
+	var flashAttnType FlashAttentionType = FlashAttentionTypeAuto
+
+	name := FlashAttnTypeName(flashAttnType)
+	if name == "" {
+		t.Fatal("FlashAttnTypeName returned empty string")
+	}
+	t.Logf("FlashAttnTypeName returned: %s", name)
+}
+
+func TestNumaInit(t *testing.T) {
+	var strategy NumaStrategy = NumaStrategyDisabled
+
+	// Should not panic or error
+	NumaInit(strategy)
+	t.Logf("NumaInit called with strategy: %d", strategy)
+}

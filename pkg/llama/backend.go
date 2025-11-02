@@ -3,6 +3,7 @@ package llama
 import (
 	"unsafe"
 
+	"github.com/hybridgroup/yzma/pkg/utils"
 	"github.com/jupiterrider/ffi"
 )
 
@@ -10,6 +11,9 @@ var (
 	backendInitFunc ffi.Fun
 
 	backendFreeFunc ffi.Fun
+
+	// LLAMA_API void llama_numa_init(enum ggml_numa_strategy numa);
+	numaInitFunc ffi.Fun
 
 	// LLAMA_API size_t llama_max_devices(void);
 	maxDevicesFunc ffi.Fun
@@ -31,6 +35,9 @@ var (
 
 	// LLAMA_API int64_t llama_time_us(void);
 	timeUsFunc ffi.Fun
+
+	// LLAMA_API const char * llama_flash_attn_type_name(enum llama_flash_attn_type flash_attn_type);
+	flashAttnTypeNameFunc ffi.Fun
 )
 
 func loadBackendFuncs(lib ffi.Lib) error {
@@ -41,6 +48,10 @@ func loadBackendFuncs(lib ffi.Lib) error {
 
 	if backendFreeFunc, err = lib.Prep("llama_backend_free", &ffi.TypeVoid); err != nil {
 		return loadError("llama_backend_free", err)
+	}
+
+	if numaInitFunc, err = lib.Prep("llama_numa_init", &ffi.TypeVoid, &ffi.TypeSint32); err != nil {
+		return loadError("llama_numa_init", err)
 	}
 
 	if maxDevicesFunc, err = lib.Prep("llama_max_devices", &ffi.TypeUint32); err != nil {
@@ -71,6 +82,10 @@ func loadBackendFuncs(lib ffi.Lib) error {
 		return loadError("llama_time_us", err)
 	}
 
+	if flashAttnTypeNameFunc, err = lib.Prep("llama_flash_attn_type_name", &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_flash_attn_type_name", err)
+	}
+
 	return nil
 }
 
@@ -82,6 +97,11 @@ func BackendInit() {
 // BackendFree frees the llama.cpp back-end.
 func BackendFree() {
 	backendFreeFunc.Call(nil)
+}
+
+// NumaInit initializes NUMA with the given strategy.
+func NumaInit(numaStrategy NumaStrategy) {
+	numaInitFunc.Call(nil, unsafe.Pointer(&numaStrategy))
 }
 
 // MaxDevices returns the maximum number of devices supported.
@@ -131,4 +151,16 @@ func TimeUs() int64 {
 	var result ffi.Arg
 	timeUsFunc.Call(unsafe.Pointer(&result))
 	return int64(result)
+}
+
+// FlashAttnTypeName returns the name for a given flash attention type.
+func FlashAttnTypeName(flashAttnType FlashAttentionType) string {
+	var result *byte
+	flashAttnTypeNameFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&flashAttnType))
+
+	if result == nil {
+		return ""
+	}
+
+	return utils.BytePtrToString(result)
 }
