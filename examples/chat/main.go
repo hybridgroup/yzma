@@ -121,7 +121,7 @@ func chat(text string, first bool) {
 	fmt.Println()
 
 	response := ""
-	for pos := int32(0); pos+batch.NTokens < int32(*predictSize); pos += batch.NTokens {
+	for pos := int32(0); pos < int32(*predictSize); pos += batch.NTokens {
 		llama.Decode(lctx, batch)
 		token := llama.SamplerSample(sampler, lctx, -1)
 
