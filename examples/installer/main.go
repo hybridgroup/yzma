@@ -10,20 +10,28 @@ import (
 )
 
 func main() {
-	libPath := os.Getenv("YZMA_LIB")
-
-	if _, err := os.Stat(filepath.Join(libPath, download.LibraryName(runtime.GOOS))); !os.IsNotExist(err) {
-		fmt.Println("llama.cpp already installed at", libPath)
-		return
+	if err := handleFlags(); err != nil {
+		showUsage()
+		os.Exit(0)
 	}
 
-	version, err := download.LlamaLatestVersion()
-	if err != nil {
-		fmt.Println("error install:", err.Error())
+	if !*upgrade {
+		if _, err := os.Stat(filepath.Join(*libPath, download.LibraryName(runtime.GOOS))); !os.IsNotExist(err) {
+			fmt.Println("llama.cpp already installed at", libPath)
+			return
+		}
 	}
 
-	fmt.Println("installing llama.cpp version", version, "to", libPath)
-	download.Get(runtime.GOOS, "cpu", version, libPath)
+	if *version == "" {
+		var err error
+		*version, err = download.LlamaLatestVersion()
+		if err != nil {
+			fmt.Println("could not obtain latest version:", err.Error())
+		}
+	}
+
+	fmt.Println("installing llama.cpp version", *version, "to", *libPath)
+	download.Get(runtime.GOOS, *processor, *version, *libPath)
 
 	fmt.Println("done.")
 }
