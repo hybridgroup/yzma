@@ -201,6 +201,17 @@ func (b GpuBackend) String() string {
 	}
 }
 
+type NumaStrategy int32
+
+const (
+	NumaStrategyDisabled   NumaStrategy = 0
+	NumaStrategyDistribute NumaStrategy = 1
+	NumaStrategyIsolate    NumaStrategy = 2
+	NumaStrategyNumactl    NumaStrategy = 3
+	NumaStrategyMirror     NumaStrategy = 4
+	NumaStrategyCount      NumaStrategy = 5
+)
+
 type LogLevel int32
 
 const (

@@ -7,8 +7,10 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 ### Backend Functions
 - [x] `llama_backend_free`
 - [x] `llama_backend_init`
+- [x] `llama_flash_attn_type_name`
 - [x] `llama_max_devices`
 - [x] `llama_max_parallel_sequences`
+- [x] `llama_numa_init`
 - [x] `llama_supports_gpu_offload`
 - [x] `llama_supports_mlock`
 - [x] `llama_supports_mmap`
@@ -201,13 +203,11 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `llama_attach_threadpool`
 - [ ] `llama_clear_adapter_lora`
 - [ ] `llama_detach_threadpool`
-- [ ] `llama_flash_attn_type_name`
 - [ ] `llama_get_embeddings`
 - [ ] `llama_get_logits`
 - [ ] `llama_model_load_from_splits`
 - [ ] `llama_model_quantize_default_params`
 - [ ] `llama_model_quantize`
-- [ ] `llama_numa_init`
 - [ ] `llama_opt_epoch`
 - [ ] `llama_opt_init`
 - [ ] `llama_opt_param_filter_all`
