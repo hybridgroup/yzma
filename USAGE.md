@@ -6,12 +6,20 @@ Don't forget to set your `YZMA_LIB` env variable to the directory with your `lla
 
 ## Vision Language Models (VLM)
 
+### Qwen3-VL-2B-Instruct
+
+https://huggingface.co/ggml-org/Qwen3-VL-2B-Instruct-GGUF
+
+```
+go run ./examples/vlm/ -model ~/models/Qwen3-VL-2B-Instruct-Q8_0.gguf -mmproj ~/models/mmproj-Qwen3-VL-2B-Instruct-Q8_0.gguf -image ./images/domestic_llama.jpg -p "What is in this picture?"
+```
+
 ### Qwen2.5-VL-3B-Instruct
 
 https://huggingface.co/ggml-org/Qwen2.5-VL-3B-Instruct-GGUF
 
 ```
-go run ./examples/vlm/ -model ~/models/Qwen2.5-VL-3B-Instruct-Q8_0.gguf -mmproj ~/models/mmproj-Qwen2.5-VL-3B-Instruct-Q8_0.gguf -image ./images/domestic_llama.jpg -p "What is in this picture?" 2>/dev/null
+go run ./examples/vlm/ -model ~/models/Qwen2.5-VL-3B-Instruct-Q8_0.gguf -mmproj ~/models/mmproj-Qwen2.5-VL-3B-Instruct-Q8_0.gguf -image ./images/domestic_llama.jpg -p "What is in this picture?"
 ```
 
 ### moondream2-20250414-GGUF
@@ -19,12 +27,14 @@ go run ./examples/vlm/ -model ~/models/Qwen2.5-VL-3B-Instruct-Q8_0.gguf -mmproj 
 https://huggingface.co/ggml-org/moondream2-20250414-GGUF
 
 ```
-go run ./examples/vlm/ -model ~/models/moondream2-text-model-f16_ct-vicuna.gguf -mmproj ~/models/moondream2-mmproj-f16-20250414.gguf -image ./images/domestic_llama.jpg -p "What is in this picture?" 2>/dev/null
+go run ./examples/vlm/ -model ~/models/moondream2-text-model-f16_ct-vicuna.gguf -mmproj ~/models/moondream2-mmproj-f16-20250414.gguf -image ./images/domestic_llama.jpg -p "What is in this picture?"
 ```
 
 ## Text generation models
 
 ### qwen2.5-0.5b-instruct
+
+https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF
 
 ```
 go run ./examples/chat/ -model ~/models/qwen2.5-0.5b-instruct-fp16.gguf -temp=0.6 -n=512
@@ -46,12 +56,12 @@ https://huggingface.co/ggml-org/gemma-3-1b-it-GGUF
 go run ./examples/chat/ -model ~/models/gemma-3-1b-it-Q4_K_M.gguf
 ```
 
-### SmolLM-135M
+### SmolLM2-135M-Instruct
 
-https://huggingface.co/QuantFactory/SmolLM-135M-GGUF
+https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF
 
 ```
-go run ./examples/chat/ -model ~/models/SmolLM-135M.Q2_K.gguf
+go run ./examples/chat/ -model ~/models/SmolLM2-135M-Instruct.Q2_K.gguf -c 2048 -temp 0.8 -n 48 -sys "You are a helpful robot companion."
 ```
 
 ## Visual Language Action (VLA) models
@@ -61,7 +71,7 @@ go run ./examples/chat/ -model ~/models/SmolLM-135M.Q2_K.gguf
 https://huggingface.co/mradermacher/InternVLA-M1-GGUF
 
 ```
-go run ./examples/vlm/ -model ~/models/InternVLA-M1.Q8_0.gguf --mmproj ~/models/InternVLA-M1.mmproj-Q8_0.gguf -p "What is in this picture? Provide a description, bounding box, and estimated distance for the llama in json format." -sys "You are a helpful robotic drone camera currently in flight." -image ./images/domestic_llama.jpg 2>/dev/null
+go run ./examples/vlm/ -model ~/models/InternVLA-M1.Q8_0.gguf --mmproj ~/models/InternVLA-M1.mmproj-Q8_0.gguf -p "What is in this picture? Provide a description, bounding box, and estimated distance for the llama in json format." -sys "You are a helpful robotic drone camera currently in flight." -image ./images/domestic_llama.jpg
 ```
 
 ```
@@ -79,26 +89,20 @@ image decoded (batch 1/1) in 121 ms
 https://huggingface.co/mradermacher/SpaceQwen2.5-VL-3B-Instruct-GGUF
 
 ```
-go run ./examples/vlm/ -model ~/models/SpaceQwen2.5-VL-3B-Instruct.i1-Q4_K_M.gguf --mmproj ~/models/spaceqwen2.5-vl-3b-instruct-vision.gguf -p "What is in this picture? Provide a description, bounding box, and estimated distance for the llama in json format." -sys "You are a helpful robotic drone camera currently in flight." -image ./images/domestic_llama.jpg 2>/dev/null 
+$ go run ./examples/vlm/ -model ~/models/SpaceQwen2.5-VL-3B-Instruct.i1-Q4_K_M.gguf --mmproj ~/models/spaceqwen2.5-vl-3b-instruct-vision.gguf -p "What is in this picture? Provide a description, bounding box, and estimated distance for the llama in json format." -sys "You are a helpful robotic drone camera currently in flight." -image ./images/domestic_llama.jpg  
 ```
 
-```
+```shell
 Loading model /home/ron/models/SpaceQwen2.5-VL-3B-Instruct.i1-Q4_K_M.gguf
 encoding image slice...
-image slice encoded in 896 ms
+image slice encoded in 881 ms
 decoding image batch 1/1, n_tokens_batch = 910
-image decoded (batch 1/1) in 123 ms
-
+image decoded (batch 1/1) in 90 ms
+```
 ```json
 {
-  "bbox_2d": [
-    {
-      "left": 10.0,
-      "top": 10.0,
-      "width": 10.0,
-      "height": 10.0
-    }
-  ],
-  "estimated_distance": 10.0
+  "bbox_2d": [40, 20, 67, 35],
+  "label": "llama",
+  "estimated_distance": "1.5 meters"
 }
 ```
