@@ -175,3 +175,111 @@ func TestStateSetData(t *testing.T) {
 		t.Fatalf("StateSetData read an unexpected number of bytes: %d", nRead)
 	}
 }
+
+func TestStateSeqGetSizeAndData(t *testing.T) {
+	modelFile := testModelFileName(t)
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	defer ModelFree(model)
+	ctx := InitFromModel(model, ContextDefaultParams())
+	defer Free(ctx)
+
+	// Tokenize and decode
+	prompt := "This is a test"
+	vocab := ModelGetVocab(model)
+	count := Tokenize(vocab, prompt, nil, true, true)
+	tokens := make([]Token, count)
+	Tokenize(vocab, prompt, tokens, true, true)
+	batch := BatchGetOne(tokens)
+	Decode(ctx, batch)
+
+	seqId := SeqId(1)
+	size := StateSeqGetSize(ctx, seqId)
+	if size == 0 {
+		t.Fatal("StateSeqGetSize returned 0")
+	}
+	buf := make([]byte, size)
+	nCopied := StateSeqGetData(ctx, buf, seqId)
+	if nCopied == 0 || nCopied > size {
+		t.Fatalf("StateSeqGetData copied unexpected number of bytes: %d", nCopied)
+	}
+
+	nRead := StateSeqSetData(ctx, buf, seqId)
+	if nRead == 0 || nRead > size {
+		t.Fatalf("StateSeqSetData read unexpected number of bytes: %d", nRead)
+	}
+}
+
+func TestStateSeqSaveLoadFile(t *testing.T) {
+	modelFile := testModelFileName(t)
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	defer ModelFree(model)
+	ctx := InitFromModel(model, ContextDefaultParams())
+	defer Free(ctx)
+
+	// Tokenize and decode
+	prompt := "This is a test"
+	vocab := ModelGetVocab(model)
+	count := Tokenize(vocab, prompt, nil, true, true)
+	tokens := make([]Token, count)
+	Tokenize(vocab, prompt, tokens, true, true)
+	batch := BatchGetOne(tokens)
+	Decode(ctx, batch)
+
+	seqId := SeqId(1)
+	tmp, err := os.CreateTemp("", "test_state_seq_save.bin")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	tmpFile := tmp.Name()
+	defer os.Remove(tmpFile)
+	tmp.Close()
+
+	nSaved := StateSeqSaveFile(ctx, tmpFile, seqId, tokens)
+	if nSaved == 0 {
+		t.Fatal("StateSeqSaveFile failed")
+	}
+
+	outTokens := make([]Token, len(tokens))
+	var nTokenCountOut uint64
+	nLoaded := StateSeqLoadFile(ctx, tmpFile, seqId, outTokens, uint64(len(outTokens)), &nTokenCountOut)
+	if nLoaded == 0 {
+		t.Fatal("StateSeqLoadFile failed")
+	}
+	if nTokenCountOut == 0 || nTokenCountOut > uint64(len(outTokens)) {
+		t.Fatalf("StateSeqLoadFile loaded unexpected number of tokens: %d", nTokenCountOut)
+	}
+}
+
+func TestStateSeqGetSizeDataExt(t *testing.T) {
+	modelFile := testModelFileName(t)
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	defer ModelFree(model)
+	ctx := InitFromModel(model, ContextDefaultParams())
+	defer Free(ctx)
+
+	seqId := SeqId(1)
+	flags := uint32(1) // e.g. LLAMA_STATE_SEQ_FLAGS_SWA_ONLY
+	size := StateSeqGetSizeExt(ctx, seqId, flags)
+	if size == 0 {
+		t.Fatal("StateSeqGetSizeExt returned 0")
+	}
+	buf := make([]byte, size)
+	nCopied := StateSeqGetDataExt(ctx, buf, seqId, flags)
+	if nCopied == 0 || nCopied > size {
+		t.Fatalf("StateSeqGetDataExt copied unexpected number of bytes: %d", nCopied)
+	}
+
+	nRead := StateSeqSetDataExt(ctx, buf, seqId, flags)
+	if nRead == 0 || nRead > size {
+		t.Fatalf("StateSeqSetDataExt read unexpected number of bytes: %d", nRead)
+	}
+}
