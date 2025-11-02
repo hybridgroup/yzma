@@ -107,3 +107,28 @@ func TestBitmapGetAndSetId(t *testing.T) {
 
 	t.Logf("BitmapGetId returned: %s", retrievedId)
 }
+
+func TestBitmapInitFromAudio(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	// Create dummy audio data (e.g., 16000 samples for 1 second at 16kHz)
+	nSamples := uint64(16000)
+	audioData := make([]float32, nSamples)
+	for i := range audioData {
+		audioData[i] = float32(i) / float32(nSamples) // simple ramp
+	}
+
+	bitmap := BitmapInitFromAudio(nSamples, &audioData[0])
+	defer BitmapFree(bitmap)
+
+	if bitmap == Bitmap(0) {
+		t.Fatal("BitmapInitFromAudio returned an invalid bitmap")
+	}
+
+	if !BitmapIsAudio(bitmap) {
+		t.Fatal("BitmapIsAudio returned false for audio bitmap")
+	}
+
+	t.Logf("BitmapInitFromAudio created bitmap with %d samples", nSamples)
+}
