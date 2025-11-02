@@ -158,3 +158,79 @@ func TestModelRopeType(t *testing.T) {
 	ropeType := ModelRopeType(model)
 	t.Logf("ModelRopeType returned: %d", ropeType)
 }
+
+func TestModelMetaCount(t *testing.T) {
+	modelFile := testModelFileName(t)
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	defer ModelFree(model)
+
+	count := ModelMetaCount(model)
+	t.Logf("ModelMetaCount returned: %d", count)
+	if count < 0 {
+		t.Fatal("ModelMetaCount returned negative value")
+	}
+}
+
+func TestModelMetaKeyByIndex(t *testing.T) {
+	modelFile := testModelFileName(t)
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	defer ModelFree(model)
+
+	count := ModelMetaCount(model)
+	if count <= 0 {
+		t.Skip("No metadata keys to test")
+	}
+	key, ok := ModelMetaKeyByIndex(model, 0)
+	if !ok {
+		t.Fatal("ModelMetaKeyByIndex failed for index 0")
+	}
+	t.Logf("ModelMetaKeyByIndex returned: %s", key)
+}
+
+func TestModelMetaValStrByIndex(t *testing.T) {
+	modelFile := testModelFileName(t)
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	defer ModelFree(model)
+
+	count := ModelMetaCount(model)
+	if count <= 0 {
+		t.Skip("No metadata values to test")
+	}
+	val, ok := ModelMetaValStrByIndex(model, 0)
+	if !ok {
+		t.Fatal("ModelMetaValStrByIndex failed for index 0")
+	}
+	t.Logf("ModelMetaValStrByIndex returned: %s", val)
+}
+
+func TestModelMetaValStr(t *testing.T) {
+	modelFile := testModelFileName(t)
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	defer ModelFree(model)
+
+	count := ModelMetaCount(model)
+	if count <= 0 {
+		t.Skip("No metadata to test")
+	}
+	key, ok := ModelMetaKeyByIndex(model, 0)
+	if !ok {
+		t.Skip("ModelMetaKeyByIndex failed for index 0")
+	}
+	val, ok := ModelMetaValStr(model, key)
+	if !ok {
+		t.Fatal("ModelMetaValStr failed for key:", key)
+	}
+	t.Logf("ModelMetaValStr returned: %s", val)
+}
