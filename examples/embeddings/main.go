@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"math"
 	"os"
@@ -17,65 +16,41 @@ func main() {
 	}
 }
 
-const usage = `
-  -model string
-    	path to the GGUF model
-  -prompt string
-    	prompt to embed
-  -pooling string
-    	pooling type for embeddings (mean, cls, none)
-`
-
 func run() error {
-	var modelFlag, prompt, pooling string
-	flag.StringVar(&modelFlag, "model", "", "path to the GGUF model")
-	flag.StringVar(&prompt, "prompt", "", "prompt to embed")
-	flag.StringVar(&pooling, "pooling", "mean", "pooling type for embeddings (mean, cls, none)")
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "usage: embeddings %s\n", usage)
-	}
-	flag.Parse()
-	if modelFlag == "" || prompt == "" {
-		flag.Usage()
-		return nil
-	}
-	var poolingType llama.PoolingType
-	switch pooling {
-	case "mean":
-		poolingType = llama.PoolingTypeMean
-	case "cls":
-		poolingType = llama.PoolingTypeCLS
-	case "rank":
-		poolingType = llama.PoolingTypeRank
-	case "last":
-		poolingType = llama.PoolingTypeLast
-	case "none":
-		poolingType = llama.PoolingTypeNone
-	default:
-		poolingType = llama.PoolingTypeUnspecified
+	if err := handleFlags(); err != nil {
+		showUsage()
+		return err
 	}
 
-	// load library and init
-	llama.Load(os.Getenv("YZMA_LIB"))
+	if err := llama.Load(*libPath); err != nil {
+		fmt.Println("unable to load library", err.Error())
+		os.Exit(1)
+	}
+
+	if !*verbose {
+		llama.LogSet(llama.LogSilent())
+	}
+
 	llama.Init()
 	defer llama.BackendFree()
 
-	// load model
-	model := llama.ModelLoadFromFile(modelFlag, llama.ModelDefaultParams())
+	model := llama.ModelLoadFromFile(*modelFile, llama.ModelDefaultParams())
 	defer llama.ModelFree(model)
 
-	// create context
-	params := llama.ContextDefaultParams()
-	params.PoolingType = poolingType
-	params.Embeddings = 1
-	lctx := llama.InitFromModel(model, params)
+	ctxParams := llama.ContextDefaultParams()
+	ctxParams.NCtx = uint32(*contextSize)
+	ctxParams.NBatch = uint32(*batchSize)
+	ctxParams.PoolingType = poolingType
+	ctxParams.Embeddings = 1
+
+	lctx := llama.InitFromModel(model, ctxParams)
 	defer llama.Free(lctx)
 
 	// tokenize prompt
 	vocab := llama.ModelGetVocab(model)
-	count := llama.Tokenize(vocab, prompt, nil, true, true)
+	count := llama.Tokenize(vocab, *prompt, nil, true, true)
 	tokens := make([]llama.Token, count)
-	llama.Tokenize(vocab, prompt, tokens, true, true)
+	llama.Tokenize(vocab, *prompt, tokens, true, true)
 
 	// create batch and decode
 	batch := llama.BatchGetOne(tokens)
