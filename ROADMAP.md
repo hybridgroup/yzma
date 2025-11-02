@@ -132,6 +132,13 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 ### Chat Functions
 - [x] `llama_chat_apply_template`
 
+### State Functions
+- [x] `llama_state_get_data`
+- [x] `llama_state_get_size`
+- [x] `llama_state_load_file`
+- [x] `llama_state_save_file`
+- [x] `llama_state_set_data`
+
 ### `mtmd` Functions
 
 Note that these functions are considered by `llama.cpp` to be experimental, and are subject to change.
@@ -206,10 +213,6 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `llama_opt_param_filter_all`
 - [ ] `llama_rm_adapter_lora`
 - [ ] `llama_set_adapter_lora`
-- [ ] `llama_state_get_data`
-- [ ] `llama_state_get_size`
-- [ ] `llama_state_load_file`
-- [ ] `llama_state_save_file`
 - [ ] `llama_state_seq_get_data_ext`
 - [ ] `llama_state_seq_get_data`
 - [ ] `llama_state_seq_get_size_ext`
@@ -218,7 +221,6 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `llama_state_seq_save_file`
 - [ ] `llama_state_seq_set_data_ext`
 - [ ] `llama_state_seq_set_data`
-- [ ] `llama_state_set_data`
 
 ### `mtmd` Functions still needing wrappers
 

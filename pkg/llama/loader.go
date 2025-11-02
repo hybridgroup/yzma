@@ -58,6 +58,10 @@ func Load(path string) error {
 		return err
 	}
 
+	if err := loadStateFuncs(lib); err != nil {
+		return err
+	}
+
 	return nil
 }
 
