@@ -187,3 +187,24 @@ func TestSupportAudio(t *testing.T) {
 	supportsAudio := SupportAudio(ctx)
 	t.Logf("SupportAudio returned: %v", supportsAudio)
 }
+
+func TestGetAudioBitrate(t *testing.T) {
+	modelFile := testModelFileName(t)
+	mmprojFile := testMMProjFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	defer llama.ModelFree(model)
+
+	params := ContextParamsDefault()
+	ctx := InitFromFile(mmprojFile, model, params)
+	defer Free(ctx)
+
+	bitrate := GetAudioBitrate(ctx)
+	t.Logf("GetAudioBitrate returned: %d", bitrate)
+	if bitrate != -1 && bitrate <= 0 {
+		t.Fatal("GetAudioBitrate returned an invalid bitrate")
+	}
+}

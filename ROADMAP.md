@@ -151,6 +151,7 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [x] `mtmd_decode_use_non_causal`
 - [x] `mtmd_default_marker`
 - [x] `mtmd_free`
+- [x] `mtmd_get_audio_bitrate`
 - [x] `mtmd_helper_bitmap_init_from_buf`
 - [x] `mtmd_helper_bitmap_init_from_file`
 - [x] `mtmd_helper_eval_chunks`
@@ -223,8 +224,6 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 
 Note that these functions are considered by `llama.cpp` to be experimental, and are subject to change.
 
-- [ ] `mtmd_bitmap_init_from_audio`
 - [ ] `mtmd_encode_chunk`
 - [ ] `mtmd_encode`
-- [ ] `mtmd_get_audio_bitrate`
 - [ ] `mtmd_get_output_embd`

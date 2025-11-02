@@ -43,6 +43,12 @@ var (
 
 	// MTMD_API void mtmd_bitmap_set_id(mtmd_bitmap * bitmap, const char * id);
 	bitmapSetIdFunc ffi.Fun
+
+	// if bitmap is audio:
+	//     length of data must be n_samples * sizeof(float)
+	//     the data is in float format (PCM F32)
+	// MTMD_API mtmd_bitmap * mtmd_bitmap_init_from_audio(size_t n_samples, const float * data);
+	bitmapInitFromAudioFunc ffi.Fun
 )
 
 func loadBitmapFuncs(lib ffi.Lib) error {
@@ -90,6 +96,10 @@ func loadBitmapFuncs(lib ffi.Lib) error {
 
 	if bitmapSetIdFunc, err = lib.Prep("mtmd_bitmap_set_id", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return loadError("mtmd_bitmap_set_id", err)
+	}
+
+	if bitmapInitFromAudioFunc, err = lib.Prep("mtmd_bitmap_init_from_audio", &ffi.TypePointer, &ffi.TypeUint64, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_bitmap_init_from_audio", err)
 	}
 
 	return nil
@@ -185,4 +195,11 @@ func BitmapGetId(bitmap Bitmap) string {
 func BitmapSetId(bitmap Bitmap, id string) {
 	idPtr, _ := utils.BytePtrFromString(id)
 	bitmapSetIdFunc.Call(nil, unsafe.Pointer(&bitmap), unsafe.Pointer(&idPtr))
+}
+
+// BitmapInitFromAudio initializes a Bitmap from audio data (PCM F32).
+func BitmapInitFromAudio(nSamples uint64, data *float32) Bitmap {
+	var bitmap Bitmap
+	bitmapInitFromAudioFunc.Call(unsafe.Pointer(&bitmap), &nSamples, unsafe.Pointer(&data))
+	return bitmap
 }
