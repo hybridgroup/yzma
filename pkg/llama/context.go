@@ -70,8 +70,27 @@ var (
 	// LLAMA_API float * llama_get_embeddings_seq(struct llama_context * ctx, llama_seq_id seq_id);
 	getEmbeddingsSeqFunc ffi.Fun
 
+	// Get all output token embeddings.
+	// when pooling_type == LLAMA_POOLING_TYPE_NONE or when using a generative model,
+	// the embeddings for which llama_batch.logits[i] != 0 are stored contiguously
+	// in the order they have appeared in the batch.
+	// shape: [n_outputs*n_embd]
+	// Otherwise, returns NULL.
+	// TODO: deprecate in favor of llama_get_embeddings_ith() (ref: https://github.com/ggml-org/llama.cpp/pull/14853#issuecomment-3113143522)
+	// LLAMA_API float * llama_get_embeddings(struct llama_context * ctx);
+	getEmbeddingsFunc ffi.Fun
+
 	// LLAMA_API float * llama_get_logits_ith(struct llama_context * ctx, int32_t i);
 	getLogitsIthFunc ffi.Fun
+
+	// Token logits obtained from the last call to llama_decode()
+	// The logits for which llama_batch.logits[i] != 0 are stored contiguously
+	// in the order they have appeared in the batch.
+	// Rows: number of tokens for which llama_batch.logits[i] != 0
+	// Cols: n_vocab
+	// TODO: deprecate in favor of llama_get_logits_ith() (ref: https://github.com/ggml-org/llama.cpp/pull/14853#issuecomment-3113143522)
+	// LLAMA_API float * llama_get_logits(struct llama_context * ctx);
+	getLogitsFunc ffi.Fun
 
 	// LLAMA_API uint32_t llama_n_ctx(const struct llama_context * ctx);
 	nCtxFunc ffi.Fun
@@ -142,8 +161,16 @@ func loadContextFuncs(lib ffi.Lib) error {
 		return loadError("llama_get_embeddings_seq", err)
 	}
 
+	if getEmbeddingsFunc, err = lib.Prep("llama_get_embeddings", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("llama_get_embeddings", err)
+	}
+
 	if getLogitsIthFunc, err = lib.Prep("llama_get_logits_ith", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
 		return loadError("llama_get_logits_ith", err)
+	}
+
+	if getLogitsFunc, err = lib.Prep("llama_get_logits", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("llama_get_logits", err)
 	}
 
 	if nCtxFunc, err = lib.Prep("llama_n_ctx", &ffi.TypeUint32, &ffi.TypePointer); err != nil {
@@ -262,6 +289,17 @@ func GetEmbeddingsSeq(ctx Context, seqID SeqId, nVocab int32) []float32 {
 	return unsafe.Slice(result, nVocab)
 }
 
+// GetEmbeddings retrieves all output token embeddings.
+// Returns a slice of float32 of length nOutputs * nEmbeddings, or nil if not available.
+func GetEmbeddings(ctx Context, nOutputs, nEmbeddings int) []float32 {
+	var result *float32
+	getEmbeddingsFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+	if result == nil || nOutputs <= 0 || nEmbeddings <= 0 {
+		return nil
+	}
+	return unsafe.Slice(result, nOutputs*nEmbeddings)
+}
+
 // GetLogitsIth retrieves the logits for the ith token.
 func GetLogitsIth(ctx Context, i int32, nVocab int) []float32 {
 	var logitsPtr *float32
@@ -272,6 +310,17 @@ func GetLogitsIth(ctx Context, i int32, nVocab int) []float32 {
 	}
 
 	return unsafe.Slice(logitsPtr, nVocab)
+}
+
+// GetLogits retrieves all token logits from the last call to llama_decode.
+// Returns a slice of float32 of length nTokens * nVocab, or nil if not available.
+func GetLogits(ctx Context, nTokens, nVocab int) []float32 {
+	var result *float32
+	getLogitsFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+	if result == nil || nTokens <= 0 || nVocab <= 0 {
+		return nil
+	}
+	return unsafe.Slice(result, nTokens*nVocab)
 }
 
 // NCtx returns the number of context tokens.
