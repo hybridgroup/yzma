@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"os"
 	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/utils"
@@ -229,6 +230,11 @@ func ModelDefaultParams() ModelParams {
 // ModelLoadFromFile loads a Model from a GGUF file.
 func ModelLoadFromFile(pathModel string, params ModelParams) Model {
 	var model Model
+	if _, err := os.Stat(pathModel); os.IsNotExist(err) {
+		// no such file
+		return model
+	}
+
 	file := &[]byte(pathModel + "\x00")[0]
 	modelLoadFromFileFunc.Call(unsafe.Pointer(&model), unsafe.Pointer(&file), unsafe.Pointer(&params))
 	return model

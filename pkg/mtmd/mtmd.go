@@ -1,6 +1,7 @@
 package mtmd
 
 import (
+	"os"
 	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
@@ -165,6 +166,11 @@ func ContextParamsDefault() ContextParamsType {
 // ctxParams are the ContextParamsType for the new Context.
 func InitFromFile(mmprojFname string, model llama.Model, ctxParams ContextParamsType) Context {
 	var ctx Context
+	if _, err := os.Stat(mmprojFname); os.IsNotExist(err) {
+		// no such file
+		return ctx
+	}
+
 	file := &[]byte(mmprojFname + "\x00")[0]
 	initFromFileFunc.Call(unsafe.Pointer(&ctx), unsafe.Pointer(&file), unsafe.Pointer(&model), unsafe.Pointer(&ctxParams))
 	return ctx
