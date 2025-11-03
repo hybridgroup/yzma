@@ -81,7 +81,9 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_free`
 - [x] `llama_get_embeddings_ith`
 - [x] `llama_get_embeddings_seq`
+- [x] `llama_get_embeddings`
 - [x] `llama_get_logits_ith`
+- [x] `llama_get_logits`
 - [x] `llama_get_memory`
 - [x] `llama_get_model`
 - [x] `llama_n_batch`
@@ -215,8 +217,6 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `llama_attach_threadpool`
 - [ ] `llama_clear_adapter_lora`
 - [ ] `llama_detach_threadpool`
-- [ ] `llama_get_embeddings`
-- [ ] `llama_get_logits`
 - [ ] `llama_model_load_from_splits`
 - [ ] `llama_model_quantize_default_params`
 - [ ] `llama_model_quantize`

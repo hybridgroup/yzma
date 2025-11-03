@@ -258,6 +258,45 @@ func TestGetEmbeddingsSeq(t *testing.T) {
 	t.Logf("GetEmbeddingsSeq returned %d embeddings", len(embeddings))
 }
 
+func TestGetEmbeddings(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	defer ModelFree(model)
+
+	params := ContextDefaultParams()
+	params.PoolingType = PoolingTypeNone
+	params.Embeddings = 1
+
+	ctx := InitFromModel(model, params)
+	defer Free(ctx)
+
+	// Tokenize a prompt
+	prompt := "This is a test"
+	vocab := ModelGetVocab(model)
+	count := Tokenize(vocab, prompt, nil, true, true)
+	tokens := make([]Token, count)
+	Tokenize(vocab, prompt, tokens, true, true)
+
+	// Create batch and decode
+	batch := BatchGetOne(tokens)
+	Decode(ctx, batch)
+
+	nOutputs := len(tokens)
+	nEmbeddings := int(ModelNEmbd(model))
+	embeddings := GetEmbeddings(ctx, nOutputs, nEmbeddings)
+	if embeddings == nil {
+		t.Fatal("GetEmbeddings returned nil")
+	}
+	if len(embeddings) != nOutputs*nEmbeddings {
+		t.Fatalf("GetEmbeddings returned %d values, expected %d", len(embeddings), nOutputs*nEmbeddings)
+	}
+	t.Logf("GetEmbeddings returned %d values", len(embeddings))
+}
+
 func TestSetEmbeddings(t *testing.T) {
 	modelFile := testModelFileName(t)
 
@@ -298,4 +337,39 @@ func TestSetCausalAttn(t *testing.T) {
 	// Disable causal attention
 	SetCausalAttn(ctx, false)
 	t.Log("SetCausalAttn successfully set causal attention to false")
+}
+
+func TestGetLogits(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	defer ModelFree(model)
+
+	ctx := InitFromModel(model, ContextDefaultParams())
+	defer Free(ctx)
+
+	// Tokenize a prompt
+	prompt := "This is a test"
+	vocab := ModelGetVocab(model)
+	count := Tokenize(vocab, prompt, nil, true, true)
+	tokens := make([]Token, count)
+	Tokenize(vocab, prompt, tokens, true, true)
+
+	// Create batch and decode
+	batch := BatchGetOne(tokens)
+	Decode(ctx, batch)
+
+	nTokens := len(tokens)
+	nVocab := int(VocabNTokens(vocab))
+	logits := GetLogits(ctx, nTokens, nVocab)
+	if logits == nil {
+		t.Fatal("GetLogits returned nil")
+	}
+	if len(logits) != nTokens*nVocab {
+		t.Fatalf("GetLogits returned %d values, expected %d", len(logits), nTokens*nVocab)
+	}
+	t.Logf("GetLogits returned %d values", len(logits))
 }
