@@ -14,6 +14,19 @@ func TestModelDefaultParams(t *testing.T) {
 	}
 }
 
+func TestModelInvalidFile(t *testing.T) {
+	modelFile := "invalid_model.gguf"
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ModelDefaultParams()
+	model := ModelLoadFromFile(modelFile, params)
+	if model != 0 {
+		t.Fatal("ModelLoadFromFile should have failed for invalid file")
+	}
+}
+
 func TestModelHasDecoder(t *testing.T) {
 	modelFile := testModelFileName(t)
 
