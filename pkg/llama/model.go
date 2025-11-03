@@ -498,7 +498,7 @@ func ModelMetaKeyByIndex(model Model, i int32) (string, bool) {
 // ModelMetaValStrByIndex gets metadata value as a string by index.
 // Returns the string and true on success, or "" and false on failure.
 func ModelMetaValStrByIndex(model Model, i int32) (string, bool) {
-	buf := make([]byte, 128)
+	buf := make([]byte, 2048)
 	b := unsafe.SliceData(buf)
 	bLen := int32(len(buf))
 
