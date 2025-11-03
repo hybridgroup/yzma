@@ -1,6 +1,7 @@
 package mtmd
 
 import (
+	"os"
 	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/utils"
@@ -129,6 +130,11 @@ func BitmapGetNBytes(bitmap Bitmap) uint32 {
 // BitmapInitFromFile initializes a Bitmap from a file.
 func BitmapInitFromFile(ctx Context, fname string) Bitmap {
 	var bitmap Bitmap
+	if _, err := os.Stat(fname); os.IsNotExist(err) {
+		// no such file
+		return bitmap
+	}
+
 	file := &[]byte(fname + "\x00")[0]
 	bitmapInitFromFileFunc.Call(unsafe.Pointer(&bitmap), unsafe.Pointer(&ctx), unsafe.Pointer(&file))
 
