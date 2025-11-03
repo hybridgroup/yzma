@@ -242,12 +242,18 @@ func ModelLoadFromFile(pathModel string, params ModelParams) Model {
 
 // ModelFree frees a previously opened model.
 func ModelFree(model Model) {
+	if model == 0 {
+		return
+	}
 	modelFreeFunc.Call(nil, unsafe.Pointer(&model))
 }
 
 // InitFromModel initializes a previously loaded Model, and then returns a new Context.
 func InitFromModel(model Model, params ContextParams) Context {
 	var ctx Context
+	if model == 0 {
+		return ctx
+	}
 	initFromModelFunc.Call(unsafe.Pointer(&ctx), unsafe.Pointer(&model), unsafe.Pointer(&params))
 
 	return ctx
@@ -255,6 +261,9 @@ func InitFromModel(model Model, params ContextParams) Context {
 
 // ModelChatTemplate returns a named chat template for the Model.
 func ModelChatTemplate(model Model, name string) string {
+	if model == 0 {
+		return ""
+	}
 	var template *byte
 	var n *byte
 	if len(name) > 0 {
@@ -267,6 +276,9 @@ func ModelChatTemplate(model Model, name string) string {
 
 // ModelHasEncoder returns if the Model has an encoder.
 func ModelHasEncoder(model Model) bool {
+	if model == 0 {
+		return false
+	}
 	var result ffi.Arg
 	modelHasEncoderFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 
@@ -275,6 +287,9 @@ func ModelHasEncoder(model Model) bool {
 
 // ModelHasDecoder returns if the Model has an decoder.
 func ModelHasDecoder(model Model) bool {
+	if model == 0 {
+		return false
+	}
 	var result ffi.Arg
 	modelHasDecoderFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 
@@ -283,6 +298,9 @@ func ModelHasDecoder(model Model) bool {
 
 // ModelDecoderStartToken returns the start Token for the Model's decoder.
 func ModelDecoderStartToken(model Model) Token {
+	if model == 0 {
+		return TokenNull
+	}
 	var result ffi.Arg
 	modelDecoderStartTokenFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 
@@ -290,6 +308,9 @@ func ModelDecoderStartToken(model Model) Token {
 }
 
 func ModelNCtxTrain(model Model) int32 {
+	if model == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	modelNCtxTrainFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 
@@ -297,6 +318,9 @@ func ModelNCtxTrain(model Model) int32 {
 }
 
 func ModelNEmbd(model Model) int32 {
+	if model == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	modelNEmbdFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 
@@ -304,6 +328,9 @@ func ModelNEmbd(model Model) int32 {
 }
 
 func ModelNLayer(model Model) int32 {
+	if model == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	modelNLayerFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 
@@ -311,6 +338,9 @@ func ModelNLayer(model Model) int32 {
 }
 
 func ModelNHead(model Model) int32 {
+	if model == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	modelNHeadFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 
@@ -318,6 +348,9 @@ func ModelNHead(model Model) int32 {
 }
 
 func ModelNHeadKV(model Model) int32 {
+	if model == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	modelNHeadKVFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 
@@ -325,6 +358,9 @@ func ModelNHeadKV(model Model) int32 {
 }
 
 func ModelNSWA(model Model) int32 {
+	if model == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	modelNSWAFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 
@@ -333,6 +369,9 @@ func ModelNSWA(model Model) int32 {
 
 // ModelNClsOut returns the number of classifier outputs (only valid for classifier models).
 func ModelNClsOut(model Model) uint32 {
+	if model == 0 {
+		return 0
+	}
 	var nClsOut ffi.Arg
 	modelNClsOutFunc.Call(unsafe.Pointer(&nClsOut), unsafe.Pointer(&model))
 	return uint32(nClsOut)
@@ -340,6 +379,9 @@ func ModelNClsOut(model Model) uint32 {
 
 // ModelClsLabel returns the label of a classifier output by index.
 func ModelClsLabel(model Model, index uint32) string {
+	if model == 0 {
+		return ""
+	}
 	var labelPtr *byte
 	modelClsLabelFunc.Call(unsafe.Pointer(&labelPtr), unsafe.Pointer(&model), unsafe.Pointer(&index))
 
@@ -352,6 +394,9 @@ func ModelClsLabel(model Model, index uint32) string {
 
 // ModelDesc retrieves a string describing the model type.
 func ModelDesc(model Model) string {
+	if model == 0 {
+		return ""
+	}
 	buf := make([]byte, 128)
 	b := unsafe.SliceData(buf)
 	bLen := int32(len(buf))
@@ -368,6 +413,9 @@ func ModelDesc(model Model) string {
 
 // ModelSize returns the total size of all tensors in the model in bytes.
 func ModelSize(model Model) uint64 {
+	if model == 0 {
+		return 0
+	}
 	var size ffi.Arg
 	modelSizeFunc.Call(unsafe.Pointer(&size), unsafe.Pointer(&model))
 	return uint64(size)
@@ -375,6 +423,9 @@ func ModelSize(model Model) uint64 {
 
 // ModelIsRecurrent returns true if the model is recurrent.
 func ModelIsRecurrent(model Model) bool {
+	if model == 0 {
+		return false
+	}
 	var result ffi.Arg
 	modelIsRecurrentFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 	return result.Bool()
@@ -382,6 +433,9 @@ func ModelIsRecurrent(model Model) bool {
 
 // ModelIsHybrid returns true if the model is hybrid.
 func ModelIsHybrid(model Model) bool {
+	if model == 0 {
+		return false
+	}
 	var result ffi.Arg
 	modelIsHybridFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 	return result.Bool()
@@ -389,6 +443,9 @@ func ModelIsHybrid(model Model) bool {
 
 // ModelIsDiffusion returns true if the model is diffusion-based.
 func ModelIsDiffusion(model Model) bool {
+	if model == 0 {
+		return false
+	}
 	var result ffi.Arg
 	modelIsDiffusionFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 	return result.Bool()
@@ -396,6 +453,10 @@ func ModelIsDiffusion(model Model) bool {
 
 // ModelRopeFreqScaleTrain retrieves the model's RoPE frequency scaling factor.
 func ModelRopeFreqScaleTrain(model Model) float32 {
+	if model == 0 {
+		return 0.0
+	}
+
 	var freqScale ffi.Arg
 	modelRopeFreqScaleTrainFunc.Call(unsafe.Pointer(&freqScale), unsafe.Pointer(&model))
 	return float32(freqScale)
@@ -403,6 +464,9 @@ func ModelRopeFreqScaleTrain(model Model) float32 {
 
 // ModelRopeType retrieves the RoPE type of the model.
 func ModelRopeType(model Model) RopeScalingType {
+	if model == 0 {
+		return RopeScalingTypeNone
+	}
 	var ropeType ffi.Arg
 	modelRopeTypeFunc.Call(unsafe.Pointer(&ropeType), unsafe.Pointer(&model))
 	return RopeScalingType(int32(ropeType))
@@ -410,6 +474,10 @@ func ModelRopeType(model Model) RopeScalingType {
 
 // Warmup is to warm-up a model.
 func Warmup(lctx Context, model Model) {
+	if lctx == 0 || model == 0 {
+		return
+	}
+
 	vocab := ModelGetVocab(model)
 
 	SetWarmup(lctx, true)
@@ -456,6 +524,9 @@ func Warmup(lctx Context, model Model) {
 // ModelMetaValStr gets metadata value as a string by key name.
 // Returns the string and true on success, or "" and false on failure.
 func ModelMetaValStr(model Model, key string) (string, bool) {
+	if model == 0 {
+		return "", false
+	}
 	buf := make([]byte, 128)
 	b := unsafe.SliceData(buf)
 	bLen := int32(len(buf))
@@ -476,6 +547,9 @@ func ModelMetaValStr(model Model, key string) (string, bool) {
 
 // ModelMetaCount gets the number of metadata key/value pairs.
 func ModelMetaCount(model Model) int32 {
+	if model == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	modelMetaCountFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 	return int32(result)
@@ -484,6 +558,9 @@ func ModelMetaCount(model Model) int32 {
 // ModelMetaKeyByIndex gets metadata key name by index.
 // Returns the string and true on success, or "" and false on failure.
 func ModelMetaKeyByIndex(model Model, i int32) (string, bool) {
+	if model == 0 {
+		return "", false
+	}
 	buf := make([]byte, 128)
 	b := unsafe.SliceData(buf)
 	bLen := int32(len(buf))
@@ -504,6 +581,9 @@ func ModelMetaKeyByIndex(model Model, i int32) (string, bool) {
 // ModelMetaValStrByIndex gets metadata value as a string by index.
 // Returns the string and true on success, or "" and false on failure.
 func ModelMetaValStrByIndex(model Model, i int32) (string, bool) {
+	if model == 0 {
+		return "", false
+	}
 	buf := make([]byte, 2048)
 	b := unsafe.SliceData(buf)
 	bLen := int32(len(buf))

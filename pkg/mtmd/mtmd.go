@@ -178,11 +178,17 @@ func InitFromFile(mmprojFname string, model llama.Model, ctxParams ContextParams
 
 // Free frees a Context that has already been created using InitFromFile.
 func Free(ctx Context) {
+	if ctx == 0 {
+		return
+	}
 	freeFunc.Call(nil, unsafe.Pointer(&ctx))
 }
 
 // SupportVision returns whether the current model supports vision input.
 func SupportVision(ctx Context) bool {
+	if ctx == 0 {
+		return false
+	}
 	var result ffi.Arg
 	supportVisionFunc.Call(&result, unsafe.Pointer(&ctx))
 
@@ -209,6 +215,9 @@ func SupportVision(ctx Context) bool {
 //	1 on number of bitmaps not matching the number of markers
 //	2 on image preprocessing error
 func Tokenize(ctx Context, out InputChunks, text *InputText, bitmaps []Bitmap) int32 {
+	if ctx == 0 {
+		return 1
+	}
 	bt := unsafe.SliceData(bitmaps)
 	nBitmaps := uint64(len(bitmaps))
 
@@ -236,6 +245,9 @@ func NewInputText(text string, addSpecial, parseSpecial bool) *InputText {
 // otherwise, returns 0 on success
 // this function is NOT thread-safe
 func HelperEvalChunks(ctx Context, lctx llama.Context, chunks InputChunks, nPast llama.Pos, seqID llama.SeqId, nBatch int32, logitsLast bool, newNPast *llama.Pos) int32 {
+	if ctx == 0 {
+		return -1
+	}
 	muHelperEvalChunks.Lock()
 	defer muHelperEvalChunks.Unlock()
 
@@ -248,6 +260,9 @@ func HelperEvalChunks(ctx Context, lctx llama.Context, chunks InputChunks, nPast
 
 // DecodeUseNonCausal checks if the non-causal mask needs to be set before llama_decode.
 func DecodeUseNonCausal(ctx Context) bool {
+	if ctx == 0 {
+		return false
+	}
 	var result ffi.Arg
 	decodeUseNonCausalFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 	return result.Bool()
@@ -255,6 +270,9 @@ func DecodeUseNonCausal(ctx Context) bool {
 
 // DecodeUseMRope checks if the current model uses M-RoPE for llama_decode.
 func DecodeUseMRope(ctx Context) bool {
+	if ctx == 0 {
+		return false
+	}
 	var result ffi.Arg
 	decodeUseMRopeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 	return result.Bool()
@@ -262,6 +280,9 @@ func DecodeUseMRope(ctx Context) bool {
 
 // SupportAudio checks if the current model supports audio input.
 func SupportAudio(ctx Context) bool {
+	if ctx == 0 {
+		return false
+	}
 	var result ffi.Arg
 	supportAudioFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 	return result.Bool()
@@ -269,6 +290,9 @@ func SupportAudio(ctx Context) bool {
 
 // GetAudioBitrate returns the audio bitrate in Hz, or -1 if audio is not supported.
 func GetAudioBitrate(ctx Context) int {
+	if ctx == 0 {
+		return -1
+	}
 	var result ffi.Arg
 	getAudioBitrateFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 	return int(result)

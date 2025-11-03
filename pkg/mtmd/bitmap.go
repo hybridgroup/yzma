@@ -116,11 +116,17 @@ func BitmapInit(nx uint32, ny uint32, data uintptr) Bitmap {
 
 // BitmapFree frees a previous initialized Bitmap.
 func BitmapFree(bitmap Bitmap) {
+	if bitmap == 0 {
+		return
+	}
 	bitmapFreeFunc.Call(nil, unsafe.Pointer(&bitmap))
 }
 
 // BitmapGetNBytes returns the number of bytes in the Bitmap.
 func BitmapGetNBytes(bitmap Bitmap) uint32 {
+	if bitmap == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	bitmapGetNBytesFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&bitmap))
 
@@ -130,6 +136,9 @@ func BitmapGetNBytes(bitmap Bitmap) uint32 {
 // BitmapInitFromFile initializes a Bitmap from a file.
 func BitmapInitFromFile(ctx Context, fname string) Bitmap {
 	var bitmap Bitmap
+	if ctx == 0 {
+		return bitmap
+	}
 	if _, err := os.Stat(fname); os.IsNotExist(err) {
 		// no such file
 		return bitmap
@@ -144,6 +153,9 @@ func BitmapInitFromFile(ctx Context, fname string) Bitmap {
 // BitmapInitFromBuf initializes a Bitmap from a buffer of bytes.
 func BitmapInitFromBuf(ctx Context, buf *byte, len uint64) Bitmap {
 	var bitmap Bitmap
+	if ctx == 0 {
+		return bitmap
+	}
 	bitmapInitFromBufFunc.Call(unsafe.Pointer(&bitmap), unsafe.Pointer(&ctx), unsafe.Pointer(&buf), &len)
 
 	return bitmap
@@ -151,6 +163,9 @@ func BitmapInitFromBuf(ctx Context, buf *byte, len uint64) Bitmap {
 
 // BitmapGetNx retrieves the width (nx) of the bitmap.
 func BitmapGetNx(bitmap Bitmap) uint32 {
+	if bitmap == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	bitmapGetNxFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&bitmap))
 	return uint32(result)
@@ -158,6 +173,9 @@ func BitmapGetNx(bitmap Bitmap) uint32 {
 
 // BitmapGetNy retrieves the height (ny) of the bitmap.
 func BitmapGetNy(bitmap Bitmap) uint32 {
+	if bitmap == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	bitmapGetNyFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&bitmap))
 	return uint32(result)
@@ -165,6 +183,9 @@ func BitmapGetNy(bitmap Bitmap) uint32 {
 
 // BitmapGetData retrieves the raw data of the bitmap.
 func BitmapGetData(bitmap Bitmap) []byte {
+	if bitmap == 0 {
+		return nil
+	}
 	var dataPtr *byte
 	bitmapGetDataFunc.Call(unsafe.Pointer(&dataPtr), unsafe.Pointer(&bitmap))
 
@@ -180,6 +201,9 @@ func BitmapGetData(bitmap Bitmap) []byte {
 
 // BitmapIsAudio checks if the bitmap represents audio data.
 func BitmapIsAudio(bitmap Bitmap) bool {
+	if bitmap == 0 {
+		return false
+	}
 	var result ffi.Arg
 	bitmapIsAudioFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&bitmap))
 	return result.Bool()
@@ -187,6 +211,9 @@ func BitmapIsAudio(bitmap Bitmap) bool {
 
 // BitmapGetId retrieves the ID of the bitmap.
 func BitmapGetId(bitmap Bitmap) string {
+	if bitmap == 0 {
+		return ""
+	}
 	var idPtr *byte
 	bitmapGetIdFunc.Call(unsafe.Pointer(&idPtr), unsafe.Pointer(&bitmap))
 
@@ -199,6 +226,9 @@ func BitmapGetId(bitmap Bitmap) string {
 
 // BitmapSetId sets the ID of the bitmap.
 func BitmapSetId(bitmap Bitmap, id string) {
+	if bitmap == 0 {
+		return
+	}
 	idPtr, _ := utils.BytePtrFromString(id)
 	bitmapSetIdFunc.Call(nil, unsafe.Pointer(&bitmap), unsafe.Pointer(&idPtr))
 }
@@ -206,6 +236,9 @@ func BitmapSetId(bitmap Bitmap, id string) {
 // BitmapInitFromAudio initializes a Bitmap from audio data (PCM F32).
 func BitmapInitFromAudio(nSamples uint64, data *float32) Bitmap {
 	var bitmap Bitmap
+	if data == nil {
+		return bitmap
+	}
 	bitmapInitFromAudioFunc.Call(unsafe.Pointer(&bitmap), &nSamples, unsafe.Pointer(&data))
 	return bitmap
 }
