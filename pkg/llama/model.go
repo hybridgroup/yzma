@@ -527,9 +527,10 @@ func ModelMetaValStr(model Model, key string) (string, bool) {
 	if model == 0 {
 		return "", false
 	}
-	buf := make([]byte, 128)
+	buf := make([]byte, 8192)
 	b := unsafe.SliceData(buf)
 	bLen := int32(len(buf))
+
 	keyPtr, _ := utils.BytePtrFromString(key)
 	var result ffi.Arg
 	modelMetaValStrFunc.Call(
@@ -542,7 +543,12 @@ func ModelMetaValStr(model Model, key string) (string, bool) {
 	if int32(result) < 0 {
 		return "", false
 	}
-	return string(buf[:int32(result)]), true
+
+	// copy to a new slice to avoid retaining the entire buffer
+	value := make([]byte, int32(result))
+	copy(value, buf[:int32(result)])
+
+	return string(value), true
 }
 
 // ModelMetaCount gets the number of metadata key/value pairs.
@@ -575,7 +581,12 @@ func ModelMetaKeyByIndex(model Model, i int32) (string, bool) {
 	if int32(result) < 0 {
 		return "", false
 	}
-	return string(buf[:int32(result)]), true
+
+	// copy to a new slice to avoid retaining the entire buffer
+	value := make([]byte, int32(result))
+	copy(value, buf[:int32(result)])
+
+	return string(value), true
 }
 
 // ModelMetaValStrByIndex gets metadata value as a string by index.
@@ -584,7 +595,7 @@ func ModelMetaValStrByIndex(model Model, i int32) (string, bool) {
 	if model == 0 {
 		return "", false
 	}
-	buf := make([]byte, 2048)
+	buf := make([]byte, 8192)
 	b := unsafe.SliceData(buf)
 	bLen := int32(len(buf))
 
@@ -598,5 +609,10 @@ func ModelMetaValStrByIndex(model Model, i int32) (string, bool) {
 	if int32(result) < 0 {
 		return "", false
 	}
-	return string(buf[:int32(result)]), true
+
+	// copy to a new slice to avoid retaining the entire buffer
+	value := make([]byte, int32(result))
+	copy(value, buf[:int32(result)])
+
+	return string(value), true
 }
