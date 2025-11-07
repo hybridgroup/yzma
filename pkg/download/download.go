@@ -130,6 +130,7 @@ func get(url, filename, dest string) error {
 	return nil
 }
 
+// VersionIsValid checks if the provided version string is valid.
 func VersionIsValid(version string) error {
 	if !strings.HasPrefix(version, "b") {
 		return errInvalidVersion

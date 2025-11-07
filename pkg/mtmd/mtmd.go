@@ -150,12 +150,14 @@ func loadFuncs(lib ffi.Lib) error {
 	return nil
 }
 
+// DefaultMarker returns the default media marker used in prompts.
 func DefaultMarker() string {
 	var marker *byte
 	defaultMarkerFunc.Call(unsafe.Pointer(&marker))
 	return utils.BytePtrToString(marker)
 }
 
+// ContextParamsDefault returns the default context parameters for mtmd.
 func ContextParamsDefault() ContextParamsType {
 	var ctx ContextParamsType
 	contextParamsDefaultFunc.Call(unsafe.Pointer(&ctx))

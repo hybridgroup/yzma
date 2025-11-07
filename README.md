@@ -24,7 +24,7 @@ var (
 	modelFile            = "./models/SmolLM-135M.Q2_K.gguf"
 	prompt               = "Are you ready to go?"
 	libPath              = os.Getenv("YZMA_LIB")
-	responseLength int32 = 12
+	responseLength int32 = 18
 )
 
 func main() {
@@ -36,7 +36,7 @@ func main() {
 
 	vocab := llama.ModelGetVocab(model)
 
-	// get the tokens for the prompt
+	// get tokens from the prompt
 	tokens := llama.Tokenize(vocab, prompt, true, false)
 
 	batch := llama.BatchGetOne(tokens)
@@ -44,7 +44,7 @@ func main() {
 	sampler := llama.SamplerChainInit(llama.SamplerChainDefaultParams())
 	llama.SamplerChainAdd(sampler, llama.SamplerInitGreedy())
 
-	for pos := int32(0); pos+batch.NTokens < count+responseLength; pos += batch.NTokens {
+	for pos := int32(0); pos < responseLength; pos += batch.NTokens {
 		llama.Decode(lctx, batch)
 		token := llama.SamplerSample(sampler, lctx, -1)
 
