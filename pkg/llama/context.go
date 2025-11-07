@@ -213,16 +213,25 @@ func ContextDefaultParams() ContextParams {
 
 // Free frees the resources for a model context.
 func Free(ctx Context) {
+	if ctx == 0 {
+		return
+	}
 	freeFunc.Call(nil, unsafe.Pointer(&ctx))
 }
 
 // SetWarmup sets the model context warmup mode on or off.
 func SetWarmup(ctx Context, warmup bool) {
+	if ctx == 0 {
+		return
+	}
 	setWarmupFunc.Call(nil, unsafe.Pointer(&ctx), &warmup)
 }
 
 // Encode encodes a batch of Token.
 func Encode(ctx Context, batch Batch) int32 {
+	if ctx == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	encodeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&batch))
 
@@ -231,6 +240,9 @@ func Encode(ctx Context, batch Batch) int32 {
 
 // Decode decodes a batch of Token.
 func Decode(ctx Context, batch Batch) int32 {
+	if ctx == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	decodeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&batch))
 
@@ -239,11 +251,17 @@ func Decode(ctx Context, batch Batch) int32 {
 
 // PerfContextReset resets the performance metrics for the model context.
 func PerfContextReset(ctx Context) {
+	if ctx == 0 {
+		return
+	}
 	perfContextResetFunc.Call(nil, unsafe.Pointer(&ctx))
 }
 
 // GetMemory returns the current Memory for the Context.
 func GetMemory(ctx Context) Memory {
+	if ctx == 0 {
+		return 0
+	}
 	var mem Memory
 	getMemoryFunc.Call(unsafe.Pointer(&mem), unsafe.Pointer(&ctx))
 
@@ -254,11 +272,17 @@ func GetMemory(ctx Context) Memory {
 // This is automatically done when using one of the functions that obtains computation results
 // and is not necessary to call it explicitly in most cases.
 func Synchronize(ctx Context) {
+	if ctx == 0 {
+		return
+	}
 	synchronizeFunc.Call(nil, unsafe.Pointer(&ctx))
 }
 
 // GetPoolingType returns the PoolingType for this context.
 func GetPoolingType(ctx Context) PoolingType {
+	if ctx == 0 {
+		return PoolingTypeNone
+	}
 	var result ffi.Arg
 	poolingTypeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 
@@ -267,6 +291,9 @@ func GetPoolingType(ctx Context) PoolingType {
 
 // GetEmbeddingsIth gets the embeddings for the ith token.
 func GetEmbeddingsIth(ctx Context, i int32, nVocab int32) []float32 {
+	if ctx == 0 {
+		return nil
+	}
 	var result *float32
 	getEmbeddingsIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &i)
 
@@ -279,6 +306,9 @@ func GetEmbeddingsIth(ctx Context, i int32, nVocab int32) []float32 {
 
 // GetEmbeddingsSeq gets the embeddings for this sequence ID.
 func GetEmbeddingsSeq(ctx Context, seqID SeqId, nVocab int32) []float32 {
+	if ctx == 0 {
+		return nil
+	}
 	var result *float32
 	getEmbeddingsSeqFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &seqID)
 
@@ -292,6 +322,9 @@ func GetEmbeddingsSeq(ctx Context, seqID SeqId, nVocab int32) []float32 {
 // GetEmbeddings retrieves all output token embeddings.
 // Returns a slice of float32 of length nOutputs * nEmbeddings, or nil if not available.
 func GetEmbeddings(ctx Context, nOutputs, nEmbeddings int) []float32 {
+	if ctx == 0 {
+		return nil
+	}
 	var result *float32
 	getEmbeddingsFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 	if result == nil || nOutputs <= 0 || nEmbeddings <= 0 {
@@ -302,6 +335,9 @@ func GetEmbeddings(ctx Context, nOutputs, nEmbeddings int) []float32 {
 
 // GetLogitsIth retrieves the logits for the ith token.
 func GetLogitsIth(ctx Context, i int32, nVocab int) []float32 {
+	if ctx == 0 {
+		return nil
+	}
 	var logitsPtr *float32
 	getLogitsIthFunc.Call(unsafe.Pointer(&logitsPtr), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
 
@@ -315,6 +351,9 @@ func GetLogitsIth(ctx Context, i int32, nVocab int) []float32 {
 // GetLogits retrieves all token logits from the last call to llama_decode.
 // Returns a slice of float32 of length nTokens * nVocab, or nil if not available.
 func GetLogits(ctx Context, nTokens, nVocab int) []float32 {
+	if ctx == 0 {
+		return nil
+	}
 	var result *float32
 	getLogitsFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 	if result == nil || nTokens <= 0 || nVocab <= 0 {
@@ -325,6 +364,9 @@ func GetLogits(ctx Context, nTokens, nVocab int) []float32 {
 
 // NCtx returns the number of context tokens.
 func NCtx(ctx Context) uint32 {
+	if ctx == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	nCtxFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 	return uint32(result)
@@ -332,6 +374,9 @@ func NCtx(ctx Context) uint32 {
 
 // NBatch returns the number of batch tokens.
 func NBatch(ctx Context) uint32 {
+	if ctx == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	nBatchFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 	return uint32(result)
@@ -339,6 +384,9 @@ func NBatch(ctx Context) uint32 {
 
 // NUBatch returns the number of micro-batch tokens.
 func NUBatch(ctx Context) uint32 {
+	if ctx == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	nUBatchFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 	return uint32(result)
@@ -346,6 +394,9 @@ func NUBatch(ctx Context) uint32 {
 
 // NSeqMax returns the maximum number of sequences.
 func NSeqMax(ctx Context) uint32 {
+	if ctx == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	nSeqMaxFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 	return uint32(result)
@@ -354,6 +405,9 @@ func NSeqMax(ctx Context) uint32 {
 // GetModel retrieves the model associated with the given context.
 func GetModel(ctx Context) Model {
 	var model Model
+	if ctx == 0 {
+		return model
+	}
 	getModelFunc.Call(unsafe.Pointer(&model), unsafe.Pointer(&ctx))
 
 	return model
@@ -361,10 +415,16 @@ func GetModel(ctx Context) Model {
 
 // SetEmbeddings sets whether the context outputs embeddings or not.
 func SetEmbeddings(ctx Context, embeddings bool) {
+	if ctx == 0 {
+		return
+	}
 	setEmbeddingsFunc.Call(nil, unsafe.Pointer(&ctx), &embeddings)
 }
 
 // SetCausalAttn sets whether to use causal attention or not.
 func SetCausalAttn(ctx Context, causalAttn bool) {
+	if ctx == 0 {
+		return
+	}
 	setCausalAttnFunc.Call(nil, unsafe.Pointer(&ctx), &causalAttn)
 }

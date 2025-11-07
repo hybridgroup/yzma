@@ -86,6 +86,9 @@ func loadMemoryFuncs(lib ffi.Lib) error {
 // MemoryClear clears the memory contents.
 // If data == true, the data buffers will also be cleared together with the metadata.
 func MemoryClear(mem Memory, data bool) {
+	if mem == 0 {
+		return
+	}
 	memoryClearFunc.Call(nil, unsafe.Pointer(&mem), unsafe.Pointer(&data))
 }
 
@@ -95,6 +98,9 @@ func MemoryClear(mem Memory, data bool) {
 // p0 < 0     : [0,  p1]
 // p1 < 0     : [p0, inf)
 func MemorySeqRm(mem Memory, seqID SeqId, p0, p1 Pos) bool {
+	if mem == 0 {
+		return false
+	}
 	var result ffi.Arg
 	memorySeqRmFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&mem), &seqID, &p0, &p1)
 
@@ -103,26 +109,41 @@ func MemorySeqRm(mem Memory, seqID SeqId, p0, p1 Pos) bool {
 
 // MemorySeqCp copies all tokens from one sequence to another.
 func MemorySeqCp(mem Memory, seqIDSrc, seqIDDst SeqId, p0, p1 Pos) {
+	if mem == 0 {
+		return
+	}
 	memorySeqCpFunc.Call(nil, unsafe.Pointer(&mem), &seqIDSrc, &seqIDDst, &p0, &p1)
 }
 
 // MemorySeqKeep removes all tokens that do not belong to the specified sequence.
 func MemorySeqKeep(mem Memory, seqID SeqId) {
+	if mem == 0 {
+		return
+	}
 	memorySeqKeepFunc.Call(nil, unsafe.Pointer(&mem), &seqID)
 }
 
 // MemorySeqAdd adds a relative position delta to tokens in the specified sequence and range.
 func MemorySeqAdd(mem Memory, seqID SeqId, p0, p1, delta Pos) {
+	if mem == 0 {
+		return
+	}
 	memorySeqAddFunc.Call(nil, unsafe.Pointer(&mem), &seqID, &p0, &p1, &delta)
 }
 
 // MemorySeqDiv divides the positions of tokens in the specified sequence and range by a factor.
 func MemorySeqDiv(mem Memory, seqID SeqId, p0, p1 Pos, d int) {
+	if mem == 0 {
+		return
+	}
 	memorySeqDivFunc.Call(nil, unsafe.Pointer(&mem), &seqID, &p0, &p1, &d)
 }
 
 // MemorySeqPosMin returns the smallest position in the memory for the specified sequence.
 func MemorySeqPosMin(mem Memory, seqID SeqId) Pos {
+	if mem == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	memorySeqPosMinFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&mem), &seqID)
 	return Pos(int32(result))
@@ -130,6 +151,9 @@ func MemorySeqPosMin(mem Memory, seqID SeqId) Pos {
 
 // MemorySeqPosMax returns the largest position in the memory for the specified sequence.
 func MemorySeqPosMax(mem Memory, seqID SeqId) Pos {
+	if mem == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	memorySeqPosMaxFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&mem), &seqID)
 	return Pos(int32(result))
@@ -137,6 +161,9 @@ func MemorySeqPosMax(mem Memory, seqID SeqId) Pos {
 
 // MemoryCanShift checks if the memory supports shifting.
 func MemoryCanShift(mem Memory) bool {
+	if mem == 0 {
+		return false
+	}
 	var result ffi.Arg
 	memoryCanShiftFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&mem))
 	return result.Bool()
