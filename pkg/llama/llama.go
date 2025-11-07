@@ -29,7 +29,7 @@ const (
 	MaxToken = 0x7fffffff
 )
 
-// Enums
+// Vocab types
 type VocabType int32
 
 const (
@@ -42,6 +42,7 @@ const (
 	VocabTypePLAMO2
 )
 
+// RoPE types
 type RoPEType int32
 
 const (
@@ -53,6 +54,7 @@ const (
 	RoPETypeVision RoPEType = 24
 )
 
+// Token types
 type TokenType int32
 
 const (
@@ -65,6 +67,7 @@ const (
 	TokenTypeByte
 )
 
+// Token attributes
 type TokenAttr int32
 
 const (
@@ -238,6 +241,7 @@ type TokenData struct {
 	P     float32 // probability of the token
 }
 
+// TokenDataArray represents an array of token data
 type TokenDataArray struct {
 	Data     *TokenData // pointer to token data array
 	Size     uint64     // number of tokens
@@ -245,6 +249,7 @@ type TokenDataArray struct {
 	Sorted   uint8      // whether the array is sorted by probability (bool as uint8)
 }
 
+// Batch represents a batch of tokens or embeddings
 type Batch struct {
 	NTokens int32    // number of tokens
 	Token   *Token   // tokens
@@ -255,6 +260,7 @@ type Batch struct {
 	Logits  *int8    // whether to compute logits for each token
 }
 
+// TensorBuftOverride represents a tensor buffer type override.
 type TensorBuftOverride struct {
 	Pattern *byte                 // tensor pattern
 	Type    GGMLBackendBufferType // buffer type

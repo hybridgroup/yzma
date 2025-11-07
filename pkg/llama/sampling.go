@@ -212,6 +212,7 @@ func SamplerChainAdd(chain Sampler, smpl Sampler) {
 	samplerChainAddFunc.Call(nil, unsafe.Pointer(&chain), unsafe.Pointer(&smpl))
 }
 
+// SamplerInitGreedy initializes a new greedy sampler.
 func SamplerInitGreedy() Sampler {
 	var p Sampler
 	samplerInitGreedyFunc.Call(unsafe.Pointer(&p))
@@ -219,6 +220,7 @@ func SamplerInitGreedy() Sampler {
 	return p
 }
 
+// SamplerInitDist initializes a new distribution sampler with the specified seed.
 func SamplerInitDist(seed uint32) Sampler {
 	var p Sampler
 	samplerInitDistFunc.Call(unsafe.Pointer(&p), unsafe.Pointer(&seed))
@@ -226,6 +228,7 @@ func SamplerInitDist(seed uint32) Sampler {
 	return p
 }
 
+// SamplerInitLogitBias initializes a new logit bias sampler.
 func SamplerInitLogitBias(nVocab int32, nLogitBias int32, logitBias *LogitBias) Sampler {
 	var p Sampler
 	samplerInitLogitBiasFunc.Call(unsafe.Pointer(&p), unsafe.Pointer(&nVocab), unsafe.Pointer(&nLogitBias), unsafe.Pointer(&logitBias))
@@ -233,6 +236,7 @@ func SamplerInitLogitBias(nVocab int32, nLogitBias int32, logitBias *LogitBias) 
 	return p
 }
 
+// SamplerInitPenalties initializes a new penalties sampler.
 func SamplerInitPenalties(lastN int32, repeat float32, freq float32, present float32) Sampler {
 	var p Sampler
 	samplerInitPenaltiesFunc.Call(unsafe.Pointer(&p), unsafe.Pointer(&lastN), unsafe.Pointer(&repeat), unsafe.Pointer(&freq), unsafe.Pointer(&present))
@@ -240,6 +244,7 @@ func SamplerInitPenalties(lastN int32, repeat float32, freq float32, present flo
 	return p
 }
 
+// SamplerInitDry initializes a new DRY sampler.
 func SamplerInitDry(vocab Vocab, nCtxTrain int32, multiplier float32, base float32, allowedLength int32, penaltyLast int32,
 	seqBreakers **byte, numBreakers uint32) Sampler {
 	var p Sampler
@@ -249,6 +254,7 @@ func SamplerInitDry(vocab Vocab, nCtxTrain int32, multiplier float32, base float
 	return p
 }
 
+// SamplerInitTopNSigma initializes a new Top-N Sigma sampler.
 func SamplerInitTopNSigma(n float32) Sampler {
 	var p Sampler
 	samplerInitTopNSigmaFunc.Call(unsafe.Pointer(&p), unsafe.Pointer(&n))
@@ -256,6 +262,7 @@ func SamplerInitTopNSigma(n float32) Sampler {
 	return p
 }
 
+// SamplerInitTopK initializes a new Top-K sampler.
 func SamplerInitTopK(k int32) Sampler {
 	var p Sampler
 	samplerInitTopKFunc.Call(unsafe.Pointer(&p), unsafe.Pointer(&k))
@@ -263,6 +270,7 @@ func SamplerInitTopK(k int32) Sampler {
 	return p
 }
 
+// SamplerInitTypical initializes a new Typical-P sampler.
 func SamplerInitTypical(p float32, keep uint32) Sampler {
 	var s Sampler
 	samplerInitTypicalFunc.Call(unsafe.Pointer(&s), unsafe.Pointer(&p), unsafe.Pointer(&keep))
@@ -270,6 +278,7 @@ func SamplerInitTypical(p float32, keep uint32) Sampler {
 	return s
 }
 
+// SamplerInitTopP initializes a new Top-P sampler.
 func SamplerInitTopP(p float32, keep uint32) Sampler {
 	var s Sampler
 	samplerInitTopPFunc.Call(unsafe.Pointer(&s), unsafe.Pointer(&p), unsafe.Pointer(&keep))
@@ -277,6 +286,7 @@ func SamplerInitTopP(p float32, keep uint32) Sampler {
 	return s
 }
 
+// SamplerInitMinP initializes a new Min-P sampler.
 func SamplerInitMinP(p float32, keep uint32) Sampler {
 	var s Sampler
 	samplerInitMinPFunc.Call(unsafe.Pointer(&s), unsafe.Pointer(&p), unsafe.Pointer(&keep))
@@ -284,6 +294,7 @@ func SamplerInitMinP(p float32, keep uint32) Sampler {
 	return s
 }
 
+// SamplerInitXTC initializes a new XTC sampler.
 func SamplerInitXTC(p float32, t float32, minKeep uint32, seed uint32) Sampler {
 	var s Sampler
 	samplerInitXTCFunc.Call(unsafe.Pointer(&s), unsafe.Pointer(&p), unsafe.Pointer(&t), unsafe.Pointer(&minKeep), unsafe.Pointer(&seed))
@@ -291,6 +302,7 @@ func SamplerInitXTC(p float32, t float32, minKeep uint32, seed uint32) Sampler {
 	return s
 }
 
+// SamplerInitTempExt initializes a new Temperature Extended sampler.
 func SamplerInitTempExt(t float32, delta float32, exponent float32) Sampler {
 	var s Sampler
 	samplerInitTempExtFunc.Call(unsafe.Pointer(&s), unsafe.Pointer(&t), unsafe.Pointer(&delta), unsafe.Pointer(&exponent))
@@ -298,6 +310,7 @@ func SamplerInitTempExt(t float32, delta float32, exponent float32) Sampler {
 	return s
 }
 
+// SamplerInitGrammar initializes a new Grammar sampler.
 func SamplerInitGrammar(vocab Vocab, grammar, root string) Sampler {
 	grmr, _ := utils.BytePtrFromString(grammar)
 	r, _ := utils.BytePtrFromString(root)
@@ -308,6 +321,7 @@ func SamplerInitGrammar(vocab Vocab, grammar, root string) Sampler {
 	return s
 }
 
+// SamplerSample samples a token from the sampler given the context and index.
 func SamplerSample(smpl Sampler, ctx Context, idx int32) Token {
 	var result ffi.Arg
 	samplerSampleFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&smpl), unsafe.Pointer(&ctx), unsafe.Pointer(&idx))
@@ -315,15 +329,18 @@ func SamplerSample(smpl Sampler, ctx Context, idx int32) Token {
 	return Token(result)
 }
 
+// SamplerAccept informs the sampler of the accepted token.
 func SamplerAccept(smpl Sampler, token Token) {
 	samplerAcceptFunc.Call(nil, unsafe.Pointer(&smpl), unsafe.Pointer(&token))
 }
 
+// SamplerFree frees the sampler.
 func SamplerFree(smpl Sampler) {
 	samplerFreeFunc.Call(nil, unsafe.Pointer(&smpl))
 }
 
 var (
+	// DefaultSamplers is the list of default samplers to use in a sampling chain.
 	DefaultSamplers = []SamplerType{
 		SamplerTypePenalties,
 		SamplerTypeDry,

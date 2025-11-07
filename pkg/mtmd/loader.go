@@ -9,6 +9,7 @@ import (
 
 var muHelperEvalChunks sync.Mutex
 
+// Load loads the shared mtmd library from the specified path.
 func Load(path string) error {
 	lib, err := loader.LoadLibrary(path, "mtmd")
 	if err != nil {

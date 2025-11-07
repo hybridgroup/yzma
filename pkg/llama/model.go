@@ -308,6 +308,7 @@ func ModelDecoderStartToken(model Model) Token {
 	return Token(result)
 }
 
+// ModelNCtxTrain returns the number of context tokens used during training.
 func ModelNCtxTrain(model Model) int32 {
 	if model == 0 {
 		return 0
@@ -318,6 +319,7 @@ func ModelNCtxTrain(model Model) int32 {
 	return int32(result)
 }
 
+// ModelNEmbd returns the embedding size of the Model.
 func ModelNEmbd(model Model) int32 {
 	if model == 0 {
 		return 0
@@ -328,6 +330,7 @@ func ModelNEmbd(model Model) int32 {
 	return int32(result)
 }
 
+// ModelNLayer returns the number of layers in the Model.
 func ModelNLayer(model Model) int32 {
 	if model == 0 {
 		return 0
@@ -338,6 +341,7 @@ func ModelNLayer(model Model) int32 {
 	return int32(result)
 }
 
+// ModelNHead returns the number of attention heads in the Model.
 func ModelNHead(model Model) int32 {
 	if model == 0 {
 		return 0
@@ -348,6 +352,7 @@ func ModelNHead(model Model) int32 {
 	return int32(result)
 }
 
+// ModelNHeadKV returns the number of key/value attention heads in the Model.
 func ModelNHeadKV(model Model) int32 {
 	if model == 0 {
 		return 0
@@ -358,6 +363,7 @@ func ModelNHeadKV(model Model) int32 {
 	return int32(result)
 }
 
+// ModelNSWA returns the number of SWA layers in the Model.
 func ModelNSWA(model Model) int32 {
 	if model == 0 {
 		return 0
