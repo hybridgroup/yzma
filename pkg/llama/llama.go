@@ -255,6 +255,11 @@ type Batch struct {
 	Logits  *int8    // whether to compute logits for each token
 }
 
+type TensorBuftOverride struct {
+	Pattern *byte                 // tensor pattern
+	Type    GGMLBackendBufferType // buffer type
+}
+
 // Model parameters
 type ModelParams struct {
 	Devices                  uintptr   // ggml_backend_dev_t * - NULL-terminated list of devices

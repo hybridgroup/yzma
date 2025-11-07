@@ -616,3 +616,12 @@ func ModelMetaValStrByIndex(model Model, i int32) (string, bool) {
 
 	return string(value), true
 }
+
+func (p *ModelParams) SetTensorBufOverrides(overrides []TensorBuftOverride) {
+	if len(overrides) == 0 {
+		p.TensorBuftOverrides = uintptr(0)
+		return
+	}
+
+	p.TensorBuftOverrides = uintptr(unsafe.Pointer(&overrides[0]))
+}

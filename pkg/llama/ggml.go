@@ -1,10 +1,15 @@
 package llama
 
 import (
+	"fmt"
 	"unsafe"
 
+	"github.com/hybridgroup/yzma/pkg/utils"
 	"github.com/jupiterrider/ffi"
 )
+
+// Opaque types (represented as pointers)
+type GGMLBackendBufferType uintptr
 
 var (
 	// GGML_API void ggml_backend_load_all(void);
@@ -12,6 +17,9 @@ var (
 
 	// GGML_API void ggml_backend_load_all(void);
 	ggmlBackendLoadAllFromPath ffi.Fun
+
+	// GGML_API ggml_backend_buffer_type_t ggml_backend_cpu_buffer_type(void);
+	ggmlBackendCpuBufferType ffi.Fun
 )
 
 func loadGGML(lib ffi.Lib) error {
@@ -23,6 +31,10 @@ func loadGGML(lib ffi.Lib) error {
 
 	if ggmlBackendLoadAllFromPath, err = lib.Prep("ggml_backend_load_all_from_path", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
 		return loadError("ggml_backend_load_all_from_path", err)
+	}
+
+	if ggmlBackendCpuBufferType, err = lib.Prep("ggml_backend_cpu_buffer_type", &ffi.TypeVoid); err != nil {
+		return loadError("ggml_backend_cpu_buffer_type", err)
 	}
 
 	return nil
@@ -37,4 +49,43 @@ func GGMLBackendLoadAll() {
 func GGMLBackendLoadAllFromPath(path string) {
 	p := &[]byte(path + "\x00")[0]
 	ggmlBackendLoadAllFromPath.Call(nil, unsafe.Pointer(&p))
+}
+
+// GGMLBackendCpuBufferType returns the buffer type used for CPU backends.
+func GGMLBackendCpuBufferType() GGMLBackendBufferType {
+	var ret uintptr
+	ggmlBackendCpuBufferType.Call(&ret)
+	return GGMLBackendBufferType(ret)
+}
+
+const ffnExprsRegex = `\\.ffn_(up|down|gate)_(ch|)exps`
+
+func ffnExprBlockRegex(index int) string {
+	return fmt.Sprintf("blk\\.%d%s", index, ffnExprsRegex)
+}
+
+// TensorBuftBlockOverride creates a TensorBuftOverride for a specific block index to execute in the CPU.
+func TensorBuftBlockOverride(index int) TensorBuftOverride {
+	pattern := ffnExprBlockRegex(index)
+	data, err := utils.BytePtrFromString(pattern)
+	if err != nil {
+		return TensorBuftOverride{}
+	}
+	return TensorBuftOverride{
+		Pattern: data,
+		Type:    GGMLBackendCpuBufferType(),
+	}
+}
+
+// TensorBuftAllFFNExprsOverride creates a TensorBuftOverride for all FFN expression tensors to execute in the CPU.
+func TensorBuftAllFFNExprsOverride() TensorBuftOverride {
+	pattern := ffnExprsRegex
+	data, err := utils.BytePtrFromString(pattern)
+	if err != nil {
+		return TensorBuftOverride{}
+	}
+	return TensorBuftOverride{
+		Pattern: data,
+		Type:    GGMLBackendCpuBufferType(),
+	}
 }
