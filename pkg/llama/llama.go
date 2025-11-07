@@ -260,6 +260,12 @@ type TensorBuftOverride struct {
 	Type    GGMLBackendBufferType // buffer type
 }
 
+// ProgressCallback function type.
+// It is an optional callback for model loading progress and cancellation:
+// called with a progress value between 0.0 and 1.0.
+// return false from callback to abort model loading or true to continue
+type ProgressCallback func(progress float32, userData uintptr) uint8
+
 // Model parameters
 type ModelParams struct {
 	Devices                  uintptr   // ggml_backend_dev_t * - NULL-terminated list of devices

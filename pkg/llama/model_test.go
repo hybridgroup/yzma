@@ -247,3 +247,28 @@ func TestModelMetaValStr(t *testing.T) {
 	}
 	t.Logf("ModelMetaValStr returned: %s", val)
 }
+
+func TestModelLoadCallback(t *testing.T) {
+	modelFile := testModelFileName(t)
+	testSetup(t)
+	defer testCleanup(t)
+
+	progressCalls := 0
+	callback := func(progress float32, userData uintptr) uint8 {
+		progressCalls++
+		t.Logf("Model loading progress: %.2f%%", progress*100)
+		return 1 // continue loading
+	}
+
+	params := ModelDefaultParams()
+	params.SetProgressCallback(callback)
+	model := ModelLoadFromFile(modelFile, params)
+	defer ModelFree(model)
+
+	if model == 0 {
+		t.Fatal("ModelLoadFromFile failed to load model")
+	}
+	if progressCalls == 0 {
+		t.Fatal("Progress callback was not called during model loading")
+	}
+}

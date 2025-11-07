@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"fmt"
 	"os"
 	"unsafe"
 
@@ -617,6 +618,7 @@ func ModelMetaValStrByIndex(model Model, i int32) (string, bool) {
 	return string(value), true
 }
 
+// SetTensorBufOverrides sets tensor buffer overrides for Mixture of Experts (MoE) execution.
 func (p *ModelParams) SetTensorBufOverrides(overrides []TensorBuftOverride) {
 	if len(overrides) == 0 {
 		p.TensorBuftOverrides = uintptr(0)
@@ -624,4 +626,39 @@ func (p *ModelParams) SetTensorBufOverrides(overrides []TensorBuftOverride) {
 	}
 
 	p.TensorBuftOverrides = uintptr(unsafe.Pointer(&overrides[0]))
+}
+
+// SetProgressCallback sets a progress callback for model loading.
+func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
+	if cb == nil {
+		p.ProgressCallback = uintptr(0)
+		return
+	}
+
+	var callback unsafe.Pointer
+	closure := ffi.ClosureAlloc(unsafe.Sizeof(ffi.Closure{}), &callback)
+
+	fn := ffi.NewCallback(func(cif *ffi.Cif, ret unsafe.Pointer, args *unsafe.Pointer, userData unsafe.Pointer) uintptr {
+		arg := unsafe.Slice(args, cif.NArgs)
+		progress := *(*float32)(arg[0])
+		userDataPtr := *(*uintptr)(arg[1])
+		result := cb(progress, userDataPtr)
+		*(*uint8)(ret) = result
+		return 0
+	})
+
+	var cifCallback ffi.Cif
+	if status := ffi.PrepCif(&cifCallback, ffi.DefaultAbi, 2, &ffi.TypeUint8, &ffi.TypeFloat, &ffi.TypePointer); status != ffi.OK {
+		fmt.Println(status)
+		return
+	}
+
+	if closure != nil {
+		if status := ffi.PrepClosureLoc(closure, &cifCallback, fn, nil, callback); status != ffi.OK {
+			fmt.Println(status)
+			return
+		}
+	}
+
+	p.ProgressCallback = uintptr(callback)
 }
