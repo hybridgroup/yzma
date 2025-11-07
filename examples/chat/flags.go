@@ -22,6 +22,9 @@ var (
 	contextSize *int
 	predictSize *int
 	batchSize   *int
+	uBatchSize  *int
+	cmoe        *bool
+	ncmoe       *int
 )
 
 func showUsage() {
@@ -44,8 +47,11 @@ func handleFlags() error {
 	topP = flag.Float64("top-p", 0.9, "top-p for model")
 
 	contextSize = flag.Int("c", 4096, "context size for model")
-	predictSize = flag.Int("n", -1, "predict size for model")
-	batchSize = flag.Int("b", 2048, "max batch size for model")
+	predictSize = flag.Int("n", -1, "number of tokens to predict")
+	batchSize = flag.Int("b", 2048, "logical max batch size for model")
+	uBatchSize = flag.Int("ub", 2048, "physical max batch size for model")
+	cmoe = flag.Bool("cmoe", false, "keep all Mixture of Experts (MoE) weights in the CPU")
+	ncmoe = flag.Int("ncmoe", 0, "keep the Mixture of Experts (MoE) weights of the first N layers in the CPU")
 
 	flag.Parse()
 
