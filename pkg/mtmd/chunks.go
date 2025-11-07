@@ -156,11 +156,17 @@ func InputChunksInit() InputChunks {
 
 // InputChunksFree frees the InputChunks.
 func InputChunksFree(chunks InputChunks) {
+	if chunks == 0 {
+		return
+	}
 	inputChunksFreeFunc.Call(nil, unsafe.Pointer(&chunks))
 }
 
 // InputChunksSize returns the number of InputChunk in the list.
 func InputChunksSize(chunks InputChunks) uint32 {
+	if chunks == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	inputChunksSizeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&chunks))
 
@@ -170,12 +176,18 @@ func InputChunksSize(chunks InputChunks) uint32 {
 // InputChunksGet retrieves the input chunk at the specified index.
 func InputChunksGet(chunks InputChunks, idx uint32) InputChunk {
 	var chunk InputChunk
+	if chunks == 0 {
+		return chunk
+	}
 	inputChunksGetFunc.Call(unsafe.Pointer(&chunk), unsafe.Pointer(&chunks), unsafe.Pointer(&idx))
 	return chunk
 }
 
 // InputChunkGetType retrieves the type of the input chunk.
 func InputChunkGetType(chunk InputChunk) InputChunkType {
+	if chunk == 0 {
+		return InputChunkType(0)
+	}
 	var result ffi.Arg
 	inputChunkGetTypeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&chunk))
 	return InputChunkType(result)
@@ -183,6 +195,9 @@ func InputChunkGetType(chunk InputChunk) InputChunkType {
 
 // InputChunkGetTokensText retrieves the text tokens of the input chunk.
 func InputChunkGetTokensText(chunk InputChunk) []llama.Token {
+	if chunk == 0 {
+		return nil
+	}
 	var tokensPtr *llama.Token
 	var nTokens uint32
 	inputChunkGetTokensTextFunc.Call(unsafe.Pointer(&tokensPtr), unsafe.Pointer(&chunk), unsafe.Pointer(&nTokens))
@@ -196,6 +211,9 @@ func InputChunkGetTokensText(chunk InputChunk) []llama.Token {
 
 // InputChunkGetNTokens retrieves the number of tokens in the input chunk.
 func InputChunkGetNTokens(chunk InputChunk) uint32 {
+	if chunk == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	inputChunkGetNTokensFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&chunk))
 	return uint32(result)
@@ -203,6 +221,9 @@ func InputChunkGetNTokens(chunk InputChunk) uint32 {
 
 // InputChunkGetId retrieves the ID of the input chunk.
 func InputChunkGetId(chunk InputChunk) string {
+	if chunk == 0 {
+		return ""
+	}
 	var idPtr *byte
 	inputChunkGetIdFunc.Call(unsafe.Pointer(&idPtr), unsafe.Pointer(&chunk))
 
@@ -215,6 +236,9 @@ func InputChunkGetId(chunk InputChunk) string {
 
 // InputChunkGetNPos retrieves the number of temporal positions in the input chunk.
 func InputChunkGetNPos(chunk InputChunk) llama.Pos {
+	if chunk == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	inputChunkGetNPosFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&chunk))
 	return llama.Pos(result)
@@ -222,6 +246,9 @@ func InputChunkGetNPos(chunk InputChunk) llama.Pos {
 
 // InputChunkCopy creates a copy of the input chunk.
 func InputChunkCopy(chunk InputChunk) InputChunk {
+	if chunk == 0 {
+		return 0
+	}
 	var copy InputChunk
 	inputChunkCopyFunc.Call(unsafe.Pointer(&copy), unsafe.Pointer(&chunk))
 	return copy
@@ -229,11 +256,17 @@ func InputChunkCopy(chunk InputChunk) InputChunk {
 
 // InputChunkFree frees the input chunk.
 func InputChunkFree(chunk InputChunk) {
+	if chunk == 0 {
+		return
+	}
 	inputChunkFreeFunc.Call(nil, unsafe.Pointer(&chunk))
 }
 
 // InputChunkGetTokensImage retrieves the image tokens in the input chunk.
 func InputChunkGetTokensImage(chunk InputChunk) ImageTokens {
+	if chunk == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	inputChunkGetTokensImageFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&chunk))
 	return ImageTokens(result)
@@ -241,6 +274,9 @@ func InputChunkGetTokensImage(chunk InputChunk) ImageTokens {
 
 // ImageTokensGetNTokens returns the number of tokens in the image.
 func ImageTokensGetNTokens(imageTokens ImageTokens) uint32 {
+	if imageTokens == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	inputImageTokensGetNTokensFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&imageTokens))
 	return uint32(result)
@@ -248,6 +284,9 @@ func ImageTokensGetNTokens(imageTokens ImageTokens) uint32 {
 
 // ImageTokensGetX returns the x size of the image tokens.
 func ImageTokensGetNX(imageTokens ImageTokens) uint32 {
+	if imageTokens == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	inputImageTokensGetNXFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&imageTokens))
 	return uint32(result)
@@ -255,6 +294,9 @@ func ImageTokensGetNX(imageTokens ImageTokens) uint32 {
 
 // ImageTokensGetY returns the y size of the image tokens.
 func ImageTokensGetNY(imageTokens ImageTokens) uint32 {
+	if imageTokens == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	inputImageTokensGetNYFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&imageTokens))
 	return uint32(result)
@@ -262,6 +304,9 @@ func ImageTokensGetNY(imageTokens ImageTokens) uint32 {
 
 // ImageTokensGetId returns the id of the image tokens.
 func ImageTokensGetId(imageTokens ImageTokens) string {
+	if imageTokens == 0 {
+		return ""
+	}
 	var idPtr *byte
 	inputImageTokensGetIdFunc.Call(unsafe.Pointer(&idPtr), unsafe.Pointer(&imageTokens))
 
@@ -274,6 +319,9 @@ func ImageTokensGetId(imageTokens ImageTokens) string {
 
 // ImageTokensGetNPos returns the npos of the image tokens.
 func ImageTokensGetNPos(imageTokens ImageTokens) llama.Pos {
+	if imageTokens == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	inputImageTokensGetNPosFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&imageTokens))
 	return llama.Pos(result)

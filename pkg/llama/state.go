@@ -179,6 +179,9 @@ func loadStateFuncs(lib ffi.Lib) error {
 
 // StateSaveFile saves the state to a file and returns true on success.
 func StateSaveFile(ctx Context, path string, tokens []Token) bool {
+	if ctx == 0 {
+		return false
+	}
 	pathPtr, _ := utils.BytePtrFromString(path)
 	var toks *Token
 	if len(tokens) > 0 {
@@ -194,6 +197,9 @@ func StateSaveFile(ctx Context, path string, tokens []Token) bool {
 // StateLoadFile loads the state from a file and returns true on success.
 // tokensOut should be a slice with capacity nTokenCapacity. nTokenCountOut will be set to the number of tokens loaded.
 func StateLoadFile(ctx Context, path string, tokensOut []Token, nTokenCapacity uint64, nTokenCountOut *uint64) bool {
+	if ctx == 0 {
+		return false
+	}
 	pathPtr, _ := utils.BytePtrFromString(path)
 	var toks *Token
 	if len(tokensOut) > 0 {
@@ -214,6 +220,9 @@ func StateLoadFile(ctx Context, path string, tokensOut []Token, nTokenCapacity u
 // StateGetSize returns the actual size in bytes of the state (logits, embedding and memory).
 // Only use when saving the state, not when restoring it.
 func StateGetSize(ctx Context) uint64 {
+	if ctx == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	stateGetSizeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 	return uint64(result)
@@ -222,6 +231,9 @@ func StateGetSize(ctx Context) uint64 {
 // StateGetData copies the state to the specified destination address.
 // Returns the number of bytes copied.
 func StateGetData(ctx Context, dst []byte) uint64 {
+	if ctx == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	var size int64 = int64(len(dst))
 	var dstPtr *byte
@@ -235,6 +247,9 @@ func StateGetData(ctx Context, dst []byte) uint64 {
 // StateSetData sets the state by reading from the specified address.
 // Returns the number of bytes read.
 func StateSetData(ctx Context, src []byte) uint64 {
+	if ctx == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	var size int64 = int64(len(src))
 	var srcPtr *byte
@@ -247,6 +262,9 @@ func StateSetData(ctx Context, src []byte) uint64 {
 
 // StateSeqGetSize returns the exact size needed to copy the state of a single sequence.
 func StateSeqGetSize(ctx Context, seqId SeqId) uint64 {
+	if ctx == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	stateSeqGetSizeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&seqId))
 	return uint64(result)
@@ -254,6 +272,9 @@ func StateSeqGetSize(ctx Context, seqId SeqId) uint64 {
 
 // StateSeqGetData copies the state of a single sequence into the specified buffer.
 func StateSeqGetData(ctx Context, dst []byte, seqId SeqId) uint64 {
+	if ctx == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	size := uint64(len(dst))
 	var dstPtr *byte
@@ -266,6 +287,9 @@ func StateSeqGetData(ctx Context, dst []byte, seqId SeqId) uint64 {
 
 // StateSeqSetData copies the sequence data into the specified sequence.
 func StateSeqSetData(ctx Context, src []byte, destSeqId SeqId) uint64 {
+	if ctx == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	size := uint64(len(src))
 	var srcPtr *byte
@@ -278,6 +302,9 @@ func StateSeqSetData(ctx Context, src []byte, destSeqId SeqId) uint64 {
 
 // StateSeqSaveFile saves the state of a single sequence to a file.
 func StateSeqSaveFile(ctx Context, filepath string, seqId SeqId, tokens []Token) uint64 {
+	if ctx == 0 {
+		return 0
+	}
 	pathPtr, _ := utils.BytePtrFromString(filepath)
 	var toks *Token
 	if len(tokens) > 0 {
@@ -291,6 +318,9 @@ func StateSeqSaveFile(ctx Context, filepath string, seqId SeqId, tokens []Token)
 
 // StateSeqLoadFile loads the state of a single sequence from a file.
 func StateSeqLoadFile(ctx Context, filepath string, destSeqId SeqId, tokensOut []Token, nTokenCapacity uint64, nTokenCountOut *uint64) uint64 {
+	if ctx == 0 {
+		return 0
+	}
 	pathPtr, _ := utils.BytePtrFromString(filepath)
 	var toks *Token
 	if len(tokensOut) > 0 {
@@ -311,6 +341,9 @@ func StateSeqLoadFile(ctx Context, filepath string, destSeqId SeqId, tokensOut [
 
 // StateSeqGetSizeExt returns the size needed for a sequence with flags.
 func StateSeqGetSizeExt(ctx Context, seqId SeqId, flags uint32) uint64 {
+	if ctx == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	stateSeqGetSizeExtFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&seqId), unsafe.Pointer(&flags))
 	return uint64(result)
@@ -318,6 +351,9 @@ func StateSeqGetSizeExt(ctx Context, seqId SeqId, flags uint32) uint64 {
 
 // StateSeqGetDataExt copies the state of a sequence with flags into the buffer.
 func StateSeqGetDataExt(ctx Context, dst []byte, seqId SeqId, flags uint32) uint64 {
+	if ctx == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	size := uint64(len(dst))
 	var dstPtr *byte
@@ -330,6 +366,9 @@ func StateSeqGetDataExt(ctx Context, dst []byte, seqId SeqId, flags uint32) uint
 
 // StateSeqSetDataExt sets the state of a sequence with flags from the buffer.
 func StateSeqSetDataExt(ctx Context, src []byte, destSeqId SeqId, flags uint32) uint64 {
+	if ctx == 0 {
+		return 0
+	}
 	var result ffi.Arg
 	size := uint64(len(src))
 	var srcPtr *byte
