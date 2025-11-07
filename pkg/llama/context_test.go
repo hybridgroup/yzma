@@ -165,9 +165,7 @@ func TestGetLogitsIth(t *testing.T) {
 	// tokenize prompt
 	prompt := "This is a test"
 	vocab := ModelGetVocab(model)
-	count := Tokenize(vocab, prompt, nil, true, true)
-	tokens := make([]Token, count)
-	Tokenize(vocab, prompt, tokens, true, true)
+	tokens := Tokenize(vocab, prompt, true, true)
 
 	// create batch and decode
 	batch := BatchGetOne(tokens)
@@ -200,9 +198,7 @@ func TestGetEmbeddingsIth(t *testing.T) {
 	// Tokenize a prompt
 	prompt := "This is a test"
 	vocab := ModelGetVocab(model)
-	count := Tokenize(vocab, prompt, nil, true, true)
-	tokens := make([]Token, count)
-	Tokenize(vocab, prompt, tokens, true, true)
+	tokens := Tokenize(vocab, prompt, true, true)
 
 	// Create batch and decode
 	batch := BatchGetOne(tokens)
@@ -238,9 +234,7 @@ func TestGetEmbeddingsSeq(t *testing.T) {
 	// Tokenize a prompt
 	prompt := "This is a test"
 	vocab := ModelGetVocab(model)
-	count := Tokenize(vocab, prompt, nil, true, true)
-	tokens := make([]Token, count)
-	Tokenize(vocab, prompt, tokens, true, true)
+	tokens := Tokenize(vocab, prompt, true, true)
 
 	// Create batch and decode
 	batch := BatchGetOne(tokens)
@@ -277,9 +271,7 @@ func TestGetEmbeddings(t *testing.T) {
 	// Tokenize a prompt
 	prompt := "This is a test"
 	vocab := ModelGetVocab(model)
-	count := Tokenize(vocab, prompt, nil, true, true)
-	tokens := make([]Token, count)
-	Tokenize(vocab, prompt, tokens, true, true)
+	tokens := Tokenize(vocab, prompt, true, true)
 
 	// Create batch and decode
 	batch := BatchGetOne(tokens)
@@ -354,9 +346,7 @@ func TestGetLogits(t *testing.T) {
 	// Tokenize a prompt
 	prompt := "This is a test"
 	vocab := ModelGetVocab(model)
-	count := Tokenize(vocab, prompt, nil, true, true)
-	tokens := make([]Token, count)
-	Tokenize(vocab, prompt, tokens, true, true)
+	tokens := Tokenize(vocab, prompt, true, true)
 
 	// Create batch and decode
 	batch := BatchGetOne(tokens)
