@@ -36,12 +36,8 @@ func main() {
 
 	vocab := llama.ModelGetVocab(model)
 
-	// call once to get the size of the tokens from the prompt
-	count := llama.Tokenize(vocab, prompt, nil, true, false)
-
-	// now get the actual tokens
-	tokens := make([]llama.Token, count)
-	llama.Tokenize(vocab, prompt, tokens, true, false)
+	// get the tokens for the prompt
+	tokens := llama.Tokenize(vocab, prompt, true, false)
 
 	batch := llama.BatchGetOne(tokens)
 
