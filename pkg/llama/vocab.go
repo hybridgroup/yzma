@@ -212,6 +212,7 @@ func loadVocabFuncs(lib ffi.Lib) error {
 	return nil
 }
 
+// ModelGetVocab retrieves the vocabulary associated with a given model.
 func ModelGetVocab(model Model) Vocab {
 	var vocab Vocab
 	modelGetVocabFunc.Call(unsafe.Pointer(&vocab), unsafe.Pointer(&model))
@@ -219,6 +220,7 @@ func ModelGetVocab(model Model) Vocab {
 	return vocab
 }
 
+// VocabBOS retrieves the beginning-of-sentence token from the vocabulary.
 func VocabBOS(vocab Vocab) Token {
 	var token ffi.Arg
 	vocabBOSFunc.Call(unsafe.Pointer(&token), unsafe.Pointer(&vocab))
@@ -226,6 +228,7 @@ func VocabBOS(vocab Vocab) Token {
 	return Token(token)
 }
 
+// VocabEOS retrieves the end-of-sentence token from the vocabulary.
 func VocabEOS(vocab Vocab) Token {
 	var token ffi.Arg
 	vocabEOSFunc.Call(unsafe.Pointer(&token), unsafe.Pointer(&vocab))
@@ -233,90 +236,105 @@ func VocabEOS(vocab Vocab) Token {
 	return Token(token)
 }
 
+// VocabEOT retrieves the end-of-turn token from the vocabulary.
 func VocabEOT(vocab Vocab) Token {
 	var token ffi.Arg
 	vocabEOTFunc.Call(unsafe.Pointer(&token), unsafe.Pointer(&vocab))
 	return Token(token)
 }
 
+// VocabSEP retrieves the sentence separator token from the vocabulary.
 func VocabSEP(vocab Vocab) Token {
 	var token ffi.Arg
 	vocabSEPFunc.Call(unsafe.Pointer(&token), unsafe.Pointer(&vocab))
 	return Token(token)
 }
 
+// VocabNL retrieves the next-line token from the vocabulary.
 func VocabNL(vocab Vocab) Token {
 	var token ffi.Arg
 	vocabNLFunc.Call(unsafe.Pointer(&token), unsafe.Pointer(&vocab))
 	return Token(token)
 }
 
+// VocabPAD retrieves the padding token from the vocabulary.
 func VocabPAD(vocab Vocab) Token {
 	var token ffi.Arg
 	vocabPADFunc.Call(unsafe.Pointer(&token), unsafe.Pointer(&vocab))
 	return Token(token)
 }
 
+// VocabMASK retrieves the mask token from the vocabulary.
 func VocabMASK(vocab Vocab) Token {
 	var token ffi.Arg
 	vocabMASKFunc.Call(unsafe.Pointer(&token), unsafe.Pointer(&vocab))
 	return Token(token)
 }
 
+// VocabGetAddBOS retrieves whether to add the beginning-of-sentence token.
 func VocabGetAddBOS(vocab Vocab) bool {
 	var result ffi.Arg
 	vocabGetAddBOSFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&vocab))
 	return result.Bool()
 }
 
+// VocabGetAddEOS retrieves whether to add the end-of-sentence token.
 func VocabGetAddEOS(vocab Vocab) bool {
 	var result ffi.Arg
 	vocabGetAddEOSFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&vocab))
 	return result.Bool()
 }
 
+// VocabGetAddSEP retrieves whether to add the sentence separator token.
 func VocabGetAddSEP(vocab Vocab) bool {
 	var result ffi.Arg
 	vocabGetAddSEPFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&vocab))
 	return result.Bool()
 }
 
+// VocabFIMPre retrieves the FIM pre-token from the vocabulary.
 func VocabFIMPre(vocab Vocab) Token {
 	var token ffi.Arg
 	vocabFIMPreFunc.Call(unsafe.Pointer(&token), unsafe.Pointer(&vocab))
 	return Token(token)
 }
 
+// VocabFIMSuf retrieves the FIM suffix token from the vocabulary.
 func VocabFIMSuf(vocab Vocab) Token {
 	var token ffi.Arg
 	vocabFIMSufFunc.Call(unsafe.Pointer(&token), unsafe.Pointer(&vocab))
 	return Token(token)
 }
 
+// VocabFIMMid retrieves the FIM middle token from the vocabulary.
 func VocabFIMMid(vocab Vocab) Token {
 	var token ffi.Arg
 	vocabFIMMidFunc.Call(unsafe.Pointer(&token), unsafe.Pointer(&vocab))
 	return Token(token)
 }
 
+// VocabFIMPad retrieves the FIM padding token from the vocabulary.
 func VocabFIMPad(vocab Vocab) Token {
 	var token ffi.Arg
 	vocabFIMPadFunc.Call(unsafe.Pointer(&token), unsafe.Pointer(&vocab))
 	return Token(token)
 }
 
+// VocabFIMRep retrieves the FIM repeat token from the vocabulary.
 func VocabFIMRep(vocab Vocab) Token {
 	var token ffi.Arg
 	vocabFIMRepFunc.Call(unsafe.Pointer(&token), unsafe.Pointer(&vocab))
 	return Token(token)
 }
 
+// VocabFIMSep retrieves the FIM separator token from the vocabulary.
 func VocabFIMSep(vocab Vocab) Token {
 	var token ffi.Arg
 	vocabFIMSepFunc.Call(unsafe.Pointer(&token), unsafe.Pointer(&vocab))
 	return Token(token)
 }
 
+// VocabIsEOG checks if a token is an end-of-generation token in the vocabulary.
 func VocabIsEOG(vocab Vocab, token Token) bool {
 	var result ffi.Arg
 	vocabIsEOGFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&vocab), unsafe.Pointer(&token))
@@ -324,6 +342,7 @@ func VocabIsEOG(vocab Vocab, token Token) bool {
 	return result.Bool()
 }
 
+// VocabIsControl checks if a token is a control token in the vocabulary.
 func VocabIsControl(vocab Vocab, token Token) bool {
 	var result ffi.Arg
 	vocabIsControlFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&vocab), unsafe.Pointer(&token))
@@ -331,6 +350,7 @@ func VocabIsControl(vocab Vocab, token Token) bool {
 	return result.Bool()
 }
 
+// VocabNTokens retrieves the number of tokens in the vocabulary.
 func VocabNTokens(vocab Vocab) int32 {
 	var result ffi.Arg
 	vocabNTokensFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&vocab))
@@ -338,6 +358,10 @@ func VocabNTokens(vocab Vocab) int32 {
 	return int32(result)
 }
 
+// TokenToPiece converts a token to its corresponding piece (string) representation.
+// The result is written into the provided buffer `buf`, which has a length of `len(buf)`.
+// The `lstrip` parameter specifies the number of leading characters to strip from the piece.
+// The `special` parameter indicates whether to treat special tokens differently.
 func TokenToPiece(vocab Vocab, token Token, buf []byte, lstrip int32, special bool) int32 {
 	piece := make([]byte, len(buf))
 	b := unsafe.SliceData(piece)
@@ -352,6 +376,11 @@ func TokenToPiece(vocab Vocab, token Token, buf []byte, lstrip int32, special bo
 	return int32(result)
 }
 
+// Tokenize converts an input text into a sequence of tokens using the specified vocabulary.
+// The resulting tokens are stored in the provided `tokens` slice, which has a maximum length of `len(tokens)`.
+// The `addSpecial` parameter indicates whether to add special tokens, and the `parseSpecial` parameter
+// specifies whether to parse special tokens in the input text.
+// The function returns the number of tokens generated.
 func Tokenize(vocab Vocab, text string, tokens []Token, addSpecial bool, parseSpecial bool) int32 {
 	txt, _ := utils.BytePtrFromString(text)
 	txtLen := int32(len(text))
