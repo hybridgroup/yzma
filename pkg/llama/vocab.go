@@ -377,25 +377,32 @@ func TokenToPiece(vocab Vocab, token Token, buf []byte, lstrip int32, special bo
 }
 
 // Tokenize converts an input text into a sequence of tokens using the specified vocabulary.
-// The resulting tokens are stored in the provided `tokens` slice, which has a maximum length of `len(tokens)`.
 // The `addSpecial` parameter indicates whether to add special tokens, and the `parseSpecial` parameter
 // specifies whether to parse special tokens in the input text.
-// The function returns the number of tokens generated.
-func Tokenize(vocab Vocab, text string, tokens []Token, addSpecial bool, parseSpecial bool) int32 {
+// The function returns a slice of tokens.
+func Tokenize(vocab Vocab, text string, addSpecial bool, parseSpecial bool) []Token {
 	txt, _ := utils.BytePtrFromString(text)
 	txtLen := int32(len(text))
 
-	var toks *Token
-	if len(tokens) > 0 {
-		toks = unsafe.SliceData(tokens)
-	}
+	// get the needed size
+	var (
+		result ffi.Arg
+		toks   *Token
+		max    int32
+	)
+	tokenizeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&vocab), unsafe.Pointer(&txt), &txtLen,
+		unsafe.Pointer(&toks), &max, &addSpecial, &parseSpecial)
+	size := -int32(result)
+
+	// now get the actual tokens
+	tokens := make([]Token, size)
+	toks = unsafe.SliceData(tokens)
 	nTokensMax := int32(len(tokens))
 
-	var result ffi.Arg
 	tokenizeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&vocab), unsafe.Pointer(&txt), &txtLen,
 		unsafe.Pointer(&toks), &nTokensMax, &addSpecial, &parseSpecial)
 
-	return -int32(result)
+	return tokens
 }
 
 // VocabGetAttr retrieves the attribute of a given token in the vocabulary.

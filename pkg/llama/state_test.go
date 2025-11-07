@@ -20,9 +20,11 @@ func TestStateSaveFile(t *testing.T) {
 	// tokenize prompt
 	prompt := "This is a test"
 	vocab := ModelGetVocab(model)
-	count := Tokenize(vocab, prompt, nil, true, true)
-	tokens := make([]Token, count)
-	Tokenize(vocab, prompt, tokens, true, true)
+	tokens := Tokenize(vocab, prompt, true, true)
+
+	if len(tokens) == 0 {
+		t.Fatal("Tokenize returned zero tokens")
+	}
 
 	// create batch and decode
 	batch := BatchGetOne(tokens)
@@ -65,9 +67,7 @@ func TestStateLoadFile(t *testing.T) {
 	// tokenize prompt and decode, then save state
 	prompt := "This is a test"
 	vocab := ModelGetVocab(model)
-	count := Tokenize(vocab, prompt, nil, true, true)
-	tokens := make([]Token, count)
-	Tokenize(vocab, prompt, tokens, true, true)
+	tokens := Tokenize(vocab, prompt, true, true)
 	batch := BatchGetOne(tokens)
 	Decode(ctx, batch)
 
@@ -189,9 +189,7 @@ func TestStateSeqGetSizeAndData(t *testing.T) {
 	// Tokenize and decode
 	prompt := "This is a test"
 	vocab := ModelGetVocab(model)
-	count := Tokenize(vocab, prompt, nil, true, true)
-	tokens := make([]Token, count)
-	Tokenize(vocab, prompt, tokens, true, true)
+	tokens := Tokenize(vocab, prompt, true, true)
 	batch := BatchGetOne(tokens)
 	Decode(ctx, batch)
 
@@ -225,9 +223,7 @@ func TestStateSeqSaveLoadFile(t *testing.T) {
 	// Tokenize and decode
 	prompt := "This is a test"
 	vocab := ModelGetVocab(model)
-	count := Tokenize(vocab, prompt, nil, true, true)
-	tokens := make([]Token, count)
-	Tokenize(vocab, prompt, tokens, true, true)
+	tokens := Tokenize(vocab, prompt, true, true)
 	batch := BatchGetOne(tokens)
 	Decode(ctx, batch)
 
