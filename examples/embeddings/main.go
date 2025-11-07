@@ -48,9 +48,7 @@ func run() error {
 
 	// tokenize prompt
 	vocab := llama.ModelGetVocab(model)
-	count := llama.Tokenize(vocab, *prompt, nil, true, true)
-	tokens := make([]llama.Token, count)
-	llama.Tokenize(vocab, *prompt, tokens, true, true)
+	tokens := llama.Tokenize(vocab, *prompt, true, true)
 
 	// create batch and decode
 	batch := llama.BatchGetOne(tokens)

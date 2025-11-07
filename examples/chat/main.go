@@ -114,12 +114,7 @@ func main() {
 }
 
 func chat(text string, first bool) {
-	// call once to get the size
-	count := llama.Tokenize(vocab, text, nil, first, true)
-
-	// now get the actual tokens
-	tokens := make([]llama.Token, count)
-	llama.Tokenize(vocab, text, tokens, first, true)
+	tokens := llama.Tokenize(vocab, text, first, true)
 
 	batch := llama.BatchGetOne(tokens)
 
