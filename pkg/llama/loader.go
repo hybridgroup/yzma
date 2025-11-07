@@ -17,6 +17,15 @@ func Load(path string) error {
 		return err
 	}
 
+	lib, err = loader.LoadLibrary(path, "ggml-base")
+	if err != nil {
+		return err
+	}
+
+	if err := loadGGMLBase(lib); err != nil {
+		return err
+	}
+
 	lib, err = loader.LoadLibrary(path, "llama")
 	if err != nil {
 		return err
