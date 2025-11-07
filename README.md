@@ -129,9 +129,15 @@ Sure! Let's go to the zoo and feed the llama. What kind of llama are you interes
 
 See the [examples](./examples/) directory for more examples of how to use `yzma`.
 
+## Models
+
+`yzma` uses models in the GGUF format support by `llama.cpp`. You can find many models in GGUF format on Hugging Face (over 147k at last count):
+
+https://huggingface.co/models?library=gguf&sort=trending
+
 ## More info
 
-`yzma` currently has support for over 85% of `llama.cpp` functionality. See [ROADMAP.md](./ROADMAP.md) for a complete list.
+`yzma` currently has support for over 87% of `llama.cpp` functionality. See [ROADMAP.md](./ROADMAP.md) for a complete list.
 
 You can already use VLMs and other language models with full hardware acceleration on Linux, on macOS, and on Windows.
 
