@@ -35,7 +35,22 @@ func main() {
 	llama.Init()
 	defer llama.BackendFree()
 
-	model = llama.ModelLoadFromFile(*modelFile, llama.ModelDefaultParams())
+	mParams := llama.ModelDefaultParams()
+
+	// handle Mixture of Experts (MoE) options
+	switch {
+	case *cmoe:
+		overrides := []llama.TensorBuftOverride{llama.NewTensorBuftAllFFNExprsOverride()}
+		mParams.SetTensorBufOverrides(overrides)
+	case *ncmoe > 0:
+		overrides := make([]llama.TensorBuftOverride, 0)
+		for i := 0; i < *ncmoe; i++ {
+			overrides = append(overrides, llama.NewTensorBuftBlockOverride(i))
+		}
+		mParams.SetTensorBufOverrides(overrides)
+	}
+
+	model = llama.ModelLoadFromFile(*modelFile, mParams)
 	defer llama.ModelFree(model)
 
 	vocab = llama.ModelGetVocab(model)
@@ -43,6 +58,7 @@ func main() {
 	ctxParams := llama.ContextDefaultParams()
 	ctxParams.NCtx = uint32(*contextSize)
 	ctxParams.NBatch = uint32(*batchSize)
+	ctxParams.NUbatch = uint32(*uBatchSize)
 
 	lctx = llama.InitFromModel(model, ctxParams)
 	defer llama.Free(lctx)
