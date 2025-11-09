@@ -2,6 +2,7 @@ package llama
 
 import (
 	"testing"
+	"unsafe"
 )
 
 func TestSamplerChainDefaultParams(t *testing.T) {
@@ -107,6 +108,58 @@ func TestSamplerInitPenalties(t *testing.T) {
 	if sampler == (Sampler(0)) {
 		t.Fatal("SamplerInitPenalties failed to initialize a penalties sampler")
 	}
+
+	SamplerFree(sampler)
+}
+
+func TestSamplerInitLogitBias(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	biases := []LogitBias{
+		{Token: 10, Bias: -1.0},
+		{Token: 20, Bias: 2.0},
+	}
+	sampler := SamplerInitLogitBias(100, int32(len(biases)), unsafe.SliceData(biases))
+	if sampler == (Sampler(0)) {
+		t.Fatal("SamplerInitLogitBias failed to initialize a logit bias sampler")
+	}
+
+	SamplerFree(sampler)
+}
+
+func TestNewSampler(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	modelFile := testModelFileName(t)
+	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	defer ModelFree(model)
+
+	samplers := []SamplerType{
+		SamplerTypeTopK,
+		SamplerTypeTopP,
+	}
+
+	sampler := NewSampler(model, samplers)
+	if sampler == (Sampler(0)) {
+		t.Fatal("NewSampler failed to create a new sampler chain")
+	}
+
+	SamplerFree(sampler)
+}
+
+func TestSamplerReset(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	sampler := SamplerInitDist(12345)
+	if sampler == (Sampler(0)) {
+		t.Fatal("SamplerInitDist failed to initialize a distribution sampler")
+	}
+
+	// Reset the sampler
+	SamplerReset(sampler)
 
 	SamplerFree(sampler)
 }

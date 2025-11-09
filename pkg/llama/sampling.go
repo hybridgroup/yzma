@@ -105,6 +105,9 @@ var (
 
 	// LLAMA_API void lama_sampler_free  (struct llama_sampler * smpl);
 	samplerFreeFunc ffi.Fun
+
+	// LLAMA_API void llama_sampler_reset (struct llama_sampler * smpl);
+	samplerResetFunc ffi.Fun
 )
 
 func loadSamplingFuncs(lib ffi.Lib) error {
@@ -188,6 +191,10 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 		return loadError("llama_sampler_free", err)
 	}
 
+	if samplerResetFunc, err = lib.Prep("llama_sampler_reset", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
+		return loadError("llama_sampler_reset", err)
+	}
+
 	return nil
 }
 
@@ -209,6 +216,9 @@ func SamplerChainInit(params SamplerChainParams) Sampler {
 
 // SamplerChainAdd adds a sampler to a sampling chain.
 func SamplerChainAdd(chain Sampler, smpl Sampler) {
+	if chain == 0 || smpl == 0 {
+		return
+	}
 	samplerChainAddFunc.Call(nil, unsafe.Pointer(&chain), unsafe.Pointer(&smpl))
 }
 
@@ -312,10 +322,13 @@ func SamplerInitTempExt(t float32, delta float32, exponent float32) Sampler {
 
 // SamplerInitGrammar initializes a new Grammar sampler.
 func SamplerInitGrammar(vocab Vocab, grammar, root string) Sampler {
+	var s Sampler
+	if vocab == 0 {
+		return s
+	}
 	grmr, _ := utils.BytePtrFromString(grammar)
 	r, _ := utils.BytePtrFromString(root)
 
-	var s Sampler
 	samplerInitGrammarFunc.Call(unsafe.Pointer(&s), unsafe.Pointer(&vocab), unsafe.Pointer(&grmr), unsafe.Pointer(&r))
 
 	return s
@@ -323,6 +336,10 @@ func SamplerInitGrammar(vocab Vocab, grammar, root string) Sampler {
 
 // SamplerSample samples a token from the sampler given the context and index.
 func SamplerSample(smpl Sampler, ctx Context, idx int32) Token {
+	if smpl == 0 || ctx == 0 {
+		return TokenNull
+	}
+
 	var result ffi.Arg
 	samplerSampleFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&smpl), unsafe.Pointer(&ctx), unsafe.Pointer(&idx))
 
@@ -331,12 +348,26 @@ func SamplerSample(smpl Sampler, ctx Context, idx int32) Token {
 
 // SamplerAccept informs the sampler of the accepted token.
 func SamplerAccept(smpl Sampler, token Token) {
+	if smpl == 0 {
+		return
+	}
 	samplerAcceptFunc.Call(nil, unsafe.Pointer(&smpl), unsafe.Pointer(&token))
 }
 
 // SamplerFree frees the sampler.
 func SamplerFree(smpl Sampler) {
+	if smpl == 0 {
+		return
+	}
 	samplerFreeFunc.Call(nil, unsafe.Pointer(&smpl))
+}
+
+// SamplerReset resets the sampler state.
+func SamplerReset(smpl Sampler) {
+	if smpl == 0 {
+		return
+	}
+	samplerResetFunc.Call(nil, unsafe.Pointer(&smpl))
 }
 
 var (
@@ -355,15 +386,23 @@ var (
 )
 
 // NewSampler creates a new sampling chain.
+// The samplers parameter is a list of SamplerType values to include in the chain.
+// The samplers are added in the order they appear in the list.
+// The distribution sampler is always added last.
+// If the model is nil or the samplers list is empty, a zero Sampler is returned.
 func NewSampler(model Model, samplers []SamplerType) Sampler {
+	var sampler Sampler
+	if model == 0 || len(samplers) == 0 {
+		return sampler
+	}
 	vocab := ModelGetVocab(model)
 	nTokens := VocabNTokens(vocab)
 
 	params := SamplerChainDefaultParams()
-	sampler := SamplerChainInit(params)
+	sampler = SamplerChainInit(params)
 
+	// add EOG logit bias to prevent generating EOG tokens
 	logitBiasEOG := make([]LogitBias, 0)
-
 	for i := int32(0); i < nTokens; i++ {
 		token := Token(i)
 		if VocabIsEOG(vocab, token) {
@@ -374,6 +413,7 @@ func NewSampler(model Model, samplers []SamplerType) Sampler {
 	bias := SamplerInitLogitBias(nTokens, int32(len(logitBiasEOG)), unsafe.SliceData(logitBiasEOG))
 	SamplerChainAdd(sampler, bias)
 
+	// add other samplers
 	for samplerType := range samplers {
 		switch samplerType {
 		case SamplerTypeDry:
@@ -428,7 +468,7 @@ func NewSampler(model Model, samplers []SamplerType) Sampler {
 		}
 	}
 
-	// always add this last
+	// always add dist sampler last
 	dist := SamplerInitDist(DefaultSeed)
 	SamplerChainAdd(sampler, dist)
 

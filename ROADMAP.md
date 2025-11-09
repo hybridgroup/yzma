@@ -132,6 +132,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_sampler_init_top_p`
 - [x] `llama_sampler_init_typical`
 - [x] `llama_sampler_init_xtc`
+- [x] `llama_sampler_reset`
 - [x] `llama_sampler_sample`
 
 ### Logging Functions
