@@ -43,6 +43,21 @@ func TestModelHasDecoder(t *testing.T) {
 	}
 }
 
+func TestModelNEmbdInp(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	defer ModelFree(model)
+
+	nEmbdInp := ModelNEmbdInp(model)
+	if nEmbdInp <= 0 {
+		t.Fatal("ModelNEmbdInp returned an invalid value")
+	}
+}
+
 func TestModelNCtxTrain(t *testing.T) {
 	modelFile := testModelFileName(t)
 

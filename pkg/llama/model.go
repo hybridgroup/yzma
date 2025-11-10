@@ -51,6 +51,9 @@ var (
 	// LLAMA_API int32_t llama_model_n_embd     (const struct llama_model * model);
 	modelNEmbdFunc ffi.Fun
 
+	// LLAMA_API int32_t llama_model_n_embd_inp (const struct llama_model * model);
+	modelNEmbdInpFunc ffi.Fun
+
 	// LLAMA_API int32_t llama_model_n_layer    (const struct llama_model * model);
 	modelNLayerFunc ffi.Fun
 
@@ -150,8 +153,12 @@ func loadModelFuncs(lib ffi.Lib) error {
 		return loadError("llama_model_n_embd", err)
 	}
 
+	if modelNEmbdInpFunc, err = lib.Prep("llama_model_n_embd_inp", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_n_embd_inp", err)
+	}
+
 	if modelNLayerFunc, err = lib.Prep("llama_model_n_layer", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
-		return loadError("llama_model_n_embd", err)
+		return loadError("llama_model_n_layer", err)
 	}
 
 	if modelNHeadFunc, err = lib.Prep("llama_model_n_head", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
@@ -326,6 +333,17 @@ func ModelNEmbd(model Model) int32 {
 	}
 	var result ffi.Arg
 	modelNEmbdFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
+
+	return int32(result)
+}
+
+// ModelNEmbdInp returns the input embedding size of the Model.
+func ModelNEmbdInp(model Model) int32 {
+	if model == 0 {
+		return 0
+	}
+	var result ffi.Arg
+	modelNEmbdInpFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 
 	return int32(result)
 }
