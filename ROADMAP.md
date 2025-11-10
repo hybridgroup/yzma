@@ -37,6 +37,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_model_meta_val_str`
 - [x] `llama_model_n_cls_out`
 - [x] `llama_model_n_ctx_train`
+- [x] `llama_model_n_embd_inp`
 - [x] `llama_model_n_embd`
 - [x] `llama_model_n_head_kv`
 - [x] `llama_model_n_head`
