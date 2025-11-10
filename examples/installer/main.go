@@ -27,11 +27,15 @@ func main() {
 		*version, err = download.LlamaLatestVersion()
 		if err != nil {
 			fmt.Println("could not obtain latest version:", err.Error())
+			return
 		}
 	}
 
 	fmt.Println("installing llama.cpp version", *version, "to", *libPath)
-	download.Get(runtime.GOOS, *processor, *version, *libPath)
+	if err := download.Get(runtime.GOOS, *processor, *version, *libPath); err != nil {
+		fmt.Println("failed to download llama.cpp:", err.Error())
+		return
+	}
 
 	fmt.Println("done.")
 }
