@@ -39,7 +39,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: models
-          key: ${{ runner.os }}-models
+          key: ${{ runner.os }}-models-v1
       - name: Download test models
         if: steps.cache-models.outputs.cache-hit != 'true'
         run: |
@@ -47,9 +47,10 @@ jobs:
             curl -Lo ./models/SmolLM-135M.Q2_K.gguf https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf
             curl -Lo ./models/SmolVLM-256M-Instruct-Q8_0.gguf https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF/resolve/main/SmolVLM-256M-Instruct-Q8_0.gguf
             curl -Lo ./models/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF/resolve/main/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf
+            curl -Lo ./models/ggml-model-f16.gguf https://huggingface.co/ggml-org/models-moved/resolve/main/jina-reranker-v1-tiny-en/ggml-model-f16.gguf
       - name: Run unit tests
         run: |
-            YZMA_TEST_MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf YZMA_TEST_MMMODEL=$GITHUB_WORKSPACE/models/SmolVLM-256M-Instruct-Q8_0.gguf YZMA_TEST_MMPROJ=$GITHUB_WORKSPACE/models/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf go test -v ./...
+            YZMA_TEST_MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf YZMA_TEST_MMMODEL=$GITHUB_WORKSPACE/models/SmolVLM-256M-Instruct-Q8_0.gguf YZMA_TEST_MMPROJ=$GITHUB_WORKSPACE/models/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf YZMA_TEST_QUANTIZE_MODEL=$GITHUB_WORKSPACE/models/ggml-model-f16.gguf go test -v ./...
       - name: Run inference test
         run: go run ./examples/hello
       - name: Run embedding test
