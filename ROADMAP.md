@@ -44,6 +44,8 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_model_n_head`
 - [x] `llama_model_n_layer`
 - [x] `llama_model_n_swa`
+- [x] `llama_model_quantize_default_params`
+- [x] `llama_model_quantize`
 - [x] `llama_model_rope_freq_scale_train`
 - [x] `llama_model_rope_type`
 - [x] `llama_model_size`
@@ -221,8 +223,6 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `llama_clear_adapter_lora`
 - [ ] `llama_detach_threadpool`
 - [ ] `llama_model_load_from_splits`
-- [ ] `llama_model_quantize_default_params`
-- [ ] `llama_model_quantize`
 - [ ] `llama_model_save_to_file`
 - [ ] `llama_opt_epoch`
 - [ ] `llama_opt_init`
