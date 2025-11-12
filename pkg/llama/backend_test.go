@@ -86,3 +86,14 @@ func TestNumaInit(t *testing.T) {
 	NumaInit(strategy)
 	t.Logf("NumaInit called with strategy: %d", strategy)
 }
+
+func TestPrintSystemInfo(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	info := PrintSystemInfo()
+	if info == "" {
+		t.Fatal("PrintSystemInfo returned empty string")
+	}
+	t.Logf("PrintSystemInfo returned:\n%s", info)
+}
