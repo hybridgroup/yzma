@@ -38,6 +38,9 @@ var (
 
 	// LLAMA_API const char * llama_flash_attn_type_name(enum llama_flash_attn_type flash_attn_type);
 	flashAttnTypeNameFunc ffi.Fun
+
+	// LLAMA_API const char * llama_print_system_info(void);
+	printSystemInfoFunc ffi.Fun
 )
 
 func loadBackendFuncs(lib ffi.Lib) error {
@@ -84,6 +87,10 @@ func loadBackendFuncs(lib ffi.Lib) error {
 
 	if flashAttnTypeNameFunc, err = lib.Prep("llama_flash_attn_type_name", &ffi.TypePointer, &ffi.TypeSint32); err != nil {
 		return loadError("llama_flash_attn_type_name", err)
+	}
+
+	if printSystemInfoFunc, err = lib.Prep("llama_print_system_info", &ffi.TypePointer); err != nil {
+		return loadError("llama_print_system_info", err)
 	}
 
 	return nil
@@ -157,6 +164,18 @@ func TimeUs() int64 {
 func FlashAttnTypeName(flashAttnType FlashAttentionType) string {
 	var result *byte
 	flashAttnTypeNameFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&flashAttnType))
+
+	if result == nil {
+		return ""
+	}
+
+	return utils.BytePtrToString(result)
+}
+
+// PrintSystemInfo returns system information as a string.
+func PrintSystemInfo() string {
+	var result *byte
+	printSystemInfoFunc.Call(unsafe.Pointer(&result))
 
 	if result == nil {
 		return ""

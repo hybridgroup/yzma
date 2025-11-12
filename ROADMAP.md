@@ -11,6 +11,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_max_devices`
 - [x] `llama_max_parallel_sequences`
 - [x] `llama_numa_init`
+- [x] `llama_print_system_info`
 - [x] `llama_supports_gpu_offload`
 - [x] `llama_supports_mlock`
 - [x] `llama_supports_mmap`
