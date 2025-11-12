@@ -1,6 +1,8 @@
 package llama
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -285,5 +287,44 @@ func TestModelLoadCallback(t *testing.T) {
 	}
 	if progressCalls == 0 {
 		t.Fatal("Progress callback was not called during model loading")
+	}
+}
+
+func TestModelQuantizeDefaultParams(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ModelQuantizeDefaultParams()
+	if params == (ModelQuantizeParams{}) {
+		t.Fatal("ModelQuantizeDefaultParams returned empty parameters")
+	}
+}
+
+func TestModelQuantize(t *testing.T) {
+	modelFile := os.Getenv("YZMA_TEST_QUANTIZE_MODEL")
+	if modelFile == "" {
+		t.Skip("YZMA_TEST_QUANTIZE_MODEL env var not set; skipping TestModelQuantize")
+	}
+
+	tmpDir := t.TempDir()
+	quantizedModelFile := filepath.Join(tmpDir, "quantized_model.gguf")
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ModelQuantizeDefaultParams()
+	params.NThread = 8
+	params.Ftype = FtypeMostlyQ4_K_M
+	result := ModelQuantize(modelFile, quantizedModelFile, &params)
+	if result != 0 {
+		t.Fatalf("ModelQuantize failed with error code: %d", result)
+	}
+
+	// Load the quantized model to verify it was created correctly
+	quantizedModel := ModelLoadFromFile(quantizedModelFile, ModelDefaultParams())
+	defer ModelFree(quantizedModel)
+
+	if quantizedModel == 0 {
+		t.Fatal("Failed to load the quantized model")
 	}
 }

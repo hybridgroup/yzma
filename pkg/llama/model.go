@@ -14,6 +14,10 @@ var (
 		&ffi.TypeSint32, &ffi.TypeSint32,
 		&ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer,
 		&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8)
+
+	FFITypeModelQuantizeParams = ffi.NewType(&ffi.TypeSint32, &ffi.TypeSint32,
+		&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8,
+		&ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer)
 )
 
 var (
@@ -108,6 +112,15 @@ var (
 	// Get metadata value as a string by index
 	// LLAMA_API int32_t llama_model_meta_val_str_by_index(const struct llama_model * model, int32_t i, char * buf, size_t buf_size);
 	modelMetaValStrByIndexFunc ffi.Fun
+
+	// LLAMA_API struct llama_model_quantize_params llama_model_quantize_default_params(void);
+	modelQuantizeDefaultParamsFunc ffi.Fun
+
+	//     LLAMA_API uint32_t llama_model_quantize(
+	//        const char * fname_inp,
+	//        const char * fname_out,
+	//        const llama_model_quantize_params * params);
+	modelQuantizeFunc ffi.Fun
 )
 
 func loadModelFuncs(lib ffi.Lib) error {
@@ -223,6 +236,14 @@ func loadModelFuncs(lib ffi.Lib) error {
 
 	if modelMetaValStrByIndexFunc, err = lib.Prep("llama_model_meta_val_str_by_index", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
 		return loadError("llama_model_meta_val_str_by_index", err)
+	}
+
+	if modelQuantizeDefaultParamsFunc, err = lib.Prep("llama_model_quantize_default_params", &FFITypeModelQuantizeParams); err != nil {
+		return loadError("llama_model_quantize_default_params", err)
+	}
+
+	if modelQuantizeFunc, err = lib.Prep("llama_model_quantize", &ffi.TypeUint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_quantize", err)
 	}
 
 	return nil
@@ -685,4 +706,28 @@ func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
 	}
 
 	p.ProgressCallback = uintptr(callback)
+}
+
+// ModelQuantizeDefaultParams returns default parameters for model quantization.
+func ModelQuantizeDefaultParams() ModelQuantizeParams {
+	var p ModelQuantizeParams
+	modelQuantizeDefaultParamsFunc.Call(unsafe.Pointer(&p))
+	return p
+}
+
+// ModelQuantize quantizes a model from an input file to an output file using the specified parameters.
+func ModelQuantize(fnameInp, fnameOut string, params *ModelQuantizeParams) uint32 {
+	fileInp, err := utils.BytePtrFromString(fnameInp)
+	if err != nil {
+		return 0
+	}
+
+	fileOut, err := utils.BytePtrFromString(fnameOut)
+	if err != nil {
+		return 0
+	}
+
+	var result ffi.Arg
+	modelQuantizeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&fileInp), unsafe.Pointer(&fileOut), unsafe.Pointer(&params))
+	return uint32(result)
 }
