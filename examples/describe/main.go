@@ -32,5 +32,8 @@ func main() {
 	}
 	defer os.Remove(tmpFile)
 
-	describe(tmpFile)
+	if err := describe(tmpFile); err != nil {
+		fmt.Println("error describing image:", err)
+		os.Exit(1)
+	}
 }

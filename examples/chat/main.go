@@ -51,6 +51,11 @@ func main() {
 	}
 
 	model = llama.ModelLoadFromFile(*modelFile, mParams)
+	if model == 0 {
+		fmt.Println("unable to load model from file", *modelFile)
+		os.Exit(1)
+	}
+
 	defer llama.ModelFree(model)
 
 	vocab = llama.ModelGetVocab(model)

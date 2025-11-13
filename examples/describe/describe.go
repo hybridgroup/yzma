@@ -9,7 +9,7 @@ import (
 	"github.com/hybridgroup/yzma/pkg/mtmd"
 )
 
-func describe(tmpFile string) {
+func describe(tmpFile string) error {
 	llama.Init()
 	defer llama.BackendFree()
 
@@ -24,6 +24,10 @@ func describe(tmpFile string) {
 	}
 
 	model := llama.ModelLoadFromFile(path.Join(*modelsDir, *modelFile), llama.ModelDefaultParams())
+	if model == 0 {
+		return fmt.Errorf("unable to load model from file %s", *modelFile)
+	}
+
 	defer llama.ModelFree(model)
 
 	ctxParams := llama.ContextDefaultParams()
@@ -80,6 +84,8 @@ func describe(tmpFile string) {
 		llama.Decode(lctx, batch)
 		n++
 	}
+
+	return nil
 }
 
 func chatTemplate(add bool) string {
