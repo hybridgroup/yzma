@@ -31,8 +31,15 @@ func loadChatFuncs(lib ffi.Lib) error {
 
 // NewChatMessage creates a new ChatMessage.
 func NewChatMessage(role, content string) ChatMessage {
-	r, _ := utils.BytePtrFromString(role)
-	c, _ := utils.BytePtrFromString(content)
+	r, err := utils.BytePtrFromString(role)
+	if err != nil {
+		return ChatMessage{}
+	}
+
+	c, err := utils.BytePtrFromString(content)
+	if err != nil {
+		return ChatMessage{}
+	}
 
 	return ChatMessage{Role: r, Content: c}
 }
@@ -40,7 +47,14 @@ func NewChatMessage(role, content string) ChatMessage {
 // ChatApplyTemplate applies a chat template to a slice of [ChatMessage], Set addAssistantPrompt to true to generate the
 // assistant prompt, for example on the first message.
 func ChatApplyTemplate(template string, chat []ChatMessage, addAssistantPrompt bool, buf []byte) int32 {
-	tmpl, _ := utils.BytePtrFromString(template)
+	tmpl, err := utils.BytePtrFromString(template)
+	if err != nil {
+		return 0
+	}
+
+	if len(chat) == 0 {
+		return 0
+	}
 
 	c := unsafe.Pointer(&chat[0])
 	nMsg := uint32(len(chat))

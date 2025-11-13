@@ -43,7 +43,11 @@ func main() {
 	defer llama.BackendFree()
 
 	fmt.Println("Loading model", *modelFile)
-	model := llama.ModelLoadFromFile(*modelFile, llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(*modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		fmt.Println("unable to load model from file", err.Error())
+		os.Exit(1)
+	}
 	if model == 0 {
 		fmt.Println("unable to load model from file", *modelFile)
 		os.Exit(1)
@@ -54,7 +58,11 @@ func main() {
 	ctxParams.NCtx = 4096
 	ctxParams.NBatch = 2048
 
-	lctx := llama.InitFromModel(model, ctxParams)
+	lctx, err := llama.InitFromModel(model, ctxParams)
+	if err != nil {
+		fmt.Println("unable to initialize context from model", err.Error())
+		os.Exit(1)
+	}
 	defer llama.Free(lctx)
 
 	vocab := llama.ModelGetVocab(model)
@@ -67,7 +75,11 @@ func main() {
 	sp.MinP = float32(*minP)
 
 	sampler := llama.NewSampler(model, llama.DefaultSamplers, sp)
-	mtmdCtx := mtmd.InitFromFile(*projFile, model, mctxParams)
+	mtmdCtx, err := mtmd.InitFromFile(*projFile, model, mctxParams)
+	if err != nil {
+		fmt.Println("unable to initialize context from file", err.Error())
+		os.Exit(1)
+	}
 	defer mtmd.Free(mtmdCtx)
 
 	if *template == "" {

@@ -23,7 +23,10 @@ func TestModelInvalidFile(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err == nil {
+		t.Fatal("ModelLoadFromFile should have failed for invalid file")
+	}
 	if model != 0 {
 		t.Fatal("ModelLoadFromFile should have failed for invalid file")
 	}
@@ -36,7 +39,10 @@ func TestModelHasDecoder(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	hasDecoder := ModelHasDecoder(model)
@@ -51,7 +57,10 @@ func TestModelNEmbdInp(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	nEmbdInp := ModelNEmbdInp(model)
@@ -67,7 +76,10 @@ func TestModelNCtxTrain(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	nCtxTrain := ModelNCtxTrain(model)
@@ -82,7 +94,10 @@ func TestModelNClsOut(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	nClsOut := ModelNClsOut(model)
@@ -95,7 +110,10 @@ func TestModelClsLabel(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	label := ModelClsLabel(model, 0)
@@ -108,7 +126,10 @@ func TestModelDesc(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	desc := ModelDesc(model)
@@ -121,7 +142,10 @@ func TestModelSize(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	size := ModelSize(model)
@@ -134,7 +158,10 @@ func TestModelIsRecurrent(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	isRecurrent := ModelIsRecurrent(model)
@@ -147,7 +174,10 @@ func TestModelIsHybrid(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	isHybrid := ModelIsHybrid(model)
@@ -160,7 +190,10 @@ func TestModelIsDiffusion(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	isDiffusion := ModelIsDiffusion(model)
@@ -171,7 +204,10 @@ func TestModelRopeFreqScaleTrain(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(testModelFileName(t), ModelDefaultParams())
+	model, err := ModelLoadFromFile(testModelFileName(t), ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	freqScale := ModelRopeFreqScaleTrain(model)
@@ -182,7 +218,10 @@ func TestModelRopeType(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(testModelFileName(t), ModelDefaultParams())
+	model, err := ModelLoadFromFile(testModelFileName(t), ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	ropeType := ModelRopeType(model)
@@ -194,7 +233,10 @@ func TestModelMetaCount(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	count := ModelMetaCount(model)
@@ -209,7 +251,10 @@ func TestModelMetaKeyByIndex(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	count := ModelMetaCount(model)
@@ -228,7 +273,10 @@ func TestModelMetaValStrByIndex(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	count := ModelMetaCount(model)
@@ -247,7 +295,10 @@ func TestModelMetaValStr(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	count := ModelMetaCount(model)
@@ -279,7 +330,10 @@ func TestModelLoadCallback(t *testing.T) {
 
 	params := ModelDefaultParams()
 	params.SetProgressCallback(callback)
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	if model == 0 {
@@ -321,7 +375,10 @@ func TestModelQuantize(t *testing.T) {
 	}
 
 	// Load the quantized model to verify it was created correctly
-	quantizedModel := ModelLoadFromFile(quantizedModelFile, ModelDefaultParams())
+	quantizedModel, err := ModelLoadFromFile(quantizedModelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(quantizedModel)
 
 	if quantizedModel == 0 {

@@ -50,7 +50,12 @@ func main() {
 		mParams.SetTensorBufOverrides(overrides)
 	}
 
-	model = llama.ModelLoadFromFile(*modelFile, mParams)
+	var err error
+	model, err = llama.ModelLoadFromFile(*modelFile, mParams)
+	if err != nil {
+		fmt.Println("unable to load model from file", err.Error())
+		os.Exit(1)
+	}
 	if model == 0 {
 		fmt.Println("unable to load model from file", *modelFile)
 		os.Exit(1)
@@ -65,7 +70,11 @@ func main() {
 	ctxParams.NBatch = uint32(*batchSize)
 	ctxParams.NUbatch = uint32(*uBatchSize)
 
-	lctx = llama.InitFromModel(model, ctxParams)
+	lctx, err = llama.InitFromModel(model, ctxParams)
+	if err != nil {
+		fmt.Println("unable to initialize context from model", err.Error())
+		os.Exit(1)
+	}
 	defer llama.Free(lctx)
 
 	// pass in flags as params to samplers

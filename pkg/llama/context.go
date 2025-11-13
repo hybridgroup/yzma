@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"errors"
 	"unsafe"
 
 	"github.com/jupiterrider/ffi"
@@ -204,6 +205,10 @@ func loadContextFuncs(lib ffi.Lib) error {
 	return nil
 }
 
+var (
+	errInvalidContext = errors.New("invalid context")
+)
+
 // ContextDefaultParams returns the default params to initialize a model context.
 func ContextDefaultParams() ContextParams {
 	var p ContextParams
@@ -212,154 +217,158 @@ func ContextDefaultParams() ContextParams {
 }
 
 // Free frees the resources for a model context.
-func Free(ctx Context) {
+func Free(ctx Context) error {
 	if ctx == 0 {
-		return
+		return errInvalidContext
 	}
 	freeFunc.Call(nil, unsafe.Pointer(&ctx))
+	return nil
 }
 
 // SetWarmup sets the model context warmup mode on or off.
-func SetWarmup(ctx Context, warmup bool) {
+func SetWarmup(ctx Context, warmup bool) error {
 	if ctx == 0 {
-		return
+		return errInvalidContext
 	}
 	setWarmupFunc.Call(nil, unsafe.Pointer(&ctx), &warmup)
+	return nil
 }
 
 // Encode encodes a batch of Token.
-func Encode(ctx Context, batch Batch) int32 {
+func Encode(ctx Context, batch Batch) (int32, error) {
 	if ctx == 0 {
-		return 0
+		return 0, errInvalidContext
 	}
 	var result ffi.Arg
 	encodeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&batch))
 
-	return int32(result)
+	return int32(result), nil
 }
 
 // Decode decodes a batch of Token.
-func Decode(ctx Context, batch Batch) int32 {
+func Decode(ctx Context, batch Batch) (int32, error) {
 	if ctx == 0 {
-		return 0
+		return 0, errInvalidContext
 	}
 	var result ffi.Arg
 	decodeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&batch))
 
-	return int32(result)
+	return int32(result), nil
 }
 
 // PerfContextReset resets the performance metrics for the model context.
-func PerfContextReset(ctx Context) {
+func PerfContextReset(ctx Context) error {
 	if ctx == 0 {
-		return
+		return errInvalidContext
 	}
 	perfContextResetFunc.Call(nil, unsafe.Pointer(&ctx))
+	return nil
 }
 
 // GetMemory returns the current Memory for the Context.
-func GetMemory(ctx Context) Memory {
+func GetMemory(ctx Context) (Memory, error) {
 	if ctx == 0 {
-		return 0
+		return 0, errInvalidContext
 	}
 	var mem Memory
 	getMemoryFunc.Call(unsafe.Pointer(&mem), unsafe.Pointer(&ctx))
 
-	return mem
+	return mem, nil
 }
 
 // Synchronize waits until all computations are finished.
 // This is automatically done when using one of the functions that obtains computation results
 // and is not necessary to call it explicitly in most cases.
-func Synchronize(ctx Context) {
+func Synchronize(ctx Context) error {
 	if ctx == 0 {
-		return
+		return errInvalidContext
 	}
 	synchronizeFunc.Call(nil, unsafe.Pointer(&ctx))
+	return nil
 }
 
 // GetPoolingType returns the PoolingType for this context.
-func GetPoolingType(ctx Context) PoolingType {
+func GetPoolingType(ctx Context) (PoolingType, error) {
 	if ctx == 0 {
-		return PoolingTypeNone
+		return PoolingTypeNone, errInvalidContext
 	}
 	var result ffi.Arg
 	poolingTypeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 
-	return PoolingType(result)
+	return PoolingType(result), nil
 }
 
 // GetEmbeddingsIth gets the embeddings for the ith token.
-func GetEmbeddingsIth(ctx Context, i int32, nVocab int32) []float32 {
+func GetEmbeddingsIth(ctx Context, i int32, nVocab int32) ([]float32, error) {
 	if ctx == 0 {
-		return nil
+		return nil, errInvalidContext
 	}
 	var result *float32
 	getEmbeddingsIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &i)
 
 	if result == nil {
-		return nil
+		return nil, nil
 	}
 
-	return unsafe.Slice(result, nVocab)
+	return unsafe.Slice(result, nVocab), nil
 }
 
 // GetEmbeddingsSeq gets the embeddings for this sequence ID.
-func GetEmbeddingsSeq(ctx Context, seqID SeqId, nVocab int32) []float32 {
+func GetEmbeddingsSeq(ctx Context, seqID SeqId, nVocab int32) ([]float32, error) {
 	if ctx == 0 {
-		return nil
+		return nil, errInvalidContext
 	}
 	var result *float32
 	getEmbeddingsSeqFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &seqID)
 
 	if result == nil {
-		return nil
+		return nil, nil
 	}
 
-	return unsafe.Slice(result, nVocab)
+	return unsafe.Slice(result, nVocab), nil
 }
 
 // GetEmbeddings retrieves all output token embeddings.
 // Returns a slice of float32 of length nOutputs * nEmbeddings, or nil if not available.
-func GetEmbeddings(ctx Context, nOutputs, nEmbeddings int) []float32 {
+func GetEmbeddings(ctx Context, nOutputs, nEmbeddings int) ([]float32, error) {
 	if ctx == 0 {
-		return nil
+		return nil, errInvalidContext
 	}
 	var result *float32
 	getEmbeddingsFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 	if result == nil || nOutputs <= 0 || nEmbeddings <= 0 {
-		return nil
+		return nil, nil
 	}
-	return unsafe.Slice(result, nOutputs*nEmbeddings)
+	return unsafe.Slice(result, nOutputs*nEmbeddings), nil
 }
 
 // GetLogitsIth retrieves the logits for the ith token.
-func GetLogitsIth(ctx Context, i int32, nVocab int) []float32 {
+func GetLogitsIth(ctx Context, i int32, nVocab int) ([]float32, error) {
 	if ctx == 0 {
-		return nil
+		return nil, errInvalidContext
 	}
 	var logitsPtr *float32
 	getLogitsIthFunc.Call(unsafe.Pointer(&logitsPtr), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
 
 	if logitsPtr == nil {
-		return nil
+		return nil, nil
 	}
 
-	return unsafe.Slice(logitsPtr, nVocab)
+	return unsafe.Slice(logitsPtr, nVocab), nil
 }
 
 // GetLogits retrieves all token logits from the last call to llama_decode.
 // Returns a slice of float32 of length nTokens * nVocab, or nil if not available.
-func GetLogits(ctx Context, nTokens, nVocab int) []float32 {
+func GetLogits(ctx Context, nTokens, nVocab int) ([]float32, error) {
 	if ctx == 0 {
-		return nil
+		return nil, errInvalidContext
 	}
 	var result *float32
 	getLogitsFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 	if result == nil || nTokens <= 0 || nVocab <= 0 {
-		return nil
+		return nil, nil
 	}
-	return unsafe.Slice(result, nTokens*nVocab)
+	return unsafe.Slice(result, nTokens*nVocab), nil
 }
 
 // NCtx returns the number of context tokens.

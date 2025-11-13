@@ -33,7 +33,10 @@ func run() error {
 	llama.Init()
 	defer llama.BackendFree()
 
-	model := llama.ModelLoadFromFile(*modelFile, llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(*modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		return fmt.Errorf("unable to load model from file %s: %v", *modelFile, err)
+	}
 	if model == 0 {
 		return fmt.Errorf("unable to load model from file %s", *modelFile)
 	}
@@ -45,7 +48,10 @@ func run() error {
 	ctxParams.PoolingType = poolingType
 	ctxParams.Embeddings = 1
 
-	lctx := llama.InitFromModel(model, ctxParams)
+	lctx, err := llama.InitFromModel(model, ctxParams)
+	if err != nil {
+		return fmt.Errorf("unable to initialize context from model: %v", err)
+	}
 	defer llama.Free(lctx)
 
 	// tokenize prompt
@@ -58,7 +64,10 @@ func run() error {
 
 	// get embeddings
 	nEmbd := llama.ModelNEmbd(model)
-	vec := llama.GetEmbeddingsSeq(lctx, 0, nEmbd)
+	vec, err := llama.GetEmbeddingsSeq(lctx, 0, nEmbd)
+	if err != nil {
+		return fmt.Errorf("unable to get embeddings: %v", err)
+	}
 
 	// normalize embeddings
 	var sum float64

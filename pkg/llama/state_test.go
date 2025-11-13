@@ -11,10 +11,16 @@ func TestStateSaveFile(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
-	ctx := InitFromModel(model, ContextDefaultParams())
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	// tokenize prompt
@@ -58,10 +64,16 @@ func TestStateLoadFile(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
-	ctx := InitFromModel(model, ContextDefaultParams())
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	// tokenize prompt and decode, then save state
@@ -105,10 +117,16 @@ func TestStateGetSize(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
-	ctx := InitFromModel(model, ContextDefaultParams())
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	size := StateGetSize(ctx)
@@ -124,10 +142,16 @@ func TestStateGetData(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
-	ctx := InitFromModel(model, ContextDefaultParams())
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	// Get the required state size
@@ -151,10 +175,16 @@ func TestStateSetData(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
-	ctx := InitFromModel(model, ContextDefaultParams())
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	// Save state to buffer
@@ -181,9 +211,15 @@ func TestStateSeqGetSizeAndData(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
-	ctx := InitFromModel(model, ContextDefaultParams())
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	// Tokenize and decode
@@ -215,9 +251,15 @@ func TestStateSeqSaveLoadFile(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
-	ctx := InitFromModel(model, ContextDefaultParams())
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	// Tokenize and decode
@@ -257,9 +299,15 @@ func TestStateSeqGetSizeDataExt(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
-	ctx := InitFromModel(model, ContextDefaultParams())
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	seqId := SeqId(1)
