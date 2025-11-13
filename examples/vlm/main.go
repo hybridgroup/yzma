@@ -44,6 +44,10 @@ func main() {
 
 	fmt.Println("Loading model", *modelFile)
 	model := llama.ModelLoadFromFile(*modelFile, llama.ModelDefaultParams())
+	if model == 0 {
+		fmt.Println("unable to load model from file", *modelFile)
+		os.Exit(1)
+	}
 	defer llama.ModelFree(model)
 
 	ctxParams := llama.ContextDefaultParams()

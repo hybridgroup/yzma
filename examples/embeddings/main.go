@@ -23,8 +23,7 @@ func run() error {
 	}
 
 	if err := llama.Load(*libPath); err != nil {
-		fmt.Println("unable to load library", err.Error())
-		os.Exit(1)
+		return fmt.Errorf("unable to load library: %w", err)
 	}
 
 	if !*verbose {
@@ -35,6 +34,9 @@ func run() error {
 	defer llama.BackendFree()
 
 	model := llama.ModelLoadFromFile(*modelFile, llama.ModelDefaultParams())
+	if model == 0 {
+		return fmt.Errorf("unable to load model from file %s", *modelFile)
+	}
 	defer llama.ModelFree(model)
 
 	ctxParams := llama.ContextDefaultParams()
