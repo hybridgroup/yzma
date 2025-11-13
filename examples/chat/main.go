@@ -63,18 +63,15 @@ func main() {
 	lctx = llama.InitFromModel(model, ctxParams)
 	defer llama.Free(lctx)
 
-	sampler = llama.SamplerChainInit(llama.SamplerChainDefaultParams())
-	if *topK != 0 {
-		llama.SamplerChainAdd(sampler, llama.SamplerInitTopK(int32(*topK)))
-	}
-	if *topP < 1.0 {
-		llama.SamplerChainAdd(sampler, llama.SamplerInitTopP(float32(*topP), 1))
-	}
-	if *minP > 0 {
-		llama.SamplerChainAdd(sampler, llama.SamplerInitMinP(float32(*minP), 1))
-	}
-	llama.SamplerChainAdd(sampler, llama.SamplerInitTempExt(float32(*temperature), 0, 1.0))
-	llama.SamplerChainAdd(sampler, llama.SamplerInitDist(llama.DefaultSeed))
+	// pass in flags as params to samplers
+	sp := llama.DefaultSamplerParams()
+	sp.Temp = float32(*temperature)
+	sp.TopK = int32(*topK)
+	sp.TopP = float32(*topP)
+	sp.MinP = float32(*minP)
+
+	samplers := []llama.SamplerType{llama.SamplerTypeTopK, llama.SamplerTypeTopP, llama.SamplerTypeMinP, llama.SamplerTypeTemperature}
+	sampler = llama.NewSampler(model, samplers, sp)
 
 	if *template == "" {
 		*template = llama.ModelChatTemplate(model, "")

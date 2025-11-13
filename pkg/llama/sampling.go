@@ -22,6 +22,7 @@ const (
 	SamplerTypeInfill                  = 9
 	SamplerTypePenalties               = 10
 	SamplerTypeTopNSigma               = 11
+	SamplerTypeLogitBias               = 12
 )
 
 type Sampler uintptr
@@ -373,6 +374,7 @@ func SamplerReset(smpl Sampler) {
 var (
 	// DefaultSamplers is the list of default samplers to use in a sampling chain.
 	DefaultSamplers = []SamplerType{
+		SamplerTypeLogitBias,
 		SamplerTypePenalties,
 		SamplerTypeDry,
 		SamplerTypeTopNSigma,
@@ -390,7 +392,7 @@ var (
 // The samplers are added in the order they appear in the list.
 // The distribution sampler is always added last.
 // If the model is nil or the samplers list is empty, a zero Sampler is returned.
-func NewSampler(model Model, samplers []SamplerType) Sampler {
+func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Sampler {
 	var sampler Sampler
 	if model == 0 || len(samplers) == 0 {
 		return sampler
@@ -398,28 +400,27 @@ func NewSampler(model Model, samplers []SamplerType) Sampler {
 	vocab := ModelGetVocab(model)
 	nTokens := VocabNTokens(vocab)
 
-	params := SamplerChainDefaultParams()
-	sampler = SamplerChainInit(params)
-
-	// add EOG logit bias to prevent generating EOG tokens
-	logitBiasEOG := make([]LogitBias, 0)
-	for i := int32(0); i < nTokens; i++ {
-		token := Token(i)
-		if VocabIsEOG(vocab, token) {
-			logitBiasEOG = append(logitBiasEOG, LogitBias{Token: token, Bias: math.SmallestNonzeroFloat32})
-		}
-	}
-
-	bias := SamplerInitLogitBias(nTokens, int32(len(logitBiasEOG)), unsafe.SliceData(logitBiasEOG))
-	SamplerChainAdd(sampler, bias)
+	sampler = SamplerChainInit(SamplerChainDefaultParams())
 
 	// add other samplers
 	for samplerType := range samplers {
 		switch samplerType {
+		case SamplerTypeLogitBias:
+			// add EOG logit bias to prevent generating EOG tokens
+			logitBiasEOG := make([]LogitBias, 0)
+			for i := int32(0); i < nTokens; i++ {
+				token := Token(i)
+				if VocabIsEOG(vocab, token) {
+					logitBiasEOG = append(logitBiasEOG, LogitBias{Token: token, Bias: math.SmallestNonzeroFloat32})
+				}
+			}
+
+			bias := SamplerInitLogitBias(nTokens, int32(len(logitBiasEOG)), unsafe.SliceData(logitBiasEOG))
+			SamplerChainAdd(sampler, bias)
+
 		case SamplerTypeDry:
-			seqBreakers := []string{"\n", ":", "\"", "*"}
 			var combined []*byte
-			for _, s := range seqBreakers {
+			for _, s := range params.DrySequenceBreakers {
 				ptr, err := utils.BytePtrFromString(s)
 				if err != nil {
 					panic(err)
@@ -428,49 +429,145 @@ func NewSampler(model Model, samplers []SamplerType) Sampler {
 			}
 			seqBreakersPtr := unsafe.SliceData(combined)
 
-			dry := SamplerInitDry(vocab, ModelNCtxTrain(model), 0, 1.75, 2, 4096, seqBreakersPtr, uint32(len(seqBreakers)))
+			dry := SamplerInitDry(vocab, ModelNCtxTrain(model), params.DryMultiplier, params.DryBase, params.DryAllowedLength, params.DryPenaltyLastN, seqBreakersPtr, uint32(len(params.DrySequenceBreakers)))
 			SamplerChainAdd(sampler, dry)
 
 		case SamplerTypeTopK:
-			topK := SamplerInitTopK(40)
+			topK := SamplerInitTopK(params.TopK)
 			SamplerChainAdd(sampler, topK)
 
 		case SamplerTypeTopP:
-			topP := SamplerInitTopP(0.95, 0)
+			topP := SamplerInitTopP(params.TopP, 0)
 			SamplerChainAdd(sampler, topP)
 
 		case SamplerTypeMinP:
-			minP := SamplerInitMinP(0.05, 0)
+			minP := SamplerInitMinP(params.MinP, 0)
 			SamplerChainAdd(sampler, minP)
 
 		case SamplerTypeTypicalP:
-			typical := SamplerInitTypical(1.0, 0)
+			typical := SamplerInitTypical(params.TypP, 0)
 			SamplerChainAdd(sampler, typical)
 
 		case SamplerTypeTemperature:
-			temp := SamplerInitTempExt(0.2, 0, 1.0)
+			temp := SamplerInitTempExt(params.Temp, 0, 1.0)
 			SamplerChainAdd(sampler, temp)
 
 		case SamplerTypeXTC:
-			xtc := SamplerInitXTC(0, 0.1, 0, DefaultSeed)
+			xtc := SamplerInitXTC(params.XTCProbability, params.XTCThreshold, 0, params.Seed)
 			SamplerChainAdd(sampler, xtc)
 
 		case SamplerTypeInfill:
 			// TODO: add implementation
 
 		case SamplerTypePenalties:
-			penalties := SamplerInitPenalties(64, 1.0, 0, 0)
+			penalties := SamplerInitPenalties(params.PenaltyLastN, params.PenaltyRepeat, params.PenaltyFreq, params.PenaltyPresent)
 			SamplerChainAdd(sampler, penalties)
 
 		case SamplerTypeTopNSigma:
-			topNSigma := SamplerInitTopNSigma(-1.0)
+			topNSigma := SamplerInitTopNSigma(params.TopNSigma)
 			SamplerChainAdd(sampler, topNSigma)
 		}
 	}
 
 	// always add dist sampler last
-	dist := SamplerInitDist(DefaultSeed)
+	dist := SamplerInitDist(params.Seed)
 	SamplerChainAdd(sampler, dist)
 
 	return sampler
+}
+
+// SamplerParams holds the parameters for creating samplers.
+type SamplerParams struct {
+	Seed                uint32
+	NPrev               int32
+	NProbs              int32
+	MinKeep             int32
+	TopK                int32
+	TopP                float32
+	MinP                float32
+	XTCProbability      float32
+	XTCThreshold        float32
+	TypP                float32
+	Temp                float32
+	DynatempRange       float32
+	DynatempExponent    float32
+	PenaltyLastN        int32
+	PenaltyRepeat       float32
+	PenaltyFreq         float32
+	PenaltyPresent      float32
+	DryMultiplier       float32
+	DryBase             float32
+	DryAllowedLength    int32
+	DryPenaltyLastN     int32
+	Mirostat            int32
+	TopNSigma           float32
+	MirostatTau         float32
+	MirostatEta         float32
+	IgnoreEos           bool
+	NoPerf              bool
+	TimingPerToken      bool
+	DrySequenceBreakers []string
+}
+
+// DefaultSamplerParams returns the default sampler parameters.
+func DefaultSamplerParams() *SamplerParams {
+	return &SamplerParams{
+		Seed: DefaultSeed,
+		// number of previous tokens to remember
+		NPrev: 64,
+		// if greater than 0, output the probabilities of top n_probs tokens.
+		NProbs: 0,
+		// 0 = disabled, otherwise samplers should return at least min_keep tokens
+		MinKeep: 0,
+		// <= 0 to use vocab size
+		TopK: 40,
+		// 1.0 = disabled
+		TopP: 0.95,
+		// 0.0 = disabled
+		MinP: 0.05,
+		// 0.0 = disabled
+		XTCProbability: 0.0,
+		// > 0.5 disables XTC
+		XTCThreshold: 0.1,
+		// typical_p, 1.0 = disabled
+		TypP: 1.0,
+		// <= 0.0 to sample greedily, 0.0 to not output probabilities
+		Temp: 0.8,
+		// 0.0 = disabled
+		DynatempRange: 0.0,
+		// controls how entropy maps to temperature in dynamic temperature sampler
+		DynatempExponent: 1.0,
+		// last n tokens to penalize (0 = disable penalty, -1 = context size)
+		PenaltyLastN: 64,
+		// 1.0 = disabled
+		PenaltyRepeat: 1.0,
+		// 0.0 = disabled
+		PenaltyFreq: 0.0,
+		// 0.0 = disabled
+		PenaltyPresent: 0.0,
+		// 0.0 = disabled;      DRY repetition penalty for tokens extending repetition:
+		DryMultiplier: 0.0,
+		// 0.0 = disabled;      multiplier * base ^ (length of sequence before token - allowed length)
+		DryBase: 1.75,
+		// tokens extending repetitions beyond this receive penalty
+		DryAllowedLength: 2,
+		// how many tokens to scan for repetitions (0 = disable penalty, -1 = context size)
+		DryPenaltyLastN: -1,
+		// 0 = disabled, 1 = mirostat, 2 = mirostat 2.0
+		Mirostat: 0,
+		// -1.0 = disabled
+		TopNSigma: -1.0,
+		// target entropy
+		MirostatTau: 5.0,
+		// learning rate
+		MirostatEta: 0.1,
+		// if true, ignore end-of-sequence token
+		IgnoreEos: false,
+		// disable performance metrics
+		NoPerf: false,
+		// if true, enable timing per token
+		TimingPerToken: false,
+		// default sequence breakers for DRY
+		DrySequenceBreakers: []string{"\n", ":", "\"", "*"},
+	}
 }
