@@ -23,7 +23,10 @@ func describe(tmpFile string) error {
 		mtmdCtxParams.Verbosity = llama.LogLevelContinue
 	}
 
-	model := llama.ModelLoadFromFile(path.Join(*modelsDir, *modelFile), llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(path.Join(*modelsDir, *modelFile), llama.ModelDefaultParams())
+	if err != nil {
+		return fmt.Errorf("unable to load model from file %s: %v", *modelFile, err)
+	}
 	if model == 0 {
 		return fmt.Errorf("unable to load model from file %s", *modelFile)
 	}
@@ -34,13 +37,19 @@ func describe(tmpFile string) error {
 	ctxParams.NCtx = 4096
 	ctxParams.NBatch = 2048
 
-	lctx := llama.InitFromModel(model, ctxParams)
+	lctx, err := llama.InitFromModel(model, ctxParams)
+	if err != nil {
+		return fmt.Errorf("unable to initialize context from model: %v", err)
+	}
 	defer llama.Free(lctx)
 
 	vocab := llama.ModelGetVocab(model)
 	sampler := llama.NewSampler(model, llama.DefaultSamplers, llama.DefaultSamplerParams())
 
-	mtmdCtx := mtmd.InitFromFile(path.Join(*modelsDir, *projFile), model, mtmdCtxParams)
+	mtmdCtx, err := mtmd.InitFromFile(path.Join(*modelsDir, *projFile), model, mtmdCtxParams)
+	if err != nil {
+		return fmt.Errorf("unable to initialize context from file: %v", err)
+	}
 	defer mtmd.Free(mtmdCtx)
 
 	template = llama.ModelChatTemplate(model, "")

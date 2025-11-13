@@ -249,6 +249,11 @@ func loadModelFuncs(lib ffi.Lib) error {
 	return nil
 }
 
+var (
+	errInvalidModel          = fmt.Errorf("invalid model")
+	errInvalidContextOrModel = fmt.Errorf("invalid context or model")
+)
+
 // ModelDefaultParams returns default parameters for loading a Model.
 func ModelDefaultParams() ModelParams {
 	var p ModelParams
@@ -257,35 +262,36 @@ func ModelDefaultParams() ModelParams {
 }
 
 // ModelLoadFromFile loads a Model from a GGUF file.
-func ModelLoadFromFile(pathModel string, params ModelParams) Model {
+func ModelLoadFromFile(pathModel string, params ModelParams) (Model, error) {
 	var model Model
 	if _, err := os.Stat(pathModel); os.IsNotExist(err) {
 		// no such file
-		return model
+		return model, err
 	}
 
 	file := &[]byte(pathModel + "\x00")[0]
 	modelLoadFromFileFunc.Call(unsafe.Pointer(&model), unsafe.Pointer(&file), unsafe.Pointer(&params))
-	return model
+	return model, nil
 }
 
 // ModelFree frees a previously opened model.
-func ModelFree(model Model) {
+func ModelFree(model Model) error {
 	if model == 0 {
-		return
+		return errInvalidModel
 	}
 	modelFreeFunc.Call(nil, unsafe.Pointer(&model))
+	return nil
 }
 
 // InitFromModel initializes a previously loaded Model, and then returns a new Context.
-func InitFromModel(model Model, params ContextParams) Context {
+func InitFromModel(model Model, params ContextParams) (Context, error) {
 	var ctx Context
 	if model == 0 {
-		return ctx
+		return ctx, errInvalidModel
 	}
 	initFromModelFunc.Call(unsafe.Pointer(&ctx), unsafe.Pointer(&model), unsafe.Pointer(&params))
 
-	return ctx
+	return ctx, nil
 }
 
 // ModelChatTemplate returns a named chat template for the Model.
@@ -519,9 +525,9 @@ func ModelRopeType(model Model) RopeScalingType {
 }
 
 // Warmup is to warm-up a model.
-func Warmup(lctx Context, model Model) {
+func Warmup(lctx Context, model Model) error {
 	if lctx == 0 || model == 0 {
-		return
+		return errInvalidContextOrModel
 	}
 
 	vocab := ModelGetVocab(model)
@@ -558,13 +564,18 @@ func Warmup(lctx Context, model Model) {
 		Decode(lctx, batch)
 	}
 
-	mem := GetMemory(lctx)
-	MemoryClear(mem, true)
+	mem, err := GetMemory(lctx)
+	if err != nil {
+		return err
+	}
+	if err := MemoryClear(mem, true); err != nil {
+		return err
+	}
 
 	Synchronize(lctx)
-
-	// llama_perf_context_reset(lctx);
 	SetWarmup(lctx, false)
+
+	return nil
 }
 
 // ModelMetaValStr gets metadata value as a string by key name.

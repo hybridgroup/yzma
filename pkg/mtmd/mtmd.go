@@ -1,6 +1,7 @@
 package mtmd
 
 import (
+	"errors"
 	"os"
 	"unsafe"
 
@@ -147,6 +148,10 @@ func loadFuncs(lib ffi.Lib) error {
 	return nil
 }
 
+var (
+	errInvalidContext = errors.New("invalid mtmd context handle")
+)
+
 // DefaultMarker returns the default media marker used in prompts.
 func DefaultMarker() string {
 	var marker *byte
@@ -163,24 +168,25 @@ func ContextParamsDefault() ContextParamsType {
 
 // InitFromFile initializes the mtmd context. mmprojFname is a projector file. model is a model that has already been opened.
 // ctxParams are the ContextParamsType for the new Context.
-func InitFromFile(mmprojFname string, model llama.Model, ctxParams ContextParamsType) Context {
+func InitFromFile(mmprojFname string, model llama.Model, ctxParams ContextParamsType) (Context, error) {
 	var ctx Context
-	if _, err := os.Stat(mmprojFname); os.IsNotExist(err) {
-		// no such file
-		return ctx
+	if _, err := os.Stat(mmprojFname); err != nil {
+		// no such file?
+		return ctx, err
 	}
 
 	file := &[]byte(mmprojFname + "\x00")[0]
 	initFromFileFunc.Call(unsafe.Pointer(&ctx), unsafe.Pointer(&file), unsafe.Pointer(&model), unsafe.Pointer(&ctxParams))
-	return ctx
+	return ctx, nil
 }
 
 // Free frees a Context that has already been created using InitFromFile.
-func Free(ctx Context) {
+func Free(ctx Context) error {
 	if ctx == 0 {
-		return
+		return errInvalidContext
 	}
 	freeFunc.Call(nil, unsafe.Pointer(&ctx))
+	return nil
 }
 
 // SupportVision returns whether the current model supports vision input.

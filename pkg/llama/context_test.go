@@ -20,17 +20,21 @@ func TestInitModel(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	params := ContextDefaultParams()
-	ctx := InitFromModel(model, params)
-	if ctx == (Context(0)) {
-		t.Fatal("Failed to initialize context")
+	ctx, err := InitFromModel(model, params)
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
 	}
 
-	Free(ctx)
-	// No direct way to verify, but ensure no panic or error occurs
+	if err := Free(ctx); err != nil {
+		t.Fatalf("Free failed: %v", err)
+	}
 }
 
 func TestWarmup(t *testing.T) {
@@ -39,13 +43,16 @@ func TestWarmup(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	params := ContextDefaultParams()
-	ctx := InitFromModel(model, params)
-	if ctx == (Context(0)) {
-		t.Fatal("Failed to initialize context")
+	ctx, err := InitFromModel(model, params)
+	if ctx == 0 || err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
 	}
 	defer Free(ctx)
 
@@ -60,10 +67,16 @@ func TestNCtx(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
-	ctx := InitFromModel(model, ContextDefaultParams())
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	nCtx := NCtx(ctx)
@@ -79,10 +92,16 @@ func TestNBatch(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
-	ctx := InitFromModel(model, ContextDefaultParams())
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	nBatch := NBatch(ctx)
@@ -98,10 +117,16 @@ func TestNUBatch(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
-	ctx := InitFromModel(model, ContextDefaultParams())
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	nUBatch := NUBatch(ctx)
@@ -117,10 +142,16 @@ func TestNSeqMax(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
-	ctx := InitFromModel(model, ContextDefaultParams())
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	nSeqMax := NSeqMax(ctx)
@@ -136,10 +167,16 @@ func TestGetModel(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
-	ctx := InitFromModel(model, ContextDefaultParams())
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	retrievedModel := GetModel(ctx)
@@ -156,10 +193,16 @@ func TestGetLogitsIth(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
-	ctx := InitFromModel(model, ContextDefaultParams())
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	// tokenize prompt
@@ -172,7 +215,10 @@ func TestGetLogitsIth(t *testing.T) {
 	Decode(ctx, batch)
 
 	nVocab := int(VocabNTokens(vocab))
-	logits := GetLogitsIth(ctx, -1, nVocab)
+	logits, err := GetLogitsIth(ctx, -1, nVocab)
+	if err != nil {
+		t.Fatalf("GetLogitsIth returned an error: %v", err)
+	}
 	if logits == nil {
 		t.Fatal("GetLogitsIth returned nil")
 	}
@@ -185,14 +231,20 @@ func TestGetEmbeddingsIth(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	params := ContextDefaultParams()
 	params.PoolingType = PoolingTypeMean
 	params.Embeddings = 1
 
-	ctx := InitFromModel(model, params)
+	ctx, err := InitFromModel(model, params)
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	// Tokenize a prompt
@@ -205,7 +257,10 @@ func TestGetEmbeddingsIth(t *testing.T) {
 	Decode(ctx, batch)
 
 	nEmbeddings := VocabNTokens(vocab)
-	embeddings := GetEmbeddingsIth(ctx, -1, nEmbeddings) // Get embeddings for the last token
+	embeddings, err := GetEmbeddingsIth(ctx, -1, nEmbeddings) // Get embeddings for the last token
+	if err != nil {
+		t.Fatalf("GetEmbeddingsIth returned an error: %v", err)
+	}
 	if embeddings == nil {
 		t.Fatal("GetEmbeddingsIth returned nil")
 	}
@@ -221,14 +276,20 @@ func TestGetEmbeddingsSeq(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	params := ContextDefaultParams()
 	params.PoolingType = PoolingTypeMean
 	params.Embeddings = 1
 
-	ctx := InitFromModel(model, params)
+	ctx, err := InitFromModel(model, params)
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	// Tokenize a prompt
@@ -242,7 +303,10 @@ func TestGetEmbeddingsSeq(t *testing.T) {
 
 	seqID := SeqId(0)
 	nEmbeddings := int32(VocabNTokens(vocab))
-	embeddings := GetEmbeddingsSeq(ctx, seqID, nEmbeddings)
+	embeddings, err := GetEmbeddingsSeq(ctx, seqID, nEmbeddings)
+	if err != nil {
+		t.Fatalf("GetEmbeddingsSeq returned an error: %v", err)
+	}
 	if embeddings == nil {
 		t.Fatal("GetEmbeddingsSeq returned nil")
 	}
@@ -258,14 +322,20 @@ func TestGetEmbeddings(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	params := ContextDefaultParams()
 	params.PoolingType = PoolingTypeNone
 	params.Embeddings = 1
 
-	ctx := InitFromModel(model, params)
+	ctx, err := InitFromModel(model, params)
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	// Tokenize a prompt
@@ -279,7 +349,10 @@ func TestGetEmbeddings(t *testing.T) {
 
 	nOutputs := len(tokens)
 	nEmbeddings := int(ModelNEmbd(model))
-	embeddings := GetEmbeddings(ctx, nOutputs, nEmbeddings)
+	embeddings, err := GetEmbeddings(ctx, nOutputs, nEmbeddings)
+	if err != nil {
+		t.Fatalf("GetEmbeddings returned an error: %v", err)
+	}
 	if embeddings == nil {
 		t.Fatal("GetEmbeddings returned nil")
 	}
@@ -295,10 +368,16 @@ func TestSetEmbeddings(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
-	ctx := InitFromModel(model, ContextDefaultParams())
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	// Enable embeddings
@@ -316,10 +395,16 @@ func TestSetCausalAttn(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
-	ctx := InitFromModel(model, ContextDefaultParams())
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	// Enable causal attention
@@ -337,10 +422,16 @@ func TestGetLogits(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
-	ctx := InitFromModel(model, ContextDefaultParams())
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer Free(ctx)
 
 	// Tokenize a prompt
@@ -354,7 +445,10 @@ func TestGetLogits(t *testing.T) {
 
 	nTokens := len(tokens)
 	nVocab := int(VocabNTokens(vocab))
-	logits := GetLogits(ctx, nTokens, nVocab)
+	logits, err := GetLogits(ctx, nTokens, nVocab)
+	if err != nil {
+		t.Fatalf("GetLogits returned an error: %v", err)
+	}
 	if logits == nil {
 		t.Fatal("GetLogits returned nil")
 	}

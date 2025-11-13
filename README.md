@@ -31,8 +31,8 @@ func main() {
 	llama.Load(libPath)
 	llama.Init()
 
-	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
-	lctx := llama.InitFromModel(model, llama.ContextDefaultParams())
+	model, _ := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	lctx, _ := llama.InitFromModel(model, llama.ContextDefaultParams())
 
 	vocab := llama.ModelGetVocab(model)
 

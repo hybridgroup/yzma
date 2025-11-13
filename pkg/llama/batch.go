@@ -60,18 +60,23 @@ func BatchInit(nTokens int32, embd int32, nSeqMax int32) Batch {
 }
 
 // BatchFree frees a Batch of tokens allocated with BatchInit.
-func BatchFree(batch Batch) {
+func BatchFree(batch Batch) error {
 	batchFreeFunc.Call(nil, unsafe.Pointer(&batch))
+
+	return nil
 }
 
 // BatchGetOne returns Batch for single sequence of tokens.
 // The sequence ID will be fixed to 0.
 // The position of the tokens will be tracked automatically by [Decode].
 func BatchGetOne(tokens []Token) Batch {
+	var batch Batch
+	if len(tokens) == 0 {
+		return batch
+	}
 	toks := unsafe.SliceData(tokens)
 	nTokens := int32(len(tokens))
 
-	var batch Batch
 	batchGetOneFunc.Call(unsafe.Pointer(&batch), unsafe.Pointer(&toks), &nTokens)
 
 	return batch

@@ -37,11 +37,17 @@ func TestInputChunksGetType(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("Failed to load model from file: %v", err)
+	}
 	defer llama.ModelFree(model)
 
 	params := ContextParamsDefault()
-	ctx := InitFromFile(mmprojFile, model, params)
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("Failed to initialize context from file: %v", err)
+	}
 	defer Free(ctx)
 
 	chunks := InputChunksInit()
@@ -80,11 +86,17 @@ func TestInputChunkGetNTokens(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("Failed to load model from file: %v", err)
+	}
 	defer llama.ModelFree(model)
 
 	params := ContextParamsDefault()
-	ctx := InitFromFile(mmprojFile, model, params)
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("Failed to initialize context from file: %v", err)
+	}
 	defer Free(ctx)
 
 	chunks := InputChunksInit()
@@ -111,11 +123,17 @@ func TestInputChunkGetId(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("Failed to load model from file: %v", err)
+	}
 	defer llama.ModelFree(model)
 
 	params := ContextParamsDefault()
-	ctx := InitFromFile(mmprojFile, model, params)
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("Failed to initialize context from file: %v", err)
+	}
 	defer Free(ctx)
 
 	chunks := InputChunksInit()
@@ -142,11 +160,17 @@ func TestInputChunkGetNPos(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("Failed to load model from file: %v", err)
+	}
 	defer llama.ModelFree(model)
 
 	params := ContextParamsDefault()
-	ctx := InitFromFile(mmprojFile, model, params)
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("Failed to initialize context from file: %v", err)
+	}
 	defer Free(ctx)
 
 	chunks := InputChunksInit()
@@ -173,11 +197,17 @@ func TestInputChunkCopyAndFree(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("Failed to load model from file: %v", err)
+	}
 	defer llama.ModelFree(model)
 
 	params := ContextParamsDefault()
-	ctx := InitFromFile(mmprojFile, model, params)
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("Failed to initialize context from file: %v", err)
+	}
 	defer Free(ctx)
 
 	chunks := InputChunksInit()
@@ -211,11 +241,17 @@ func TestInputChunkGetTokensImage(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("Failed to load model from file: %v", err)
+	}
 	defer llama.ModelFree(model)
 
 	params := ContextParamsDefault()
-	ctx := InitFromFile(mmprojFile, model, params)
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("Failed to initialize context from file: %v", err)
+	}
 	defer Free(ctx)
 
 	chunks := InputChunksInit()

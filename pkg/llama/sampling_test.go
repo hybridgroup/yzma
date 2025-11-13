@@ -133,7 +133,10 @@ func TestNewSampler(t *testing.T) {
 	defer testCleanup(t)
 
 	modelFile := testModelFileName(t)
-	model := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	samplers := []SamplerType{

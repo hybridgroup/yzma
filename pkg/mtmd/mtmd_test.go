@@ -30,12 +30,18 @@ func TestInitFromFileAndFree(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer llama.ModelFree(model)
 
 	params := ContextParamsDefault()
-	ctx := InitFromFile(mmprojFile, model, params)
-	if ctx == Context(0) {
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("InitFromFile failed: %v", err)
+	}
+	if ctx == 0 {
 		t.Fatal("InitFromFile returned an invalid context")
 	}
 
@@ -52,11 +58,17 @@ func TestSupportVision(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer llama.ModelFree(model)
 
 	params := ContextParamsDefault()
-	ctx := InitFromFile(mmprojFile, model, params)
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("InitFromFile failed: %v", err)
+	}
 	defer Free(ctx)
 
 	supportsVision := SupportVision(ctx)
@@ -70,11 +82,17 @@ func TestTokenize(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer llama.ModelFree(model)
 
 	params := ContextParamsDefault()
-	ctx := InitFromFile(mmprojFile, model, params)
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("InitFromFile failed: %v", err)
+	}
 	defer Free(ctx)
 
 	chunks := InputChunksInit()
@@ -107,14 +125,23 @@ func TestHelperEvalChunks(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer llama.ModelFree(model)
 
 	params := ContextParamsDefault()
-	ctx := InitFromFile(mmprojFile, model, params)
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("InitFromFile failed: %v", err)
+	}
 	defer Free(ctx)
 
-	lctx := llama.InitFromModel(model, llama.ContextDefaultParams())
+	lctx, err := llama.InitFromModel(model, llama.ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
 	defer llama.Free(lctx)
 
 	chunks := InputChunksInit()
@@ -141,11 +168,17 @@ func TestDecodeUseNonCausal(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer llama.ModelFree(model)
 
 	params := ContextParamsDefault()
-	ctx := InitFromFile(mmprojFile, model, params)
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("InitFromFile failed: %v", err)
+	}
 	defer Free(ctx)
 
 	useNonCausal := DecodeUseNonCausal(ctx)
@@ -159,11 +192,17 @@ func TestDecodeUseMRope(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer llama.ModelFree(model)
 
 	params := ContextParamsDefault()
-	ctx := InitFromFile(mmprojFile, model, params)
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("InitFromFile failed: %v", err)
+	}
 	defer Free(ctx)
 
 	useMRope := DecodeUseMRope(ctx)
@@ -177,11 +216,17 @@ func TestSupportAudio(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer llama.ModelFree(model)
 
 	params := ContextParamsDefault()
-	ctx := InitFromFile(mmprojFile, model, params)
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("InitFromFile failed: %v", err)
+	}
 	defer Free(ctx)
 
 	supportsAudio := SupportAudio(ctx)
@@ -195,11 +240,17 @@ func TestGetAudioBitrate(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	model := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer llama.ModelFree(model)
 
 	params := ContextParamsDefault()
-	ctx := InitFromFile(mmprojFile, model, params)
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("InitFromFile failed: %v", err)
+	}
 	defer Free(ctx)
 
 	bitrate := GetAudioBitrate(ctx)

@@ -11,7 +11,10 @@ func TestVocabBOS(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -27,7 +30,10 @@ func TestVocabEOS(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -44,7 +50,10 @@ func TestVocabEOT(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -60,7 +69,10 @@ func TestVocabSEP(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -76,7 +88,10 @@ func TestVocabNL(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -92,7 +107,10 @@ func TestVocabPAD(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -108,7 +126,10 @@ func TestVocabMASK(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -124,7 +145,10 @@ func TestVocabGetAddBOS(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -141,7 +165,10 @@ func TestVocabGetAddEOS(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -158,7 +185,10 @@ func TestVocabGetAddSEP(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -180,7 +210,10 @@ func TestVocabFIMPre(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -196,7 +229,10 @@ func TestVocabFIMSuf(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -212,7 +248,10 @@ func TestVocabFIMMid(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -228,7 +267,10 @@ func TestVocabFIMPad(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -244,7 +286,10 @@ func TestVocabFIMRep(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -260,7 +305,10 @@ func TestVocabFIMSep(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -276,7 +324,10 @@ func TestVocabGetAttr(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -299,7 +350,10 @@ func TestVocabGetScore(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -325,7 +379,10 @@ func TestVocabGetText(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
@@ -351,7 +408,10 @@ func TestGetVocabType(t *testing.T) {
 	defer testCleanup(t)
 
 	params := ModelDefaultParams()
-	model := ModelLoadFromFile(modelFile, params)
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
