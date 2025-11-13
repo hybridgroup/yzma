@@ -34,7 +34,7 @@ func describe(tmpFile string) {
 	defer llama.Free(lctx)
 
 	vocab := llama.ModelGetVocab(model)
-	sampler := llama.NewSampler(model, llama.DefaultSamplers)
+	sampler := llama.NewSampler(model, llama.DefaultSamplers, llama.DefaultSamplerParams())
 
 	mtmdCtx := mtmd.InitFromFile(path.Join(*modelsDir, *projFile), model, mtmdCtxParams)
 	defer mtmd.Free(mtmdCtx)

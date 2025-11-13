@@ -141,7 +141,7 @@ func TestNewSampler(t *testing.T) {
 		SamplerTypeTopP,
 	}
 
-	sampler := NewSampler(model, samplers)
+	sampler := NewSampler(model, samplers, DefaultSamplerParams())
 	if sampler == (Sampler(0)) {
 		t.Fatal("NewSampler failed to create a new sampler chain")
 	}

@@ -54,8 +54,15 @@ func main() {
 	defer llama.Free(lctx)
 
 	vocab := llama.ModelGetVocab(model)
-	// TODO: pass in flags as params to samplers
-	sampler := llama.NewSampler(model, llama.DefaultSamplers)
+
+	// pass in flags as params to samplers
+	sp := llama.DefaultSamplerParams()
+	sp.Temp = float32(*temperature)
+	sp.TopK = int32(*topK)
+	sp.TopP = float32(*topP)
+	sp.MinP = float32(*minP)
+
+	sampler := llama.NewSampler(model, llama.DefaultSamplers, sp)
 	mtmdCtx := mtmd.InitFromFile(*projFile, model, mctxParams)
 	defer mtmd.Free(mtmdCtx)
 
