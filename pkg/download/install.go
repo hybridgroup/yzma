@@ -19,6 +19,10 @@ type tag struct {
 }
 
 func InstallLibraries(libPath string, processor Processor, allowUpgrade bool) error {
+	if _, err := ParseOS(runtime.GOOS); err != nil {
+		return fmt.Errorf("your OS %q is currently not supported", runtime.GOOS)
+	}
+
 	if alreadyInstalled(libPath) {
 		if !allowUpgrade {
 			return nil
