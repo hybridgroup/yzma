@@ -317,6 +317,88 @@ func TestVocabFIMSep(t *testing.T) {
 	t.Logf("VocabFIMSep returned token: %d", token)
 }
 
+func TestVocabIsEOG(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ModelDefaultParams()
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	vocab := ModelGetVocab(model)
+
+	// Use a valid token for testing, e.g., BOS token
+	token := VocabBOS(vocab)
+	if token == TokenNull {
+		t.Skip("skipping test, model does not have BOS token")
+	}
+
+	isEOG := VocabIsEOG(vocab, token)
+	// No specific expected value, just ensure it doesn't fail
+	t.Logf("VocabIsEOG returned: %v for token: %d", isEOG, token)
+}
+
+func TestVocabIsControl(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ModelDefaultParams()
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	vocab := ModelGetVocab(model)
+
+	// Use a valid token for testing, e.g., BOS token
+	token := VocabBOS(vocab)
+	if token == TokenNull {
+		t.Skip("skipping test, model does not have BOS token")
+	}
+
+	isControl := VocabIsControl(vocab, token)
+	// No specific expected value, just ensure it doesn't fail
+	t.Logf("VocabIsControl returned: %v for token: %d", isControl, token)
+}
+
+func TestTokenToPiece(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ModelDefaultParams()
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	vocab := ModelGetVocab(model)
+
+	// Use a valid token for testing, e.g., BOS token
+	token := VocabBOS(vocab)
+	if token == TokenNull {
+		t.Skip("skipping test, model does not have BOS token")
+	}
+
+	buf := make([]byte, 256)
+	piece := TokenToPiece(vocab, token, buf, 0, true)
+	if piece == 0 {
+		t.Fatalf("TokenToPiece returned an empty string for token: %d", token)
+	}
+
+	t.Logf("TokenToPiece returned len: %d for token: %d", piece, token)
+}
+
 func TestVocabGetAttr(t *testing.T) {
 	modelFile := testModelFileName(t)
 
