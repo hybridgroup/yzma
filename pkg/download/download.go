@@ -112,10 +112,10 @@ func Get(os string, processor string, version string, dest string) error {
 	}
 
 	url := fmt.Sprintf("%s/%s", location, filename)
-	return get(url, filename, dest)
+	return get(url, dest)
 }
 
-func get(url, filename, dest string) error {
+func get(url, dest string) error {
 	req := &getter.Request{
 		Src:     url,
 		Dst:     dest,
