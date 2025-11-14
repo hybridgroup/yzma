@@ -17,7 +17,7 @@ func TestInstall(t *testing.T) {
 		t.Fatalf("should NOT see libraries are installed")
 	}
 
-	if err := initialInstall(dest); err != nil {
+	if err := initialInstall(dest, CPU); err != nil {
 		t.Fatalf("should be able to install libraries: %v", err)
 	}
 
@@ -39,7 +39,7 @@ func TestInstall(t *testing.T) {
 		t.Fatalf("should NOT see that the version is latest")
 	}
 
-	if err := upgradeInstall(dest, version1); err != nil {
+	if err := upgradeInstall(dest, CPU, version1); err != nil {
 		t.Fatalf("should be able to upgrade the libraries: %v", err)
 	}
 

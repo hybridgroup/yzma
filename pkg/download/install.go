@@ -18,7 +18,7 @@ type tag struct {
 	TagName string `json:"tag_name"`
 }
 
-func InstallLibraries(libPath string, allowUpgrade bool) error {
+func InstallLibraries(libPath string, processor Processor, allowUpgrade bool) error {
 	if alreadyInstalled(libPath) {
 		if !allowUpgrade {
 			return nil
@@ -33,10 +33,10 @@ func InstallLibraries(libPath string, allowUpgrade bool) error {
 			return nil
 		}
 
-		return upgradeInstall(libPath, version)
+		return upgradeInstall(libPath, processor, version)
 	}
 
-	return initialInstall(libPath)
+	return initialInstall(libPath, processor)
 }
 
 func alreadyInstalled(libPath string) bool {
@@ -70,13 +70,13 @@ func alreadyLatestVersion(libPath string) (bool, string, error) {
 	return version == tag.TagName, version, nil
 }
 
-func initialInstall(libPath string) error {
+func initialInstall(libPath string, processor Processor) error {
 	version, err := downloadVersionFile(llamaCppVersionDocURL)
 	if err != nil {
 		return fmt.Errorf("error downloading llama.cpp version document: %w", err)
 	}
 
-	return upgradeInstall(libPath, version)
+	return upgradeInstall(libPath, processor, version)
 }
 
 func downloadVersionFile(llamaCppVersionDocURL string) (string, error) {
@@ -94,8 +94,8 @@ func downloadVersionFile(llamaCppVersionDocURL string) (string, error) {
 	return tag.TagName, nil
 }
 
-func upgradeInstall(libPath string, version string) error {
-	if err := installLlamaCpp(libPath, version); err != nil {
+func upgradeInstall(libPath string, processor Processor, version string) error {
+	if err := installLlamaCpp(libPath, processor, version); err != nil {
 		return fmt.Errorf("error installing %q of llama.cpp: %w", version, err)
 	}
 
@@ -106,12 +106,12 @@ func upgradeInstall(libPath string, version string) error {
 	return nil
 }
 
-func installLlamaCpp(libPath string, version string) error {
+func installLlamaCpp(libPath string, processor Processor, version string) error {
 	if _, err := os.Stat(libPath); !os.IsNotExist(err) {
 		os.RemoveAll(libPath)
 	}
 
-	if err := Get(runtime.GOOS, "cpu", version, libPath); err != nil {
+	if err := Get(runtime.GOOS, processor.String(), version, libPath); err != nil {
 		return fmt.Errorf("error downloading llama.cpp: %w", err)
 	}
 
