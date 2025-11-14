@@ -36,7 +36,7 @@ func main() {
 	mctxParams := mtmd.ContextParamsDefault()
 	if !*verbose {
 		llama.LogSet(llama.LogSilent())
-		mctxParams.Verbosity = llama.LogLevelContinue
+		mtmd.LogSet(llama.LogSilent())
 	}
 
 	llama.Init()
