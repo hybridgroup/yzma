@@ -51,7 +51,7 @@ func TestGetInvalidOS(t *testing.T) {
 	dest := t.TempDir()
 
 	err := Get(osVer, processor, version, dest)
-	if err != errUnknownOS {
+	if err != ErrUnknownOS {
 		t.Fatalf("Get() should have failed: %v", err)
 	}
 }
@@ -63,7 +63,7 @@ func TestGetInvalidProcessor(t *testing.T) {
 	dest := t.TempDir()
 
 	err := Get(osVer, processor, version, dest)
-	if err != errUnknownProcessor {
+	if err != ErrUnknownProcessor {
 		t.Fatalf("Get() should have failed: %v", err)
 	}
 }
@@ -75,7 +75,7 @@ func TestGetInvalidVersion(t *testing.T) {
 	dest := t.TempDir()
 
 	err := Get(osVer, processor, version, dest)
-	if err != errInvalidVersion {
+	if err != ErrInvalidVersion {
 		t.Fatalf("Get() should have failed: %v", err)
 	}
 }

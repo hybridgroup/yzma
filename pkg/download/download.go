@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	errUnknownOS        = errors.New("unknown OS")
-	errUnknownProcessor = errors.New("unknown processor")
-	errInvalidVersion   = errors.New("invalid version")
+	ErrUnknownOS        = errors.New("unknown OS")
+	ErrUnknownProcessor = errors.New("unknown processor")
+	ErrInvalidVersion   = errors.New("invalid version")
 )
 
 // RetryCount is how many times the package will retry to obtain the latest llama.cpp version.
@@ -90,14 +90,14 @@ func Get(os string, processor string, version string, dest string) error {
 		case Vulkan:
 			filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-x64.zip//build/bin", version)
 		default:
-			return errUnknownProcessor
+			return ErrUnknownProcessor
 		}
 	case "darwin":
 		switch prcssr {
 		case CPU, Metal:
 			filename = fmt.Sprintf("llama-%s-bin-macos-arm64.zip//build/bin", version)
 		default:
-			return errUnknownProcessor
+			return ErrUnknownProcessor
 		}
 
 	case "windows":
@@ -109,11 +109,11 @@ func Get(os string, processor string, version string, dest string) error {
 		case Vulkan:
 			filename = fmt.Sprintf("llama-%s-bin-win-vulkan-x64.zip", version)
 		default:
-			return errUnknownProcessor
+			return ErrUnknownProcessor
 		}
 
 	default:
-		return errUnknownOS
+		return ErrUnknownOS
 	}
 
 	url := fmt.Sprintf("%s/%s", location, filename)
@@ -138,7 +138,7 @@ func get(url, dest string) error {
 // VersionIsValid checks if the provided version string is valid.
 func VersionIsValid(version string) error {
 	if !strings.HasPrefix(version, "b") {
-		return errInvalidVersion
+		return ErrInvalidVersion
 	}
 
 	return nil
