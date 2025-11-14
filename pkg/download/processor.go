@@ -4,10 +4,10 @@ import "fmt"
 
 // The set of processors that can be used.
 var (
-	CPU    = newProcessor("CPU")
-	CUDA   = newProcessor("CUDA")
-	Metal  = newProcessor("METAL")
-	Vulkan = newProcessor("VULKAN")
+	CPU    = newProcessor("cpu")
+	CUDA   = newProcessor("cuda")
+	Metal  = newProcessor("metal")
+	Vulkan = newProcessor("vulkan")
 )
 
 // =============================================================================
