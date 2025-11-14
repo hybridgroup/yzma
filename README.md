@@ -4,9 +4,9 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/hybridgroup/yzma.svg)](https://pkg.go.dev/github.com/hybridgroup/yzma) [![Linux](https://github.com/hybridgroup/yzma/actions/workflows/linux.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/linux.yml) [![macOS](https://github.com/hybridgroup/yzma/actions/workflows/macos.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/macos.yml) [![Windows](https://github.com/hybridgroup/yzma/actions/workflows/windows.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/windows.yml) [![llama.cpp Release](https://img.shields.io/github/v/release/ggml-org/llama.cpp?label=llama.cpp)](https://github.com/ggml-org/llama.cpp/releases)
 
-`yzma` lets you use Go for local inference with Vision Language Models (VLMs), Large Language Models (LLMs), Small Language Models (SLMs), and Tiny Language Models (TLMs) using [`llama.cpp`](https://github.com/ggml-org/llama.cpp) libraries all running on your own hardware.
+`yzma` lets you use Go for hardware accelerated local inference with [`llama.cpp`](https://github.com/ggml-org/llama.cpp).
 
-You can use VLMs and other language models with full hardware acceleration on Linux, on macOS, and on Windows. It uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed. This means that `yzma` works with the very latest `llama.cpp` releases.
+Run Vision Language Models or Large Language Models on Linux, on macOS, and on Windows, with any available hardware acceleration. It uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed. This means that `yzma` works with the very latest `llama.cpp` releases.
 
 This example uses the [SmolLM-135M](https://huggingface.co/QuantFactory/SmolLM-135M-GGUF) model:
 
@@ -137,9 +137,15 @@ https://huggingface.co/models?library=gguf&sort=trending
 
 ## More info
 
-`yzma` currently has support for over 87% of `llama.cpp` functionality. See [ROADMAP.md](./ROADMAP.md) for a complete list.
+`yzma` currently has support for over 89% of `llama.cpp` functionality. See [ROADMAP.md](./ROADMAP.md) for a complete list.
 
 You can already use VLMs and other language models with full hardware acceleration on Linux, on macOS, and on Windows.
+
+| OS      | CPU             | GPU                    |
+|---------|-----------------|------------------------|
+| Linux   | amd64, arm64    | CUDA, Vulkan, HIP, ROCm, SYCL |
+| macOS   | arm64           | Metal           |
+| Windows | amd64           | CUDA, Vulkan, HIP, SYCL, OpenCL |
 
 Here are some advantages of `yzma` over other Go packages for `llama.cpp`:
 
