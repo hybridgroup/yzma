@@ -20,7 +20,7 @@ func describe(tmpFile string) error {
 		fmt.Println("Using model", path.Join(*modelsDir, *modelFile))
 	default:
 		llama.LogSet(llama.LogSilent())
-		mtmdCtxParams.Verbosity = llama.LogLevelContinue
+		mtmd.LogSet(llama.LogSilent())
 	}
 
 	model, err := llama.ModelLoadFromFile(path.Join(*modelsDir, *modelFile), llama.ModelDefaultParams())

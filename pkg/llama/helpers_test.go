@@ -25,3 +25,19 @@ func testModelFileName(t *testing.T) string {
 
 	return os.Getenv("YZMA_TEST_MODEL")
 }
+
+func testEncoderModelFileName(t *testing.T) string {
+	if os.Getenv("YZMA_TEST_ENCODER_MODEL") == "" {
+		t.Skip("no YZMA_TEST_ENCODER_MODEL skipping test")
+	}
+
+	return os.Getenv("YZMA_TEST_ENCODER_MODEL")
+}
+
+func testMMMModelFileName(t *testing.T) string {
+	if os.Getenv("YZMA_TEST_MMMODEL") == "" {
+		t.Skip("no YZMA_TEST_MMMODEL skipping test")
+	}
+
+	return os.Getenv("YZMA_TEST_MMMODEL")
+}

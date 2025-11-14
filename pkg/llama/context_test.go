@@ -57,8 +57,11 @@ func TestWarmup(t *testing.T) {
 	defer Free(ctx)
 
 	SetWarmup(ctx, true)
+
+	Warmup(ctx, model)
+	t.Log("Warmup completed successfully")
+
 	SetWarmup(ctx, false)
-	// No direct way to verify, but ensure no panic or error occurs
 }
 
 func TestNCtx(t *testing.T) {
@@ -456,4 +459,93 @@ func TestGetLogits(t *testing.T) {
 		t.Fatalf("GetLogits returned %d values, expected %d", len(logits), nTokens*nVocab)
 	}
 	t.Logf("GetLogits returned %d values", len(logits))
+}
+
+func TestEncode(t *testing.T) {
+	modelFile := testEncoderModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	if !ModelHasEncoder(model) {
+		t.Skip("Model does not have an encoder; skipping Encode test")
+	}
+
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
+	defer Free(ctx)
+
+	// Tokenize a prompt
+	prompt := "This is a test"
+	vocab := ModelGetVocab(model)
+	tokens := Tokenize(vocab, prompt, true, true)
+
+	// Create batch
+	batch := BatchGetOne(tokens)
+
+	// Call Encode
+	result, err := Encode(ctx, batch)
+	if err != nil {
+		t.Fatalf("Encode returned error: %v", err)
+	}
+	if result != 0 {
+		t.Fatalf("Encode returned non-zero result: %d", result)
+	}
+	t.Logf("Encode succeeded with result: %d", result)
+}
+
+func TestSynchronize(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
+	defer Free(ctx)
+
+	// Call Synchronize and ensure no error occurs
+	if err := Synchronize(ctx); err != nil {
+		t.Fatalf("Synchronize returned error: %v", err)
+	}
+	t.Log("Synchronize completed successfully")
+}
+
+func TestGetPoolingType(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
+	defer Free(ctx)
+
+	poolingType := GetPoolingType(ctx)
+	t.Logf("GetPoolingType returned: %d", poolingType)
+	// Optionally, check for valid enum values if known
 }

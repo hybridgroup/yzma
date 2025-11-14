@@ -288,14 +288,14 @@ func Synchronize(ctx Context) error {
 }
 
 // GetPoolingType returns the PoolingType for this context.
-func GetPoolingType(ctx Context) (PoolingType, error) {
+func GetPoolingType(ctx Context) PoolingType {
 	if ctx == 0 {
-		return PoolingTypeNone, errInvalidContext
+		return PoolingTypeNone
 	}
 	var result ffi.Arg
 	poolingTypeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 
-	return PoolingType(result), nil
+	return PoolingType(result)
 }
 
 // GetEmbeddingsIth gets the embeddings for the ith token.

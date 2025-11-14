@@ -27,14 +27,13 @@ func loadLogFuncs(lib ffi.Lib) error {
 	return nil
 }
 
-// LogSet sets the logging mode. Pass [LogSilent()] to turn logging off. Pass nil to use stdout.
-// Note that if you turn logging off when using the [mtmd] package, you must also set Verbosity = llama.LogLevelContinue.
+// LogSet sets the logging mode. Pass llama.LogSilent() to turn logging off. Pass nil to use stdout.
 func LogSet(cb uintptr) {
 	nada := uintptr(0)
 	logSetFunc.Call(nil, unsafe.Pointer(&cb), unsafe.Pointer(&nada))
 }
 
-// LogSilent is a callback function that you can pass into the [LogSet] function to turn logging off.
+// LogSilent is a callback function that you can pass into the LogSet function to turn logging off.
 func LogSilent() uintptr {
 	return purego.NewCallback(func(level int32, text, data uintptr) uintptr {
 		return 0
