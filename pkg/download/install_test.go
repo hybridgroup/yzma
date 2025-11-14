@@ -12,35 +12,47 @@ func TestVersionFile(t *testing.T) {
 
 	dest := t.TempDir()
 
-	exists := doesVersionFileExist(dest)
+	exists := alreadyInstalled(dest)
 	if exists {
-		t.Fatalf("should NOT see the version file existing")
+		t.Fatalf("should NOT see libraries are installed")
 	}
 
-	tag, err := downloadVersionFile(llamaCppVersionDocURL)
-	if err != nil {
-		t.Fatalf("should be able to download version file: %v", err)
+	if err := initialInstall(dest); err != nil {
+		t.Fatalf("should be able to install libraries: %v", err)
 	}
 
-	if err := createVersionFile(dest, tag); err != nil {
-		t.Fatalf("should be able to create version file: %v", err)
-	}
-
-	exists = doesVersionFileExist(dest)
+	exists = alreadyInstalled(dest)
 	if !exists {
-		t.Fatalf("should see the version file exists")
+		t.Fatalf("should see libraries are installed")
 	}
 
-	exists, version, err := isLatestVersionInstalled(dest)
+	if err := createVersionFile(dest, "1.0.0"); err != nil {
+		t.Fatalf("should be able update the version file is a different version: %v", err)
+	}
+
+	isLatest, version1, err := alreadyLatestVersion(dest)
 	if err != nil {
-		t.Fatalf("should be able to check latest version with no errors: %v", err)
+		t.Fatalf("should be able to check if the version is latest: %v", err)
 	}
 
-	if !exists {
-		t.Fatalf("should see the latest version is installed")
+	if isLatest {
+		t.Fatalf("should NOT see that the version is latest")
 	}
 
-	if version != tag.TagName {
-		t.Fatalf("should see the latest version is what is expected: %s != %s", version, tag.TagName)
+	if err := upgradeInstall(dest, version1); err != nil {
+		t.Fatalf("should be able to upgrade the libraries: %v", err)
+	}
+
+	isLatest, version2, err := alreadyLatestVersion(dest)
+	if err != nil {
+		t.Fatalf("should be able to check if the version is latest: %v", err)
+	}
+
+	if !isLatest {
+		t.Fatalf("should see that the version is latest")
+	}
+
+	if version1 != version2 {
+		t.Fatalf("should see that the version is updated")
 	}
 }
