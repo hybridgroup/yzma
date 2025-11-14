@@ -69,6 +69,77 @@ func TestModelNEmbdInp(t *testing.T) {
 	}
 }
 
+func TestModelNLayer(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	nLayer := ModelNLayer(model)
+	if nLayer <= 0 {
+		t.Fatal("ModelNLayer returned an invalid value")
+	}
+}
+
+func TestModelNHead(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	nHead := ModelNHead(model)
+	if nHead <= 0 {
+		t.Fatal("ModelNHead returned an invalid value")
+	}
+}
+
+func TestModelNHeadKV(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	nHeadKV := ModelNHeadKV(model)
+	if nHeadKV <= 0 {
+		t.Fatal("ModelNHeadKV returned an invalid value")
+	}
+}
+
+func TestModelNSWA(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	nSWA := ModelNSWA(model)
+	if nSWA < 0 {
+		t.Fatal("ModelNSWA returned an invalid value")
+	}
+}
+
 func TestModelNCtxTrain(t *testing.T) {
 	modelFile := testModelFileName(t)
 
@@ -384,4 +455,23 @@ func TestModelQuantize(t *testing.T) {
 	if quantizedModel == 0 {
 		t.Fatal("Failed to load the quantized model")
 	}
+}
+
+func TestModelChatTemplate(t *testing.T) {
+	modelFile := testMMMModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	template := ModelChatTemplate(model, "")
+	if template == "" {
+		t.Fatal("ModelChatTemplate returned an empty string")
+	}
+	t.Logf("ModelChatTemplate returned: %s", template)
 }
