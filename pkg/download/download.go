@@ -98,11 +98,11 @@ func Get(os string, processor string, version string, dest string) error {
 	case "windows":
 		switch processor {
 		case "cpu":
-			filename = fmt.Sprintf("llama-%s-bin-win-cpu-x64.zip//build/bin", version)
+			filename = fmt.Sprintf("llama-%s-bin-win-cpu-x64.zip", version)
 		case "cuda":
-			filename = fmt.Sprintf("llama-%s-bin-win-cuda-12.4-x64.zip//build/bin", version)
+			filename = fmt.Sprintf("llama-%s-bin-win-cuda-12.4-x64.zip", version)
 		case "vulkan":
-			filename = fmt.Sprintf("llama-%s-bin-win-vulkan-x64.zip//build/bin", version)
+			filename = fmt.Sprintf("llama-%s-bin-win-vulkan-x64.zip", version)
 		default:
 			return errUnknownProcessor
 		}
