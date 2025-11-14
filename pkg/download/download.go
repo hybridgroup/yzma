@@ -66,7 +66,12 @@ func getLatestVersion() (string, error) {
 // version should be the desired `b1234` formatted llama.cpp version. You can use the
 // [LlamaLatestVersion] function to obtain the latest release.
 // dest in the destination directory for the downloaded binaries.
-func Get(os string, processor string, version string, dest string) error {
+func Get(operatingSystem string, processor string, version string, dest string) error {
+	os, err := ParseOS(operatingSystem)
+	if err != nil {
+		return err
+	}
+
 	prcssr, err := ParseProcessor(processor)
 	if err != nil {
 		return err
@@ -80,7 +85,7 @@ func Get(os string, processor string, version string, dest string) error {
 	location = fmt.Sprintf("https://github.com/ggml-org/llama.cpp/releases/download/%s", version)
 
 	switch os {
-	case "linux":
+	case Linux:
 		switch prcssr {
 		case CPU:
 			filename = fmt.Sprintf("llama-%s-bin-ubuntu-x64.zip//build/bin", version)
@@ -92,7 +97,8 @@ func Get(os string, processor string, version string, dest string) error {
 		default:
 			return ErrUnknownProcessor
 		}
-	case "darwin":
+
+	case Darwin:
 		switch prcssr {
 		case CPU, Metal:
 			filename = fmt.Sprintf("llama-%s-bin-macos-arm64.zip//build/bin", version)
@@ -100,7 +106,7 @@ func Get(os string, processor string, version string, dest string) error {
 			return ErrUnknownProcessor
 		}
 
-	case "windows":
+	case Windows:
 		switch prcssr {
 		case CPU:
 			filename = fmt.Sprintf("llama-%s-bin-win-cpu-x64.zip", version)
@@ -145,13 +151,18 @@ func VersionIsValid(version string) error {
 }
 
 // LibraryName returns the name for the llama.cpp library for any given OS.
-func LibraryName(os string) string {
+func LibraryName(operatingSystem string) string {
+	os, err := ParseOS(operatingSystem)
+	if err != nil {
+		return "unknown"
+	}
+
 	switch os {
-	case "linux", "freebsd":
+	case Linux:
 		return "libllama.so"
-	case "windows":
+	case Windows:
 		return "llama.dll"
-	case "darwin":
+	case Darwin:
 		return "libllama.dylib"
 	default:
 		return "unknown"
