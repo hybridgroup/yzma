@@ -457,3 +457,44 @@ func TestGetLogits(t *testing.T) {
 	}
 	t.Logf("GetLogits returned %d values", len(logits))
 }
+
+func TestEncode(t *testing.T) {
+	modelFile := testEncoderModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	if !ModelHasEncoder(model) {
+		t.Skip("Model does not have an encoder; skipping Encode test")
+	}
+
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
+	defer Free(ctx)
+
+	// Tokenize a prompt
+	prompt := "This is a test"
+	vocab := ModelGetVocab(model)
+	tokens := Tokenize(vocab, prompt, true, true)
+
+	// Create batch
+	batch := BatchGetOne(tokens)
+
+	// Call Encode
+	result, err := Encode(ctx, batch)
+	if err != nil {
+		t.Fatalf("Encode returned error: %v", err)
+	}
+	if result != 0 {
+		t.Fatalf("Encode returned non-zero result: %d", result)
+	}
+	t.Logf("Encode succeeded with result: %d", result)
+}
