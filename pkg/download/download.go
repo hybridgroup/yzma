@@ -69,12 +69,12 @@ func getLatestVersion() (string, error) {
 func Get(operatingSystem string, processor string, version string, dest string) error {
 	os, err := ParseOS(operatingSystem)
 	if err != nil {
-		return err
+		return ErrUnknownOS
 	}
 
 	prcssr, err := ParseProcessor(processor)
 	if err != nil {
-		return err
+		return ErrUnknownProcessor
 	}
 
 	if err := VersionIsValid(version); err != nil {
