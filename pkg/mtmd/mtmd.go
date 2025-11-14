@@ -32,7 +32,6 @@ type ContextParamsType struct {
 	UseGPU             bool
 	PrintTimings       bool
 	Threads            int32
-	Verbosity          llama.LogLevel
 	ImageMarker        *byte
 	MediaMarker        *byte
 	FlashAttentionType llama.FlashAttentionType
@@ -41,7 +40,7 @@ type ContextParamsType struct {
 }
 
 var (
-	FFITypeContextParams = ffi.NewType(&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer,
+	FFITypeContextParams = ffi.NewType(&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer,
 		&ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypeSint32)
 	FFITypeInputText = ffi.NewType(&ffi.TypePointer, &ffi.TypeUint8, &ffi.TypeUint8)
 )
@@ -94,6 +93,11 @@ var (
 	// return -1 if audio is not supported
 	// MTMD_API int mtmd_get_audio_bitrate(mtmd_context * ctx);
 	getAudioBitrateFunc ffi.Fun
+
+	// Set callback for all future logging events.
+	// If this is not called, or NULL is supplied, everything is output on stderr.
+	// MTMD_API void mtmd_log_set(ggml_log_callback log_callback, void * user_data);
+	mtmdLogSetFunc ffi.Fun
 )
 
 func loadFuncs(lib ffi.Lib) error {
@@ -143,6 +147,10 @@ func loadFuncs(lib ffi.Lib) error {
 
 	if getAudioBitrateFunc, err = lib.Prep("mtmd_get_audio_bitrate", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
 		return loadError("mtmd_get_audio_bitrate", err)
+	}
+
+	if mtmdLogSetFunc, err = lib.Prep("mtmd_log_set", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_log_set", err)
 	}
 
 	return nil
@@ -301,4 +309,10 @@ func GetAudioBitrate(ctx Context) int {
 	var result ffi.Arg
 	getAudioBitrateFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 	return int(result)
+}
+
+// LogSet sets the logging mode. Pass [llama.LogSilent()] to turn logging off. Pass nil to use stdout.
+func LogSet(cb uintptr) {
+	nada := uintptr(0)
+	mtmdLogSetFunc.Call(nil, unsafe.Pointer(&cb), unsafe.Pointer(&nada))
 }
