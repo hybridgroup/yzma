@@ -78,19 +78,19 @@ func Get(os string, processor string, version string, dest string) error {
 	case "linux":
 		switch processor {
 		case "cpu":
-			filename = fmt.Sprintf("llama-%s-bin-ubuntu-x64.zip", version)
+			filename = fmt.Sprintf("llama-%s-bin-ubuntu-x64.zip/build/bin", version)
 		case "cuda":
 			location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
 			filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-x64.zip", version)
 		case "vulkan":
-			filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-x64.zip", version)
+			filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-x64.zip/build/bin", version)
 		default:
 			return errUnknownProcessor
 		}
 	case "darwin":
 		switch processor {
 		case "cpu", "metal":
-			filename = fmt.Sprintf("llama-%s-bin-macos-arm64.zip", version)
+			filename = fmt.Sprintf("llama-%s-bin-macos-arm64.zip/build/bin", version)
 		default:
 			return errUnknownProcessor
 		}
@@ -98,11 +98,11 @@ func Get(os string, processor string, version string, dest string) error {
 	case "windows":
 		switch processor {
 		case "cpu":
-			filename = fmt.Sprintf("llama-%s-bin-win-cpu-x64.zip", version)
+			filename = fmt.Sprintf("llama-%s-bin-win-cpu-x64.zip/build/bin", version)
 		case "cuda":
-			filename = fmt.Sprintf("llama-%s-bin-win-cuda-12.4-x64.zip", version)
+			filename = fmt.Sprintf("llama-%s-bin-win-cuda-12.4-x64.zip/build/bin", version)
 		case "vulkan":
-			filename = fmt.Sprintf("llama-%s-bin-win-vulkan-x64.zip", version)
+			filename = fmt.Sprintf("llama-%s-bin-win-vulkan-x64.zip/build/bin", version)
 		default:
 			return errUnknownProcessor
 		}
