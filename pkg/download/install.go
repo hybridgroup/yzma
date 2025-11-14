@@ -18,8 +18,12 @@ type tag struct {
 	TagName string `json:"tag_name"`
 }
 
-func InstallLibraries(libPath string) error {
+func InstallLibraries(libPath string, allowUpgrade bool) error {
 	if alreadyInstalled(libPath) {
+		if !allowUpgrade {
+			return nil
+		}
+
 		isLatest, version, err := alreadyLatestVersion(libPath)
 		if err != nil {
 			return fmt.Errorf("error checking version installed: %w", err)
