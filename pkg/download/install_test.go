@@ -1,8 +1,15 @@
 package download
 
-import "testing"
+import (
+	"runtime"
+	"testing"
+)
 
 func TestVersionFile(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skip("skipping test since github API sends 403 error")
+	}
+
 	dest := t.TempDir()
 
 	exists := doesVersionFileExist(dest)
