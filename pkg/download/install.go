@@ -40,8 +40,6 @@ func InstallLibraries(libPath string, allowUpgrade bool) error {
 }
 
 func alreadyInstalled(libPath string) bool {
-	os.MkdirAll(libPath, 0755)
-
 	versionInfoPath := filepath.Join(libPath, versionFile)
 
 	if _, err := os.Stat(versionInfoPath); os.IsNotExist(err) {
