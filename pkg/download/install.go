@@ -18,6 +18,11 @@ type tag struct {
 	TagName string `json:"tag_name"`
 }
 
+// InstallLibraries will download the llama.cpp libraries for the OS identified
+// by the Go runtime and the processor specified. The libPath parameter is where
+// the libraries will be installed on disk. The allowUpgrade parameter allows
+// for the replacement of newer versions of the libraries when they become
+// available.
 func InstallLibraries(libPath string, processor Processor, allowUpgrade bool) error {
 	if _, err := ParseOS(runtime.GOOS); err != nil {
 		return fmt.Errorf("your OS %q is currently not supported", runtime.GOOS)
