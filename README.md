@@ -149,6 +149,8 @@ You can already use VLMs and other language models with full hardware accelerati
 | macOS   | arm64        | Metal                           |
 | Windows | amd64        | CUDA, Vulkan, HIP, SYCL, OpenCL |
 
+Want to see some benchmarks? Take a look at the [BENCHMARKS.md](./BENCHMARKS.md) document.
+
 Here are some advantages of `yzma` over other Go packages for `llama.cpp`:
 
 - Compile Go programs that use `yzma` with the normal `go build` and `go run` commands. No C compiler needed!
