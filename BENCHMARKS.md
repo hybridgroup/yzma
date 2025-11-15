@@ -57,7 +57,44 @@ ok      github.com/hybridgroup/yzma/pkg/llama   81.720s
 
 ### Vulkan
 
-Coming soon...
+```
+==========
+VULKANINFO
+==========
+
+Vulkan Instance Version: 1.3.275
+
+Devices:
+========
+GPU0:
+        apiVersion         = 1.4.305
+        driverVersion      = 25.0.7
+        vendorID           = 0x8086
+        deviceID           = 0xa788
+        deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
+        deviceName         = Intel(R) Graphics (RPL-S)
+        driverID           = DRIVER_ID_INTEL_OPEN_SOURCE_MESA
+        driverName         = Intel open-source Mesa driver
+        driverInfo         = Mesa 25.0.7-0ubuntu0.24.04.2
+        conformanceVersion = 1.4.0.0
+        deviceUUID         = 868088a7-0400-0000-0002-000000000000
+        driverUUID         = 802b0057-40c2-aed9-e538-d78b797f04f4
+```
+
+```
+$ go test -bench=. -benchmem -benchtime=10s -count=5 -run=^$ ./pkg/llama 
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
+BenchmarkInference-32                315          37332296 ns/op           15352 B/op        696 allocs/op
+BenchmarkInference-32                309          37120818 ns/op           15357 B/op        696 allocs/op
+BenchmarkInference-32                312          37695822 ns/op           15375 B/op        696 allocs/op
+BenchmarkInference-32                308          37883530 ns/op           15364 B/op        696 allocs/op
+BenchmarkInference-32                309          37542527 ns/op           15363 B/op        696 allocs/op
+PASS
+ok      github.com/hybridgroup/yzma/pkg/llama   80.970s
+```
 
 ## macOS
 
