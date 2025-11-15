@@ -39,3 +39,6 @@ func LogSilent() uintptr {
 		return 0
 	})
 }
+
+// LogNormal is a value you can pass into the LogSet function to turn standard logging on.
+const LogNormal uintptr = 0
