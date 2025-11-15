@@ -85,7 +85,7 @@ See [INSTALL.md](./INSTALL.md) for detailed information on installation on Linux
 
 ## Examples
 
-### Vision Language Model (VLM) multimodal example
+### Vision Language Model (VLM) Multimodal Example
 
 This example uses the [`Qwen2.5-VL-3B-Instruct-Q8_0`](https://huggingface.co/ggml-org/Qwen2.5-VL-3B-Instruct-GGUF) VLM model to process both a text prompt and an image, then displays the result.
 
@@ -102,7 +102,7 @@ The image features a white llama standing in a fenced-in area, possibly a zoo or
 
 [See the code here](./examples/vlm/main.go).
 
-### Small Language Model (SLM) interactive chat example
+### Small Language Model (SLM) Interactive Chat Example
 
 You can use `yzma` to do inference on text language models. This example uses the [`qwen2.5-0.5b-instruct-fp16.gguf `](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF) model for an interactive chat session.
 
@@ -117,7 +117,7 @@ Enter prompt: Let's go to the zoo
 
 Great! Let's go to the zoo. What would you like to see?
 
-Enter prompt: I want to feed the llama 
+Enter prompt: I want to feed the llama
 
 
 Sure! Let's go to the zoo and feed the llama. What kind of llama are you interested in feeding?
@@ -125,9 +125,11 @@ Sure! Let's go to the zoo and feed the llama. What kind of llama are you interes
 
 [See the code here](./examples/chat/main.go).
 
-### Additional examples
+### Additional Examples
 
 See the [examples](./examples/) directory for more examples of how to use `yzma`.
+
+You can find more examples in the Ardan Labs [ai-training](https://github.com/ardanlabs/ai-training) repository.
 
 ## Models
 
@@ -135,17 +137,17 @@ See the [examples](./examples/) directory for more examples of how to use `yzma`
 
 https://huggingface.co/models?library=gguf&sort=trending
 
-## More info
+## More Info
 
 `yzma` currently has support for over 89% of `llama.cpp` functionality. See [ROADMAP.md](./ROADMAP.md) for a complete list.
 
 You can already use VLMs and other language models with full hardware acceleration on Linux, on macOS, and on Windows.
 
-| OS      | CPU             | GPU                    |
-|---------|-----------------|------------------------|
-| Linux   | amd64, arm64    | CUDA, Vulkan, HIP, ROCm, SYCL |
-| macOS   | arm64           | Metal           |
-| Windows | amd64           | CUDA, Vulkan, HIP, SYCL, OpenCL |
+| OS      | CPU          | GPU                             |
+| ------- | ------------ | ------------------------------- |
+| Linux   | amd64, arm64 | CUDA, Vulkan, HIP, ROCm, SYCL   |
+| macOS   | arm64        | Metal                           |
+| Windows | amd64        | CUDA, Vulkan, HIP, SYCL, OpenCL |
 
 Here are some advantages of `yzma` over other Go packages for `llama.cpp`:
 
