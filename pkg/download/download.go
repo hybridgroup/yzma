@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	errUnknownOS        = errors.New("unknown OS")
-	errUnknownProcessor = errors.New("unknown processor")
-	errInvalidVersion   = errors.New("invalid version")
+	ErrUnknownOS        = errors.New("unknown OS")
+	ErrUnknownProcessor = errors.New("unknown processor")
+	ErrInvalidVersion   = errors.New("invalid version")
 )
 
 // RetryCount is how many times the package will retry to obtain the latest llama.cpp version.
@@ -66,7 +66,17 @@ func getLatestVersion() (string, error) {
 // version should be the desired `b1234` formatted llama.cpp version. You can use the
 // [LlamaLatestVersion] function to obtain the latest release.
 // dest in the destination directory for the downloaded binaries.
-func Get(os string, processor string, version string, dest string) error {
+func Get(operatingSystem string, processor string, version string, dest string) error {
+	os, err := ParseOS(operatingSystem)
+	if err != nil {
+		return ErrUnknownOS
+	}
+
+	prcssr, err := ParseProcessor(processor)
+	if err != nil {
+		return ErrUnknownProcessor
+	}
+
 	if err := VersionIsValid(version); err != nil {
 		return err
 	}
@@ -75,47 +85,48 @@ func Get(os string, processor string, version string, dest string) error {
 	location = fmt.Sprintf("https://github.com/ggml-org/llama.cpp/releases/download/%s", version)
 
 	switch os {
-	case "linux":
-		switch processor {
-		case "cpu":
+	case Linux:
+		switch prcssr {
+		case CPU:
 			filename = fmt.Sprintf("llama-%s-bin-ubuntu-x64.zip//build/bin", version)
-		case "cuda":
+		case CUDA:
 			location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
 			filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-x64.zip", version)
-		case "vulkan":
+		case Vulkan:
 			filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-x64.zip//build/bin", version)
 		default:
-			return errUnknownProcessor
-		}
-	case "darwin":
-		switch processor {
-		case "cpu", "metal":
-			filename = fmt.Sprintf("llama-%s-bin-macos-arm64.zip//build/bin", version)
-		default:
-			return errUnknownProcessor
+			return ErrUnknownProcessor
 		}
 
-	case "windows":
-		switch processor {
-		case "cpu":
-			filename = fmt.Sprintf("llama-%s-bin-win-cpu-x64.zip//build/bin", version)
-		case "cuda":
-			filename = fmt.Sprintf("llama-%s-bin-win-cuda-12.4-x64.zip//build/bin", version)
-		case "vulkan":
-			filename = fmt.Sprintf("llama-%s-bin-win-vulkan-x64.zip//build/bin", version)
+	case Darwin:
+		switch prcssr {
+		case CPU, Metal:
+			filename = fmt.Sprintf("llama-%s-bin-macos-arm64.zip//build/bin", version)
 		default:
-			return errUnknownProcessor
+			return ErrUnknownProcessor
+		}
+
+	case Windows:
+		switch prcssr {
+		case CPU:
+			filename = fmt.Sprintf("llama-%s-bin-win-cpu-x64.zip", version)
+		case CUDA:
+			filename = fmt.Sprintf("llama-%s-bin-win-cuda-12.4-x64.zip", version)
+		case Vulkan:
+			filename = fmt.Sprintf("llama-%s-bin-win-vulkan-x64.zip", version)
+		default:
+			return ErrUnknownProcessor
 		}
 
 	default:
-		return errUnknownOS
+		return ErrUnknownOS
 	}
 
 	url := fmt.Sprintf("%s/%s", location, filename)
-	return get(url, filename, dest)
+	return get(url, dest)
 }
 
-func get(url, filename, dest string) error {
+func get(url, dest string) error {
 	req := &getter.Request{
 		Src:     url,
 		Dst:     dest,
@@ -133,20 +144,25 @@ func get(url, filename, dest string) error {
 // VersionIsValid checks if the provided version string is valid.
 func VersionIsValid(version string) error {
 	if !strings.HasPrefix(version, "b") {
-		return errInvalidVersion
+		return ErrInvalidVersion
 	}
 
 	return nil
 }
 
 // LibraryName returns the name for the llama.cpp library for any given OS.
-func LibraryName(os string) string {
+func LibraryName(operatingSystem string) string {
+	os, err := ParseOS(operatingSystem)
+	if err != nil {
+		return "unknown"
+	}
+
 	switch os {
-	case "linux", "freebsd":
+	case Linux:
 		return "libllama.so"
-	case "windows":
+	case Windows:
 		return "llama.dll"
-	case "darwin":
+	case Darwin:
 		return "libllama.dylib"
 	default:
 		return "unknown"
