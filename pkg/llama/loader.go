@@ -72,6 +72,10 @@ func Load(path string) error {
 		return err
 	}
 
+	if err := loadLoraFuncs(lib); err != nil {
+		return err
+	}
+
 	return nil
 }
 
