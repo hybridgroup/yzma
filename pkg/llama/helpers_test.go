@@ -42,6 +42,22 @@ func testMMMModelFileName(t *testing.T) string {
 	return os.Getenv("YZMA_TEST_MMMODEL")
 }
 
+func testLoraModelFileName(t *testing.T) string {
+	if os.Getenv("YZMA_TEST_LORA_MODEL") == "" {
+		t.Skip("no YZMA_TEST_LORA_MODEL skipping test")
+	}
+
+	return os.Getenv("YZMA_TEST_LORA_MODEL")
+}
+
+func testLoraAdaptorFileName(t *testing.T) string {
+	if os.Getenv("YZMA_TEST_LORA_ADAPTER") == "" {
+		t.Skip("no YZMA_TEST_LORA_ADAPTER skipping test")
+	}
+
+	return os.Getenv("YZMA_TEST_LORA_ADAPTER")
+}
+
 func benchmarkSetup(b *testing.B) {
 	testPath := "."
 	if err := Load(testPath); err != nil {
