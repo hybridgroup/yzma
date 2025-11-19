@@ -156,10 +156,6 @@ func loadFuncs(lib ffi.Lib) error {
 	return nil
 }
 
-var (
-	errInvalidContext = errors.New("invalid mtmd context handle")
-)
-
 // DefaultMarker returns the default media marker used in prompts.
 func DefaultMarker() string {
 	var marker *byte
@@ -185,13 +181,17 @@ func InitFromFile(mmprojFname string, model llama.Model, ctxParams ContextParams
 
 	file := &[]byte(mmprojFname + "\x00")[0]
 	initFromFileFunc.Call(unsafe.Pointer(&ctx), unsafe.Pointer(&file), unsafe.Pointer(&model), unsafe.Pointer(&ctxParams))
+
+	if ctx == 0 {
+		return ctx, errors.New("failed to initialize mtmd context")
+	}
 	return ctx, nil
 }
 
 // Free frees a Context that has already been created using InitFromFile.
 func Free(ctx Context) error {
 	if ctx == 0 {
-		return errInvalidContext
+		return errors.New("invalid mtmd context handle")
 	}
 	freeFunc.Call(nil, unsafe.Pointer(&ctx))
 	return nil
