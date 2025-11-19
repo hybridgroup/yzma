@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"unsafe"
@@ -249,11 +250,6 @@ func loadModelFuncs(lib ffi.Lib) error {
 	return nil
 }
 
-var (
-	errInvalidModel          = fmt.Errorf("invalid model")
-	errInvalidContextOrModel = fmt.Errorf("invalid context or model")
-)
-
 // ModelDefaultParams returns default parameters for loading a Model.
 func ModelDefaultParams() ModelParams {
 	var p ModelParams
@@ -271,13 +267,17 @@ func ModelLoadFromFile(pathModel string, params ModelParams) (Model, error) {
 
 	file := &[]byte(pathModel + "\x00")[0]
 	modelLoadFromFileFunc.Call(unsafe.Pointer(&model), unsafe.Pointer(&file), unsafe.Pointer(&params))
+	if model == 0 {
+		return model, errors.New("failed to load model")
+	}
+
 	return model, nil
 }
 
 // ModelFree frees a previously opened model.
 func ModelFree(model Model) error {
 	if model == 0 {
-		return errInvalidModel
+		return errors.New("invalid model")
 	}
 	modelFreeFunc.Call(nil, unsafe.Pointer(&model))
 	return nil
@@ -287,10 +287,13 @@ func ModelFree(model Model) error {
 func InitFromModel(model Model, params ContextParams) (Context, error) {
 	var ctx Context
 	if model == 0 {
-		return ctx, errInvalidModel
+		return ctx, errors.New("invalid model")
 	}
 	initFromModelFunc.Call(unsafe.Pointer(&ctx), unsafe.Pointer(&model), unsafe.Pointer(&params))
 
+	if ctx == 0 {
+		return ctx, errors.New("failed to initialize model")
+	}
 	return ctx, nil
 }
 
@@ -527,7 +530,7 @@ func ModelRopeType(model Model) RopeScalingType {
 // Warmup is to warm-up a model.
 func Warmup(lctx Context, model Model) error {
 	if lctx == 0 || model == 0 {
-		return errInvalidContextOrModel
+		return errors.New("invalid context or model")
 	}
 
 	vocab := ModelGetVocab(model)
