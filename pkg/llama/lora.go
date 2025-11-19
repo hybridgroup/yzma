@@ -104,7 +104,7 @@ func loadLoraFuncs(lib ffi.Lib) error {
 func AdapterLoraInit(model Model, pathLora string) (AdapterLora, error) {
 	var adapter AdapterLora
 	if model == 0 {
-		return adapter, errInvalidModel
+		return adapter, errors.New("invalid model")
 	}
 
 	file := &[]byte(pathLora + "\x00")[0]
