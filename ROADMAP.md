@@ -1,5 +1,7 @@
 # Roadmap
 
+`yzma` currently has support for over 94% of `llama.cpp` functionality.
+
 This is a list of all functions exposed by `llama.cpp` and the current state of the associated `yzma` wrapper.
 
 ## Completed wrappers
@@ -160,6 +162,17 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_state_seq_set_data`
 - [x] `llama_state_set_data`
 
+### LoRA Functions
+- [x] `llama_adapter_lora_free`
+- [x] `llama_adapter_lora_init`
+- [x] `llama_adapter_meta_count`
+- [x] `llama_adapter_meta_key_by_index`
+- [x] `llama_adapter_meta_val_str_by_index`
+- [x] `llama_adapter_meta_val_str`
+- [x] `llama_clear_adapter_lora`
+- [x] `llama_rm_adapter_lora`
+- [x] `llama_set_adapter_lora`
+
 ### `mtmd` Functions
 
 Note that these functions are considered by `llama.cpp` to be experimental, and are subject to change.
@@ -212,23 +225,14 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 
 - [ ] `llama_adapter_get_alora_invocation_tokens`
 - [ ] `llama_adapter_get_alora_n_invocation_tokens`
-- [ ] `llama_adapter_lora_free`
-- [ ] `llama_adapter_lora_init`
-- [ ] `llama_adapter_meta_count`
-- [ ] `llama_adapter_meta_key_by_index`
-- [ ] `llama_adapter_meta_val_str_by_index`
-- [ ] `llama_adapter_meta_val_str`
 - [ ] `llama_apply_adapter_cvec`
 - [ ] `llama_attach_threadpool`
-- [ ] `llama_clear_adapter_lora`
 - [ ] `llama_detach_threadpool`
 - [ ] `llama_model_load_from_splits`
 - [ ] `llama_model_save_to_file`
 - [ ] `llama_opt_epoch`
 - [ ] `llama_opt_init`
 - [ ] `llama_opt_param_filter_all`
-- [ ] `llama_rm_adapter_lora`
-- [ ] `llama_set_adapter_lora`
 
 ### `mtmd` Functions still needing wrappers
 

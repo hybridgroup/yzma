@@ -41,3 +41,44 @@ func testMMMModelFileName(t *testing.T) string {
 
 	return os.Getenv("YZMA_TEST_MMMODEL")
 }
+
+func testLoraModelFileName(t *testing.T) string {
+	if os.Getenv("YZMA_TEST_LORA_MODEL") == "" {
+		t.Skip("no YZMA_TEST_LORA_MODEL skipping test")
+	}
+
+	return os.Getenv("YZMA_TEST_LORA_MODEL")
+}
+
+func testLoraAdaptorFileName(t *testing.T) string {
+	if os.Getenv("YZMA_TEST_LORA_ADAPTER") == "" {
+		t.Skip("no YZMA_TEST_LORA_ADAPTER skipping test")
+	}
+
+	return os.Getenv("YZMA_TEST_LORA_ADAPTER")
+}
+
+func benchmarkSetup(b *testing.B) {
+	testPath := "."
+	if err := Load(testPath); err != nil {
+		b.Fatal("unable to load library", err.Error())
+	}
+
+	LogSet(LogSilent())
+
+	Init()
+}
+
+func benchmarkCleanup(_ *testing.B) {
+	LogSet(LogNormal)
+
+	BackendFree()
+}
+
+func benchmarkModelFileName(b *testing.B) string {
+	if os.Getenv("YZMA_TEST_MODEL") == "" {
+		b.Skip("no YZMA_TEST_MODEL skipping test")
+	}
+
+	return os.Getenv("YZMA_TEST_MODEL")
+}

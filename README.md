@@ -4,9 +4,9 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/hybridgroup/yzma.svg)](https://pkg.go.dev/github.com/hybridgroup/yzma) [![Linux](https://github.com/hybridgroup/yzma/actions/workflows/linux.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/linux.yml) [![macOS](https://github.com/hybridgroup/yzma/actions/workflows/macos.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/macos.yml) [![Windows](https://github.com/hybridgroup/yzma/actions/workflows/windows.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/windows.yml) [![llama.cpp Release](https://img.shields.io/github/v/release/ggml-org/llama.cpp?label=llama.cpp)](https://github.com/ggml-org/llama.cpp/releases)
 
-`yzma` lets you use Go for hardware accelerated local inference with [`llama.cpp`](https://github.com/ggml-org/llama.cpp).
+`yzma` lets you use Go for hardware accelerated local inference with [`llama.cpp`](https://github.com/ggml-org/llama.cpp) directly integrated into your applications.
 
-Run Vision Language Models or Large Language Models on Linux, on macOS, and on Windows, with any available hardware acceleration. It uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed. This means that `yzma` works with the very latest `llama.cpp` releases.
+Run Vision Language Models or Large Language Models on Linux, on macOS, and on Windows, with hardware acceleration such as CUDA. It uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed. This means that `yzma` works with the very latest `llama.cpp` releases.
 
 This example uses the [SmolLM-135M](https://huggingface.co/QuantFactory/SmolLM-135M-GGUF) model:
 
@@ -129,7 +129,9 @@ Sure! Let's go to the zoo and feed the llama. What kind of llama are you interes
 
 See the [examples](./examples/) directory for more examples of how to use `yzma`.
 
-You can find more examples in the Ardan Labs [ai-training](https://github.com/ardanlabs/ai-training) repository.
+You can find even more examples in the Ardan Labs [ai-training](https://github.com/ardanlabs/ai-training) repository.
+
+Also see the ["Captions WIth Attitude"](https://github.com/hybridgroup/captions-with-attitude) application.
 
 ## Models
 
@@ -137,17 +139,25 @@ You can find more examples in the Ardan Labs [ai-training](https://github.com/ar
 
 https://huggingface.co/models?library=gguf&sort=trending
 
-## More Info
+## Support
 
-`yzma` currently has support for over 89% of `llama.cpp` functionality. See [ROADMAP.md](./ROADMAP.md) for a complete list.
+`yzma` currently has support for over 94% of `llama.cpp` functionality. See [ROADMAP.md](./ROADMAP.md) for the complete list.
 
-You can already use VLMs and other language models with full hardware acceleration on Linux, on macOS, and on Windows.
+You can use multimodal models (image/audio) and text language models with full hardware acceleration on Linux, on macOS, and on Windows.
 
 | OS      | CPU          | GPU                             |
 | ------- | ------------ | ------------------------------- |
 | Linux   | amd64, arm64 | CUDA, Vulkan, HIP, ROCm, SYCL   |
 | macOS   | arm64        | Metal                           |
 | Windows | amd64        | CUDA, Vulkan, HIP, SYCL, OpenCL |
+
+## Benchmarks
+
+Want to see some benchmarks? Take a look at the [BENCHMARKS.md](./BENCHMARKS.md) document.
+
+## More Info
+
+`yzma` is now ready to be used to build complete applications that incorporate language models directly into your Golang code.
 
 Here are some advantages of `yzma` over other Go packages for `llama.cpp`:
 
