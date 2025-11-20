@@ -10,18 +10,17 @@ See https://github.com/hybridgroup/yzma/blob/main/pkg/llama/benchmark_test.go
 
 ```
 $ go test -bench=. -benchmem -benchtime=10s -count=5 -run=^$ ./pkg/llama
-goos: linux                                    
-goarch: amd64                               
+goos: linux
+goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
-
-cpu: 13th Gen Intel(R) Core(TM) i9-13900HX   
-BenchmarkInference-32                 97         122892912 ns/op           16280 B/op        722 allocs/op
-BenchmarkInference-32                 94         124091072 ns/op           16328 B/op        724 allocs/op
-BenchmarkInference-32                 97         119683489 ns/op           16289 B/op        723 allocs/op
-BenchmarkInference-32                 96         121095505 ns/op           16301 B/op        723 allocs/op
-BenchmarkInference-32                 97         121729456 ns/op           16285 B/op        723 allocs/op
-PASS            
-ok      github.com/hybridgroup/yzma/pkg/llama   88.329s
+cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
+BenchmarkInference-32                100         119200742 ns/op           16272 B/op        723 allocs/op
+BenchmarkInference-32                 99         120473276 ns/op           16292 B/op        723 allocs/op
+BenchmarkInference-32                 99         119045172 ns/op           16286 B/op        723 allocs/op
+BenchmarkInference-32                100         116843066 ns/op           16271 B/op        723 allocs/op
+BenchmarkInference-32                 99         117814229 ns/op           16286 B/op        723 allocs/op
+PASS
+ok      github.com/hybridgroup/yzma/pkg/llama   88.048s
 ```
 
 ### CUDA
@@ -41,18 +40,18 @@ ok      github.com/hybridgroup/yzma/pkg/llama   88.329s
 ```
 
 ```
-$ go test -bench=. -benchmem -benchtime=10s -count=5 -run=^$ ./pkg/llama
-goos: linux                                                                                               
-goarch: amd64                                                                                             
-pkg: github.com/hybridgroup/yzma/pkg/llama                                                                
+$ YZMA_BENCHMARK_DEVICE="CUDA0" go test -bench=. -benchmem -benchtime=10s -count=5 -run=^$ ./pkg/llama
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkInference-32                344          34496552 ns/op           15320 B/op        695 allocs/op
-BenchmarkInference-32                336          34741437 ns/op           15328 B/op        695 allocs/op
-BenchmarkInference-32                340          34682374 ns/op           15327 B/op        695 allocs/op
-BenchmarkInference-32                331          34697196 ns/op           15337 B/op        695 allocs/op
-BenchmarkInference-32                340          34658749 ns/op           15328 B/op        695 allocs/op
-PASS                                    
-ok      github.com/hybridgroup/yzma/pkg/llama   81.720s
+BenchmarkInference-32                345          34503738 ns/op           15328 B/op        695 allocs/op
+BenchmarkInference-32                337          34534140 ns/op           15337 B/op        696 allocs/op
+BenchmarkInference-32                340          34567047 ns/op           15335 B/op        696 allocs/op
+BenchmarkInference-32                339          34642013 ns/op           15336 B/op        696 allocs/op
+BenchmarkInference-32                340          34459238 ns/op           15333 B/op        695 allocs/op
+PASS
+ok      github.com/hybridgroup/yzma/pkg/llama   81.587s
 ```
 
 ### Vulkan
@@ -79,21 +78,49 @@ GPU0:
         conformanceVersion = 1.4.0.0
         deviceUUID         = 868088a7-0400-0000-0002-000000000000
         driverUUID         = 802b0057-40c2-aed9-e538-d78b797f04f4
+GPU1:
+        apiVersion         = 1.4.312
+        driverVersion      = 580.95.5.0
+        vendorID           = 0x10de
+        deviceID           = 0x2860
+        deviceType         = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+        deviceName         = NVIDIA GeForce RTX 4070 Laptop GPU
+        driverID           = DRIVER_ID_NVIDIA_PROPRIETARY
+        driverName         = NVIDIA
+        driverInfo         = 580.95.05
+        conformanceVersion = 1.4.1.3
+        deviceUUID         = 7e611089-1272-699d-8985-ab84fef4311e
+        driverUUID         = b92269a1-b525-5615-ab8a-e2095ee37192
 ```
 
 ```
-$ go test -bench=. -benchmem -benchtime=10s -count=5 -run=^$ ./pkg/llama 
+$ YZMA_BENCHMARK_DEVICE="VULKAN0" go test -bench=. -benchmem -benchtime=10s -count=5 -run=^$ ./pkg/llama
 goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkInference-32                315          37332296 ns/op           15352 B/op        696 allocs/op
-BenchmarkInference-32                309          37120818 ns/op           15357 B/op        696 allocs/op
-BenchmarkInference-32                312          37695822 ns/op           15375 B/op        696 allocs/op
-BenchmarkInference-32                308          37883530 ns/op           15364 B/op        696 allocs/op
-BenchmarkInference-32                309          37542527 ns/op           15363 B/op        696 allocs/op
+BenchmarkInference-32                 16         673672999 ns/op           21560 B/op        877 allocs/op
+BenchmarkInference-32                 16         671572114 ns/op           21588 B/op        877 allocs/op
+BenchmarkInference-32                 16         674732293 ns/op           21587 B/op        877 allocs/op
+BenchmarkInference-32                 14         754711859 ns/op           22555 B/op        904 allocs/op
+BenchmarkInference-32                 16         673296851 ns/op           21586 B/op        877 allocs/op
 PASS
-ok      github.com/hybridgroup/yzma/pkg/llama   80.970s
+ok      github.com/hybridgroup/yzma/pkg/llama   91.437s
+```
+
+```
+$ YZMA_BENCHMARK_DEVICE="VULKAN1" go test -bench=. -benchmem -benchtime=10s -count=5 -run=^$ ./pkg/llama
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
+BenchmarkInference-32                291          37219117 ns/op           15405 B/op        697 allocs/op
+BenchmarkInference-32                312          37387668 ns/op           15361 B/op        696 allocs/op
+BenchmarkInference-32                314          37462380 ns/op           15361 B/op        696 allocs/op
+BenchmarkInference-32                315          36991080 ns/op           15360 B/op        696 allocs/op
+BenchmarkInference-32                315          37441630 ns/op           15359 B/op        696 allocs/op
+PASS
+ok      github.com/hybridgroup/yzma/pkg/llama   72.853s
 ```
 
 ## macOS
