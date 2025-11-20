@@ -47,7 +47,7 @@ func handleFlags() error {
 		return errors.New("missing model flag")
 	}
 
-	if os.Getenv("YZMA_LIB") != "" {
+	if len(*libPath) == 0 && os.Getenv("YZMA_LIB") != "" {
 		*libPath = os.Getenv("YZMA_LIB")
 	}
 
