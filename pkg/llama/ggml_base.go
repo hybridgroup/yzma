@@ -2,6 +2,7 @@ package llama
 
 import (
 	"fmt"
+	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/utils"
 	"github.com/jupiterrider/ffi"
@@ -13,6 +14,9 @@ type GGMLBackendBufferType uintptr
 var (
 	// GGML_API ggml_backend_buffer_type_t ggml_backend_cpu_buffer_type(void);
 	ggmlBackendCpuBufferType ffi.Fun
+
+	// GGML_API const char * ggml_backend_dev_name(ggml_backend_dev_t device);
+	ggmlBackendDevNameFunc ffi.Fun
 )
 
 func loadGGMLBase(lib ffi.Lib) error {
@@ -20,6 +24,10 @@ func loadGGMLBase(lib ffi.Lib) error {
 
 	if ggmlBackendCpuBufferType, err = lib.Prep("ggml_backend_cpu_buffer_type", &ffi.TypeVoid); err != nil {
 		return loadError("ggml_backend_cpu_buffer_type", err)
+	}
+
+	if ggmlBackendDevNameFunc, err = lib.Prep("ggml_backend_dev_name", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("ggml_backend_dev_name", err)
 	}
 
 	return nil
@@ -58,4 +66,13 @@ func NewTensorBuftOverride(pattern string) TensorBuftOverride {
 		Pattern: data,
 		Type:    GGMLBackendCpuBufferType(),
 	}
+}
+
+// GGMLBackendDeviceName returns the name of the given backend device.
+func GGMLBackendDeviceName(device GGMLBackendDevice) string {
+	var ret *byte
+	ggmlBackendDevNameFunc.Call(unsafe.Pointer(&ret), unsafe.Pointer(&device))
+
+	name := utils.BytePtrToString(ret)
+	return name
 }

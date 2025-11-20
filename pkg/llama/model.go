@@ -722,6 +722,18 @@ func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
 	p.ProgressCallback = uintptr(callback)
 }
 
+// SetDevices sets the devices to be used for model execution.
+// An empty slice indicates that no specific devices are set, meaning
+// that the default device selection will be used.
+func (p *ModelParams) SetDevices(devices []GGMLBackendDevice) {
+	if len(devices) == 0 {
+		p.Devices = uintptr(0)
+		return
+	}
+
+	p.Devices = uintptr(unsafe.Pointer(&devices[0]))
+}
+
 // ModelQuantizeDefaultParams returns default parameters for model quantization.
 func ModelQuantizeDefaultParams() ModelQuantizeParams {
 	var p ModelQuantizeParams
