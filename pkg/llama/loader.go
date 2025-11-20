@@ -2,13 +2,20 @@ package llama
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/hybridgroup/yzma/pkg/loader"
 )
 
+var libPath string
+
+// LibPath returns the path to the loaded llama.cpp shared libraries.
+func LibPath() string {
+	return libPath
+}
+
 // Load loads the shared llama.cpp libraries from the specified path.
 func Load(path string) error {
+	libPath = path
 	lib, err := loader.LoadLibrary(path, "ggml")
 	if err != nil {
 		return err
@@ -82,14 +89,7 @@ func Load(path string) error {
 // Init is a convenience function to handle initialization of llama.cpp.
 func Init() {
 	BackendInit()
-
-	if os.Getenv("YZMA_LIB") != "" {
-		GGMLBackendLoadAllFromPath(os.Getenv("YZMA_LIB"))
-
-		return
-	}
-
-	GGMLBackendLoadAll()
+	GGMLBackendLoadAllFromPath(libPath)
 }
 
 func loadError(name string, err error) error {

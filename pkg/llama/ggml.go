@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"errors"
 	"unsafe"
 
 	"github.com/jupiterrider/ffi"
@@ -34,7 +35,13 @@ func GGMLBackendLoadAll() {
 }
 
 // GGMLBackendLoadAllFromPath loads all backends from a specific path.
-func GGMLBackendLoadAllFromPath(path string) {
+func GGMLBackendLoadAllFromPath(path string) error {
+	if path == "" {
+		return errors.New("invalid path")
+	}
+
 	p := &[]byte(path + "\x00")[0]
 	ggmlBackendLoadAllFromPath.Call(nil, unsafe.Pointer(&p))
+
+	return nil
 }
