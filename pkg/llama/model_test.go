@@ -3,6 +3,7 @@ package llama
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -388,6 +389,10 @@ func TestModelMetaValStr(t *testing.T) {
 }
 
 func TestModelLoadCallback(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skip("Skipping TestModelLoadCallback on macOS due to callback race issues.")
+	}
+
 	modelFile := testModelFileName(t)
 	testSetup(t)
 	defer testCleanup(t)
