@@ -6,7 +6,7 @@
 
 `yzma` lets you use Go for hardware accelerated local inference with [`llama.cpp`](https://github.com/ggml-org/llama.cpp) directly integrated into your applications.
 
-Run Vision Language Models or Large Language Models on Linux, on macOS, and on Windows, with hardware acceleration such as CUDA. It uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed. This means that `yzma` works with the very latest `llama.cpp` releases.
+Run Vision Language Models or Large Language Models on Linux, on macOS, and on Windows, with hardware acceleration such as CUDA or Metal. It uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed. This means that `yzma` works with the very latest `llama.cpp` releases.
 
 This example uses the [SmolLM-135M](https://huggingface.co/QuantFactory/SmolLM-135M-GGUF) model:
 
@@ -135,7 +135,7 @@ Also see the ["Captions WIth Attitude"](https://github.com/hybridgroup/captions-
 
 ## Models
 
-`yzma` uses models in the GGUF format support by `llama.cpp`. You can find many models in GGUF format on Hugging Face (over 147k at last count):
+`yzma` uses models in the GGUF format supported by `llama.cpp`. You can find many models in GGUF format on Hugging Face (over 147k at last count):
 
 https://huggingface.co/models?library=gguf&sort=trending
 
@@ -151,6 +151,8 @@ You can use multimodal models (image/audio) and text language models with full h
 | macOS   | arm64        | Metal                           |
 | Windows | amd64        | CUDA, Vulkan, HIP, SYCL, OpenCL |
 
+Whenever there is a new release of `llama.cpp`, the tests for `yzma` are run automatically. This helps us stay up to date with the latest code and models.
+
 ## Benchmarks
 
 Want to see some benchmarks? Take a look at the [BENCHMARKS.md](./BENCHMARKS.md) document.
@@ -159,10 +161,11 @@ Want to see some benchmarks? Take a look at the [BENCHMARKS.md](./BENCHMARKS.md)
 
 `yzma` is now ready to be used to build complete applications that incorporate language models directly into your Golang code.
 
-Here are some advantages of `yzma` over other Go packages for `llama.cpp`:
+Here are some advantages of `yzma` with `llama.cpp`:
 
 - Compile Go programs that use `yzma` with the normal `go build` and `go run` commands. No C compiler needed!
 - Use the `llama.cpp` libraries with whatever hardware acceleration is available for your configuration. CUDA, Vulkan, etc.
+- High performance from making function calls from within the same process. No external model servers!
 - Download `llama.cpp` precompiled libraries directly from Github, or include them with your application.
 - Update the `llama.cpp` libraries without recompiling your Go program, as long as `llama.cpp` does not make any breaking changes.
 
