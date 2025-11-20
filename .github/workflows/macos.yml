@@ -60,7 +60,7 @@ jobs:
           export YZMA_TEST_ENCODER_MODEL=$GITHUB_WORKSPACE/models/t5base-encoder-q4_0.gguf
           export YZMA_TEST_LORA_MODEL=$GITHUB_WORKSPACE/models/Gemma2-Base-F32.gguf
           export YZMA_TEST_LORA_ADAPTER=$GITHUB_WORKSPACE/models/Gemma2-Lora-F32-LoRA.gguf
-          go test -v ./...
+          CGO_ENABLED=0 go test -v ./...
       - name: Run inference test
         run: go run ./examples/hello
       - name: Run embedding test
