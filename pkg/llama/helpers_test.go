@@ -6,7 +6,10 @@ import (
 )
 
 func testSetup(t *testing.T) {
-	testPath := "."
+	if os.Getenv("YZMA_LIB") == "" {
+		t.Fatal("no YZMA_LIB set for tests")
+	}
+	testPath := os.Getenv("YZMA_LIB")
 	if err := Load(testPath); err != nil {
 		t.Fatal("unable to load library", err.Error())
 	}
