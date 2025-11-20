@@ -6,7 +6,10 @@ import (
 )
 
 func testSetup(t *testing.T) {
-	testPath := "."
+	if os.Getenv("YZMA_LIB") == "" {
+		t.Fatal("no YZMA_LIB set for tests")
+	}
+	testPath := os.Getenv("YZMA_LIB")
 	if err := Load(testPath); err != nil {
 		t.Fatal("unable to load library", err.Error())
 	}
@@ -59,7 +62,10 @@ func testLoraAdaptorFileName(t *testing.T) string {
 }
 
 func benchmarkSetup(b *testing.B) {
-	testPath := "."
+	if os.Getenv("YZMA_LIB") == "" {
+		b.Fatal("no YZMA_LIB set for tests")
+	}
+	testPath := os.Getenv("YZMA_LIB")
 	if err := Load(testPath); err != nil {
 		b.Fatal("unable to load library", err.Error())
 	}
@@ -76,9 +82,9 @@ func benchmarkCleanup(_ *testing.B) {
 }
 
 func benchmarkModelFileName(b *testing.B) string {
-	if os.Getenv("YZMA_TEST_MODEL") == "" {
-		b.Skip("no YZMA_TEST_MODEL skipping test")
+	if os.Getenv("YZMA_BENCHMARK_MODEL") == "" {
+		b.Skip("no YZMA_BENCHMARK_MODEL skipping test")
 	}
 
-	return os.Getenv("YZMA_TEST_MODEL")
+	return os.Getenv("YZMA_BENCHMARK_MODEL")
 }

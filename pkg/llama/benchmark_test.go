@@ -1,6 +1,8 @@
 package llama
 
 import (
+	"os"
+	"strings"
 	"testing"
 )
 
@@ -9,7 +11,23 @@ func BenchmarkInference(b *testing.B) {
 
 	benchmarkSetup(b)
 	defer benchmarkCleanup(b)
-	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+
+	mparams := ModelDefaultParams()
+	if os.Getenv("YZMA_BENCHMARK_DEVICE") != "" {
+		devs := []GGMLBackendDevice{}
+		devices := strings.Split(os.Getenv("YZMA_BENCHMARK_DEVICE"), ",")
+		for _, d := range devices {
+			dev := GGMLBackendDeviceByName(d)
+			if dev == 0 {
+				b.Fatalf("unknown device: %s", d)
+			}
+			devs = append(devs, dev)
+		}
+
+		mparams.SetDevices(devs)
+	}
+
+	model, err := ModelLoadFromFile(modelFile, mparams)
 	if err != nil {
 		b.Fatalf("ModelLoadFromFile failed: %v", err)
 	}
