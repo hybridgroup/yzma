@@ -36,6 +36,10 @@ func LogSet(cb uintptr) {
 //
 // static void llama_log_callback_null(ggml_log_level level, const char * text, void * user_data) { (void) level; (void) text; (void) user_data; }
 func LogSilent() uintptr {
+	if logSilentFunc != nil {
+		return uintptr(logSilentFunc)
+	}
+
 	closure := ffi.ClosureAlloc(unsafe.Sizeof(ffi.Closure{}), &logSilentFunc)
 
 	fn := ffi.NewCallback(func(cif *ffi.Cif, ret unsafe.Pointer, args *unsafe.Pointer, userData unsafe.Pointer) uintptr {
