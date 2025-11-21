@@ -35,8 +35,8 @@ func LogSet(cb uintptr) {
 
 // LogSilent is a callback function that you can pass into the LogSet function to turn logging off.
 func LogSilent() uintptr {
-	return purego.NewCallback(func(level int32, text, data uintptr) uintptr {
-		return 0
+	return purego.NewCallback(func(level int32, text, data uintptr) {
+		_ = level
 	})
 }
 
