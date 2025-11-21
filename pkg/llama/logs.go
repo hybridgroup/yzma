@@ -34,9 +34,7 @@ func LogSet(cb uintptr) {
 //
 // static void llama_log_callback_null(ggml_log_level level, const char * text, void * user_data) { (void) level; (void) text; (void) user_data; }
 func LogSilent() uintptr {
-	cb := func(level int32, text, data uintptr) uintptr {
-		return 0
-	}
+	cb := func(level int32, text, data uintptr) {}
 
 	var callback unsafe.Pointer
 	closure := ffi.ClosureAlloc(unsafe.Sizeof(ffi.Closure{}), &callback)
@@ -46,14 +44,13 @@ func LogSilent() uintptr {
 		level := *(*int32)(arg[0])
 		textPtr := *(*uintptr)(arg[1])
 		userDataPtr := *(*uintptr)(arg[2])
-		result := cb(level, textPtr, userDataPtr)
-		*(*uintptr)(ret) = result
+		cb(level, textPtr, userDataPtr)
 
 		return 0
 	})
 
 	var cifCallback ffi.Cif
-	if status := ffi.PrepCif(&cifCallback, ffi.DefaultAbi, 3, &ffi.TypeUint16, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer); status != ffi.OK {
+	if status := ffi.PrepCif(&cifCallback, ffi.DefaultAbi, 3, &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer); status != ffi.OK {
 		return uintptr(0)
 	}
 
