@@ -11,6 +11,8 @@ type LogCallback uintptr // *ffi.Closure
 var (
 	// LLAMA_API void llama_log_set(ggml_log_callback log_callback, void * user_data);
 	logSetFunc ffi.Fun
+
+	logSilentFunc unsafe.Pointer
 )
 
 func loadLogFuncs(lib ffi.Lib) error {
@@ -34,18 +36,9 @@ func LogSet(cb uintptr) {
 //
 // static void llama_log_callback_null(ggml_log_level level, const char * text, void * user_data) { (void) level; (void) text; (void) user_data; }
 func LogSilent() uintptr {
-	cb := func(level int32, text, data uintptr) {}
-
-	var callback unsafe.Pointer
-	closure := ffi.ClosureAlloc(unsafe.Sizeof(ffi.Closure{}), &callback)
+	closure := ffi.ClosureAlloc(unsafe.Sizeof(ffi.Closure{}), &logSilentFunc)
 
 	fn := ffi.NewCallback(func(cif *ffi.Cif, ret unsafe.Pointer, args *unsafe.Pointer, userData unsafe.Pointer) uintptr {
-		arg := unsafe.Slice(args, cif.NArgs)
-		level := *(*int32)(arg[0])
-		textPtr := *(*uintptr)(arg[1])
-		userDataPtr := *(*uintptr)(arg[2])
-		cb(level, textPtr, userDataPtr)
-
 		return 0
 	})
 
@@ -55,12 +48,12 @@ func LogSilent() uintptr {
 	}
 
 	if closure != nil {
-		if status := ffi.PrepClosureLoc(closure, &cifCallback, fn, nil, callback); status != ffi.OK {
+		if status := ffi.PrepClosureLoc(closure, &cifCallback, fn, nil, logSilentFunc); status != ffi.OK {
 			return uintptr(0)
 		}
 	}
 
-	return uintptr(callback)
+	return uintptr(logSilentFunc)
 }
 
 // LogNormal is a value you can pass into the LogSet function to turn standard logging on.
