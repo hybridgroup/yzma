@@ -33,7 +33,7 @@ func main() {
 	}
 
 	llama.Init()
-	defer llama.BackendFree()
+	defer llama.Close()
 
 	mParams := llama.ModelDefaultParams()
 

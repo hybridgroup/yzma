@@ -31,7 +31,7 @@ func run() error {
 	}
 
 	llama.Init()
-	defer llama.BackendFree()
+	defer llama.Close()
 
 	model, err := llama.ModelLoadFromFile(*modelFile, llama.ModelDefaultParams())
 	if err != nil {

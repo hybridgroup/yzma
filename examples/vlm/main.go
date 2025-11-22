@@ -40,7 +40,7 @@ func main() {
 	}
 
 	llama.Init()
-	defer llama.BackendFree()
+	defer llama.Close()
 
 	fmt.Println("Loading model", *modelFile)
 	model, err := llama.ModelLoadFromFile(*modelFile, llama.ModelDefaultParams())
