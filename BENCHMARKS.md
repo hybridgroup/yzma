@@ -147,7 +147,20 @@ ok      github.com/hybridgroup/yzma/pkg/llama   86.878s
 
 ### CPU
 
-Coming soon...
+```
+C:\Users\ron\yzma>go test -bench=BenchmarkInference -benchmem -benchtime=10s -count=5 -run=nada ./pkg/llama
+goos: windows
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: AMD Ryzen 9 7950X 16-Core Processor
+BenchmarkInference-32                205          55864720 ns/op           15147 B/op        690 allocs/op
+BenchmarkInference-32                214          55511057 ns/op           15140 B/op        690 allocs/op
+BenchmarkInference-32                214          55102790 ns/op           15141 B/op        690 allocs/op
+BenchmarkInference-32                218          56286605 ns/op           15139 B/op        690 allocs/op
+BenchmarkInference-32                217          55053613 ns/op           15139 B/op        690 allocs/op
+PASS
+ok      github.com/hybridgroup/yzma/pkg/llama   81.436s
+```
 
 ### CUDA
 
