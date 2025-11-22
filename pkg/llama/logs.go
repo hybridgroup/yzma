@@ -3,7 +3,6 @@ package llama
 import (
 	"unsafe"
 
-	"github.com/ebitengine/purego"
 	"github.com/jupiterrider/ffi"
 )
 
@@ -13,8 +12,7 @@ var (
 	// LLAMA_API void llama_log_set(ggml_log_callback log_callback, void * user_data);
 	logSetFunc ffi.Fun
 
-	// static void llama_log_callback_null(ggml_log_level level, const char * text, void * user_data) { (void) level; (void) text; (void) user_data; }
-	// logSilent uintptr
+	logSilentFunc unsafe.Pointer
 )
 
 func loadLogFuncs(lib ffi.Lib) error {
@@ -34,10 +32,32 @@ func LogSet(cb uintptr) {
 }
 
 // LogSilent is a callback function that you can pass into the LogSet function to turn logging off.
+// The equivalent C function signature is:
+//
+// static void llama_log_callback_null(ggml_log_level level, const char * text, void * user_data) { (void) level; (void) text; (void) user_data; }
 func LogSilent() uintptr {
-	return purego.NewCallback(func(level int32, text, data uintptr) uintptr {
+	if logSilentFunc != nil {
+		return uintptr(logSilentFunc)
+	}
+
+	closure := ffi.ClosureAlloc(unsafe.Sizeof(ffi.Closure{}), &logSilentFunc)
+
+	fn := ffi.NewCallback(func(cif *ffi.Cif, ret unsafe.Pointer, args *unsafe.Pointer, userData unsafe.Pointer) uintptr {
 		return 0
 	})
+
+	var cifCallback ffi.Cif
+	if status := ffi.PrepCif(&cifCallback, ffi.DefaultAbi, 3, &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer); status != ffi.OK {
+		return uintptr(0)
+	}
+
+	if closure != nil {
+		if status := ffi.PrepClosureLoc(closure, &cifCallback, fn, nil, logSilentFunc); status != ffi.OK {
+			return uintptr(0)
+		}
+	}
+
+	return uintptr(logSilentFunc)
 }
 
 // LogNormal is a value you can pass into the LogSet function to turn standard logging on.
