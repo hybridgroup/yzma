@@ -11,7 +11,7 @@ import (
 
 func describe(tmpFile string) error {
 	llama.Init()
-	defer llama.BackendFree()
+	defer llama.Close()
 
 	mtmdCtxParams := mtmd.ContextParamsDefault()
 
