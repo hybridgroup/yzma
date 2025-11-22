@@ -11,6 +11,7 @@ import (
 type (
 	GGMLBackendDeviceType int32
 	GGMLBackendDevice     uintptr
+	GGMLBackendReg        uintptr
 )
 
 const (
@@ -31,6 +32,10 @@ var (
 	// GGML_API void ggml_backend_load_all(void);
 	ggmlBackendLoadAllFromPath ffi.Fun
 
+	// Unload a backend if loaded dynamically and unregister it
+	// GGML_API void               ggml_backend_unload(ggml_backend_reg_t reg);
+	ggmlBackendUnloadFunc ffi.Fun
+
 	// Device enumeration
 	// GGML_API size_t             ggml_backend_dev_count(void);
 	ggmlBackendDevCountFunc ffi.Fun
@@ -43,6 +48,15 @@ var (
 
 	// GGML_API ggml_backend_dev_t ggml_backend_dev_by_type(enum ggml_backend_dev_type type);
 	ggmlBackendDevByTypeFunc ffi.Fun
+
+	// GGML_API size_t             ggml_backend_reg_count(void);
+	ggmlBackendRegCountFunc ffi.Fun
+
+	// GGML_API ggml_backend_reg_t ggml_backend_reg_get(size_t index);
+	ggmlBackendRegGetFunc ffi.Fun
+
+	// GGML_API ggml_backend_reg_t ggml_backend_reg_by_name(const char * name);
+	ggmlBackendRegByNameFunc ffi.Fun
 )
 
 func loadGGML(lib ffi.Lib) error {
@@ -54,6 +68,10 @@ func loadGGML(lib ffi.Lib) error {
 
 	if ggmlBackendLoadAllFromPath, err = lib.Prep("ggml_backend_load_all_from_path", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
 		return loadError("ggml_backend_load_all_from_path", err)
+	}
+
+	if ggmlBackendUnloadFunc, err = lib.Prep("ggml_backend_unload", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
+		return loadError("ggml_backend_unload", err)
 	}
 
 	if ggmlBackendDevCountFunc, err = lib.Prep("ggml_backend_dev_count", &ffi.TypeUint64); err != nil {
@@ -70,6 +88,18 @@ func loadGGML(lib ffi.Lib) error {
 
 	if ggmlBackendDevByTypeFunc, err = lib.Prep("ggml_backend_dev_by_type", &ffi.TypePointer, &ffi.TypeSint32); err != nil {
 		return loadError("ggml_backend_dev_by_type", err)
+	}
+
+	if ggmlBackendRegCountFunc, err = lib.Prep("ggml_backend_reg_count", &ffi.TypeUint64); err != nil {
+		return loadError("ggml_backend_reg_count", err)
+	}
+
+	if ggmlBackendRegGetFunc, err = lib.Prep("ggml_backend_reg_get", &ffi.TypePointer, &ffi.TypeUint64); err != nil {
+		return loadError("ggml_backend_reg_get", err)
+	}
+
+	if ggmlBackendRegByNameFunc, err = lib.Prep("ggml_backend_reg_by_name", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("ggml_backend_reg_by_name", err)
 	}
 
 	return nil
@@ -90,6 +120,15 @@ func GGMLBackendLoadAllFromPath(path string) error {
 	ggmlBackendLoadAllFromPath.Call(nil, unsafe.Pointer(&p))
 
 	return nil
+}
+
+// GGMLBackendUnload unloads a backend if loaded dynamically and unregisters it.
+func GGMLBackendUnload(reg GGMLBackendReg) {
+	if reg == 0 {
+		return
+	}
+
+	ggmlBackendUnloadFunc.Call(nil, unsafe.Pointer(&reg))
 }
 
 // GGMLBackendDeviceCount returns the number of backend devices.
@@ -118,5 +157,27 @@ func GGMLBackendDeviceByName(name string) GGMLBackendDevice {
 func GGMLBackendDeviceByType(devType GGMLBackendDeviceType) GGMLBackendDevice {
 	var ret GGMLBackendDevice
 	ggmlBackendDevByTypeFunc.Call(unsafe.Pointer(&ret), unsafe.Pointer(&devType))
+	return ret
+}
+
+// GGMLBackendRegCount returns the number of backend registrations.
+func GGMLBackendRegCount() uint64 {
+	var ret ffi.Arg
+	ggmlBackendRegCountFunc.Call(unsafe.Pointer(&ret))
+	return uint64(ret)
+}
+
+// GGMLBackendRegGet returns the backend registration at the given index.
+func GGMLBackendRegGet(index uint64) GGMLBackendReg {
+	var ret GGMLBackendReg
+	ggmlBackendRegGetFunc.Call(unsafe.Pointer(&ret), unsafe.Pointer(&index))
+	return ret
+}
+
+// GGMLBackendRegByName returns the backend registration by its name.
+func GGMLBackendRegByName(name string) GGMLBackendReg {
+	namePtr, _ := utils.BytePtrFromString(name)
+	var ret GGMLBackendReg
+	ggmlBackendRegByNameFunc.Call(unsafe.Pointer(&ret), unsafe.Pointer(&namePtr))
 	return ret
 }

@@ -92,6 +92,19 @@ func Init() {
 	GGMLBackendLoadAllFromPath(libPath)
 }
 
+// Close frees resources used by llama.cpp and unloads any dynamically loaded backends.
+func Close() {
+	BackendFree()
+
+	for i := uint64(0); i < GGMLBackendRegCount(); i++ {
+		reg := GGMLBackendRegGet(i)
+		if reg == 0 {
+			continue
+		}
+		GGMLBackendUnload(reg)
+	}
+}
+
 func loadError(name string, err error) error {
 	return fmt.Errorf("could not load %q: %w", name, err)
 }
