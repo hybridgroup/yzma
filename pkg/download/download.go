@@ -111,6 +111,13 @@ func Get(operatingSystem string, processor string, version string, dest string) 
 		case CPU:
 			filename = fmt.Sprintf("llama-%s-bin-win-cpu-x64.zip", version)
 		case CUDA:
+			// also requires the CUDA RT files
+			cudart := "cudart-llama-bin-win-cuda-12.4-x64.zip"
+			url := fmt.Sprintf("%s/%s", location, cudart)
+			if err := get(url, dest); err != nil {
+				return err
+			}
+
 			filename = fmt.Sprintf("llama-%s-bin-win-cuda-12.4-x64.zip", version)
 		case Vulkan:
 			filename = fmt.Sprintf("llama-%s-bin-win-vulkan-x64.zip", version)
