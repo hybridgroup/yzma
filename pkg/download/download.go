@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	getter "github.com/hashicorp/go-getter/v2"
+	getter "github.com/hashicorp/go-getter"
 )
 
 var (
@@ -134,14 +134,14 @@ func Get(operatingSystem string, processor string, version string, dest string) 
 }
 
 func get(url, dest string) error {
-	req := &getter.Request{
-		Src:     url,
-		Dst:     dest,
-		GetMode: getter.ModeAny,
+	client := &getter.Client{
+		Ctx:  context.Background(),
+		Src:  url,
+		Dst:  dest,
+		Mode: getter.ClientModeAny,
 	}
 
-	client := &getter.Client{}
-	if _, err := client.Get(context.Background(), req); err != nil {
+	if err := client.Get(); err != nil {
 		return err
 	}
 
