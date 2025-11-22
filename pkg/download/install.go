@@ -51,7 +51,7 @@ func InstallLibraries(libPath string, processor Processor, allowUpgrade bool) er
 func alreadyInstalled(libPath string) bool {
 	versionInfoPath := filepath.Join(libPath, versionFile)
 
-	if _, err := os.Stat(versionInfoPath); os.IsNotExist(err) {
+	if _, err := os.Stat(versionInfoPath); err != nil {
 		return false
 	}
 
