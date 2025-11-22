@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	getter "github.com/hashicorp/go-getter/v2"
+	getter "github.com/hashicorp/go-getter"
 )
 
 var (
@@ -111,6 +111,13 @@ func Get(operatingSystem string, processor string, version string, dest string) 
 		case CPU:
 			filename = fmt.Sprintf("llama-%s-bin-win-cpu-x64.zip", version)
 		case CUDA:
+			// also requires the CUDA RT files
+			cudart := "cudart-llama-bin-win-cuda-12.4-x64.zip"
+			url := fmt.Sprintf("%s/%s", location, cudart)
+			if err := get(url, dest); err != nil {
+				return err
+			}
+
 			filename = fmt.Sprintf("llama-%s-bin-win-cuda-12.4-x64.zip", version)
 		case Vulkan:
 			filename = fmt.Sprintf("llama-%s-bin-win-vulkan-x64.zip", version)
@@ -127,14 +134,14 @@ func Get(operatingSystem string, processor string, version string, dest string) 
 }
 
 func get(url, dest string) error {
-	req := &getter.Request{
-		Src:     url,
-		Dst:     dest,
-		GetMode: getter.ModeAny,
+	client := &getter.Client{
+		Ctx:  context.Background(),
+		Src:  url,
+		Dst:  dest,
+		Mode: getter.ClientModeAny,
 	}
 
-	client := &getter.Client{}
-	if _, err := client.Get(context.Background(), req); err != nil {
+	if err := client.Get(); err != nil {
 		return err
 	}
 

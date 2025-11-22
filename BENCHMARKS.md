@@ -147,11 +147,65 @@ ok      github.com/hybridgroup/yzma/pkg/llama   86.878s
 
 ### CPU
 
-Coming soon...
+```
+C:\Users\ron\yzma>go test -bench=BenchmarkInference -benchmem -benchtime=10s -count=5 -run=nada ./pkg/llama
+goos: windows
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: AMD Ryzen 9 7950X 16-Core Processor
+BenchmarkInference-32                205          55864720 ns/op           15147 B/op        690 allocs/op
+BenchmarkInference-32                214          55511057 ns/op           15140 B/op        690 allocs/op
+BenchmarkInference-32                214          55102790 ns/op           15141 B/op        690 allocs/op
+BenchmarkInference-32                218          56286605 ns/op           15139 B/op        690 allocs/op
+BenchmarkInference-32                217          55053613 ns/op           15139 B/op        690 allocs/op
+PASS
+ok      github.com/hybridgroup/yzma/pkg/llama   81.436s
+```
 
 ### CUDA
 
-Coming soon...
+```
+C:\Users\ron>nvidia-smi
+Sat Nov 22 16:58:06 2025
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 581.57                 Driver Version: 581.57         CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                  Driver-Model | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 3070      WDDM  |   00000000:01:00.0 Off |                  N/A |
+|  0%   42C    P8              6W /  240W |      22MiB /   8192MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|    0   N/A  N/A           19020    C+G   ...s\Win64\EpicGamesLauncher.exe      N/A      |
+|    0   N/A  N/A           56512      C   ...989226070\b001\llama.test.exe      N/A      |
++-----------------------------------------------------------------------------------------+
+```
+
+```
+C:\Users\ron\yzma>set YZMA_BENCHMARK_DEVICE=CUDA0
+
+C:\Users\ron\yzma>go test -bench=BenchmarkInference -benchmem -benchtime=10s -count=5 -run=nada ./pkg/llama
+goos: windows
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: AMD Ryzen 9 7950X 16-Core Processor
+BenchmarkInference-32                223          46349000 ns/op           15138 B/op        690 allocs/op
+BenchmarkInference-32                225          47300087 ns/op           15161 B/op        690 allocs/op
+BenchmarkInference-32                228          46384179 ns/op           15135 B/op        690 allocs/op
+BenchmarkInference-32                226          47126233 ns/op           15137 B/op        690 allocs/op
+BenchmarkInference-32                228          46623464 ns/op           15137 B/op        690 allocs/op
+PASS
+ok      github.com/hybridgroup/yzma/pkg/llama   64.533s
+```
+
 
 ### Vulkan
 

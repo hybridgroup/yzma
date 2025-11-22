@@ -78,7 +78,7 @@ func benchmarkSetup(b *testing.B) {
 func benchmarkCleanup(_ *testing.B) {
 	LogSet(LogNormal)
 
-	BackendFree()
+	Close()
 }
 
 func benchmarkModelFileName(b *testing.B) string {

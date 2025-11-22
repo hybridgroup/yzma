@@ -79,3 +79,58 @@ func TestGGMLBackendDeviceName(t *testing.T) {
 		t.Logf("GGMLBackendDeviceName returned: %s", name)
 	}
 }
+
+func TestGGMLBackendRegCount(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	count := GGMLBackendRegCount()
+	t.Logf("GGMLBackendRegCount returned: %d", count)
+	if count == 0 {
+		t.Skip("No backend registrations found")
+	}
+}
+
+func TestGGMLBackendRegGet(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	count := GGMLBackendRegCount()
+	if count == 0 {
+		t.Skip("No backend registrations to get")
+	}
+	reg := GGMLBackendRegGet(0)
+	if reg == 0 {
+		t.Fatal("GGMLBackendRegGet returned 0 for index 0")
+	}
+	t.Logf("GGMLBackendRegGet(0) returned: %v", reg)
+}
+
+func TestGGMLBackendRegByName(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	reg := GGMLBackendRegByName("CPU")
+	if reg == 0 {
+		t.Log("GGMLBackendRegByName(\"CPU\") returned 0 (may be expected if no CPU backend)")
+	} else {
+		t.Logf("GGMLBackendRegByName(\"CPU\") returned: %v", reg)
+	}
+}
+
+func TestGGMLBackendUnload(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	count := GGMLBackendRegCount()
+	if count == 0 {
+		t.Skip("No backend registrations to unload")
+	}
+	reg := GGMLBackendRegGet(0)
+	if reg == 0 {
+		t.Skip("GGMLBackendRegGet returned 0 for index 0")
+	}
+	// Should not panic or error
+	GGMLBackendUnload(reg)
+	t.Logf("GGMLBackendUnload succeeded for reg: %v", reg)
+}
