@@ -54,6 +54,12 @@ var (
 	// Remove all LoRA adapters from given context
 	// LLAMA_API void llama_clear_adapter_lora(struct llama_context * ctx);
 	clearAdapterLoraFunc ffi.Fun
+
+	// LLAMA_API uint64_t            llama_adapter_get_alora_n_invocation_tokens(const struct llama_adapter_lora * adapter);
+	adapterGetAloraNInvocationTokensFunc ffi.Fun
+
+	// LLAMA_API const llama_token * llama_adapter_get_alora_invocation_tokens  (const struct llama_adapter_lora * adapter);
+	adapterGetAloraInvocationTokensFunc ffi.Fun
 )
 
 var (
@@ -90,11 +96,21 @@ func loadLoraFuncs(lib ffi.Lib) error {
 	if setAdapterLoraFunc, err = lib.Prep("llama_set_adapter_lora", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeFloat); err != nil {
 		return loadError("llama_set_adapter_lora", err)
 	}
+
 	if rmAdapterLoraFunc, err = lib.Prep("llama_rm_adapter_lora", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return loadError("llama_rm_adapter_lora", err)
 	}
+
 	if clearAdapterLoraFunc, err = lib.Prep("llama_clear_adapter_lora", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
 		return loadError("llama_clear_adapter_lora", err)
+	}
+
+	if adapterGetAloraNInvocationTokensFunc, err = lib.Prep("llama_adapter_get_alora_n_invocation_tokens", &ffi.TypeUint64, &ffi.TypePointer); err != nil {
+		return loadError("llama_adapter_get_alora_n_invocation_tokens", err)
+	}
+
+	if adapterGetAloraInvocationTokensFunc, err = lib.Prep("llama_adapter_get_alora_invocation_tokens", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("llama_adapter_get_alora_invocation_tokens", err)
 	}
 
 	return nil
@@ -262,4 +278,30 @@ func ClearAdapterLora(ctx Context) {
 		return
 	}
 	clearAdapterLoraFunc.Call(nil, unsafe.Pointer(&ctx))
+}
+
+// AdapterGetAloraNInvocationTokens returns the number of invocation tokens for the adapter.
+func AdapterGetAloraNInvocationTokens(adapter AdapterLora) uint64 {
+	if adapter == 0 {
+		return 0
+	}
+	var result ffi.Arg
+	adapterGetAloraNInvocationTokensFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&adapter))
+	return uint64(result)
+}
+
+// AdapterGetAloraInvocationTokens returns a slice of invocation tokens for the adapter.
+func AdapterGetAloraInvocationTokens(adapter AdapterLora) []Token {
+	n := AdapterGetAloraNInvocationTokens(adapter)
+	if n == 0 {
+		return nil
+	}
+
+	var ptr *Token
+	adapterGetAloraInvocationTokensFunc.Call(unsafe.Pointer(&ptr), unsafe.Pointer(&adapter))
+	if ptr == nil {
+		return nil
+	}
+
+	return unsafe.Slice(ptr, n)
 }

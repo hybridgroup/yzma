@@ -244,3 +244,49 @@ func TestClearAdapterLora(t *testing.T) {
 	ClearAdapterLora(ctx)
 	t.Logf("ClearAdapterLora succeeded")
 }
+
+func TestAdapterGetAloraNInvocationTokens(t *testing.T) {
+	modelFile := testLoraModelFileName(t)
+	loraFile := testLoraAdaptorFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	adapter, err := AdapterLoraInit(model, loraFile)
+	if err != nil {
+		t.Fatalf("AdapterLoraInit failed: %v", err)
+	}
+	defer AdapterLoraFree(adapter)
+
+	n := AdapterGetAloraNInvocationTokens(adapter)
+	t.Logf("AdapterGetAloraNInvocationTokens returned: %d", n)
+}
+
+func TestAdapterGetAloraInvocationTokens(t *testing.T) {
+	modelFile := testLoraModelFileName(t)
+	loraFile := testLoraAdaptorFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	adapter, err := AdapterLoraInit(model, loraFile)
+	if err != nil {
+		t.Fatalf("AdapterLoraInit failed: %v", err)
+	}
+	defer AdapterLoraFree(adapter)
+
+	tokens := AdapterGetAloraInvocationTokens(adapter)
+	t.Logf("AdapterGetAloraInvocationTokens returned %d tokens", len(tokens))
+}
