@@ -43,16 +43,24 @@ func BenchmarkInference(b *testing.B) {
 	}
 	defer Free(ctx)
 
-	for i := 0; i < b.N; i++ {
-		benchmarkInference(b, ctx, model, "This is a test")
+	total := 0
+	b.ResetTimer()
+	for b.Loop() {
+		total += benchmarkInference(b, ctx, model, "Are you ready to go?")
 	}
+
+	// Calculate tokens/second
+	elapsedSeconds := b.Elapsed().Seconds()
+	tokensPerSecond := float64(total) / elapsedSeconds
+	b.ReportMetric(tokensPerSecond, "tokens/s")
 }
 
-func benchmarkInference(b *testing.B, ctx Context, model Model, text string) {
+func benchmarkInference(b *testing.B, ctx Context, model Model, text string) int {
 	vocab := ModelGetVocab(model)
 
 	// get tokens from the prompt
 	tokens := Tokenize(vocab, text, true, false)
+	total := len(tokens)
 
 	batch := BatchGetOne(tokens)
 
@@ -66,16 +74,21 @@ func benchmarkInference(b *testing.B, ctx Context, model Model, text string) {
 			break
 		}
 
+		total++
 		buf := make([]byte, 36)
 		TokenToPiece(vocab, token, buf, 0, true)
 
 		batch = BatchGetOne([]Token{token})
 	}
 
+	b.StopTimer()
 	Synchronize(ctx)
 	mem, err := GetMemory(ctx)
 	if err != nil {
 		b.Fatalf("GetMemory failed: %v", err)
 	}
 	MemoryClear(mem, true)
+	b.StartTimer()
+
+	return total
 }
