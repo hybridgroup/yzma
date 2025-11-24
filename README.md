@@ -79,7 +79,7 @@ Didn't get any output? Run it again without the `2>/dev/null` to see any errors.
 
 ## Installation
 
-You will need to download the `llama.cpp` prebuilt libraries for your platform.
+You will need to download the `llama.cpp` prebuilt libraries for your platform. Use the convenient `installer` application, or download them manually.
 
 See [INSTALL.md](./INSTALL.md) for detailed information on installation on Linux, macOS, and Windows.
 
