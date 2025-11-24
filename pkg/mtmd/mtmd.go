@@ -96,7 +96,7 @@ var (
 
 	// Set callback for all future logging events.
 	// If this is not called, or NULL is supplied, everything is output on stderr.
-	// MTMD_API void mtmd_log_set(ggml_log_callback log_callback, void * user_data);
+	// MTMD_API void mtmd_helper_log_set(ggml_log_callback log_callback, void * user_data);
 	mtmdLogSetFunc ffi.Fun
 )
 
@@ -149,8 +149,8 @@ func loadFuncs(lib ffi.Lib) error {
 		return loadError("mtmd_get_audio_bitrate", err)
 	}
 
-	if mtmdLogSetFunc, err = lib.Prep("mtmd_log_set", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
-		return loadError("mtmd_log_set", err)
+	if mtmdLogSetFunc, err = lib.Prep("mtmd_helper_log_set", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_helper_log_set", err)
 	}
 
 	return nil
