@@ -29,6 +29,7 @@ var (
 
 func main() {
 	llama.Load(libPath)
+	llama.LogSet(llama.LogSilent())
 	llama.Init()
 
 	model, _ := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
@@ -68,14 +69,12 @@ func main() {
 Produces the following output:
 
 ```shell
-$ go run ./examples/hello/ 2>/dev/null
+$ go run ./examples/hello/
 
 The first thing you need to do is to get your hands on a computer.
 ```
 
-What's with the `2>/dev/null` at the end? That is the "easy way" to suppress the logging from `llama.cpp`.
-
-Didn't get any output? Run it again without the `2>/dev/null` to see any errors.
+Didn't get any output? You probably don't have the model, make sure you download it.
 
 ## Installation
 
@@ -91,11 +90,6 @@ This example uses the [`Qwen2.5-VL-3B-Instruct-Q8_0`](https://huggingface.co/ggm
 
 ```shell
 $ go run ./examples/vlm/ -model ~/models/Qwen2.5-VL-3B-Instruct-Q8_0.gguf -mmproj ~/models/mmproj-Qwen2.5-VL-3B-Instruct-Q8_0.gguf -image ./images/domestic_llama.jpg -p "What is in this picture?"
-Loading model /home/ron/models/Qwen2.5-VL-3B-Instruct-Q8_0.gguf
-encoding image slice...
-image slice encoded in 966 ms
-decoding image batch 1/1, n_tokens_batch = 910
-image decoded (batch 1/1) in 86 ms
 
 The image features a white llama standing in a fenced-in area, possibly a zoo or a farm. The llama is positioned in the center of the image, with its body facing the right side. The fenced area is surrounded by trees, creating a natural environment for the llama.
 ```

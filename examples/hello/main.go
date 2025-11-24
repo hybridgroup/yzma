@@ -16,6 +16,8 @@ var (
 
 func main() {
 	llama.Load(libPath)
+	llama.LogSet(llama.LogSilent())
+
 	llama.Init()
 
 	model, _ := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
