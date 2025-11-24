@@ -5,11 +5,11 @@ Shows model information.
 ## Running
 
 ```shell
-go run ./examples/modelnfo/ /path/to/model.gguf
+go run ./examples/modelnfo/ -model /path/to/model.gguf
 ```
 
 ```shell
-$ go run ./examples/modelinfo/ ~/models/gemma-3-1b-it-q4_0.gguf 
+$ go run ./examples/modelinfo/ -model ~/models/gemma-3-1b-it-q4_0.gguf 
 Model Description: gemma3 1B Q4_0
 Model Size: 997007872 tensors
 Model Has Encoder: false
