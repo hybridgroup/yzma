@@ -149,7 +149,26 @@ Whenever there is a new release of `llama.cpp`, the tests for `yzma` are run aut
 
 ## Benchmarks
 
-Want to see some benchmarks? Take a look at the [BENCHMARKS.md](./BENCHMARKS.md) document.
+`yzma` is fast because it calls `llama.cpp` in the same process. No external servers needed!
+
+
+```shell
+$ go test -bench=BenchmarkInference -benchtime=10s -count=5 -v -run=nada ./pkg/llama
+goos: darwin
+goarch: arm64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: Apple M4 Max
+BenchmarkInference
+BenchmarkInference-16    	     212	  56221789 ns/op	       533.6 tokens/s
+BenchmarkInference-16    	     212	  56651795 ns/op	       529.6 tokens/s
+BenchmarkInference-16    	     213	  56220516 ns/op	       533.6 tokens/s
+BenchmarkInference-16    	     213	  56204004 ns/op	       533.8 tokens/s
+BenchmarkInference-16    	     208	  57035355 ns/op	       526.0 tokens/s
+PASS
+ok  	github.com/hybridgroup/yzma/pkg/llama	60.415s
+```
+
+Want to see more benchmarks? Take a look at the [BENCHMARKS.md](./BENCHMARKS.md) document.
 
 ## More Info
 
