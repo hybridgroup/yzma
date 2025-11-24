@@ -2,7 +2,6 @@ package llama
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"unsafe"
 
@@ -687,6 +686,8 @@ func (p *ModelParams) SetTensorBufOverrides(overrides []TensorBuftOverride) {
 	p.TensorBuftOverrides = uintptr(unsafe.Pointer(&overrides[0]))
 }
 
+var progressCallback unsafe.Pointer
+
 // SetProgressCallback sets a progress callback for model loading.
 func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
 	if cb == nil {
@@ -694,10 +695,13 @@ func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
 		return
 	}
 
-	var callback unsafe.Pointer
-	closure := ffi.ClosureAlloc(unsafe.Sizeof(ffi.Closure{}), &callback)
+	closure := ffi.ClosureAlloc(unsafe.Sizeof(ffi.Closure{}), &progressCallback)
 
 	fn := ffi.NewCallback(func(cif *ffi.Cif, ret unsafe.Pointer, args *unsafe.Pointer, userData unsafe.Pointer) uintptr {
+		if args == nil || ret == nil {
+			return 1 // error
+		}
+
 		arg := unsafe.Slice(args, cif.NArgs)
 		progress := *(*float32)(arg[0])
 		userDataPtr := *(*uintptr)(arg[1])
@@ -708,18 +712,16 @@ func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
 
 	var cifCallback ffi.Cif
 	if status := ffi.PrepCif(&cifCallback, ffi.DefaultAbi, 2, &ffi.TypeUint8, &ffi.TypeFloat, &ffi.TypePointer); status != ffi.OK {
-		fmt.Println(status)
-		return
+		panic(status)
 	}
 
 	if closure != nil {
-		if status := ffi.PrepClosureLoc(closure, &cifCallback, fn, nil, callback); status != ffi.OK {
-			fmt.Println(status)
-			return
+		if status := ffi.PrepClosureLoc(closure, &cifCallback, fn, nil, progressCallback); status != ffi.OK {
+			panic(status)
 		}
 	}
 
-	p.ProgressCallback = uintptr(callback)
+	p.ProgressCallback = uintptr(progressCallback)
 }
 
 // SetDevices sets the devices to be used for model execution.
