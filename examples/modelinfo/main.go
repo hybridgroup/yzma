@@ -7,29 +7,20 @@ import (
 	"github.com/hybridgroup/yzma/pkg/llama"
 )
 
-var (
-	libPath = os.Getenv("YZMA_LIB")
-)
-
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <modelFile>\n", os.Args[0])
-		os.Exit(1)
+	if err := handleFlags(); err != nil {
+		showUsage()
+		os.Exit(0)
 	}
-	modelFile := os.Args[1]
 
-	llama.Load(libPath)
+	llama.Load(*libPath)
 	llama.LogSet(llama.LogSilent())
 
 	llama.Init()
 
-	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	model, err := llama.ModelLoadFromFile(*modelFile, llama.ModelDefaultParams())
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "unable to load model from file %s: %v\n", modelFile, err)
-		os.Exit(1)
-	}
-	if model == 0 {
-		fmt.Fprintf(os.Stderr, "unable to load model from file %s\n", modelFile)
+		fmt.Fprintf(os.Stderr, "unable to load model from file %s: %v\n", *modelFile, err)
 		os.Exit(1)
 	}
 
