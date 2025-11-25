@@ -26,21 +26,35 @@ You will need to download the `llama.cpp` libraries for Linux. Choose the downlo
 
 ### CPU
 
-You can obtain them from https://github.com/ggml-org/llama.cpp/releases
+You can use the `yzma` installer program or obtain prebuilt `llama.cpp` libraries from here:
+
+https://github.com/ggml-org/llama.cpp/releases
 
 ### CUDA
 
-Prebuilt binaries for Ubuntu 24.04 using the NVidia 12.9 drivers for CUDA acceleration are available here:
+You will need to install the CUDA drivers for your Nvidia GPU.
+
+See https://docs.nvidia.com/cuda/cuda-installation-guide-linux/
+
+Once your drivers are installed, you can use the `yzma` installer program or obtain prebuilt `llama.cpp` binaries for Ubuntu 24.04 using the NVidia 12.9 drivers for CUDA acceleration from here:
 
 https://github.com/hybridgroup/llama-cpp-builder/releases
 
 ### Vulkan
 
-You can obtain them from https://github.com/ggml-org/llama.cpp/releases
+You will need to install Vulkan on your system. For example:
 
-### Installing the prebuilt binaries
+```shell
+sudo apt install -y mesa-vulkan-drivers vulkan-tools
+```
 
-Extract the library files into a directory on your local machine.
+Once your drivers are installed, you can use the `yzma` installer program or obtain prebuilt `llama.cpp` binaries from here:
+
+https://github.com/ggml-org/llama.cpp/releases
+
+### Installing the prebuilt binaries (manual)
+
+If you do not use the `yzma` installer, you must extract the library files into a directory on your local machine.
 
 For Linux, they have the `.so` file extension. For example, `libllama.so`, `libmtmd.so` and so on.
 
@@ -54,9 +68,11 @@ export YZMA_LIB=/home/ron/Development/yzma/lib
 
 ## macOS
 
-You will need to download the `llama.cpp` libraries for macOS. You can obtain them from https://github.com/ggml-org/llama.cpp/releases
+You can use the `yzma` installer program or else download the `llama.cpp` libraries for macOS.
 
-Extract the library files into a directory on your local machine.
+You can obtain them from https://github.com/ggml-org/llama.cpp/releases
+
+If you do not use the `yzma` installer, extract the library files into a directory on your local machine.
 
 For macOS, they have the `.dylib` file extension. For example, `libllama.dylib`, `libmtmd.dylib` and so on. You do not need the other downloaded files to use the `llama.cpp` libraries with `yzma`.
 
@@ -72,17 +88,29 @@ export YZMA_LIB=/home/ron/Development/yzma/lib
 
 ### CPU
 
-You can obtain them from https://github.com/ggml-org/llama.cpp/releases
+You can use the `yzma` installer program or obtain prebuilt `llama.cpp` libraries from here:
+
+https://github.com/ggml-org/llama.cpp/releases
 
 ### CUDA
 
-You can obtain them from https://github.com/ggml-org/llama.cpp/releases
+You will need to install the CUDA drivers for your Nvidia GPU.
+
+See https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/
+
+Once your drivers are installed, you can use the `yzma` installer program or obtain prebuilt `llama.cpp` binaries for Ubuntu 24.04 using the NVidia 12.9 drivers for CUDA acceleration from here:
+
+https://github.com/ggml-org/llama.cpp/releases
+
+You will also need to download the `cudart` files from the same location as the other `llama.cpp` libraries when using CUDA on Windows.
 
 ### Vulkan
 
-You can obtain them from https://github.com/ggml-org/llama.cpp/releases
+You can use the `yzma` installer program or obtain prebuilt `llama.cpp` libraries from here:
 
-### Installing the prebuilt binaries
+https://github.com/ggml-org/llama.cpp/releases
+
+### Installing the prebuilt binaries (manual install)
 
 Extract the library files into a directory on your local machine.
 

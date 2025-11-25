@@ -29,6 +29,7 @@ var (
 
 func main() {
 	llama.Load(libPath)
+	llama.LogSet(llama.LogSilent())
 	llama.Init()
 
 	model, _ := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
@@ -68,18 +69,16 @@ func main() {
 Produces the following output:
 
 ```shell
-$ go run ./examples/hello/ 2>/dev/null
+$ go run ./examples/hello/
 
 The first thing you need to do is to get your hands on a computer.
 ```
 
-What's with the `2>/dev/null` at the end? That is the "easy way" to suppress the logging from `llama.cpp`.
-
-Didn't get any output? Run it again without the `2>/dev/null` to see any errors.
+Didn't get any output? You probably don't have the model, make sure you download it.
 
 ## Installation
 
-You will need to download the `llama.cpp` prebuilt libraries for your platform.
+You will need to download the `llama.cpp` prebuilt libraries for your platform. Use the convenient `installer` application, or download them manually.
 
 See [INSTALL.md](./INSTALL.md) for detailed information on installation on Linux, macOS, and Windows.
 
@@ -91,11 +90,6 @@ This example uses the [`Qwen2.5-VL-3B-Instruct-Q8_0`](https://huggingface.co/ggm
 
 ```shell
 $ go run ./examples/vlm/ -model ~/models/Qwen2.5-VL-3B-Instruct-Q8_0.gguf -mmproj ~/models/mmproj-Qwen2.5-VL-3B-Instruct-Q8_0.gguf -image ./images/domestic_llama.jpg -p "What is in this picture?"
-Loading model /home/ron/models/Qwen2.5-VL-3B-Instruct-Q8_0.gguf
-encoding image slice...
-image slice encoded in 966 ms
-decoding image batch 1/1, n_tokens_batch = 910
-image decoded (batch 1/1) in 86 ms
 
 The image features a white llama standing in a fenced-in area, possibly a zoo or a farm. The llama is positioned in the center of the image, with its body facing the right side. The fenced area is surrounded by trees, creating a natural environment for the llama.
 ```
@@ -155,7 +149,26 @@ Whenever there is a new release of `llama.cpp`, the tests for `yzma` are run aut
 
 ## Benchmarks
 
-Want to see some benchmarks? Take a look at the [BENCHMARKS.md](./BENCHMARKS.md) document.
+`yzma` is fast because it calls `llama.cpp` in the same process. No external servers needed!
+
+
+```shell
+$ go test -bench=BenchmarkInference -benchtime=10s -count=5 -v -run=nada ./pkg/llama
+goos: darwin
+goarch: arm64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: Apple M4 Max
+BenchmarkInference
+BenchmarkInference-16    	     212	  56221789 ns/op	       533.6 tokens/s
+BenchmarkInference-16    	     212	  56651795 ns/op	       529.6 tokens/s
+BenchmarkInference-16    	     213	  56220516 ns/op	       533.6 tokens/s
+BenchmarkInference-16    	     213	  56204004 ns/op	       533.8 tokens/s
+BenchmarkInference-16    	     208	  57035355 ns/op	       526.0 tokens/s
+PASS
+ok  	github.com/hybridgroup/yzma/pkg/llama	60.415s
+```
+
+Want to see more benchmarks? Take a look at the [BENCHMARKS.md](./BENCHMARKS.md) document.
 
 ## More Info
 

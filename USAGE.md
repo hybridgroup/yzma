@@ -75,12 +75,6 @@ go run ./examples/vlm/ -model ~/models/InternVLA-M1.Q8_0.gguf --mmproj ~/models/
 ```
 
 ```
-Loading model /home/ron/models/InternVLA-M1.Q8_0.gguf
-encoding image slice...
-image slice encoded in 946 ms
-decoding image batch 1/1, n_tokens_batch = 910
-image decoded (batch 1/1) in 121 ms
-
 {"label": "llama", "bbox_2d": [43, 352, 647, 822], "distance": 10.0}
 ```
 
@@ -92,14 +86,7 @@ https://huggingface.co/mradermacher/SpaceQwen2.5-VL-3B-Instruct-GGUF
 $ go run ./examples/vlm/ -model ~/models/SpaceQwen2.5-VL-3B-Instruct.i1-Q4_K_M.gguf --mmproj ~/models/spaceqwen2.5-vl-3b-instruct-vision.gguf -p "What is in this picture? Provide a description, bounding box, and estimated distance for the llama in json format." -sys "You are a helpful robotic drone camera currently in flight." -image ./images/domestic_llama.jpg  
 ```
 
-```shell
-Loading model /home/ron/models/SpaceQwen2.5-VL-3B-Instruct.i1-Q4_K_M.gguf
-encoding image slice...
-image slice encoded in 881 ms
-decoding image batch 1/1, n_tokens_batch = 910
-image decoded (batch 1/1) in 90 ms
 ```
-```json
 {
   "bbox_2d": [40, 20, 67, 35],
   "label": "llama",

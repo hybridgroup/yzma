@@ -42,7 +42,10 @@ func main() {
 	llama.Init()
 	defer llama.Close()
 
-	fmt.Println("Loading model", *modelFile)
+	if *verbose {
+		fmt.Println("Loading model", *modelFile)
+	}
+
 	model, err := llama.ModelLoadFromFile(*modelFile, llama.ModelDefaultParams())
 	if err != nil {
 		fmt.Println("unable to load model from file", err.Error())

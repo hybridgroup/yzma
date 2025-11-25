@@ -163,6 +163,8 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_state_set_data`
 
 ### LoRA Functions
+- [x] `llama_adapter_get_alora_invocation_tokens`
+- [x] `llama_adapter_get_alora_n_invocation_tokens`
 - [x] `llama_adapter_lora_free`
 - [x] `llama_adapter_lora_init`
 - [x] `llama_adapter_meta_count`
@@ -223,8 +225,6 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 
 ## Functions in `llama.cpp` still needing wrappers
 
-- [ ] `llama_adapter_get_alora_invocation_tokens`
-- [ ] `llama_adapter_get_alora_n_invocation_tokens`
 - [ ] `llama_apply_adapter_cvec`
 - [ ] `llama_attach_threadpool`
 - [ ] `llama_detach_threadpool`
