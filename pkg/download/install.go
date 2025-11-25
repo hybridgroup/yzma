@@ -120,7 +120,7 @@ func installLlamaCpp(libPath string, processor Processor, version string) error 
 		os.RemoveAll(libPath)
 	}
 
-	if err := Get(runtime.GOOS, processor.String(), version, libPath); err != nil {
+	if err := Get(runtime.GOARCH, runtime.GOOS, processor.String(), version, libPath); err != nil {
 		return fmt.Errorf("error downloading llama.cpp: %w", err)
 	}
 

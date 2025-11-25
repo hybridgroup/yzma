@@ -32,7 +32,7 @@ func main() {
 	}
 
 	fmt.Println("installing llama.cpp version", *version, "to", *libPath)
-	if err := download.Get(runtime.GOOS, *processor, *version, *libPath); err != nil {
+	if err := download.Get(runtime.GOARCH, runtime.GOOS, *processor, *version, *libPath); err != nil {
 		fmt.Println("failed to download llama.cpp:", err.Error())
 		return
 	}
