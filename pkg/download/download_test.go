@@ -27,11 +27,12 @@ func TestLlamaLatestVersion(t *testing.T) {
 
 func TestGetLinuxCPU(t *testing.T) {
 	version := "b6795"
+	arch := "amd64"
 	osVer := "linux"
 	processor := "cpu"
 	dest := t.TempDir()
 
-	err := Get(osVer, processor, version, dest)
+	err := Get(arch, osVer, processor, version, dest)
 	if err != nil {
 		t.Fatalf("Get() failed: %v", err)
 	}
@@ -46,11 +47,12 @@ func TestGetLinuxCPU(t *testing.T) {
 
 func TestGetInvalidOS(t *testing.T) {
 	version := "b6795"
+	arch := "amd64"
 	osVer := "cpm"
 	processor := "cpu"
 	dest := t.TempDir()
 
-	err := Get(osVer, processor, version, dest)
+	err := Get(arch, osVer, processor, version, dest)
 	if err != ErrUnknownOS {
 		t.Fatalf("Get() should have failed: %v", err)
 	}
@@ -58,11 +60,12 @@ func TestGetInvalidOS(t *testing.T) {
 
 func TestGetInvalidProcessor(t *testing.T) {
 	version := "b6795"
+	arch := "amd64"
 	osVer := "windows"
 	processor := "flux"
 	dest := t.TempDir()
 
-	err := Get(osVer, processor, version, dest)
+	err := Get(arch, osVer, processor, version, dest)
 	if err != ErrUnknownProcessor {
 		t.Fatalf("Get() should have failed: %v", err)
 	}
@@ -70,11 +73,12 @@ func TestGetInvalidProcessor(t *testing.T) {
 
 func TestGetInvalidVersion(t *testing.T) {
 	version := "nogood"
+	arch := "amd64"
 	osVer := "linux"
 	processor := "cpu"
 	dest := t.TempDir()
 
-	err := Get(osVer, processor, version, dest)
+	err := Get(arch, osVer, processor, version, dest)
 	if err != ErrInvalidVersion {
 		t.Fatalf("Get() should have failed: %v", err)
 	}
