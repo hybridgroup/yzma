@@ -1,0 +1,17 @@
+name: Notify on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify-downstream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger downstream repository (KRONK)
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.KRONK_REPO_TOKEN }}" \
+            https://api.github.com/repos/ardanlabs/kronk/dispatches \
+            -d '{"event_type":"external-release","client_payload":{"version":"${{ github.event.release.tag_name }}","release_name":"${{ github.event.release.name }}","release_url":"${{ github.event.release.html_url }}"}}'
