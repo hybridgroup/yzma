@@ -82,7 +82,9 @@ func getDownloadLocationAndFilename(arch Arch, os OS, prcssr Processor, version 
 			}
 		case Vulkan:
 			if arch == ARM64 {
-				return "", "", errors.New("precompiled binaries for Linux ARM64 Vulkan are not available")
+				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-arm64.zip", version)
+				break
 			}
 			filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-x64.zip//build/bin", version)
 		default:
