@@ -586,7 +586,7 @@ func ModelMetaValStr(model Model, key string) (string, bool) {
 	if model == 0 {
 		return "", false
 	}
-	buf := make([]byte, 8192)
+	buf := make([]byte, 32768)
 	b := unsafe.SliceData(buf)
 	bLen := int32(len(buf))
 
@@ -654,7 +654,7 @@ func ModelMetaValStrByIndex(model Model, i int32) (string, bool) {
 	if model == 0 {
 		return "", false
 	}
-	buf := make([]byte, 8192)
+	buf := make([]byte, 32768)
 	b := unsafe.SliceData(buf)
 	bLen := int32(len(buf))
 
