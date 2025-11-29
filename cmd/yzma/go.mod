@@ -1,4 +1,4 @@
-module github.com/hybridgroup/cmd/yzma
+module github.com/hybridgroup/yzma/cmd/yzma
 
 go 1.24.4
 
