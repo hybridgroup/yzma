@@ -123,8 +123,6 @@ Sure! Let's go to the zoo and feed the llama. What kind of llama are you interes
 
 See the [examples](./examples/) directory for more examples of how to use `yzma`.
 
-You can find even more examples in the Ardan Labs [ai-training](https://github.com/ardanlabs/ai-training) repository.
-
 Also see the ["Captions WIth Attitude"](https://github.com/hybridgroup/captions-with-attitude) application.
 
 ## Models
@@ -150,7 +148,6 @@ Whenever there is a new release of `llama.cpp`, the tests for `yzma` are run aut
 ## Benchmarks
 
 `yzma` is fast because it calls `llama.cpp` in the same process. No external servers needed!
-
 
 ```shell
 $ go test -bench=BenchmarkInference -benchtime=10s -count=5 -v -run=nada ./pkg/llama
@@ -185,3 +182,19 @@ Here are some advantages of `yzma` with `llama.cpp`:
 The idea is to make it easier for Go developers to use language models as part of "normal" applications without having to use containers or do anything other than the normal `GOOS` and `GOARCH` env variables for cross-complication.
 
 `yzma` originally started with definitions from the https://github.com/dianlight/gollama.cpp package, but then has gone on to modify them rather heavily. Thank you!
+
+## Projects Using yzma
+
+Here is a list of projects that are providing high-level libraries or building applications using `yzma`:
+
+<a href="https://github.com/ardanlabs/kronk" target="_blank">
+<img src="https://github.com/ardanlabs/kronk/blob/main/images/project/kronk_logo1.png?raw=true" width="150" alt="Kronk logo" align="left" style="margin-right: 10px">
+</a>
+
+### [Kronk](https://github.com/ardanlabs/kronk)
+
+This project lets you use Go for hardware accelerated local inference with llama.cpp directly integrated into your applications via the `yzma` module. Kronk provides a high-level API that feels similar to using an OpenAI compatible API.
+
+Examples can be found in the [AI training](https://github.com/ardanlabs/ai-training) repository.
+
+<br clear="all"/>
