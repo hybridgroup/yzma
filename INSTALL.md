@@ -2,9 +2,33 @@
 
 Here is information on how to install the requirements for running an application using `llama.cpp`.
 
+## `yzma` command
+
+You can install or update the `llama.cpp` libraries on your local machine using the `yzma` command line tool.
+
+Install it like this:
+
+```
+go install github.com/hybridgroup/yzma/cmd/yzma@latest
+```
+
+Decide where you want put the files for your local installation, then run the `yzma install` command:
+
+```
+yzma install --lib /path/to/lib
+```
+
+If you want to install one of the hardware accelerated versions for your configuration such as CUDA:
+
+```
+yzma install --lib /path/to/lib --processor cuda
+```
+
+For more info, see the [`yzma` command documentation](./cmd/yzma/README.md).
+
 ## Programmatic Installation
 
-Want to use Go code to install the `llama.cpp` precompiled binaries? We have the `download` package for that!
+Want to use Go code to install the `llama.cpp` precompiled binaries from within your own application? We have the `download` package for that!
 
 Check out the [installer example code](./examples/installer/).
 

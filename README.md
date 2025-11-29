@@ -78,7 +78,7 @@ Didn't get any output? You probably don't have the model, make sure you download
 
 ## Installation
 
-You will need to download the `llama.cpp` prebuilt libraries for your platform. Use the convenient `installer` application, or download them manually.
+You can use the convenient `yzma` command line tool to download the `llama.cpp` prebuilt libraries for your platform, or download them manually.
 
 See [INSTALL.md](./INSTALL.md) for detailed information on installation on Linux, macOS, and Windows.
 
