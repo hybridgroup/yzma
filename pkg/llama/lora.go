@@ -145,7 +145,7 @@ func AdapterMetaValStr(adapter AdapterLora, key string) (string, bool) {
 	if adapter == 0 {
 		return "", false
 	}
-	buf := make([]byte, 8192)
+	buf := make([]byte, 32768)
 	b := unsafe.SliceData(buf)
 	bLen := int32(len(buf))
 
@@ -211,7 +211,7 @@ func AdapterMetaValStrByIndex(adapter AdapterLora, i int32) (string, bool) {
 	if adapter == 0 {
 		return "", false
 	}
-	buf := make([]byte, 8192)
+	buf := make([]byte, 32768)
 	b := unsafe.SliceData(buf)
 	bLen := int32(len(buf))
 
