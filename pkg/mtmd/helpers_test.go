@@ -96,3 +96,45 @@ func openImageFile(path string) ([]byte, uint32, uint32, error) {
 
 	return rgbData, width, height, nil
 }
+
+func benchmarkModelFileName(b *testing.B) string {
+	if os.Getenv("YZMA_TEST_MMMODEL") == "" {
+		b.Skip("no YZMA_TEST_MMMODEL skipping test")
+	}
+
+	return os.Getenv("YZMA_TEST_MMMODEL")
+}
+
+func benchmarkProjectorFileName(b *testing.B) string {
+	if os.Getenv("YZMA_TEST_MMPROJ") == "" {
+		b.Skip("no YZMA_TEST_MMPROJ skipping test")
+	}
+
+	return os.Getenv("YZMA_TEST_MMPROJ")
+}
+
+func benchmarkSetup(b *testing.B) {
+	if os.Getenv("YZMA_LIB") == "" {
+		b.Fatal("no YZMA_LIB set for tests")
+	}
+	testPath := os.Getenv("YZMA_LIB")
+
+	if err := llama.Load(testPath); err != nil {
+		b.Fatal("unable to load library", err.Error())
+	}
+	if err := Load(testPath); err != nil {
+		b.Fatal("unable to load library", err.Error())
+	}
+
+	llama.LogSet(llama.LogSilent())
+	LogSet(llama.LogSilent())
+
+	llama.Init()
+}
+
+func benchmarkCleanup(b *testing.B) {
+	llama.LogSet(llama.LogNormal)
+	LogSet(llama.LogNormal)
+
+	llama.Close()
+}
