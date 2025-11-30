@@ -123,9 +123,9 @@ Sure! Let's go to the zoo and feed the llama. What kind of llama are you interes
 
 See the [examples](./examples/) directory for more examples of how to use `yzma`.
 
-You can find even more examples in the Ardan Labs [ai-training](https://github.com/ardanlabs/ai-training) repository.
+## Projects
 
-Also see the ["Captions WIth Attitude"](https://github.com/hybridgroup/captions-with-attitude) application.
+Check out [some projects that are using `yzma`](./PROJECTS.md)!
 
 ## Models
 
