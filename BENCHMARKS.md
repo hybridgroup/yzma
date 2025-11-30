@@ -1,12 +1,17 @@
 # Benchmarks
 
+- [Text model benchmarks](#text-model-benchmarks)
+- [Multimodal model benchmarks](#multimodal-model-benchmarks)
+
+## Text model benchmarks
+
 These benchmarks all use the [SmolLM-135M-GGUF](https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf) model to perform simple text generation.
 
 See https://github.com/hybridgroup/yzma/blob/main/pkg/llama/benchmark_test.go
 
-## Linux
+### Linux
 
-### CPU
+#### CPU
 
 ```
 $ go test -bench=BenchmarkInference -benchtime=10s -count=5 -run=nada ./pkg/llama
@@ -23,7 +28,7 @@ PASS
 ok      github.com/hybridgroup/yzma/pkg/llama   58.614s
 ```
 
-### CUDA
+#### CUDA
 
 ```
 +-----------------------------------------------------------------------------------------+
@@ -54,7 +59,7 @@ PASS
 ok      github.com/hybridgroup/yzma/pkg/llama   61.194s
 ```
 
-### Vulkan
+#### Vulkan
 
 ```
 ==========
@@ -123,9 +128,9 @@ PASS
 ok      github.com/hybridgroup/yzma/pkg/llama   63.392s
 ```
 
-## macOS
+### macOS
 
-### Metal
+#### Metal
 
 ```
 $ go test -bench=BenchmarkInference -benchtime=10s -count=5 -v -run=nada ./pkg/llama
@@ -143,9 +148,9 @@ PASS
 ok  	github.com/hybridgroup/yzma/pkg/llama	60.415s
 ```
 
-## Windows
+### Windows
 
-### CPU
+#### CPU
 
 ```
 C:\Users\ron\yzma>go test -bench=BenchmarkInference -benchtime=10s -count=5 -run=nada ./pkg/llama
@@ -162,7 +167,7 @@ PASS
 ok      github.com/hybridgroup/yzma/pkg/llama   62.396s
 ```
 
-### CUDA
+#### CUDA
 
 ```
 C:\Users\ron>nvidia-smi
@@ -207,7 +212,7 @@ ok      github.com/hybridgroup/yzma/pkg/llama   64.296s
 ```
 
 
-### Vulkan
+#### Vulkan
 
 ```
 ==========
@@ -278,3 +283,150 @@ BenchmarkInference-32                274          43559242 ns/op               6
 PASS
 ok      github.com/hybridgroup/yzma/pkg/llama   65.798s
 ```
+
+## Multimodal model benchmarks
+
+These benchmarks all use the [SmolVLM-256M-Instruct-Q8_0.gguf](https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF/blob/main/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf) model and projector to provide a description for an image.
+
+See https://github.com/hybridgroup/yzma/blob/main/pkg/mtmd/benchmark_test.go
+
+### Linux
+
+#### CPU
+
+```
+$ go test -bench=BenchmarkMultimodalInference -benchtime=10s -count=5 -run=nada ./pkg/mtmd/
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/mtmd
+cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
+BenchmarkMultimodalInference-32                8        1347800979 ns/op                66.78 tokens/s
+BenchmarkMultimodalInference-32                8        1343806557 ns/op                66.97 tokens/s
+BenchmarkMultimodalInference-32                8        1343664958 ns/op                66.98 tokens/s
+BenchmarkMultimodalInference-32                8        1327958184 ns/op                67.77 tokens/s
+BenchmarkMultimodalInference-32                8        1339477869 ns/op                67.19 tokens/s
+PASS
+ok      github.com/hybridgroup/yzma/pkg/mtmd    54.800s
+```
+
+#### CUDA
+
+```
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.95.05              Driver Version: 580.95.05      CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
+| N/A   38C    P0            590W /  115W |      15MiB /   8188MiB |     17%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+```
+
+```
+$ YZMA_BENCHMARK_DEVICE="CUDA0" go test -bench=BenchmarkMultimodalInference -benchtime=10s -count=5 -run=nada ./pkg/mtmd/
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/mtmd
+cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
+BenchmarkMultimodalInference-32              301          39020452 ns/op              2358 tokens/s
+BenchmarkMultimodalInference-32              310          38536473 ns/op              2387 tokens/s
+BenchmarkMultimodalInference-32              309          38666347 ns/op              2379 tokens/s
+BenchmarkMultimodalInference-32              308          38849429 ns/op              2368 tokens/s
+BenchmarkMultimodalInference-32              308          38680263 ns/op              2378 tokens/s
+PASS
+ok      github.com/hybridgroup/yzma/pkg/mtmd    63.002s
+```
+
+#### Vulkan
+
+```
+==========
+VULKANINFO
+==========
+
+Vulkan Instance Version: 1.3.275
+
+Devices:
+========
+GPU0:
+        apiVersion         = 1.4.305
+        driverVersion      = 25.0.7
+        vendorID           = 0x8086
+        deviceID           = 0xa788
+        deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
+        deviceName         = Intel(R) Graphics (RPL-S)
+        driverID           = DRIVER_ID_INTEL_OPEN_SOURCE_MESA
+        driverName         = Intel open-source Mesa driver
+        driverInfo         = Mesa 25.0.7-0ubuntu0.24.04.2
+        conformanceVersion = 1.4.0.0
+        deviceUUID         = 868088a7-0400-0000-0002-000000000000
+        driverUUID         = 802b0057-40c2-aed9-e538-d78b797f04f4
+GPU1:
+        apiVersion         = 1.4.312
+        driverVersion      = 580.95.5.0
+        vendorID           = 0x10de
+        deviceID           = 0x2860
+        deviceType         = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+        deviceName         = NVIDIA GeForce RTX 4070 Laptop GPU
+        driverID           = DRIVER_ID_NVIDIA_PROPRIETARY
+        driverName         = NVIDIA
+        driverInfo         = 580.95.05
+        conformanceVersion = 1.4.1.3
+        deviceUUID         = 7e611089-1272-699d-8985-ab84fef4311e
+        driverUUID         = b92269a1-b525-5615-ab8a-e2095ee37192
+```
+
+```
+$ YZMA_BENCHMARK_DEVICE="VULKAN0" go test -bench=BenchmarkMultimodalInference -benchtime=10s -count=5 -run=nada ./pkg/mtmd/
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/mtmd
+cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
+BenchmarkMultimodalInference-32               21         519478018 ns/op               179.0 tokens/s
+BenchmarkMultimodalInference-32               19         543824217 ns/op               171.0 tokens/s
+BenchmarkMultimodalInference-32               20         536617102 ns/op               173.3 tokens/s
+BenchmarkMultimodalInference-32               19         538537938 ns/op               172.7 tokens/s
+BenchmarkMultimodalInference-32               21         529357822 ns/op               175.7 tokens/s
+PASS
+ok      github.com/hybridgroup/yzma/pkg/mtmd    56.240s
+```
+
+```
+$ YZMA_BENCHMARK_DEVICE="VULKAN1" go test -bench=BenchmarkMultimodalInference -benchtime=10s -count=5 -run=nada ./pkg/mtmd/
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/mtmd
+cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
+BenchmarkMultimodalInference-32              223          46226712 ns/op              2033 tokens/s
+BenchmarkMultimodalInference-32              286          41941633 ns/op              2241 tokens/s
+BenchmarkMultimodalInference-32              286          41697075 ns/op              2254 tokens/s
+BenchmarkMultimodalInference-32              286          41547813 ns/op              2262 tokens/s
+BenchmarkMultimodalInference-32              285          41792312 ns/op              2249 tokens/s
+PASS
+ok      github.com/hybridgroup/yzma/pkg/mtmd    63.588s
+```
+
+### macOS
+
+#### Metal
+
+Coming soon...
+
+
+### Windows
+
+#### CPU
+
+Coming soon...
+
+#### CUDA
+
+Coming soon...
+
+#### Vulkan
+
+Coming soon...
+
