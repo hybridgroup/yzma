@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -21,7 +23,7 @@ var (
 
 var (
 	// RetryCount is how many times the package will retry to obtain the latest llama.cpp version.
-	RetryCount = 10
+	RetryCount = 3
 	// RetryDelay is the delay between retries when obtaining the latest llama.cpp version.
 	RetryDelay = 3 * time.Second
 )
@@ -44,14 +46,32 @@ func LlamaLatestVersion() (string, error) {
 func getLatestVersion() (string, error) {
 	const apiURL = "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest"
 
-	resp, err := http.Get(apiURL)
+	req, err := http.NewRequest("GET", apiURL, nil)
+	if err != nil {
+		return "", err
+	}
+
+	// Set required headers for GitHub API
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+
+	// Use GITHUB_TOKEN if available (supports both token and Bearer formats)
+	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("received status code %d from GitHub API", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("received status code %d from GitHub API: %s", resp.StatusCode, string(body))
 	}
 
 	var result struct {
