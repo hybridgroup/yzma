@@ -40,8 +40,16 @@ https://github.com/ardanlabs/ai-training
 
 https://github.com/hybridgroup/captions-with-attitude
 
+### yzma-on-jetson
+
+https://codeberg.org/GenAI-On-Small-Devices/yzma-on-jetson
+
 ## Blog Posts
 
 ### "Installing and Using Yzma on a Jetson Orin Nano" - Philippe Charrière
 
 https://k33g.hashnode.dev/installing-and-using-yzma-on-a-jetson-orin-nano
+
+### "Baby steps with Kronk" - Philippe Charrière
+
+https://k33g.hashnode.dev/baby-steps-with-kronk-1
