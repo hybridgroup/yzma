@@ -19,8 +19,12 @@ var (
 	ErrInvalidVersion   = errors.New("invalid version")
 )
 
-// RetryCount is how many times the package will retry to obtain the latest llama.cpp version.
-var RetryCount = 3
+var (
+	// RetryCount is how many times the package will retry to obtain the latest llama.cpp version.
+	RetryCount = 10
+	// RetryDelay is the delay between retries when obtaining the latest llama.cpp version.
+	RetryDelay = 3 * time.Second
+)
 
 // LlamaLatestVersion fetches the latest release tag of llama.cpp from the GitHub API.
 func LlamaLatestVersion() (string, error) {
@@ -31,10 +35,10 @@ func LlamaLatestVersion() (string, error) {
 		if err == nil {
 			return version, nil
 		}
-		time.Sleep(3 * time.Second)
+		time.Sleep(RetryDelay)
 	}
 
-	return "", err
+	return "", errors.New("unable to fetch latest version")
 }
 
 func getLatestVersion() (string, error) {
