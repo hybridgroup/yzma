@@ -26,14 +26,15 @@ jobs:
         run: |
             curl -o VC_redist.x64.exe -L https://aka.ms/vs/17/release/vc_redist.x64.exe
             Start-Process VC_redist.x64.exe -ArgumentList "/install /quiet /norestart" -Wait
-      - name: Download llama.cpp
-        uses: robinraju/release-downloader@v1
-        with:
-            repository: 'ggml-org/llama.cpp'
-            latest: true
-            fileName: 'llama-*-bin-win-cpu-x64.zip'
-            out-file-path: '.'
-            extract: true
+      - name: Install yzma command
+        run: |
+          cd cmd/yzma
+          go install .
+      - name: Install llama.cpp binaries
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          yzma install -lib ${env:GITHUB_WORKSPACE}
       - name: Set test library location
         run: |
             echo "${env:GITHUB_WORKSPACE}" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
