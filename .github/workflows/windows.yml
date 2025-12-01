@@ -26,15 +26,22 @@ jobs:
         run: |
             curl -o VC_redist.x64.exe -L https://aka.ms/vs/17/release/vc_redist.x64.exe
             Start-Process VC_redist.x64.exe -ArgumentList "/install /quiet /norestart" -Wait
+      - name: Get latest llama.cpp version
+        id: llama-version
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(gh api repos/ggml-org/llama.cpp/releases/latest --jq '.tag_name')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Latest llama.cpp version: $VERSION"
       - name: Install yzma command
         run: |
           cd cmd/yzma
           go install .
       - name: Install llama.cpp binaries
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          yzma install -lib ${env:GITHUB_WORKSPACE}
+          yzma install -lib ${env:GITHUB_WORKSPACE} -version ${{ steps.llama-version.outputs.version }}
       - name: Set test library location
         run: |
             echo "${env:GITHUB_WORKSPACE}" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
