@@ -124,9 +124,9 @@ func getDownloadLocationAndFilename(arch Arch, os OS, prcssr Processor, version 
 			filename = fmt.Sprintf("llama-%s-bin-macos-arm64.zip//build/bin", version)
 		case CPU:
 			if arch == ARM64 {
-				filename = fmt.Sprintf("llama-%s-bin-macos-arm64-cpu.zip//build/bin", version)
+				filename = fmt.Sprintf("llama-%s-bin-macos-arm64.zip//build/bin", version)
 			} else {
-				filename = fmt.Sprintf("llama-%s-bin-macos-x64-cpu.zip//build/bin", version)
+				filename = fmt.Sprintf("llama-%s-bin-macos-x64.zip//build/bin", version)
 			}
 		default:
 			return "", "", ErrUnknownProcessor
