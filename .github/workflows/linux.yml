@@ -20,16 +20,16 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: 'stable'
-      - name: Download llama.cpp
-        uses: robinraju/release-downloader@v1
-        with:
-            repository: 'ggml-org/llama.cpp'
-            latest: true
-            fileName: 'llama-*-bin-ubuntu-x64.zip'
-            out-file-path: 'lib'
-            extract: true
-      - name: Move llama.cpp files to root directory
-        run: cp ./lib/build/bin/* ./lib
+      - name: Install yzma command
+        run: |
+          cd cmd/yzma
+          go install .
+      - name: Install llama.cpp binaries
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          yzma install -lib $GITHUB_WORKSPACE/lib
       - name: Add llama.cpp libs to path
         run: |
             echo "YZMA_LIB=$GITHUB_WORKSPACE/lib" >> "$GITHUB_ENV"
