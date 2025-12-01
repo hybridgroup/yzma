@@ -4,9 +4,9 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/hybridgroup/yzma.svg)](https://pkg.go.dev/github.com/hybridgroup/yzma) [![Linux](https://github.com/hybridgroup/yzma/actions/workflows/linux.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/linux.yml) [![macOS](https://github.com/hybridgroup/yzma/actions/workflows/macos.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/macos.yml) [![Windows](https://github.com/hybridgroup/yzma/actions/workflows/windows.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/windows.yml) [![llama.cpp Release](https://img.shields.io/github/v/release/ggml-org/llama.cpp?label=llama.cpp)](https://github.com/ggml-org/llama.cpp/releases)
 
-`yzma` lets you use Go for hardware accelerated local inference with [`llama.cpp`](https://github.com/ggml-org/llama.cpp) directly integrated into your applications.
+`yzma` lets you write Go applications that directly integrate [`llama.cpp`](https://github.com/ggml-org/llama.cpp) for fully local inference using hardware acceleration.
 
-Run Vision Language Models or Large Language Models on Linux, on macOS, and on Windows, with hardware acceleration such as CUDA or Metal. It uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed. This means that `yzma` works with the very latest `llama.cpp` releases.
+Run the latest Vision Language Models and Large Language Models on Linux, on macOS, and on Windows. Use hardware acceleration such as CUDA, Metal, and Vulkan. `yzma` uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed. This also means that `yzma` works with the newest `llama.cpp` releases.
 
 This example uses the [SmolLM-135M](https://huggingface.co/QuantFactory/SmolLM-135M-GGUF) model:
 
@@ -78,7 +78,7 @@ Didn't get any output? You probably don't have the model, make sure you download
 
 ## Installation
 
-You can use the convenient `yzma` command line tool to download the `llama.cpp` prebuilt libraries for your platform, or download them manually.
+You can use the convenient `yzma` command line tool to download the `llama.cpp` prebuilt libraries for your platform, download them manually, or even have your application download them automatically.
 
 See [INSTALL.md](./INSTALL.md) for detailed information on installation on Linux, macOS, and Windows.
 
@@ -125,7 +125,7 @@ See the [examples](./examples/) directory for more examples of how to use `yzma`
 
 ## Projects
 
-Check out [some projects that are using `yzma`](./PROJECTS.md)!
+Who is using yzma? Check out some of the [tools, applications, examples, and blog posts](./PROJECTS.md) here!
 
 ## Models
 
