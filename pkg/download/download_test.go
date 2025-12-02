@@ -1,36 +1,174 @@
 package download
 
 import (
+	"archive/tar"
+	"compress/gzip"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
 
 func TestLlamaLatestVersion(t *testing.T) {
-	if runtime.GOOS == "darwin" {
-		t.Skip("skipping test since github API sends 403 error")
-	}
+	// Create a mock server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify the request
+		if r.URL.Path != "/repos/ggml-org/llama.cpp/releases/latest" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		// Return a mock response
+		response := struct {
+			TagName string `json:"tag_name"`
+		}{
+			TagName: "b7225",
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	// Override the API URL for testing
+	originalURL := apiURL
+	apiURL = server.URL + "/repos/ggml-org/llama.cpp/releases/latest"
+	defer func() { apiURL = originalURL }()
 
 	version, err := LlamaLatestVersion()
 	if err != nil {
-		t.Fatal("count not get latest version", err)
+		t.Fatal("could not get latest version", err)
 	}
 
 	if !strings.HasPrefix(version, "b") {
 		t.Fatalf("Expected version should start with 'b', got '%s'", version)
 	}
 
+	if version != "b7225" {
+		t.Fatalf("Expected version 'b7225', got '%s'", version)
+	}
+
 	t.Logf("LlamaLatestVersion returned: %s", version)
 }
 
+func TestLlamaLatestVersion_Error(t *testing.T) {
+	// Create a mock server that returns an error
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(`{"message": "API rate limit exceeded"}`))
+	}))
+	defer server.Close()
+
+	// Override the API URL for testing
+	originalURL := apiURL
+	apiURL = server.URL + "/repos/ggml-org/llama.cpp/releases/latest"
+	defer func() { apiURL = originalURL }()
+
+	// Reduce retry count for faster test
+	originalRetryCount := RetryCount
+	originalRetryDelay := RetryDelay
+	RetryCount = 1
+	RetryDelay = 0
+	defer func() {
+		RetryCount = originalRetryCount
+		RetryDelay = originalRetryDelay
+	}()
+
+	_, err := LlamaLatestVersion()
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+// createMockTarGz creates a mock .tar.gz file containing a fake libllama.so
+func createMockTarGz(t *testing.T) []byte {
+	t.Helper()
+
+	var buf strings.Builder
+	gzw := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gzw)
+
+	// Add a fake libllama.so file
+	content := []byte("fake library content")
+	hdr := &tar.Header{
+		Name: "libllama.so",
+		Mode: 0755,
+		Size: int64(len(content)),
+	}
+	if err := tw.WriteHeader(hdr); err != nil {
+		t.Fatalf("failed to write tar header: %v", err)
+	}
+	if _, err := tw.Write(content); err != nil {
+		t.Fatalf("failed to write tar content: %v", err)
+	}
+
+	// Add a subdirectory with another file
+	hdr = &tar.Header{
+		Name:     "lib/",
+		Mode:     0755,
+		Typeflag: tar.TypeDir,
+	}
+	if err := tw.WriteHeader(hdr); err != nil {
+		t.Fatalf("failed to write tar header: %v", err)
+	}
+
+	content2 := []byte("another file")
+	hdr = &tar.Header{
+		Name: "lib/libggml.so",
+		Mode: 0755,
+		Size: int64(len(content2)),
+	}
+	if err := tw.WriteHeader(hdr); err != nil {
+		t.Fatalf("failed to write tar header: %v", err)
+	}
+	if _, err := tw.Write(content2); err != nil {
+		t.Fatalf("failed to write tar content: %v", err)
+	}
+
+	tw.Close()
+	gzw.Close()
+
+	return []byte(buf.String())
+}
+
 func TestGetLinuxCPU(t *testing.T) {
-	version := "b7224"
+	// Create mock tar.gz content
+	mockTarGz := createMockTarGz(t)
+
+	// Create a mock server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		expectedPath := "/b7225/llama-b7225-bin-ubuntu-x64.tar.gz"
+		if r.URL.Path != expectedPath {
+			t.Errorf("unexpected path: %s, want %s", r.URL.Path, expectedPath)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/gzip")
+		w.Write(mockTarGz)
+	}))
+	defer server.Close()
+
+	// Override the download location
+	version := "b7225"
 	arch := "amd64"
 	osVer := "linux"
 	processor := "cpu"
 	dest := t.TempDir()
+
+	// We need to override how getDownloadLocationAndFilename works for this test
+	// by using a custom get function. Let's create a helper.
+	originalGet := getFunc
+	getFunc = func(url, dest string) error {
+		// Replace the real URL with our mock server URL
+		mockURL := server.URL + "/b7225/llama-b7225-bin-ubuntu-x64.tar.gz"
+		return downloadAndExtractTarGz(mockURL, dest)
+	}
+	defer func() { getFunc = originalGet }()
 
 	err := Get(arch, osVer, processor, version, dest)
 	if err != nil {
@@ -40,6 +178,12 @@ func TestGetLinuxCPU(t *testing.T) {
 	expectedFile := filepath.Join(dest, "libllama.so")
 	if _, err := os.Stat(expectedFile); os.IsNotExist(err) {
 		t.Fatalf("Downloaded file not found: %s", expectedFile)
+	}
+
+	// Also check the subdirectory file
+	expectedFile2 := filepath.Join(dest, "lib", "libggml.so")
+	if _, err := os.Stat(expectedFile2); os.IsNotExist(err) {
+		t.Fatalf("Downloaded file not found: %s", expectedFile2)
 	}
 
 	t.Logf("Get() successfully downloaded the file to: %s", expectedFile)
