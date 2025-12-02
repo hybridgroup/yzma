@@ -1,6 +1,8 @@
 package download
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -8,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -204,6 +207,12 @@ func Get(architecture string, operatingSystem string, processor string, version 
 }
 
 func get(url, dest string) error {
+	// Check if it's a .tar.gz file
+	if strings.HasSuffix(url, ".tar.gz") {
+		return downloadAndExtractTarGz(url, dest)
+	}
+
+	// Use go-getter for other file types (e.g., .zip)
 	client := &getter.Client{
 		Ctx:  context.Background(),
 		Src:  url,
@@ -213,6 +222,88 @@ func get(url, dest string) error {
 
 	if err := client.Get(); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// downloadAndExtractTarGz downloads a .tar.gz file and extracts it to the destination directory.
+func downloadAndExtractTarGz(url, dest string) error {
+	// Create HTTP request
+	client := &http.Client{
+		Timeout: 5 * time.Minute,
+	}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		return fmt.Errorf("failed to download: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad response code: %d", resp.StatusCode)
+	}
+
+	// Create gzip reader
+	gzr, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to create gzip reader: %w", err)
+	}
+	defer gzr.Close()
+
+	// Create tar reader
+	tr := tar.NewReader(gzr)
+
+	// Ensure destination directory exists
+	if err := os.MkdirAll(dest, 0755); err != nil {
+		return fmt.Errorf("failed to create destination directory: %w", err)
+	}
+
+	// Extract files
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("failed to read tar header: %w", err)
+		}
+
+		// skip sanitize the file path to prevent path traversal attacks, since we control the source.
+		target := filepath.Join(dest, filepath.Clean(header.Name))
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
+				return fmt.Errorf("failed to create directory: %w", err)
+			}
+		case tar.TypeReg:
+			// Ensure parent directory exists
+			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+				return fmt.Errorf("failed to create parent directory: %w", err)
+			}
+
+			// Create the file
+			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.FileMode(header.Mode))
+			if err != nil {
+				return fmt.Errorf("failed to create file: %w", err)
+			}
+
+			// Copy contents
+			if _, err := io.Copy(f, tr); err != nil {
+				f.Close()
+				return fmt.Errorf("failed to write file: %w", err)
+			}
+			f.Close()
+		case tar.TypeSymlink:
+			// Handle symlinks
+			if err := os.Symlink(header.Linkname, target); err != nil {
+				// Ignore error if symlink already exists
+				if !os.IsExist(err) {
+					return fmt.Errorf("failed to create symlink: %w", err)
+				}
+			}
+		}
 	}
 
 	return nil
