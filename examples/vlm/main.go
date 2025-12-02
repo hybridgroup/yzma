@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
 	"github.com/hybridgroup/yzma/pkg/mtmd"
@@ -105,13 +104,6 @@ func main() {
 	var n llama.Pos
 	mtmd.HelperEvalChunks(mtmdCtx, lctx, output, 0, 0, int32(ctxParams.NBatch), true, &n)
 
-	var sz int32 = 1
-	batch := llama.BatchInit(1, 0, 1)
-	batch.NSeqId = &sz
-	batch.NTokens = 1
-	seqs := unsafe.SliceData([]llama.SeqId{0})
-	batch.SeqId = &seqs
-
 	fmt.Println()
 
 	for i := 0; i < llama.MaxToken; i++ {
@@ -127,7 +119,7 @@ func main() {
 
 		fmt.Print(string(buf[:l]))
 
-		batch.Token = &token
+		batch := llama.BatchGetOne([]llama.Token{token})
 		batch.Pos = &n
 
 		llama.Decode(lctx, batch)
