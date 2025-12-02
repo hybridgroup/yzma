@@ -29,6 +29,8 @@ var (
 	RetryCount = 3
 	// RetryDelay is the delay between retries when obtaining the latest llama.cpp version.
 	RetryDelay = 3 * time.Second
+	// apiURL is the GitHub API URL for fetching the latest llama.cpp version.
+	apiURL = "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest"
 )
 
 // LlamaLatestVersion fetches the latest release tag of llama.cpp from the GitHub API.
@@ -47,8 +49,6 @@ func LlamaLatestVersion() (string, error) {
 }
 
 func getLatestVersion() (string, error) {
-	const apiURL = "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest"
-
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
 		return "", err
@@ -170,6 +170,9 @@ func getDownloadLocationAndFilename(arch Arch, os OS, prcssr Processor, version 
 	return location, filename, nil
 }
 
+// getFunc is the function used to download files. It can be overridden for testing.
+var getFunc = get
+
 // Get downloads the llama.cpp precompiled binaries for the desired arch/OS/processor.
 // arch can be one of the following values: "amd64", "arm64".
 // os can be one of the following values: "linux", "darwin", "windows".
@@ -203,7 +206,7 @@ func Get(architecture string, operatingSystem string, processor string, version 
 	}
 
 	url := fmt.Sprintf("%s/%s", location, filename)
-	return get(url, dest)
+	return getFunc(url, dest)
 }
 
 func get(url, dest string) error {
