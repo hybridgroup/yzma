@@ -46,6 +46,16 @@ jobs:
         run: |
             echo "${env:GITHUB_WORKSPACE}" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
             echo "YZMA_LIB=${env:GITHUB_WORKSPACE}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Build examples
+        shell: bash
+        run: |
+          set -e
+          for dir in ./examples/*/; do
+            if [ -f "$dir/main.go" ]; then
+              echo "Building $dir..."
+              go build -o /dev/null "$dir"
+            fi
+          done
       - name: Cache test models
         id: cache-models
         uses: actions/cache@v4
