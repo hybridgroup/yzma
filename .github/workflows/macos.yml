@@ -40,6 +40,15 @@ jobs:
         run: |
             echo "YZMA_LIB=$GITHUB_WORKSPACE/lib" >> "$GITHUB_ENV"
             echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/lib" >> "$GITHUB_ENV"
+      - name: Build examples
+        run: |
+          set -e
+          for dir in ./examples/*/; do
+            if [ -f "$dir/main.go" ]; then
+              echo "Building $dir..."
+              go build -o /dev/null "$dir"
+            fi
+          done
       - name: Cache test models
         id: cache-models
         uses: actions/cache@v4
