@@ -129,6 +129,11 @@ var modelGetCmd = &cli.Command{
 			Usage:   "Automatically answer yes to prompts",
 			Value:   false,
 		},
+		&cli.BoolFlag{
+			Name:  "show-progress",
+			Usage: "Show download progress",
+			Value: true,
+		},
 	},
 	Action: func(c *cli.Context) error {
 		return runModelDownload(c)
@@ -139,6 +144,7 @@ func runModelDownload(c *cli.Context) error {
 	url := c.String("url")
 	output := c.String("output")
 	autoYes := c.Bool("yes")
+	showProgress := c.Bool("show-progress")
 
 	// Check if the output directory exists
 	if _, err := os.Stat(output); os.IsNotExist(err) {
@@ -165,7 +171,7 @@ func runModelDownload(c *cli.Context) error {
 
 	fmt.Printf("Downloading model from %s to %s...\n", url, output)
 
-	if err := download.GetModel(url, output); err != nil {
+	if err := download.GetModel(url, output, showProgress); err != nil {
 		fmt.Fprintf(os.Stderr, "error downloading model: %v\n", err)
 		return err
 	}
