@@ -129,11 +129,20 @@ Who is using yzma? Check out some of the [tools, applications, examples, and blo
 
 ## Models
 
-`yzma` uses models in the GGUF format supported by `llama.cpp`. You can find many models in GGUF format on Hugging Face (over 151k at last count):
+`yzma` uses models in the GGUF format supported by `llama.cpp`. There are many models in GGUF format on Hugging Face (over 151k at last count):
 
 https://huggingface.co/models?library=gguf&sort=trending
 
-The `yzma` command can download models for you! Check out the [Model Usage](./MODELS.md) page.
+You can use the `yzma` command to download models for you! 
+
+For example, this downloads the `gemma-3-1b-it-GGUF` model:
+
+```
+yzma model get -u https://huggingface.co/ggml-org/gemma-3-1b-it-GGUF/resolve/main/gemma-3-1b-it-Q4_K_M.gguf
+
+```
+
+Check out the [Model Usage](./MODELS.md) page for more information.
 
 ## Support
 
