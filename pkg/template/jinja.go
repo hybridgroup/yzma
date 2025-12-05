@@ -15,6 +15,8 @@ import (
 func Apply(tmpl string, messages []message.Message, addAssistantPrompt bool) (string, error) {
 	// prevent filesystem access
 	gonja.DefaultLoader = &NoFSLoader{}
+	// disable logging
+	gonja.SetLoggerOutput(io.Discard)
 
 	t, err := gonja.FromString(tmpl)
 	if err != nil {
