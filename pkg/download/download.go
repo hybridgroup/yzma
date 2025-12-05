@@ -267,8 +267,18 @@ func downloadAndExtractTarGz(url, dest string) error {
 			return fmt.Errorf("failed to read tar header: %w", err)
 		}
 
-		// skip sanitize the file path to prevent path traversal attacks, since we control the source.
-		target := filepath.Join(dest, filepath.Clean(header.Name))
+		// Strip the top-level directory (e.g., "llama-b1234/")
+		name := header.Name
+		if idx := strings.Index(name, "/"); idx != -1 {
+			name = name[idx+1:]
+		}
+
+		// Skip empty names (the top-level directory itself)
+		if name == "" {
+			continue
+		}
+
+		target := filepath.Join(dest, filepath.Clean(name))
 
 		switch header.Typeflag {
 		case tar.TypeDir:
