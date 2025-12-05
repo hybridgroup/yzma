@@ -85,17 +85,30 @@ func TestLlamaLatestVersion_Error(t *testing.T) {
 }
 
 // createMockTarGz creates a mock .tar.gz file containing a fake libllama.so
-func createMockTarGz(t *testing.T) []byte {
+// with a top-level directory prefix (e.g., "llama-b7225/")
+func createMockTarGz(t *testing.T, version string) []byte {
 	t.Helper()
 
 	var buf strings.Builder
 	gzw := gzip.NewWriter(&buf)
 	tw := tar.NewWriter(gzw)
 
+	prefix := "llama-" + version + "/"
+
+	// Add the top-level directory
+	hdr := &tar.Header{
+		Name:     prefix,
+		Mode:     0755,
+		Typeflag: tar.TypeDir,
+	}
+	if err := tw.WriteHeader(hdr); err != nil {
+		t.Fatalf("failed to write tar header: %v", err)
+	}
+
 	// Add a fake libllama.so file
 	content := []byte("fake library content")
-	hdr := &tar.Header{
-		Name: "libllama.so",
+	hdr = &tar.Header{
+		Name: prefix + "libllama.so",
 		Mode: 0755,
 		Size: int64(len(content)),
 	}
@@ -108,7 +121,7 @@ func createMockTarGz(t *testing.T) []byte {
 
 	// Add a subdirectory with another file
 	hdr = &tar.Header{
-		Name:     "lib/",
+		Name:     prefix + "lib/",
 		Mode:     0755,
 		Typeflag: tar.TypeDir,
 	}
@@ -118,7 +131,7 @@ func createMockTarGz(t *testing.T) []byte {
 
 	content2 := []byte("another file")
 	hdr = &tar.Header{
-		Name: "lib/libggml.so",
+		Name: prefix + "lib/libggml.so",
 		Mode: 0755,
 		Size: int64(len(content2)),
 	}
@@ -136,8 +149,10 @@ func createMockTarGz(t *testing.T) []byte {
 }
 
 func TestGetLinuxCPU(t *testing.T) {
-	// Create mock tar.gz content
-	mockTarGz := createMockTarGz(t)
+	version := "b7225"
+
+	// Create mock tar.gz content with version prefix
+	mockTarGz := createMockTarGz(t, version)
 
 	// Create a mock server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -153,15 +168,12 @@ func TestGetLinuxCPU(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// Override the download location
-	version := "b7225"
 	arch := "amd64"
 	osVer := "linux"
 	processor := "cpu"
 	dest := t.TempDir()
 
-	// We need to override how getDownloadLocationAndFilename works for this test
-	// by using a custom get function. Let's create a helper.
+	// Override the get function to use our mock server
 	originalGet := getFunc
 	getFunc = func(url, dest string) error {
 		// Replace the real URL with our mock server URL
@@ -175,6 +187,7 @@ func TestGetLinuxCPU(t *testing.T) {
 		t.Fatalf("Get() failed: %v", err)
 	}
 
+	// Check that files were extracted without the prefix directory
 	expectedFile := filepath.Join(dest, "libllama.so")
 	if _, err := os.Stat(expectedFile); os.IsNotExist(err) {
 		t.Fatalf("Downloaded file not found: %s", expectedFile)
@@ -186,7 +199,13 @@ func TestGetLinuxCPU(t *testing.T) {
 		t.Fatalf("Downloaded file not found: %s", expectedFile2)
 	}
 
-	t.Logf("Get() successfully downloaded the file to: %s", expectedFile)
+	// Verify the prefix directory was NOT created
+	prefixDir := filepath.Join(dest, "llama-"+version)
+	if _, err := os.Stat(prefixDir); !os.IsNotExist(err) {
+		t.Fatalf("Prefix directory should not exist: %s", prefixDir)
+	}
+
+	t.Logf("Get() successfully downloaded and extracted files to: %s", dest)
 }
 
 func TestGetInvalidOS(t *testing.T) {
