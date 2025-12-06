@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/hybridgroup/yzma/pkg/message"
 )
@@ -132,42 +130,4 @@ func executeToolCall(call message.ToolCall) (string, error) {
 	default:
 		return "", fmt.Errorf("unknown function: %s", call.Function.Name)
 	}
-}
-
-// parseToolCalls attempts to parse tool calls from the model's response
-// This is a simplified parser - real implementations would be more robust
-func parseToolCalls(response string) []message.ToolCall {
-	var calls []message.ToolCall
-
-	// Look for <tool_call> tags
-	start := strings.Index(response, "<tool_call>")
-	end := strings.Index(response, "</tool_call>")
-
-	for start != -1 && end != -1 && start < end {
-		content := response[start+len("<tool_call>") : end]
-		content = strings.TrimSpace(content)
-
-		// Parse JSON content
-		var parsed struct {
-			Name      string            `json:"name"`
-			Arguments map[string]string `json:"arguments"`
-		}
-
-		if err := json.Unmarshal([]byte(content), &parsed); err == nil {
-			calls = append(calls, message.ToolCall{
-				Type: "function",
-				Function: message.ToolFunction{
-					Name:      parsed.Name,
-					Arguments: parsed.Arguments,
-				},
-			})
-		}
-
-		// Look for more tool calls
-		response = response[end+len("</tool_call>"):]
-		start = strings.Index(response, "<tool_call>")
-		end = strings.Index(response, "</tool_call>")
-	}
-
-	return calls
 }

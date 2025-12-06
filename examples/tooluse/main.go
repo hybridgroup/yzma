@@ -131,7 +131,7 @@ After receiving tool results, provide a final answer to the user.`, toolsJSON)
 	fmt.Println()
 
 	// Step 2: Parse tool calls from response (simplified parsing)
-	toolCalls := parseToolCalls(response)
+	toolCalls := message.ParseToolCalls(response)
 
 	if len(toolCalls) > 0 {
 		fmt.Println("=== Detected Tool Calls ===")
