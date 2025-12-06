@@ -78,7 +78,8 @@ func runInstall(c *cli.Context) error {
 	quiet := c.Bool("quiet")
 	if !quiet {
 		fmt.Println("installing llama.cpp version", version, "to", libPath)
-		download.ShowProgress = true
+	} else {
+		download.ProgressTracker = nil
 	}
 
 	if err := download.Get(runtime.GOARCH, runtime.GOOS, processor, version, libPath); err != nil {
@@ -99,31 +100,31 @@ func showInstallRequirements() {
 		fmt.Println(`
 Make sure you have set the LD_LIBRARY_PATH to the directory with your llama.cpp library files. For example:
 
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/home/your/location/yzma/lib
+    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/home/your/location/yzma/lib
 
 You may also want to set the YZMA_LIB environment variable to this path as well:
 
-export YZMA_LIB=/home/your/location/yzma/lib
+    export YZMA_LIB=/home/your/location/yzma/lib
 `)
 	case "windows":
 		fmt.Println(`
 Make sure you have set the PATH to the directory with your llama.cpp library files. For example:
 
-set PATH=%PATH%;C:\your\location\yzma\lib
+    set PATH=%PATH%;C:\your\location\yzma\lib
 
 You may also want to set the YZMA_LIB environment variable to this path as well:
 
-set YZMA_LIB=C:\your\location\yzma\lib
+    set YZMA_LIB=C:\your\location\yzma\lib
 `)
 	case "darwin":
 		fmt.Println(`
 Make sure you have set the LD_LIBRARY_PATH to the directory with your llama.cpp library files. For example:
 
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/home/your/location/yzma/lib
+    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/home/your/location/yzma/lib
 
 You may also want to set the YZMA_LIB environment variable to this path as well:
 
-export YZMA_LIB=/home/your/location/yzma/lib
+    export YZMA_LIB=/home/your/location/yzma/lib
 `)
 	}
 }
