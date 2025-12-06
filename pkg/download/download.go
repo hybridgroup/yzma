@@ -145,7 +145,7 @@ func getDownloadLocationAndFilename(arch Arch, os OS, prcssr Processor, version 
 			// also requires the CUDA RT files
 			cudart := "cudart-llama-bin-win-cuda-12.4-x64.zip"
 			url := fmt.Sprintf("%s/%s", location, cudart)
-			if err := get(url, dest); err != nil {
+			if err := get(url, dest, ProgressTracker); err != nil {
 				return "", "", err
 			}
 			filename = fmt.Sprintf("llama-%s-bin-win-cuda-12.4-x64.zip", version)
@@ -176,6 +176,18 @@ var getFunc = get
 // [LlamaLatestVersion] function to obtain the latest release.
 // dest in the destination directory for the downloaded binaries.
 func Get(architecture string, operatingSystem string, processor string, version string, dest string) error {
+	return GetWithProgress(architecture, operatingSystem, processor, version, dest, ProgressTracker)
+}
+
+// GetWithProgress downloads the llama.cpp precompiled binaries for the desired arch/OS/processor
+// using the provided progress tracker.
+// arch can be one of the following values: "amd64", "arm64".
+// os can be one of the following values: "linux", "darwin", "windows".
+// processor can be one of the following values: "cpu", "cuda", "vulkan", "metal".
+// version should be the desired `b1234` formatted llama.cpp version. You can use the
+// [LlamaLatestVersion] function to obtain the latest release.
+// dest in the destination directory for the downloaded binaries.
+func GetWithProgress(architecture string, operatingSystem string, processor string, version string, dest string, progress getter.ProgressTracker) error {
 	arch, err := ParseArch(architecture)
 	if err != nil {
 		return ErrUnknownArch
@@ -201,13 +213,13 @@ func Get(architecture string, operatingSystem string, processor string, version 
 	}
 
 	url := fmt.Sprintf("%s/%s", location, filename)
-	return getFunc(url, dest)
+	return getFunc(url, dest, progress)
 }
 
-func get(url, dest string) error {
+func get(url, dest string, progress getter.ProgressTracker) error {
 	// Check if it's a .tar.gz file
 	if strings.HasSuffix(url, ".tar.gz") {
-		return downloadAndExtractTarGz(url, dest)
+		return downloadAndExtractTarGz(url, dest, progress)
 	}
 
 	// Use go-getter for other file types (e.g., .zip)
@@ -218,8 +230,8 @@ func get(url, dest string) error {
 		Mode: getter.ClientModeAny,
 	}
 
-	if ProgressTracker != nil {
-		client.ProgressListener = ProgressTracker
+	if progress != nil {
+		client.ProgressListener = progress
 	}
 
 	if err := client.Get(); err != nil {
@@ -230,7 +242,7 @@ func get(url, dest string) error {
 }
 
 // downloadAndExtractTarGz downloads a .tar.gz file and extracts it to the destination directory.
-func downloadAndExtractTarGz(url, dest string) error {
+func downloadAndExtractTarGz(url, dest string, progress getter.ProgressTracker) error {
 	downloadFile := filepath.Join(dest, filepath.Base(url))
 
 	client := &getter.Client{
@@ -240,8 +252,8 @@ func downloadAndExtractTarGz(url, dest string) error {
 		Mode: getter.ClientModeAny,
 	}
 
-	if ProgressTracker != nil {
-		client.ProgressListener = ProgressTracker
+	if progress != nil {
+		client.ProgressListener = progress
 	}
 
 	if err := client.Get(); err != nil {

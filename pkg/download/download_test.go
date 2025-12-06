@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	getter "github.com/hashicorp/go-getter"
 )
 
 func TestLlamaLatestVersion(t *testing.T) {
@@ -175,10 +177,10 @@ func TestGetLinuxCPU(t *testing.T) {
 
 	// Override the get function to use our mock server
 	originalGet := getFunc
-	getFunc = func(url, dest string) error {
+	getFunc = func(url, dest string, progress getter.ProgressTracker) error {
 		// Replace the real URL with our mock server URL
 		mockURL := server.URL + "/b7225/llama-b7225-bin-ubuntu-x64.tar.gz"
-		return downloadAndExtractTarGz(mockURL, dest)
+		return downloadAndExtractTarGz(mockURL, dest, nil)
 	}
 	defer func() { getFunc = originalGet }()
 
