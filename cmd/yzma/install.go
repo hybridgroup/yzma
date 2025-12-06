@@ -98,31 +98,19 @@ func showInstallRequirements() {
 	switch runtime.GOOS {
 	case "linux":
 		fmt.Println(`
-Make sure you have set the LD_LIBRARY_PATH to the directory with your llama.cpp library files. For example:
-
-    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/home/your/location/yzma/lib
-
-You may also want to set the YZMA_LIB environment variable to this path as well:
+You may want to set the YZMA_LIB environment variable to the directory with your llama.cpp library files. For example:
 
     export YZMA_LIB=/home/your/location/yzma/lib
 `)
 	case "windows":
 		fmt.Println(`
-Make sure you have set the PATH to the directory with your llama.cpp library files. For example:
-
-    set PATH=%PATH%;C:\your\location\yzma\lib
-
-You may also want to set the YZMA_LIB environment variable to this path as well:
+You may want to set the YZMA_LIB environment variable to the directory with your llama.cpp library files. For example:
 
     set YZMA_LIB=C:\your\location\yzma\lib
 `)
 	case "darwin":
 		fmt.Println(`
-Make sure you have set the LD_LIBRARY_PATH to the directory with your llama.cpp library files. For example:
-
-    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/home/your/location/yzma/lib
-
-You may also want to set the YZMA_LIB environment variable to this path as well:
+You may want to set the YZMA_LIB environment variable to the directory with your llama.cpp library files. For example:
 
     export YZMA_LIB=/home/your/location/yzma/lib
 `)
