@@ -218,6 +218,10 @@ func get(url, dest string) error {
 		Mode: getter.ClientModeAny,
 	}
 
+	if ShowProgress {
+		client.ProgressListener = progressTracker(dest)
+	}
+
 	if err := client.Get(); err != nil {
 		return err
 	}
@@ -227,23 +231,32 @@ func get(url, dest string) error {
 
 // downloadAndExtractTarGz downloads a .tar.gz file and extracts it to the destination directory.
 func downloadAndExtractTarGz(url, dest string) error {
-	// Create HTTP request
-	client := &http.Client{
-		Timeout: 5 * time.Minute,
+	downloadFile := filepath.Join(dest, filepath.Base(url))
+
+	client := &getter.Client{
+		Ctx:  context.Background(),
+		Src:  url + "?archive=false",
+		Dst:  dest,
+		Mode: getter.ClientModeAny,
 	}
 
-	resp, err := client.Get(url)
+	if ShowProgress {
+		client.ProgressListener = progressTracker(dest)
+	}
+
+	if err := client.Get(); err != nil {
+		return err
+	}
+	defer os.Remove(downloadFile)
+
+	resp, err := os.Open(downloadFile)
 	if err != nil {
-		return fmt.Errorf("failed to download: %w", err)
+		return fmt.Errorf("failed to open downloaded file: %w", err)
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad response code: %d", resp.StatusCode)
-	}
+	defer resp.Close()
 
 	// Create gzip reader
-	gzr, err := gzip.NewReader(resp.Body)
+	gzr, err := gzip.NewReader(resp)
 	if err != nil {
 		return fmt.Errorf("failed to create gzip reader: %w", err)
 	}
@@ -251,11 +264,6 @@ func downloadAndExtractTarGz(url, dest string) error {
 
 	// Create tar reader
 	tr := tar.NewReader(gzr)
-
-	// Ensure destination directory exists
-	if err := os.MkdirAll(dest, 0755); err != nil {
-		return fmt.Errorf("failed to create destination directory: %w", err)
-	}
 
 	// Extract files
 	for {
