@@ -90,10 +90,9 @@ If you do not use the `yzma` installer, you must download and extract the librar
 For Linux, they have the `.so` file extension. For example, `libllama.so`, `libmtmd.so` and so on.
 
 ***Important Note***
-You currently need to set both the `LD_LIBRARY_PATH` and the `YZMA_LIB` env variable to the directory with your llama.cpp library files. For example:
+You currently need to set the `YZMA_LIB` env variable to the directory with your llama.cpp library files. For example:
 
 ```shell
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/home/ron/Development/yzma/lib
 export YZMA_LIB=/home/ron/Development/yzma/lib
 ```
 
@@ -102,10 +101,9 @@ export YZMA_LIB=/home/ron/Development/yzma/lib
 For macOS, the `llama.cpp` binaries have a `.dylib` file extension. For example, `libllama.dylib`, `libmtmd.dylib` and so on. You do not need the other downloaded files to use the `llama.cpp` libraries with `yzma`.
 
 ***Important Note***
-You currently need to set both the `LD_LIBRARY_PATH` and the `YZMA_LIB` env variable to the directory with your `llama.cpp` library files. For example:
+You currently need to set the `YZMA_LIB` env variable to the directory with your `llama.cpp` library files. For example:
 
 ```shell
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/home/ron/Development/yzma/lib
 export YZMA_LIB=/home/ron/Development/yzma/lib
 ```
 
@@ -116,10 +114,9 @@ On Windows, the `llama.cpp` binaries have the `.dll` file extension. For example
 You will also need to download the `cudart` files from the same location as the other `llama.cpp` libraries when using CUDA on Windows.
 
 ***Important Note***
-You currently need to set both the `PATH` and the `YZMA_LIB` env variable to the directory with your `llama.cpp` library files. For example:
+You currently need to set the `YZMA_LIB` env variable to the directory with your `llama.cpp` library files. For example:
 
 ```shell
-set PATH=%PATH%;C:\yzma\lib
 set YZMA_LIB=C:\yzma\lib
 ```
 ## Programmatic Installation
