@@ -39,7 +39,6 @@ jobs:
       - name: Add llama.cpp libs to path
         run: |
             echo "YZMA_LIB=$GITHUB_WORKSPACE/lib" >> "$GITHUB_ENV"
-            echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/lib" >> "$GITHUB_ENV"
       - name: Build examples
         run: |
           set -e
@@ -75,7 +74,7 @@ jobs:
           export YZMA_TEST_ENCODER_MODEL=$GITHUB_WORKSPACE/models/t5base-encoder-q4_0.gguf
           export YZMA_TEST_LORA_MODEL=$GITHUB_WORKSPACE/models/Gemma2-Base-F32.gguf
           export YZMA_TEST_LORA_ADAPTER=$GITHUB_WORKSPACE/models/Gemma2-Lora-F32-LoRA.gguf
-          CGO_ENABLED=0 go test -v ./...
+          go test -v ./...
       - name: Run inference test
         run: go run ./examples/hello
       - name: Run embedding test
