@@ -3,7 +3,7 @@ module github.com/hybridgroup/yzma/cmd/yzma
 go 1.24.4
 
 require (
-	github.com/hybridgroup/yzma v1.0.1-0.20251205085308-809ff8a594d3
+	github.com/hybridgroup/yzma v1.0.2-0.20251206122744-fa09db3df375
 	github.com/urfave/cli/v2 v2.27.7
 )
 
@@ -52,8 +52,8 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.27.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.114.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

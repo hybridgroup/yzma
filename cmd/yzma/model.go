@@ -171,7 +171,8 @@ func runModelDownload(c *cli.Context) error {
 
 	fmt.Printf("Downloading model from %s to %s...\n", url, output)
 
-	if err := download.GetModel(url, output, showProgress); err != nil {
+	download.ShowProgress = showProgress
+	if err := download.GetModel(url, output); err != nil {
 		fmt.Fprintf(os.Stderr, "error downloading model: %v\n", err)
 		return err
 	}

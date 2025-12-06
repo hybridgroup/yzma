@@ -78,6 +78,7 @@ func runInstall(c *cli.Context) error {
 	quiet := c.Bool("quiet")
 	if !quiet {
 		fmt.Println("installing llama.cpp version", version, "to", libPath)
+		download.ShowProgress = true
 	}
 
 	if err := download.Get(runtime.GOARCH, runtime.GOOS, processor, version, libPath); err != nil {
