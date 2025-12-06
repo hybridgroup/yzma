@@ -10,7 +10,7 @@ func TestGetModel(t *testing.T) {
 	url := "https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/stories260K.gguf"
 	dest := filepath.Join(t.TempDir(), "stories260K.gguf")
 
-	ShowProgress = false
+	ProgressTracker = nil
 	err := GetModel(url, dest)
 	if err != nil {
 		t.Fatalf("GetModel() failed: %v", err)
@@ -27,7 +27,7 @@ func TestGetModelProgress(t *testing.T) {
 	url := "https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/stories260K.gguf"
 	dest := filepath.Join(t.TempDir(), "stories260K.gguf")
 
-	ShowProgress = true
+	ProgressTracker = DefaultProgressTracker()
 	err := GetModel(url, dest)
 	if err != nil {
 		t.Fatalf("GetModel() failed: %v", err)
