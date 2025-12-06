@@ -8,10 +8,16 @@ import (
 
 // GetModel downloads a model from the specified URL to the destination path.
 func GetModel(url, dest string) error {
-	return getModel(url, dest)
+	return getModel(url, dest, ProgressTracker)
 }
 
-func getModel(url, dest string) error {
+// GetModelWithProgress downloads a model from the specified URL to the destination path
+// using the provided progress tracker.
+func GetModelWithProgress(url, dest string, progress getter.ProgressTracker) error {
+	return getModel(url, dest, progress)
+}
+
+func getModel(url, dest string, progress getter.ProgressTracker) error {
 	client := &getter.Client{
 		Ctx:  context.Background(),
 		Src:  url,
@@ -19,8 +25,8 @@ func getModel(url, dest string) error {
 		Mode: getter.ClientModeAny,
 	}
 
-	if ProgressTracker != nil {
-		client.ProgressListener = ProgressTracker
+	if progress != nil {
+		client.ProgressListener = progress
 	}
 
 	if err := client.Get(); err != nil {
