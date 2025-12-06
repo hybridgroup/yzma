@@ -19,8 +19,8 @@ func getModel(url, dest string) error {
 		Mode: getter.ClientModeAny,
 	}
 
-	if ShowProgress {
-		client.ProgressListener = progressTracker(dest)
+	if ProgressTracker != nil {
+		client.ProgressListener = ProgressTracker
 	}
 
 	if err := client.Get(); err != nil {

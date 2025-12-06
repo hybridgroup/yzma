@@ -3,16 +3,19 @@ package download
 import (
 	"fmt"
 	"io"
-	"os"
 	"time"
 
 	"github.com/hashicorp/go-getter"
 )
 
-// ShowProgress indicates whether to show download progress.
-var ShowProgress = true
+// ProgressTracker shows download progress in the terminal.
+// You can override it with your own implementation if needed.
+// By default, it prints progress to stdout.
+// See https://pkg.go.dev/github.com/hashicorp/go-getter#ProgressTracker
+var ProgressTracker = DefaultProgressTracker()
 
-func progressTracker(dest string) getter.ProgressTracker {
+// DefaultProgressTracker returns the default ProgressTracker that prints download progress to stdout.
+func DefaultProgressTracker() getter.ProgressTracker {
 	progFunc := func(src string, currentSize int64, totalSize int64, mibPerSec float64, complete bool) {
 		fmt.Printf("\r\x1b[Kdownloading %s... %d MiB of %d MiB (%.2f MiB/s)", src, currentSize/(1024*1024), totalSize/(1024*1024), mibPerSec)
 		if complete {
@@ -21,7 +24,6 @@ func progressTracker(dest string) getter.ProgressTracker {
 	}
 
 	pr := progressReader{
-		dst:      dest,
 		progress: progFunc,
 	}
 
@@ -32,7 +34,6 @@ type progressFunc func(src string, currentSize int64, totalSize int64, mibPerSec
 
 type progressReader struct {
 	src          string
-	dst          string
 	currentSize  int64
 	totalSize    int64
 	lastReported int64
@@ -44,10 +45,6 @@ type progressReader struct {
 func (pr *progressReader) TrackProgress(src string, currentSize, totalSize int64, stream io.ReadCloser) io.ReadCloser {
 	if currentSize == totalSize {
 		return nil
-	}
-
-	if currentSize != totalSize {
-		os.Remove(pr.dst)
 	}
 
 	pr.src = src
