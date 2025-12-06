@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/jupiterrider/ffi"
 )
@@ -15,6 +16,13 @@ import (
 func LoadLibrary(path, lib string) (ffi.Lib, error) {
 	if os.Getenv("YZMA_LIB") != "" {
 		path = os.Getenv("YZMA_LIB")
+	}
+
+	// Ensure the library path is in LD_LIBRARY_PATH (Linux) or equivalent
+	if path != "" {
+		if err := ensureLibraryPath(path); err != nil {
+			return ffi.Lib{}, err
+		}
 	}
 
 	var filename string
@@ -28,4 +36,37 @@ func LoadLibrary(path, lib string) (ffi.Lib, error) {
 	}
 
 	return ffi.Load(filename)
+}
+
+// ensureLibraryPath ensures the given path is in the library search path
+func ensureLibraryPath(path string) error {
+	var envVar string
+	switch runtime.GOOS {
+	case "linux", "freebsd":
+		envVar = "LD_LIBRARY_PATH"
+	case "darwin":
+		envVar = "DYLD_LIBRARY_PATH"
+	case "windows":
+		envVar = "PATH"
+	default:
+		return nil
+	}
+
+	currentPath := os.Getenv(envVar)
+
+	// Check if path is already in the library path
+	if currentPath != "" {
+		separator := string(os.PathListSeparator)
+		paths := strings.Split(currentPath, separator)
+		for _, p := range paths {
+			if p == path {
+				return nil // Already in path
+			}
+		}
+		// Prepend the new path
+		return os.Setenv(envVar, path+separator+currentPath)
+	}
+
+	// Set the path if not already set
+	return os.Setenv(envVar, path)
 }
