@@ -1,6 +1,7 @@
 package loader
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,16 +41,9 @@ func LoadLibrary(path, lib string) (ffi.Lib, error) {
 
 // ensureLibraryPath ensures the given path is in the library search path
 func ensureLibraryPath(path string) error {
-	var envVar string
-	switch runtime.GOOS {
-	case "linux", "freebsd":
-		envVar = "LD_LIBRARY_PATH"
-	case "darwin":
-		envVar = "DYLD_LIBRARY_PATH"
-	case "windows":
-		envVar = "PATH"
-	default:
-		return nil
+	envVar := getLibraryPathEnvVar()
+	if envVar == "" {
+		return errors.New("unsupported OS for setting library path")
 	}
 
 	currentPath := os.Getenv(envVar)
@@ -69,4 +63,18 @@ func ensureLibraryPath(path string) error {
 
 	// Set the path if not already set
 	return os.Setenv(envVar, path)
+}
+
+// getLibraryPathEnvVar returns the library path environment variable for the current OS
+func getLibraryPathEnvVar() string {
+	switch runtime.GOOS {
+	case "linux", "freebsd":
+		return "LD_LIBRARY_PATH"
+	case "darwin":
+		return "DYLD_LIBRARY_PATH"
+	case "windows":
+		return "PATH"
+	default:
+		return ""
+	}
 }
