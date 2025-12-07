@@ -98,9 +98,9 @@ func getDownloadLocationAndFilename(arch Arch, os OS, prcssr Processor, version 
 		case CUDA:
 			location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
 			if arch == ARM64 {
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-arm64.tar.gz", version)
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-13-arm64.tar.gz", version)
 			} else {
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-x64.tar.gz", version)
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-13-x64.tar.gz", version)
 			}
 		case Vulkan:
 			if arch == ARM64 {
@@ -143,12 +143,12 @@ func getDownloadLocationAndFilename(arch Arch, os OS, prcssr Processor, version 
 				return "", "", errors.New("precompiled binaries for Windows ARM64 CUDA are not available")
 			}
 			// also requires the CUDA RT files
-			cudart := "cudart-llama-bin-win-cuda-12.4-x64.zip"
+			cudart := "cudart-llama-bin-win-cuda-13.1-x64.zip"
 			url := fmt.Sprintf("%s/%s", location, cudart)
 			if err := get(url, dest, ProgressTracker); err != nil {
 				return "", "", err
 			}
-			filename = fmt.Sprintf("llama-%s-bin-win-cuda-12.4-x64.zip", version)
+			filename = fmt.Sprintf("llama-%s-bin-win-cuda-13.1-x64.zip", version)
 		case Vulkan:
 			if arch == ARM64 {
 				return "", "", errors.New("precompiled binaries for Windows ARM64 Vulkan are not available")

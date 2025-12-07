@@ -289,7 +289,7 @@ func TestGetDownloadLocationAndFilename_LinuxCUDA_AMD64(t *testing.T) {
 	}
 
 	expectedLocation := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b7225"
-	expectedFilename := "llama-b7225-bin-ubuntu-cuda-x64.tar.gz"
+	expectedFilename := "llama-b7225-bin-ubuntu-cuda-13-x64.tar.gz"
 
 	if location != expectedLocation {
 		t.Errorf("location = %q, want %q", location, expectedLocation)
@@ -309,7 +309,7 @@ func TestGetDownloadLocationAndFilename_LinuxCUDA_ARM64(t *testing.T) {
 	}
 
 	expectedLocation := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b7225"
-	expectedFilename := "llama-b7225-bin-ubuntu-cuda-arm64.tar.gz"
+	expectedFilename := "llama-b7225-bin-ubuntu-cuda-13-arm64.tar.gz"
 
 	if location != expectedLocation {
 		t.Errorf("location = %q, want %q", location, expectedLocation)
