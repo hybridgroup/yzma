@@ -3,6 +3,7 @@ package download
 import (
 	"archive/tar"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -177,7 +178,7 @@ func TestGetLinuxCPU(t *testing.T) {
 
 	// Override the get function to use our mock server
 	originalGet := getFunc
-	getFunc = func(url, dest string, progress getter.ProgressTracker) error {
+	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
 		// Replace the real URL with our mock server URL
 		mockURL := server.URL + "/b7225/llama-b7225-bin-ubuntu-x64.tar.gz"
 		return downloadAndExtractTarGz(mockURL, dest, nil)

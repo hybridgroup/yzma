@@ -18,7 +18,8 @@ type tag struct {
 	TagName string `json:"tag_name"`
 }
 
-// InstallLibraries will download the llama.cpp libraries for the OS identified
+// InstallLibraries has been deprecated. Use the `GetXXX` functions directly.
+// It will download the llama.cpp libraries for the OS identified
 // by the Go runtime and the processor specified. The libPath parameter is where
 // the libraries will be installed on disk. The allowUpgrade parameter allows
 // for the replacement of newer versions of the libraries when they become
