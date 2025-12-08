@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/jupiterrider/ffi"
 )
@@ -14,59 +13,35 @@ import (
 // The lib should be the "short name" for the library, for example:
 // gguf, llama, mtmd
 func LoadLibrary(path, lib string) (ffi.Lib, error) {
-	if os.Getenv("YZMA_LIB") != "" {
+	if path == "" && os.Getenv("YZMA_LIB") != "" {
 		path = os.Getenv("YZMA_LIB")
 	}
 
-	// Ensure the library path is in LD_LIBRARY_PATH (Linux) or equivalent
-	if path != "" {
-		if err := ensureLibraryPath(path); err != nil {
-			return ffi.Lib{}, err
-		}
+	// Ensure the library path is set
+	if path == "" {
+		return ffi.Lib{}, fmt.Errorf("library path not specified and YZMA_LIB env variable not set")
 	}
 
-	var filename string
-	switch runtime.GOOS {
-	case "linux", "freebsd":
-		filename = filepath.Join(path, fmt.Sprintf("lib%s.so", lib))
-	case "windows":
-		filename = filepath.Join(path, fmt.Sprintf("%s.dll", lib))
-	case "darwin":
-		filename = filepath.Join(path, fmt.Sprintf("lib%s.dylib", lib))
-	}
+	filename := GetLibraryFilename(path, lib)
 
 	return ffi.Load(filename)
 }
 
-// ensureLibraryPath ensures the given path is in the library search path
-func ensureLibraryPath(path string) error {
-	var envVar string
+// GetLibraryFilename returns the full path to the library file for the given path and library name.
+// The library name should be the "short name" (e.g., "llama", "gguf", "mtmd").
+// The function returns the appropriate filename based on the current OS:
+//   - Linux/FreeBSD: lib<name>.so
+//   - Windows: <name>.dll
+//   - Darwin: lib<name>.dylib
+func GetLibraryFilename(path, lib string) string {
 	switch runtime.GOOS {
 	case "linux", "freebsd":
-		envVar = "LD_LIBRARY_PATH"
-	case "darwin":
-		envVar = "DYLD_LIBRARY_PATH"
+		return filepath.Join(path, fmt.Sprintf("lib%s.so", lib))
 	case "windows":
-		envVar = "PATH"
+		return filepath.Join(path, fmt.Sprintf("%s.dll", lib))
+	case "darwin":
+		return filepath.Join(path, fmt.Sprintf("lib%s.dylib", lib))
 	default:
-		return nil
+		return filepath.Join(path, lib)
 	}
-
-	currentPath := os.Getenv(envVar)
-
-	// Check if path is already in the library path
-	if currentPath != "" {
-		separator := string(os.PathListSeparator)
-		paths := strings.Split(currentPath, separator)
-		for _, p := range paths {
-			if p == path {
-				return nil // Already in path
-			}
-		}
-		// Prepend the new path
-		return os.Setenv(envVar, path+separator+currentPath)
-	}
-
-	// Set the path if not already set
-	return os.Setenv(envVar, path)
 }
