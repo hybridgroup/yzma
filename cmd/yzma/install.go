@@ -88,31 +88,32 @@ func runInstall(c *cli.Context) error {
 
 	if !quiet {
 		fmt.Println("done.")
-		showInstallRequirements()
+		showInstallRequirements(libPath)
 	}
 
 	return nil
 }
 
-func showInstallRequirements() {
+func showInstallRequirements(libPath string) {
+	if os.Getenv("YZMA_LIB") == libPath {
+		return
+	}
+
 	switch runtime.GOOS {
 	case "linux":
 		fmt.Println(`
 You may want to set the YZMA_LIB environment variable to the directory with your llama.cpp library files. For example:
 
-    export YZMA_LIB=/home/your/location/yzma/lib
-`)
+    export YZMA_LIB=` + libPath)
 	case "windows":
 		fmt.Println(`
 You may want to set the YZMA_LIB environment variable to the directory with your llama.cpp library files. For example:
 
-    set YZMA_LIB=C:\your\location\yzma\lib
-`)
+    set YZMA_LIB=` + libPath)
 	case "darwin":
 		fmt.Println(`
 You may want to set the YZMA_LIB environment variable to the directory with your llama.cpp library files. For example:
 
-    export YZMA_LIB=/home/your/location/yzma/lib
-`)
+    export YZMA_LIB=` + libPath)
 	}
 }
