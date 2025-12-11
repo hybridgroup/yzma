@@ -28,6 +28,7 @@ const (
 type Sampler uintptr
 
 var (
+	// FFITypeSamplerChainParams represents the C struct llama_sampler_chain_params
 	FFISamplerChainParams = ffi.NewType(&ffi.TypePointer)
 )
 

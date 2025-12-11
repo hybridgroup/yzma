@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	// FFITypeBatch represents the C struct llama_batch
 	FFITypeBatch = ffi.NewType(&ffi.TypeSint32,
 		&ffi.TypePointer, &ffi.TypePointer,
 		&ffi.TypePointer, &ffi.TypePointer,

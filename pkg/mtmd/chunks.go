@@ -8,7 +8,7 @@ import (
 	"github.com/jupiterrider/ffi"
 )
 
-// enum mtmd_input_chunk_type
+// InputChunks represents the type of mtmd_input_chunks
 type InputChunkType int32
 
 const (
