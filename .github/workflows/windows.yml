@@ -36,9 +36,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Latest llama.cpp version: $VERSION"
       - name: Install yzma command
-        run: |
-          cd cmd/yzma
-          go install .
+        run: go install ./cmd/yzma
       - name: Install llama.cpp binaries
         run: |
           yzma install -lib ${env:GITHUB_WORKSPACE} -version ${{ steps.llama-version.outputs.version }}
