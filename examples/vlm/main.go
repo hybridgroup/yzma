@@ -92,7 +92,7 @@ func main() {
 	if *systemPrompt != "" {
 		messages = append(messages, llama.NewChatMessage("system", *systemPrompt))
 	}
-	messages = append(messages, llama.NewChatMessage("user", *prompt+mtmd.DefaultMarker()))
+	messages = append(messages, llama.NewChatMessage("user", mtmd.DefaultMarker()+*prompt))
 
 	output := mtmd.InputChunksInit()
 	input := mtmd.NewInputText(chatTemplate(true), true, true)

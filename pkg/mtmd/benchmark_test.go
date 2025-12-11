@@ -82,7 +82,7 @@ func benchmarkMultimodalInference(b *testing.B, mctx Context, ctx llama.Context,
 	vocab := llama.ModelGetVocab(model)
 
 	messages := make([]llama.ChatMessage, 0)
-	messages = append(messages, llama.NewChatMessage("user", text+DefaultMarker()))
+	messages = append(messages, llama.NewChatMessage("user", DefaultMarker()+text))
 	input := NewInputText(chatTemplate(template, messages, true), true, true)
 
 	output := InputChunksInit()
