@@ -7,14 +7,12 @@ import (
 	"github.com/jupiterrider/ffi"
 )
 
-type LogCallback uintptr // *ffi.Closure
+// LogCallback is a type for the logging callback function.
+type LogCallback uintptr
 
 var (
 	// LLAMA_API void llama_log_set(ggml_log_callback log_callback, void * user_data);
 	logSetFunc ffi.Fun
-
-	// static void llama_log_callback_null(ggml_log_level level, const char * text, void * user_data) { (void) level; (void) text; (void) user_data; }
-	// logSilent uintptr
 )
 
 func loadLogFuncs(lib ffi.Lib) error {

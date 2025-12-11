@@ -10,11 +10,13 @@ import (
 )
 
 var (
+	// FFITypeModelParams represents the C struct llama_model_params
 	FFITypeModelParams = ffi.NewType(&ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32,
 		&ffi.TypeSint32, &ffi.TypeSint32,
 		&ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer,
 		&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8)
 
+	// FFITypeModelQuantizeParams represents the C struct llama_model_quantize_params
 	FFITypeModelQuantizeParams = ffi.NewType(&ffi.TypeSint32, &ffi.TypeSint32,
 		&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8,
 		&ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer)

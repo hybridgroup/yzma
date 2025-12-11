@@ -42,8 +42,11 @@ type ContextParamsType struct {
 }
 
 var (
+	// FFITypeContextParams represents the C struct mtmd_context_params
 	FFITypeContextParams = ffi.NewType(&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer,
 		&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypeSint32)
+
+	// FFITypeInputText represents the C struct mtmd_input_text
 	FFITypeInputText = ffi.NewType(&ffi.TypePointer, &ffi.TypeUint8, &ffi.TypeUint8)
 )
 
