@@ -3,7 +3,7 @@ module github.com/hybridgroup/yzma/cmd/yzma
 go 1.24.4
 
 require (
-	github.com/hybridgroup/yzma v1.0.2-0.20251206194023-c5ac656a8e23
+	github.com/hybridgroup/yzma v1.2.1-0.20251211111331-41b18d0012f3
 	github.com/urfave/cli/v2 v2.27.7
 )
 
