@@ -16,7 +16,8 @@ var infoCmd = &cli.Command{
 
 func showInfo(c *cli.Context) error {
 	fmt.Println(logo)
-	fmt.Println("Go local inference based on llama.cpp")
+	fmt.Println()
+	fmt.Println("Local inference in Go using llama.cpp with hardware acceleration")
 	showYzmaVersion()
 
 	return nil
@@ -29,5 +30,4 @@ const logo = `
 |  ~  ||   __||  \_/  ||     |
 |___, ||  /  ||   |   ||  _  |
 |     ||     ||   |   ||  |  |
-|____/ |_____||___|___||__|__|
-`
+|____/ |_____||___|___||__|__|`
