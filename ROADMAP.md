@@ -34,6 +34,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_model_is_hybrid`
 - [x] `llama_model_is_recurrent`
 - [x] `llama_model_load_from_file`
+- [x] `llama_model_load_from_splits`
 - [x] `llama_model_meta_count`
 - [x] `llama_model_meta_key_by_index`
 - [x] `llama_model_meta_val_str_by_index`
@@ -228,7 +229,6 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `llama_apply_adapter_cvec`
 - [ ] `llama_attach_threadpool`
 - [ ] `llama_detach_threadpool`
-- [ ] `llama_model_load_from_splits`
 - [ ] `llama_model_save_to_file`
 - [ ] `llama_opt_epoch`
 - [ ] `llama_opt_init`

@@ -475,3 +475,36 @@ func TestModelChatTemplate(t *testing.T) {
 	}
 	t.Logf("ModelChatTemplate returned: %s", template)
 }
+
+func TestModelLoadFromSplitsInvalid(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ModelDefaultParams()
+	paths := []string{"invalid_split1.gguf", "invalid_split2.gguf"}
+	model, err := ModelLoadFromSplits(paths, params)
+	if err == nil {
+		t.Fatal("ModelLoadFromSplits should have failed for invalid files")
+	}
+	if model != 0 {
+		t.Fatal("ModelLoadFromSplits should have failed for invalid files")
+	}
+}
+
+func TestModelLoadFromSplitsValid(t *testing.T) {
+	testSplitModelFileNames := testSplitModelFileNames(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ModelDefaultParams()
+	model, err := ModelLoadFromSplits(testSplitModelFileNames, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromSplits failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	if model == 0 {
+		t.Fatal("ModelLoadFromSplits failed to load model")
+	}
+}

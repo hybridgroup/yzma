@@ -2,6 +2,7 @@ package llama
 
 import (
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -27,6 +28,14 @@ func testModelFileName(t *testing.T) string {
 	}
 
 	return os.Getenv("YZMA_TEST_MODEL")
+}
+
+func testSplitModelFileNames(t *testing.T) []string {
+	if os.Getenv("YZMA_TEST_SPLIT_MODELS") == "" {
+		t.Skip("no YZMA_TEST_SPLIT_MODELS skipping test")
+	}
+
+	return strings.Split(os.Getenv("YZMA_TEST_SPLIT_MODELS"), ",")
 }
 
 func testEncoderModelFileName(t *testing.T) string {
