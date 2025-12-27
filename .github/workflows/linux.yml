@@ -51,7 +51,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: models
-          key: ${{ runner.os }}-models-v4
+          key: ${{ runner.os }}-models-v5
       - name: Download test models
         if: steps.cache-models.outputs.cache-hit != 'true'
         run: |
@@ -63,6 +63,9 @@ jobs:
             yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/callgg/t5-base-encoder-f32/resolve/main/t5base-encoder-q4_0.gguf
             yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/deadprogram/yzma-tests/resolve/main/Gemma2-Base-F32.gguf
             yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/deadprogram/yzma-tests/resolve/main/Gemma2-Lora-F32-LoRA.gguf
+            yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/split/stories15M-q8_0-00001-of-00003.gguf
+            yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/split/stories15M-q8_0-00002-of-00003.gguf
+            yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/split/stories15M-q8_0-00003-of-00003.gguf
       - name: Run unit tests
         run: |
           export YZMA_TEST_MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf
@@ -72,6 +75,7 @@ jobs:
           export YZMA_TEST_ENCODER_MODEL=$GITHUB_WORKSPACE/models/t5base-encoder-q4_0.gguf
           export YZMA_TEST_LORA_MODEL=$GITHUB_WORKSPACE/models/Gemma2-Base-F32.gguf
           export YZMA_TEST_LORA_ADAPTER=$GITHUB_WORKSPACE/models/Gemma2-Lora-F32-LoRA.gguf
+          export YZMA_TEST_SPLIT_MODELS="$GITHUB_WORKSPACE/models/stories15M-q8_0-00001-of-00003.gguf,$GITHUB_WORKSPACE/models/stories15M-q8_0-00002-of-00003.gguf,$GITHUB_WORKSPACE/models/stories15M-q8_0-00003-of-00003.gguf"
           go test -v ./...
       - name: Run inference test
         run: go run ./examples/hello

@@ -59,7 +59,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: models
-          key: ${{ runner.os }}-models-v4
+          key: ${{ runner.os }}-models-v6
       - name: Download test models
         if: steps.cache-models.outputs.cache-hit != 'true'
         run: |
@@ -71,6 +71,9 @@ jobs:
             yzma model get -y --show-progress=false -o ${env:GITHUB_WORKSPACE}/models -u https://huggingface.co/callgg/t5-base-encoder-f32/resolve/main/t5base-encoder-q4_0.gguf
             yzma model get -y --show-progress=false -o ${env:GITHUB_WORKSPACE}/models -u https://huggingface.co/deadprogram/yzma-tests/resolve/main/Gemma2-Base-F32.gguf
             yzma model get -y --show-progress=false -o ${env:GITHUB_WORKSPACE}/models -u https://huggingface.co/deadprogram/yzma-tests/resolve/main/Gemma2-Lora-F32-LoRA.gguf
+            yzma model get -y --show-progress=false -o ${env:GITHUB_WORKSPACE}/models -u https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/split/stories15M-q8_0-00001-of-00003.gguf
+            yzma model get -y --show-progress=false -o ${env:GITHUB_WORKSPACE}/models -u https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/split/stories15M-q8_0-00002-of-00003.gguf
+            yzma model get -y --show-progress=false -o ${env:GITHUB_WORKSPACE}/models -u https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/split/stories15M-q8_0-00003-of-00003.gguf
       - name: Set env
         run: |
             echo "YZMA_TEST_MODEL=${env:GITHUB_WORKSPACE}/models/SmolLM-135M.Q2_K.gguf" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
@@ -80,6 +83,7 @@ jobs:
             echo "YZMA_TEST_ENCODER_MODEL=${env:GITHUB_WORKSPACE}/models/t5base-encoder-q4_0.gguf" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
             echo "YZMA_TEST_LORA_MODEL=${env:GITHUB_WORKSPACE}/models/Gemma2-Base-F32.gguf" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
             echo "YZMA_TEST_LORA_ADAPTER=${env:GITHUB_WORKSPACE}/models/Gemma2-Lora-F32-LoRA.gguf" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            echo "YZMA_TEST_SPLIT_MODELS=${env:GITHUB_WORKSPACE}\models\stories15M-q8_0-00001-of-00003.gguf,${env:GITHUB_WORKSPACE}\models\stories15M-q8_0-00002-of-00003.gguf,${env:GITHUB_WORKSPACE}\models\stories15M-q8_0-00003-of-00003.gguf" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Run unit tests
         run: |
             go test -v ./...
