@@ -14,7 +14,8 @@ var (
 	FFITypeModelParams = ffi.NewType(&ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32,
 		&ffi.TypeSint32, &ffi.TypeSint32,
 		&ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer,
-		&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8)
+		&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8,
+		&ffi.TypeUint8, &ffi.TypeUint8)
 
 	// FFITypeModelQuantizeParams represents the C struct llama_model_quantize_params
 	FFITypeModelQuantizeParams = ffi.NewType(&ffi.TypeSint32, &ffi.TypeSint32,
@@ -122,6 +123,10 @@ var (
 	// Get metadata value as a string by index
 	// LLAMA_API int32_t llama_model_meta_val_str_by_index(const struct llama_model * model, int32_t i, char * buf, size_t buf_size);
 	modelMetaValStrByIndexFunc ffi.Fun
+
+	// Get sampling metadata key name. Returns nullptr if the key is invalid
+	// LLAMA_API const char * llama_model_meta_key_str(enum llama_model_meta_key key);
+	modelMetaKeyStrFunc ffi.Fun
 
 	// LLAMA_API struct llama_model_quantize_params llama_model_quantize_default_params(void);
 	modelQuantizeDefaultParamsFunc ffi.Fun
@@ -250,6 +255,10 @@ func loadModelFuncs(lib ffi.Lib) error {
 
 	if modelMetaValStrByIndexFunc, err = lib.Prep("llama_model_meta_val_str_by_index", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
 		return loadError("llama_model_meta_val_str_by_index", err)
+	}
+
+	if modelMetaKeyStrFunc, err = lib.Prep("llama_model_meta_key_str", &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_model_meta_key_str", err)
 	}
 
 	if modelQuantizeDefaultParamsFunc, err = lib.Prep("llama_model_quantize_default_params", &FFITypeModelQuantizeParams); err != nil {
@@ -712,6 +721,17 @@ func ModelMetaValStrByIndex(model Model, i int32) (string, bool) {
 	copy(value, buf[:int32(result)])
 
 	return string(value), true
+}
+
+// ModelMetaKeyStr returns the metadata key name for a given enum key.
+// Returns an empty string if the key is invalid.
+func ModelMetaKeyStr(key ModelMetaKey) string {
+	var ptr *byte
+	modelMetaKeyStrFunc.Call(unsafe.Pointer(&ptr), &key)
+	if ptr == nil {
+		return ""
+	}
+	return utils.BytePtrToString(ptr)
 }
 
 // SetTensorBufOverrides sets tensor buffer overrides for Mixture of Experts (MoE) execution.

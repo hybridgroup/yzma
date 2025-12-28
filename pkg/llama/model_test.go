@@ -387,6 +387,23 @@ func TestModelMetaValStr(t *testing.T) {
 	t.Logf("ModelMetaValStr returned: %s", val)
 }
 
+func TestModelMetaKeyStr(t *testing.T) {
+	// Try a few likely valid and invalid keys
+	invalidKey := ModelMetaKey(-12345)
+
+	s := ModelMetaKeyStr(ModelMetaKeySamplingTopK)
+	if s == "" {
+		t.Log("ModelMetaKeyStr returned empty string for valid key (may be expected if no keys defined at 0)")
+	} else {
+		t.Logf("ModelMetaKeyStr(%d) returned: %q", ModelMetaKeySamplingTopK, s)
+	}
+
+	s = ModelMetaKeyStr(invalidKey)
+	if s != "" {
+		t.Fatalf("ModelMetaKeyStr should return empty string for invalid key, got: %q", s)
+	}
+}
+
 func TestModelLoadCallback(t *testing.T) {
 	modelFile := testModelFileName(t)
 	testSetup(t)
