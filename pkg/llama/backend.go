@@ -21,6 +21,9 @@ var (
 	// LLAMA_API size_t llama_max_parallel_sequences(void);
 	maxParallelSequencesFunc ffi.Fun
 
+	// LLAMA_API size_t llama_max_tensor_buft_overrides(void);
+	maxTensorBuftOverridesFunc ffi.Fun
+
 	// LLAMA_API bool llama_supports_mmap(void);
 	supportsMmapFunc ffi.Fun
 
@@ -63,6 +66,10 @@ func loadBackendFuncs(lib ffi.Lib) error {
 
 	if maxParallelSequencesFunc, err = lib.Prep("llama_max_parallel_sequences", &ffi.TypeUint32); err != nil {
 		return loadError("llama_max_parallel_sequences", err)
+	}
+
+	if maxTensorBuftOverridesFunc, err = lib.Prep("llama_max_tensor_buft_overrides", &ffi.TypeUint32); err != nil {
+		return loadError("llama_max_tensor_buft_overrides", err)
 	}
 
 	if supportsMmapFunc, err = lib.Prep("llama_supports_mmap", &ffi.TypeUint8); err != nil {
@@ -123,6 +130,13 @@ func MaxParallelSequences() uint64 {
 	var result ffi.Arg
 	maxParallelSequencesFunc.Call(unsafe.Pointer(&result))
 	return uint64(result)
+}
+
+// MaxTensorBuftOverrides returns the maximum number of tensor buffer overrides supported.
+func MaxTensorBuftOverrides() uint32 {
+	var result ffi.Arg
+	maxTensorBuftOverridesFunc.Call(unsafe.Pointer(&result))
+	return uint32(result)
 }
 
 // SupportsMmap checks if memory-mapped files are supported.

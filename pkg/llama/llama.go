@@ -226,6 +226,23 @@ const (
 	LogLevelContinue LogLevel = 5
 )
 
+type ModelMetaKey int32
+
+const (
+	ModelMetaKeySamplingSequence ModelMetaKey = iota
+	ModelMetaKeySamplingTopK
+	ModelMetaKeySamplingTopP
+	ModelMetaKeySamplingMinP
+	ModelMetaKeySamplingXTCProb
+	ModelMetaKeySamplingXTCThold
+	ModelMetaKeySamplingTemp
+	ModelMetaKeySamplingPenaltyLastN
+	ModelMetaKeySamplingPenaltyRepeat
+	ModelMetaKeySamplingMirostat
+	ModelMetaKeySamplingMirostatTau
+	ModelMetaKeySamplingMirostatEta
+)
+
 // Opaque types (represented as pointers)
 type (
 	Model       uintptr
@@ -288,6 +305,8 @@ type ModelParams struct {
 	UseMlock                 uint8     // force system to keep model in RAM (bool as uint8)
 	CheckTensors             uint8     // validate model tensor data (bool as uint8)
 	UseExtraBufts            uint8     // use extra buffer types (bool as uint8)
+	NoHost                   uint8     // bypass host buffer allowing extra buffers to be used (bool as uint8)
+	NoAlloc                  uint8     // only load metadata and simulate memory allocations (bool as uint8)
 }
 
 // Context parameters

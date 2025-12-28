@@ -12,6 +12,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_flash_attn_type_name`
 - [x] `llama_max_devices`
 - [x] `llama_max_parallel_sequences`
+- [x] `llama_max_tensor_buft_overrides`
 - [x] `llama_numa_init`
 - [x] `llama_print_system_info`
 - [x] `llama_supports_gpu_offload`
@@ -37,6 +38,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_model_load_from_splits`
 - [x] `llama_model_meta_count`
 - [x] `llama_model_meta_key_by_index`
+- [x] `llama_model_meta_key_str`
 - [x] `llama_model_meta_val_str_by_index`
 - [x] `llama_model_meta_val_str`
 - [x] `llama_model_n_cls_out`
@@ -233,6 +235,7 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `llama_opt_epoch`
 - [ ] `llama_opt_init`
 - [ ] `llama_opt_param_filter_all`
+- [ ] `llama_params_fit`
 
 ### `mtmd` Functions still needing wrappers
 

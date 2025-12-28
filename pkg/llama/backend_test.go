@@ -26,6 +26,17 @@ func TestMaxParallelSequences(t *testing.T) {
 	t.Logf("MaxParallelSequences returned: %d", maxParallelSequences)
 }
 
+func TestMaxTensorBuftOverrides(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	max := MaxTensorBuftOverrides()
+	if max == 0 {
+		t.Fatal("MaxTensorBuftOverrides returned 0, which is invalid")
+	}
+	t.Logf("MaxTensorBuftOverrides returned: %d", max)
+}
+
 func TestSupportsMmap(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
