@@ -26,6 +26,16 @@ wasmVision is a high-performance computer vision processing engine that includes
 
 https://github.com/wasmvision/wasmvision
 
+### NornicDB
+
+<a href="https://github.com/orneryd/NornicDB" target="_blank">
+<img src="https://raw.githubusercontent.com/orneryd/NornicDB/refs/heads/main/docs/assets/logos/nornicdb-logo.svg" width="150" alt="NornicDB logo">
+</a>
+
+NornicDB is a high-performance graph database designed for AI agents and knowledge systems.
+
+https://github.com/orneryd/NornicDB
+
 ## Examples and Tutorials
 
 ### Ardan Labs ai-training repository
