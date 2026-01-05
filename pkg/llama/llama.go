@@ -341,6 +341,11 @@ type ContextParams struct {
 	OpOffload          uint8              // offload host tensor operations to device
 	SwaFull            uint8              // use full-size SWA cache (https://github.com/ggml-org/llama.cpp/pull/13194#issuecomment-2868343055)
 	KVUnified          uint8              // use a unified buffer across the input sequences when computing the attentions
+	// [EXPERIMENTAL]
+	// backend sampler chain configuration (make sure the caller keeps the sampler chains alive)
+	// note: the samplers must be sampler chains (i.e. use llama_sampler_chain_init)
+	Samplers  uintptr // llama_sampler_seq_config *
+	NSamplers uint32  // number of sampler chains
 }
 
 // Model quantize parameters
