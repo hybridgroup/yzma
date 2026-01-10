@@ -745,6 +745,7 @@ func (p *ModelParams) SetTensorBufOverrides(overrides []TensorBuftOverride) {
 }
 
 var progressCallback unsafe.Pointer
+var sizeOfClosure = unsafe.Sizeof(ffi.Closure{})
 
 // SetProgressCallback sets a progress callback for model loading.
 func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
@@ -753,7 +754,7 @@ func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
 		return
 	}
 
-	closure := ffi.ClosureAlloc(unsafe.Sizeof(ffi.Closure{}), &progressCallback)
+	closure := ffi.ClosureAlloc(sizeOfClosure, &progressCallback)
 
 	fn := ffi.NewCallback(func(cif *ffi.Cif, ret unsafe.Pointer, args *unsafe.Pointer, userData unsafe.Pointer) uintptr {
 		if args == nil || ret == nil {
