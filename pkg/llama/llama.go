@@ -304,7 +304,7 @@ type ModelParams struct {
 	KvOverrides              uintptr   // const struct llama_model_kv_override *
 	VocabOnly                uint8     // only load the vocabulary, no weights (bool as uint8)
 	UseMmap                  uint8     // use mmap if possible (bool as uint8)
-	UseDirectIO              uint8     // use mmap if possible (bool as uint8)
+	UseDirectIO              uint8     // use direct I/O, takes precedence over use_mmap (bool as uint8)
 	UseMlock                 uint8     // force system to keep model in RAM (bool as uint8)
 	CheckTensors             uint8     // validate model tensor data (bool as uint8)
 	UseExtraBufts            uint8     // use extra buffer types (bool as uint8)
