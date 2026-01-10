@@ -213,7 +213,7 @@ func loadModelFuncs(lib ffi.Lib) error {
 		return loadError("llama_model_cls_label", err)
 	}
 
-	if modelDescFunc, err = lib.Prep("llama_model_desc", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+	if modelDescFunc, err = lib.Prep("llama_model_desc", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint64); err != nil {
 		return loadError("llama_model_desc", err)
 	}
 

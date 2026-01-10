@@ -144,7 +144,7 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 	}
 
 	if samplerInitDryFunc, err = lib.Prep("llama_sampler_init_dry", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeFloat, &ffi.TypeFloat,
-		&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+		&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeUint64); err != nil {
 
 		return loadError("llama_sampler_init_dry", err)
 	}
@@ -258,7 +258,7 @@ func SamplerInitPenalties(lastN int32, repeat float32, freq float32, present flo
 
 // SamplerInitDry initializes a new DRY sampler.
 func SamplerInitDry(vocab Vocab, nCtxTrain int32, multiplier float32, base float32, allowedLength int32, penaltyLast int32,
-	seqBreakers **byte, numBreakers uint32) Sampler {
+	seqBreakers **byte, numBreakers uint64) Sampler {
 	var p Sampler
 	samplerInitDryFunc.Call(unsafe.Pointer(&p), unsafe.Pointer(&vocab), unsafe.Pointer(&nCtxTrain), unsafe.Pointer(&multiplier), unsafe.Pointer(&base), unsafe.Pointer(&allowedLength), unsafe.Pointer(&penaltyLast),
 		unsafe.Pointer(seqBreakers), unsafe.Pointer(&numBreakers))
@@ -430,7 +430,7 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 			}
 			seqBreakersPtr := unsafe.SliceData(combined)
 
-			dry := SamplerInitDry(vocab, ModelNCtxTrain(model), params.DryMultiplier, params.DryBase, params.DryAllowedLength, params.DryPenaltyLastN, seqBreakersPtr, uint32(len(params.DrySequenceBreakers)))
+			dry := SamplerInitDry(vocab, ModelNCtxTrain(model), params.DryMultiplier, params.DryBase, params.DryAllowedLength, params.DryPenaltyLastN, seqBreakersPtr, uint64(len(params.DrySequenceBreakers)))
 			SamplerChainAdd(sampler, dry)
 
 		case SamplerTypeTopK:
