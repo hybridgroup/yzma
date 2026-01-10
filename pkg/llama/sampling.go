@@ -105,7 +105,7 @@ var (
 	// LLAMA_API void  llama_sampler_accept(struct llama_sampler * smpl, llama_token token);
 	samplerAcceptFunc ffi.Fun
 
-	// LLAMA_API void lama_sampler_free  (struct llama_sampler * smpl);
+	// LLAMA_API void llama_sampler_free  (struct llama_sampler * smpl);
 	samplerFreeFunc ffi.Fun
 
 	// LLAMA_API void llama_sampler_reset (struct llama_sampler * smpl);

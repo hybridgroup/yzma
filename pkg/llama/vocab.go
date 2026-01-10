@@ -503,7 +503,7 @@ func VocabGetText(vocab Vocab, token Token) string {
 	return utils.BytePtrToString(textPtr)
 }
 
-// VocabType retrieves the type of the vocabulary.
+// GetVocabType retrieves the type of the vocabulary.
 func GetVocabType(vocab Vocab) VocabType {
 	if vocab == 0 {
 		return VocabTypeNone
