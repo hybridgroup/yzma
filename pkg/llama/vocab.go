@@ -426,15 +426,12 @@ func TokenToPiece(vocab Vocab, token Token, buf []byte, lstrip int32, special bo
 	if vocab == 0 {
 		return 0
 	}
-	piece := make([]byte, len(buf))
-	b := unsafe.SliceData(piece)
-	bLen := int32(len(piece))
+	b := unsafe.SliceData(buf)
+	bLen := int32(len(buf))
 
 	var result ffi.Arg
 	tokenToPieceFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&vocab), &token, unsafe.Pointer(&b),
 		&bLen, &lstrip, &special)
-
-	copy(buf, piece)
 
 	return int32(result)
 }
