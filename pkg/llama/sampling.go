@@ -403,19 +403,19 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 
 	sampler = SamplerChainInit(SamplerChainDefaultParams())
 
+	// add EOG logit bias to prevent generating EOG tokens
+	logitBiasEOG := make([]LogitBias, 0)
+	for i := int32(0); i < nTokens; i++ {
+		token := Token(i)
+		if VocabIsEOG(vocab, token) {
+			logitBiasEOG = append(logitBiasEOG, LogitBias{Token: token, Bias: math.SmallestNonzeroFloat32})
+		}
+	}
+
 	// add other samplers
 	for _, samplerType := range samplers {
 		switch samplerType {
 		case SamplerTypeLogitBias:
-			// add EOG logit bias to prevent generating EOG tokens
-			logitBiasEOG := make([]LogitBias, 0)
-			for i := int32(0); i < nTokens; i++ {
-				token := Token(i)
-				if VocabIsEOG(vocab, token) {
-					logitBiasEOG = append(logitBiasEOG, LogitBias{Token: token, Bias: math.SmallestNonzeroFloat32})
-				}
-			}
-
 			bias := SamplerInitLogitBias(nTokens, int32(len(logitBiasEOG)), unsafe.SliceData(logitBiasEOG))
 			SamplerChainAdd(sampler, bias)
 
