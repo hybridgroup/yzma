@@ -306,7 +306,7 @@ func ModelLoadFromSplits(paths []string, params ModelParams) (Model, error) {
 
 	// Allocate C array of pointers to null-terminated strings
 	cStrs := make([]*byte, len(paths))
-	for i, _ := range paths {
+	for i := range paths {
 		cStrs[i] = &[]byte(paths[i] + "\x00")[0]
 	}
 	cPaths := unsafe.Pointer(&cStrs[0])

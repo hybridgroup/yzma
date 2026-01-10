@@ -130,7 +130,8 @@ const (
 	RopeScalingTypeNone        RopeScalingType = 0
 	RopeScalingTypeLinear      RopeScalingType = 1
 	RopeScalingTypeYARN        RopeScalingType = 2
-	RopeScalingTypeLongROPE    RopeScalingType = 4
+	RopeScalingTypeLongROPE    RopeScalingType = 3
+	RopeScalingTypeMaxValue    RopeScalingType = RopeScalingTypeLongROPE
 )
 
 type PoolingType int32
@@ -147,8 +148,9 @@ const (
 type AttentionType int32
 
 const (
-	AttentionTypeCausal    AttentionType = 0
-	AttentionTypeNonCausal AttentionType = 1
+	AttentionTypeUnspecified AttentionType = -1
+	AttentionTypeCausal      AttentionType = 0
+	AttentionTypeNonCausal   AttentionType = 1
 )
 
 type FlashAttentionType int32
@@ -162,9 +164,9 @@ const (
 type SplitMode int32
 
 const (
-	SplitModeNone  SplitMode = 0
-	SplitModeLayer SplitMode = 1
-	SplitModeRow   SplitMode = 2
+	SplitModeNone  SplitMode = 0 // single GPU
+	SplitModeLayer SplitMode = 1 // split layers and KV across GPUs
+	SplitModeRow   SplitMode = 2 // split layers and KV across GPUs, use tensor parallelism if supported
 )
 
 type GpuBackend int32
@@ -349,12 +351,12 @@ type ContextParams struct {
 	NSamplers uint64  // number of sampler chains (size_t)
 }
 
-// Model quantize parameters
+// ModelQuantizeParams defines the parameters for model quantize parameters
 type ModelQuantizeParams struct {
 	NThread              int32 // number of threads to use for quantizing
 	Ftype                Ftype // quantize to this llama_ftype
 	OutputTensorType     int32 // output tensor type
-	TokenEmbeddingType   int32 // itoken embeddings tensor type
+	TokenEmbeddingType   int32 // token embeddings tensor type
 	AllowRequantize      uint8 // allow quantizing non-f32/f16 tensors (bool as uint8)
 	QuantizeOutputTensor uint8 // quantize output.weight (bool as uint8)
 	OnlyCopy             uint8 // only copy tensors - ftype, allow_requantize and quantize_output_tensor are ignored
