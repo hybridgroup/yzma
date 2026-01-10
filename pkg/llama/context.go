@@ -24,7 +24,7 @@ var FFITypeContextParams = ffi.NewType(
 	&ffi.TypeUint8, &ffi.TypeUint8,
 	&ffi.TypeUint8, &ffi.TypeUint8,
 	&ffi.TypeUint8, &ffi.TypeUint8,
-	&ffi.TypeUint32, &ffi.TypeSint32)
+	&ffi.TypePointer, &ffi.TypeUint64)
 
 var (
 	// LLAMA_API struct llama_context_params        llama_context_default_params(void);

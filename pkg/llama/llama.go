@@ -289,7 +289,7 @@ type TensorBuftOverride struct {
 // return false from callback to abort model loading or true to continue
 type ProgressCallback func(progress float32, userData uintptr) uint8
 
-// Model parameters
+// ModelParams allows configuration of the model and how it's loaded
 type ModelParams struct {
 	Devices                  uintptr   // ggml_backend_dev_t * - NULL-terminated list of devices
 	TensorBuftOverrides      uintptr   // const struct llama_model_tensor_buft_override *
@@ -302,6 +302,7 @@ type ModelParams struct {
 	KvOverrides              uintptr   // const struct llama_model_kv_override *
 	VocabOnly                uint8     // only load the vocabulary, no weights (bool as uint8)
 	UseMmap                  uint8     // use mmap if possible (bool as uint8)
+	UseDirectIO              uint8     // use mmap if possible (bool as uint8)
 	UseMlock                 uint8     // force system to keep model in RAM (bool as uint8)
 	CheckTensors             uint8     // validate model tensor data (bool as uint8)
 	UseExtraBufts            uint8     // use extra buffer types (bool as uint8)
@@ -309,7 +310,7 @@ type ModelParams struct {
 	NoAlloc                  uint8     // only load metadata and simulate memory allocations (bool as uint8)
 }
 
-// Context parameters
+// ContextParams controls the parameters available for the model context
 type ContextParams struct {
 	NCtx               uint32             // text context, 0 = from model
 	NBatch             uint32             // logical maximum batch size
@@ -345,7 +346,7 @@ type ContextParams struct {
 	// backend sampler chain configuration (make sure the caller keeps the sampler chains alive)
 	// note: the samplers must be sampler chains (i.e. use llama_sampler_chain_init)
 	Samplers  uintptr // llama_sampler_seq_config *
-	NSamplers uint32  // number of sampler chains
+	NSamplers uint64  // number of sampler chains (size_t)
 }
 
 // Model quantize parameters
