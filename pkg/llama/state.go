@@ -122,23 +122,23 @@ var (
 func loadStateFuncs(lib ffi.Lib) error {
 	var err error
 
-	if stateSaveFileFunc, err = lib.Prep("llama_state_save_file", &ffi.TypeUint8, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+	if stateSaveFileFunc, err = lib.Prep("llama_state_save_file", &ffi.TypeUint8, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint64); err != nil {
 		return loadError("llama_state_save_file", err)
 	}
 
-	if stateLoadFileFunc, err = lib.Prep("llama_state_load_file", &ffi.TypeUint8, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32, &ffi.TypePointer); err != nil {
+	if stateLoadFileFunc, err = lib.Prep("llama_state_load_file", &ffi.TypeUint8, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint64, &ffi.TypePointer); err != nil {
 		return loadError("llama_state_load_file", err)
 	}
 
-	if stateGetSizeFunc, err = lib.Prep("llama_state_get_size", &ffi.TypeUint32, &ffi.TypePointer); err != nil {
+	if stateGetSizeFunc, err = lib.Prep("llama_state_get_size", &ffi.TypeUint64, &ffi.TypePointer); err != nil {
 		return loadError("llama_state_get_size", err)
 	}
 
-	if stateGetDataFunc, err = lib.Prep("llama_state_get_data", &ffi.TypeUint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+	if stateGetDataFunc, err = lib.Prep("llama_state_get_data", &ffi.TypeUint64, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint64); err != nil {
 		return loadError("llama_state_get_data", err)
 	}
 
-	if stateSetDataFunc, err = lib.Prep("llama_state_set_data", &ffi.TypeUint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+	if stateSetDataFunc, err = lib.Prep("llama_state_set_data", &ffi.TypeUint64, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint64); err != nil {
 		return loadError("llama_state_set_data", err)
 	}
 
