@@ -574,6 +574,8 @@ func ModelRopeType(model Model) RopeScalingType {
 }
 
 // Warmup is to warm-up a model.
+// It processes a representative batch of tokens (32) to trigger GPU kernel JIT
+// compilation for common tensor shapes, reducing latency on first real request.
 func Warmup(lctx Context, model Model) error {
 	if lctx == 0 || model == 0 {
 		return errors.New("invalid context or model")
@@ -583,17 +585,35 @@ func Warmup(lctx Context, model Model) error {
 
 	SetWarmup(lctx, true)
 
-	tokens := make([]Token, 0)
 	bos := VocabBOS(vocab)
 	eos := VocabEOS(vocab)
 
+	// Build a representative batch of 32 tokens for proper kernel warmup.
+	// This triggers CUDA/Metal JIT compilation for common batch sizes.
+	const warmupBatchSize = 32
+	tokens := make([]Token, 0, warmupBatchSize)
+
+	// Start with BOS token if available.
 	if bos != TokenNull {
 		tokens = append(tokens, bos)
 	}
+
+	// Fill remaining slots with valid tokens (cycling through a small vocab range).
+	vocabSize := VocabNTokens(vocab)
+	if vocabSize <= 0 {
+		vocabSize = 32000 // Reasonable default
+	}
+
+	for len(tokens) < warmupBatchSize-1 {
+		// Use modulo to stay within vocab bounds, avoiding special tokens.
+		tokenID := Token((len(tokens) + 100) % int(vocabSize))
+		tokens = append(tokens, tokenID)
+	}
+
+	// End with EOS token if available.
 	if eos != TokenNull {
 		tokens = append(tokens, eos)
-	}
-	if len(tokens) == 0 {
+	} else if len(tokens) < warmupBatchSize {
 		tokens = append(tokens, 0)
 	}
 
@@ -605,7 +625,7 @@ func Warmup(lctx Context, model Model) error {
 		if start == TokenNull {
 			start = bos
 		}
-		tokens = append([]Token{}, start)
+		tokens = []Token{start}
 	}
 
 	if ModelHasDecoder(model) {
