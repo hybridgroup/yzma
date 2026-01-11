@@ -12,6 +12,7 @@ type (
 	GGMLBackendDeviceType int32
 	GGMLBackendDevice     uintptr
 	GGMLBackendReg        uintptr
+	GGMLType              int32
 )
 
 const (
@@ -23,6 +24,83 @@ const (
 	GGMLBackendDeviceTypeIGPU
 	// accelerator devices intended to be used together with the CPU backend (e.g. BLAS or AMX)
 	GGMLBackendDeviceTypeACCEL
+)
+
+const (
+	// GGML_TYPE_F32
+	GGMLTypeF32 GGMLType = 0
+	// GGML_TYPE_F16
+	GGMLTypeF16 GGMLType = 1
+	// GGML_TYPE_Q4_0
+	GGMLTypeQ4_0 GGMLType = 2
+	// GGML_TYPE_Q4_1
+	GGMLTypeQ4_1 GGMLType = 3
+	// GGML_TYPE_Q4_2 = 4, support has been removed
+	// GGML_TYPE_Q4_3 = 5, support has been removed
+	// GGML_TYPE_Q5_0
+	GGMLTypeQ5_0 GGMLType = 6
+	// GGML_TYPE_Q5_1
+	GGMLTypeQ5_1 GGMLType = 7
+	// GGML_TYPE_Q8_0
+	GGMLTypeQ8_0 GGMLType = 8
+	// GGML_TYPE_Q8_1
+	GGMLTypeQ8_1 GGMLType = 9
+	// GGML_TYPE_Q2_K
+	GGMLTypeQ2_K GGMLType = 10
+	// GGML_TYPE_Q3_K
+	GGMLTypeQ3_K GGMLType = 11
+	// GGML_TYPE_Q4_K
+	GGMLTypeQ4_K GGMLType = 12
+	// GGML_TYPE_Q5_K
+	GGMLTypeQ5_K GGMLType = 13
+	// GGML_TYPE_Q6_K
+	GGMLTypeQ6_K GGMLType = 14
+	// GGML_TYPE_Q8_K
+	GGMLTypeQ8_K GGMLType = 15
+	// GGML_TYPE_IQ2_XXS
+	GGMLTypeIQ2_XXS GGMLType = 16
+	// GGML_TYPE_IQ2_XS
+	GGMLTypeIQ2_XS GGMLType = 17
+	// GGML_TYPE_IQ3_XXS
+	GGMLTypeIQ3_XXS GGMLType = 18
+	// GGML_TYPE_IQ1_S
+	GGMLTypeIQ1_S GGMLType = 19
+	// GGML_TYPE_IQ4_NL
+	GGMLTypeIQ4_NL GGMLType = 20
+	// GGML_TYPE_IQ3_S
+	GGMLTypeIQ3_S GGMLType = 21
+	// GGML_TYPE_IQ2_S
+	GGMLTypeIQ2_S GGMLType = 22
+	// GGML_TYPE_IQ4_XS
+	GGMLTypeIQ4_XS GGMLType = 23
+	// GGML_TYPE_I8
+	GGMLTypeI8 GGMLType = 24
+	// GGML_TYPE_I16
+	GGMLTypeI16 GGMLType = 25
+	// GGML_TYPE_I32
+	GGMLTypeI32 GGMLType = 26
+	// GGML_TYPE_I64
+	GGMLTypeI64 GGMLType = 27
+	// GGML_TYPE_F64
+	GGMLTypeF64 GGMLType = 28
+	// GGML_TYPE_IQ1_M
+	GGMLTypeIQ1_M GGMLType = 29
+	// GGML_TYPE_BF16
+	GGMLTypeBF16 GGMLType = 30
+	// GGML_TYPE_Q4_0_4_4 = 31, support has been removed from gguf files
+	// GGML_TYPE_Q4_0_4_8 = 32,
+	// GGML_TYPE_Q4_0_8_8 = 33,
+	// GGML_TYPE_TQ1_0
+	GGMLTypeTQ1_0 GGMLType = 34
+	// GGML_TYPE_TQ2_0
+	GGMLTypeTQ2_0 GGMLType = 35
+	// GGML_TYPE_IQ4_NL_4_4 = 36,
+	// GGML_TYPE_IQ4_NL_4_8 = 37,
+	// GGML_TYPE_IQ4_NL_8_8 = 38,
+	// GGML_TYPE_MXFP4
+	GGMLTypeMXFP4 GGMLType = 39
+	// GGML_TYPE_COUNT
+	GGMLTypeCOUNT GGMLType = 40
 )
 
 var (

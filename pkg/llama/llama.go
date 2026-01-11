@@ -334,8 +334,8 @@ type ContextParams struct {
 	DefragThold        float32            // defragment the KV cache if holes/size > thold
 	CbEval             uintptr            // evaluation callback
 	CbEvalUserData     uintptr            // user data for evaluation callback
-	TypeK              int32              // data type for K cache
-	TypeV              int32              // data type for V cache
+	TypeK              GGMLType           // data type for K cache
+	TypeV              GGMLType           // data type for V cache
 	AbortCallback      uintptr            // abort callback
 	AbortCallbackData  uintptr            // user data for abort callback
 	Embeddings         uint8              // whether to compute and return embeddings (bool as uint8)
