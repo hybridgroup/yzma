@@ -69,6 +69,25 @@ func TestModelNEmbdInp(t *testing.T) {
 	}
 }
 
+func TestModelNEmbdOut(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	nEmbdOut := ModelNEmbdOut(model)
+	if nEmbdOut <= 0 {
+		t.Fatal("ModelNEmbdOut returned an invalid value")
+	}
+	t.Logf("ModelNEmbdOut returned: %d", nEmbdOut)
+}
+
 func TestModelNLayer(t *testing.T) {
 	modelFile := testModelFileName(t)
 
