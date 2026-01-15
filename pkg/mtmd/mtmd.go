@@ -103,6 +103,13 @@ var (
 	// If this is not called, or NULL is supplied, everything is output on stderr.
 	// MTMD_API void mtmd_helper_log_set(ggml_log_callback log_callback, void * user_data);
 	mtmdLogSetFunc ffi.Fun
+
+	// MTMD_API int32_t mtmd_encode_chunk(mtmd_context * ctx,
+	//                                    const mtmd_input_chunk * chunk);
+	encodeChunkFunc ffi.Fun
+
+	// MTMD_API float * mtmd_get_output_embd(mtmd_context * ctx);
+	getOutputEmbdFunc ffi.Fun
 )
 
 func loadFuncs(lib ffi.Lib) error {
@@ -156,6 +163,14 @@ func loadFuncs(lib ffi.Lib) error {
 
 	if mtmdLogSetFunc, err = lib.Prep("mtmd_helper_log_set", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return loadError("mtmd_helper_log_set", err)
+	}
+
+	if encodeChunkFunc, err = lib.Prep("mtmd_encode_chunk", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_encode_chunk", err)
+	}
+
+	if getOutputEmbdFunc, err = lib.Prep("mtmd_get_output_embd", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_get_output_embd", err)
 	}
 
 	return nil
@@ -320,4 +335,32 @@ func GetAudioBitrate(ctx Context) int {
 func LogSet(cb uintptr) {
 	nada := uintptr(0)
 	mtmdLogSetFunc.Call(nil, unsafe.Pointer(&cb), unsafe.Pointer(&nada))
+}
+
+// EncodeChunk encodes an image/audio chunk through the vision/audio encoder.
+// Returns 0 on success, non-zero on error.
+// After calling this, use GetOutputEmbd to retrieve the embeddings.
+// This function is NOT thread-safe.
+func EncodeChunk(ctx Context, chunk InputChunk) int32 {
+	if ctx == 0 || chunk == 0 {
+		return -1
+	}
+	var result ffi.Arg
+	encodeChunkFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&chunk))
+	return int32(result)
+}
+
+// GetOutputEmbd returns the output embeddings from the last EncodeChunk call.
+// The returned slice has length: n_embd * n_tokens (where n_tokens comes from
+// InputChunkGetNTokens on the encoded chunk).
+// The caller must use this data before the next EncodeChunk call, as the
+// underlying buffer is reused.
+// This function is NOT thread-safe.
+func GetOutputEmbd(ctx Context) *float32 {
+	if ctx == 0 {
+		return nil
+	}
+	var result *float32
+	getOutputEmbdFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+	return result
 }
