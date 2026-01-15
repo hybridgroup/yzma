@@ -39,12 +39,15 @@ type ContextParamsType struct {
 	Warmup         bool
 	ImageMinTokens int32
 	ImageMaxTokens int32
+	// callback function passed over to mtmd proper
+	CbEval         uintptr
+	CbEvalUserData uintptr
 }
 
 var (
 	// FFITypeContextParams represents the C struct mtmd_context_params
 	FFITypeContextParams = ffi.NewType(&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer,
-		&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypeSint32)
+		&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer)
 
 	// FFITypeInputText represents the C struct mtmd_input_text
 	FFITypeInputText = ffi.NewType(&ffi.TypePointer, &ffi.TypeUint8, &ffi.TypeUint8)

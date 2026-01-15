@@ -7,6 +7,9 @@ import (
 )
 
 func TestInputChunksInitAndFree(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
 	chunks := InputChunksInit()
 	if chunks == InputChunks(0) {
 		t.Fatal("InputChunksInit returned an invalid InputChunks")
@@ -19,6 +22,9 @@ func TestInputChunksInitAndFree(t *testing.T) {
 }
 
 func TestInputChunksSize(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
 	chunks := InputChunksInit()
 	defer InputChunksFree(chunks)
 
@@ -61,7 +67,7 @@ func TestInputChunksGetType(t *testing.T) {
 		t.Fatalf("invalid chunk size: %d", size)
 	}
 
-	idx := uint32(1)
+	idx := uint64(1)
 	chunk := InputChunksGet(chunks, idx)
 	if chunk == InputChunk(0) {
 		t.Fatalf("InputChunksGet returned an invalid chunk for index %d", idx)
@@ -104,7 +110,7 @@ func TestInputChunkGetNTokens(t *testing.T) {
 
 	testSetupChunks(t, ctx, chunks)
 
-	idx := uint32(1)
+	idx := uint64(1)
 	chunk := InputChunksGet(chunks, idx)
 	if chunk == InputChunk(0) {
 		t.Fatalf("InputChunksGet returned an invalid chunk for index %d", idx)
@@ -141,7 +147,7 @@ func TestInputChunkGetId(t *testing.T) {
 
 	testSetupChunks(t, ctx, chunks)
 
-	idx := uint32(1)
+	idx := uint64(1)
 	chunk := InputChunksGet(chunks, idx)
 	if chunk == InputChunk(0) {
 		t.Fatalf("InputChunksGet returned an invalid chunk for index %d", idx)
@@ -178,7 +184,7 @@ func TestInputChunkGetNPos(t *testing.T) {
 
 	testSetupChunks(t, ctx, chunks)
 
-	idx := uint32(1)
+	idx := uint64(1)
 	chunk := InputChunksGet(chunks, idx)
 	if chunk == InputChunk(0) {
 		t.Fatalf("InputChunksGet returned an invalid chunk for index %d", idx)
@@ -215,7 +221,7 @@ func TestInputChunkCopyAndFree(t *testing.T) {
 
 	testSetupChunks(t, ctx, chunks)
 
-	idx := uint32(1)
+	idx := uint64(1)
 	chunk := InputChunksGet(chunks, idx)
 	if chunk == InputChunk(0) {
 		t.Fatalf("InputChunksGet returned an invalid chunk for index %d", idx)
@@ -259,7 +265,7 @@ func TestInputChunkGetTokensImage(t *testing.T) {
 
 	testSetupChunks(t, ctx, chunks)
 
-	idx := uint32(1)
+	idx := uint64(1)
 	chunk := InputChunksGet(chunks, idx)
 	if chunk == InputChunk(0) {
 		t.Fatalf("InputChunksGet returned an invalid chunk for index %d", idx)

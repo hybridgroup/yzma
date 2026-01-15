@@ -407,6 +407,9 @@ func TestModelMetaValStr(t *testing.T) {
 }
 
 func TestModelMetaKeyStr(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
 	// Try a few likely valid and invalid keys
 	invalidKey := ModelMetaKey(-12345)
 

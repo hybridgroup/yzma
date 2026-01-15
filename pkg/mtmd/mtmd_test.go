@@ -8,6 +8,9 @@ import (
 )
 
 func TestDefaultMarker(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
 	marker := DefaultMarker()
 	if marker == "" {
 		t.Fatal("DefaultMarker returned an empty string")
@@ -16,6 +19,9 @@ func TestDefaultMarker(t *testing.T) {
 }
 
 func TestContextParamsDefault(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
 	params := ContextParamsDefault()
 	if params.Threads <= 0 {
 		t.Fatal("ContextParamsDefault returned invalid thread count")

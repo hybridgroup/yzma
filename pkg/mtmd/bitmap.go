@@ -63,7 +63,7 @@ func loadBitmapFuncs(lib ffi.Lib) error {
 		return loadError("mtmd_bitmap_free", err)
 	}
 
-	if bitmapGetNBytesFunc, err = lib.Prep("mtmd_bitmap_get_n_bytes", &ffi.TypeUint32, &ffi.TypePointer); err != nil {
+	if bitmapGetNBytesFunc, err = lib.Prep("mtmd_bitmap_get_n_bytes", &ffi.TypeUint64, &ffi.TypePointer); err != nil {
 		return loadError("mtmd_bitmap_get_n_bytes", err)
 	}
 
@@ -71,7 +71,7 @@ func loadBitmapFuncs(lib ffi.Lib) error {
 		return loadError("mtmd_helper_bitmap_init_from_file", err)
 	}
 
-	if bitmapInitFromBufFunc, err = lib.Prep("mtmd_helper_bitmap_init_from_buf", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+	if bitmapInitFromBufFunc, err = lib.Prep("mtmd_helper_bitmap_init_from_buf", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint64); err != nil {
 		return loadError("mtmd_helper_bitmap_init_from_buf", err)
 	}
 
@@ -123,14 +123,14 @@ func BitmapFree(bitmap Bitmap) {
 }
 
 // BitmapGetNBytes returns the number of bytes in the Bitmap.
-func BitmapGetNBytes(bitmap Bitmap) uint32 {
+func BitmapGetNBytes(bitmap Bitmap) uint64 {
 	if bitmap == 0 {
 		return 0
 	}
 	var result ffi.Arg
 	bitmapGetNBytesFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&bitmap))
 
-	return uint32(result)
+	return uint64(result)
 }
 
 // BitmapInitFromFile initializes a Bitmap from a file.

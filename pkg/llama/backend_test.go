@@ -81,6 +81,9 @@ func TestTimeUs(t *testing.T) {
 }
 
 func TestFlashAttnTypeName(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
 	var flashAttnType FlashAttentionType = FlashAttentionTypeAuto
 
 	name := FlashAttnTypeName(flashAttnType)
@@ -91,6 +94,9 @@ func TestFlashAttnTypeName(t *testing.T) {
 }
 
 func TestNumaInit(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
 	var strategy NumaStrategy = NumaStrategyDisabled
 
 	// Should not panic or error
