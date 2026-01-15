@@ -61,27 +61,45 @@ func TestInputChunksGetType(t *testing.T) {
 
 	testSetupChunks(t, ctx, chunks)
 
-	size := InputChunksSize(chunks)
+	size := uint64(InputChunksSize(chunks))
 	t.Logf("InputChunksSize returned: %d", size)
 	if size == 0 {
 		t.Fatalf("invalid chunk size: %d", size)
 	}
 
-	idx := uint64(1)
-	chunk := InputChunksGet(chunks, idx)
-	if chunk == InputChunk(0) {
-		t.Fatalf("InputChunksGet returned an invalid chunk for index %d", idx)
+	for idx := uint64(0); idx < size; idx++ {
+		chunk := InputChunksGet(chunks, idx)
+		if chunk == InputChunk(0) {
+			t.Fatalf("InputChunksGet returned an invalid chunk for index %d", idx)
+		}
+
+		chunkType := InputChunkGetType(chunk)
+		t.Logf("Chunk %d: type=%s", idx, chunkTypeName(chunkType))
+
+		switch chunkType {
+		case InputChunkTypeText:
+			tokens := InputChunkGetTokensText(chunk)
+			t.Logf("  Text chunk has %d tokens", len(tokens))
+		case InputChunkTypeImage:
+			imgTokens := InputChunkGetTokensImage(chunk)
+			if imgTokens != ImageTokens(0) {
+				t.Logf("  Image chunk: nx=%d, ny=%d, n_tokens=%d",
+					ImageTokensGetNX(imgTokens),
+					ImageTokensGetNY(imgTokens),
+					ImageTokensGetNTokens(imgTokens))
+			}
+		}
 	}
+}
 
-	t.Logf("InputChunksGet successfully retrieved chunk at index %d", idx)
-
-	chunkType := InputChunkGetType(chunk)
-	t.Logf("InputChunkGetType returned: %d", chunkType)
-
-	switch chunkType {
+func chunkTypeName(t InputChunkType) string {
+	switch t {
 	case InputChunkTypeText:
-		tokens := InputChunkGetTokensText(chunk)
-		t.Logf("InputChunkGetTokensText returned %d tokens", len(tokens))
+		return "text"
+	case InputChunkTypeImage:
+		return "image"
+	default:
+		return "unknown"
 	}
 }
 
