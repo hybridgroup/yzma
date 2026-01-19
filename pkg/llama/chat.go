@@ -16,6 +16,9 @@ var (
 	//                               char * buf,
 	//                            int32_t   length);
 	chatApplyTemplateFunc ffi.Fun
+
+	// LLAMA_API int32_t llama_chat_builtin_templates(const char ** output, size_t len);
+	chatBuiltinTemplatesFunc ffi.Fun
 )
 
 func loadChatFuncs(lib ffi.Lib) error {
@@ -24,6 +27,10 @@ func loadChatFuncs(lib ffi.Lib) error {
 		&ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
 
 		return loadError("llama_chat_apply_template", err)
+	}
+
+	if chatBuiltinTemplatesFunc, err = lib.Prep("llama_chat_builtin_templates", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+		return loadError("llama_chat_builtin_templates", err)
 	}
 
 	return nil
@@ -64,5 +71,35 @@ func ChatApplyTemplate(template string, chat []ChatMessage, addAssistantPrompt b
 
 	var result ffi.Arg
 	chatApplyTemplateFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&tmpl), unsafe.Pointer(&c), &nMsg, &addAssistantPrompt, unsafe.Pointer(&out), &len)
+	return int32(result)
+}
+
+// ChatBuiltinTemplates returns a list of built-in chat template names.
+// The function populates the provided output slice with template names and returns
+// the number of templates found. If the output slice is too small, only the first
+// len(output) templates will be returned.
+func ChatBuiltinTemplates(output []string) int32 {
+	if len(output) == 0 {
+		return 0
+	}
+
+	cStrings := make([]*byte, len(output))
+	for i := range cStrings {
+		cStrings[i] = nil
+	}
+
+	cOutput := unsafe.Pointer(&cStrings[0])
+	length := uint32(len(output))
+
+	var result ffi.Arg
+	chatBuiltinTemplatesFunc.Call(unsafe.Pointer(&result), &cOutput, &length)
+
+	for i, cStr := range cStrings {
+		output[i] = ""
+		if cStr != nil {
+			output[i] = utils.BytePtrToString(cStr)
+		}
+	}
+
 	return int32(result)
 }
