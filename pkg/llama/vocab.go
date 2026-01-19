@@ -87,6 +87,16 @@ var (
 	//                         bool   parse_special);
 	tokenizeFunc ffi.Fun
 
+	// LLAMA_API int32_t llama_detokenize(
+	//     const struct llama_vocab * vocab,
+	//            const llama_token * tokens,
+	//                      int32_t   n_tokens,
+	//                         char * text,
+	//                      int32_t   text_len_max,
+	//                         bool   remove_special,
+	//                         bool   unparse_special);
+	detokenizeFunc ffi.Fun
+
 	// LLAMA_API enum llama_token_attr llama_vocab_get_attr(const struct llama_vocab * vocab, llama_token token);
 	vocabGetAttrFunc ffi.Fun
 
@@ -191,6 +201,11 @@ func loadVocabFuncs(lib ffi.Lib) error {
 	if tokenizeFunc, err = lib.Prep("llama_tokenize", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32,
 		&ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeUint8, &ffi.TypeUint8); err != nil {
 		return loadError("llama_tokenize", err)
+	}
+
+	if detokenizeFunc, err = lib.Prep("llama_detokenize", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer,
+		&ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeUint8, &ffi.TypeUint8); err != nil {
+		return loadError("llama_detokenize", err)
 	}
 
 	if vocabGetAttrFunc, err = lib.Prep("llama_vocab_get_attr", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
@@ -466,6 +481,58 @@ func Tokenize(vocab Vocab, text string, addSpecial bool, parseSpecial bool) []To
 		unsafe.Pointer(&toks), &nTokensMax, &addSpecial, &parseSpecial)
 
 	return tokens
+}
+
+// Detokenize converts a sequence of tokens into text using the specified vocabulary.
+// The `removeSpecial` parameter indicates whether to remove special tokens, and the `unparseSpecial` parameter
+// specifies whether to render special tokens in the output.
+// The function returns the detokenized text as a string.
+func Detokenize(vocab Vocab, tokens []Token, removeSpecial bool, unparseSpecial bool) string {
+	if vocab == 0 || len(tokens) == 0 {
+		return ""
+	}
+
+	// Get the needed size by calling with a NULL text buffer
+	var (
+		result     ffi.Arg
+		toks       *Token
+		nTokens    int32
+		textPtr    *byte
+		textLenMax int32
+	)
+	toks = unsafe.SliceData(tokens)
+	nTokens = int32(len(tokens))
+
+	detokenizeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&vocab), unsafe.Pointer(&toks), &nTokens,
+		unsafe.Pointer(&textPtr), &textLenMax, &removeSpecial, &unparseSpecial)
+	size := -int32(result)
+
+	// If size is still negative or zero, return empty string
+	if size <= 0 {
+		return ""
+	}
+
+	// Now get the actual text
+	buf := make([]byte, size)
+	textPtr = unsafe.SliceData(buf)
+	textLenMax = int32(len(buf))
+
+	detokenizeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&vocab), unsafe.Pointer(&toks), &nTokens,
+		unsafe.Pointer(&textPtr), &textLenMax, &removeSpecial, &unparseSpecial)
+
+	// Convert the byte slice to a string, excluding any null terminator
+	// The function returns the number of bytes actually written
+	actualSize := int32(result)
+	if actualSize <= 0 {
+		return ""
+	}
+
+	// Handle possible null terminator
+	if buf[actualSize-1] == 0 {
+		return string(buf[:actualSize-1])
+	}
+
+	return string(buf[:actualSize])
 }
 
 // VocabGetAttr retrieves the attribute of a given token in the vocabulary.
