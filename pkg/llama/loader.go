@@ -83,6 +83,10 @@ func Load(path string) error {
 		return err
 	}
 
+	if err := loadPerfFuncs(lib); err != nil {
+		return err
+	}
+
 	return nil
 }
 
