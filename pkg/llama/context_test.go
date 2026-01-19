@@ -795,3 +795,45 @@ func TestGetSampledCandidatesCountIth(t *testing.T) {
 
 	t.Logf("GetSampledCandidatesCountIth returned count: %d", count)
 }
+
+func TestSetAbortCallback(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	modelFile := testModelFileName(t)
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
+	defer Free(ctx)
+
+	callCount := 0
+	abortAfter := 2
+
+	SetAbortCallback(ctx, func() bool {
+		callCount++
+		return callCount >= abortAfter
+	})
+
+	prompt := "Hello world"
+	vocab := ModelGetVocab(model)
+	tokens := Tokenize(vocab, prompt, true, true)
+	batch := BatchGetOne(tokens)
+
+	Decode(ctx, batch)
+
+	if callCount == 0 {
+		t.Log("Abort callback was not called during decode (may depend on model/backend)")
+	} else {
+		t.Logf("Abort callback was called %d times", callCount)
+	}
+
+	SetAbortCallback(ctx, nil)
+	t.Log("SetAbortCallback with nil completed successfully")
+}

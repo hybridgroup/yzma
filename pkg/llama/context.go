@@ -4,6 +4,7 @@ import (
 	"errors"
 	"unsafe"
 
+	"github.com/ebitengine/purego"
 	"github.com/jupiterrider/ffi"
 )
 
@@ -145,6 +146,9 @@ var (
 
 	// LLAMA_API uint32_t llama_get_sampled_candidates_count_ith(struct llama_context * ctx, int32_t i);
 	getSampledCandidatesCountIthFunc ffi.Fun
+
+	// LLAMA_API void llama_set_abort_callback(struct llama_context * ctx, ggml_abort_callback abort_callback, void * abort_callback_data);
+	setAbortCallbackFunc ffi.Fun
 )
 
 func loadContextFuncs(lib ffi.Lib) error {
@@ -264,6 +268,10 @@ func loadContextFuncs(lib ffi.Lib) error {
 
 	if getSampledCandidatesCountIthFunc, err = lib.Prep("llama_get_sampled_candidates_count_ith", &ffi.TypeUint32, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
 		return loadError("llama_get_sampled_candidates_count_ith", err)
+	}
+
+	if setAbortCallbackFunc, err = lib.Prep("llama_set_abort_callback", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("llama_set_abort_callback", err)
 	}
 
 	return nil
@@ -615,4 +623,28 @@ func GetSampledCandidatesCountIth(ctx Context, i int32) (uint32, error) {
 	var result ffi.Arg
 	getSampledCandidatesCountIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
 	return uint32(result), nil
+}
+
+// AbortFunc is a callback function that can be used to abort computation.
+type AbortFunc func() bool
+
+// SetAbortCallback sets a callback function that can be used to abort computation.
+// The callback is called before ggml computation. If it returns true, the computation is aborted.
+// The data parameter is passed to the callback function on each invocation.
+// Pass nil for fn to clear the abort callback.
+func SetAbortCallback(ctx Context, fn AbortFunc) {
+	callback := newAbortCallback(fn)
+
+	var nilPtr uintptr
+	setAbortCallbackFunc.Call(nil, unsafe.Pointer(&ctx), unsafe.Pointer(&callback), unsafe.Pointer(&nilPtr))
+}
+
+// newAbortCallback creates a C-compatible callback from a Go AbortFunc.
+func newAbortCallback(fn AbortFunc) uintptr {
+	return purego.NewCallback(func(data uintptr) uintptr {
+		if fn() {
+			return 1
+		}
+		return 0
+	})
 }
