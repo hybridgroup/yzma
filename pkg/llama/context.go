@@ -115,6 +115,27 @@ var (
 
 	// LLAMA_API void llama_set_causal_attn(struct llama_context * ctx, bool causal_attn);
 	setCausalAttnFunc ffi.Fun
+
+	// LLAMA_API llama_token llama_get_sampled_token_ith(struct llama_context * ctx, int32_t i);
+	getSampledTokenIthFunc ffi.Fun
+
+	// LLAMA_API float * llama_get_sampled_probs_ith(struct llama_context * ctx, int32_t i);
+	getSampledProbsIthFunc ffi.Fun
+
+	// LLAMA_API uint32_t llama_get_sampled_probs_count_ith(struct llama_context * ctx, int32_t i);
+	getSampledProbsCountIthFunc ffi.Fun
+
+	// LLAMA_API float * llama_get_sampled_logits_ith(struct llama_context * ctx, int32_t i);
+	getSampledLogitsIthFunc ffi.Fun
+
+	// LLAMA_API uint32_t llama_get_sampled_logits_count_ith(struct llama_context * ctx, int32_t i);
+	getSampledLogitsCountIthFunc ffi.Fun
+
+	// LLAMA_API llama_token * llama_get_sampled_candidates_ith(struct llama_context * ctx, int32_t i);
+	getSampledCandidatesIthFunc ffi.Fun
+
+	// LLAMA_API uint32_t llama_get_sampled_candidates_count_ith(struct llama_context * ctx, int32_t i);
+	getSampledCandidatesCountIthFunc ffi.Fun
 )
 
 func loadContextFuncs(lib ffi.Lib) error {
@@ -202,6 +223,34 @@ func loadContextFuncs(lib ffi.Lib) error {
 
 	if setCausalAttnFunc, err = lib.Prep("llama_set_causal_attn", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeUint8); err != nil {
 		return loadError("llama_set_causal_attn", err)
+	}
+
+	if getSampledTokenIthFunc, err = lib.Prep("llama_get_sampled_token_ith", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_get_sampled_token_ith", err)
+	}
+
+	if getSampledProbsIthFunc, err = lib.Prep("llama_get_sampled_probs_ith", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_get_sampled_probs_ith", err)
+	}
+
+	if getSampledProbsCountIthFunc, err = lib.Prep("llama_get_sampled_probs_count_ith", &ffi.TypeUint32, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_get_sampled_probs_count_ith", err)
+	}
+
+	if getSampledLogitsIthFunc, err = lib.Prep("llama_get_sampled_logits_ith", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_get_sampled_logits_ith", err)
+	}
+
+	if getSampledLogitsCountIthFunc, err = lib.Prep("llama_get_sampled_logits_count_ith", &ffi.TypeUint32, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_get_sampled_logits_count_ith", err)
+	}
+
+	if getSampledCandidatesIthFunc, err = lib.Prep("llama_get_sampled_candidates_ith", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_get_sampled_candidates_ith", err)
+	}
+
+	if getSampledCandidatesCountIthFunc, err = lib.Prep("llama_get_sampled_candidates_count_ith", &ffi.TypeUint32, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_get_sampled_candidates_count_ith", err)
 	}
 
 	return nil
@@ -438,4 +487,83 @@ func SetCausalAttn(ctx Context, causalAttn bool) {
 		return
 	}
 	setCausalAttnFunc.Call(nil, unsafe.Pointer(&ctx), &causalAttn)
+}
+
+// GetSampledTokenIth retrieves the sampled token for the ith output.
+func GetSampledTokenIth(ctx Context, i int32) (Token, error) {
+	if ctx == 0 {
+		return TokenNull, errInvalidContext
+	}
+	var result ffi.Arg
+	getSampledTokenIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
+	return Token(result), nil
+}
+
+// GetSampledProbsIth retrieves the sampled probabilities for the ith output.
+func GetSampledProbsIth(ctx Context, i int32, nVocab int) ([]float32, error) {
+	if ctx == 0 {
+		return nil, errInvalidContext
+	}
+	var result *float32
+	getSampledProbsIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
+	if result == nil {
+		return nil, nil
+	}
+	return unsafe.Slice(result, nVocab), nil
+}
+
+// GetSampledProbsCountIth retrieves the count of sampled probabilities for the ith output.
+func GetSampledProbsCountIth(ctx Context, i int32) (uint32, error) {
+	if ctx == 0 {
+		return 0, errInvalidContext
+	}
+	var result ffi.Arg
+	getSampledProbsCountIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
+	return uint32(result), nil
+}
+
+// GetSampledLogitsIth retrieves the sampled logits for the ith output.
+func GetSampledLogitsIth(ctx Context, i int32, nVocab int) ([]float32, error) {
+	if ctx == 0 {
+		return nil, errInvalidContext
+	}
+	var result *float32
+	getSampledLogitsIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
+	if result == nil {
+		return nil, nil
+	}
+	return unsafe.Slice(result, nVocab), nil
+}
+
+// GetSampledLogitsCountIth retrieves the count of sampled logits for the ith output.
+func GetSampledLogitsCountIth(ctx Context, i int32) (uint32, error) {
+	if ctx == 0 {
+		return 0, errInvalidContext
+	}
+	var result ffi.Arg
+	getSampledLogitsCountIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
+	return uint32(result), nil
+}
+
+// GetSampledCandidatesIth retrieves the sampled candidates for the ith output.
+func GetSampledCandidatesIth(ctx Context, i int32, nVocab int) ([]Token, error) {
+	if ctx == 0 {
+		return nil, errInvalidContext
+	}
+	var result *Token
+	getSampledCandidatesIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
+	if result == nil {
+		return nil, nil
+	}
+	return unsafe.Slice(result, nVocab), nil
+}
+
+// GetSampledCandidatesCountIth retrieves the count of sampled candidates for the ith output.
+func GetSampledCandidatesCountIth(ctx Context, i int32) (uint32, error) {
+	if ctx == 0 {
+		return 0, errInvalidContext
+	}
+	var result ffi.Arg
+	getSampledCandidatesCountIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
+	return uint32(result), nil
 }
