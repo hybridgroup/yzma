@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"slices"
 	"testing"
 )
 
@@ -28,10 +29,17 @@ func TestChatBuiltinTemplates(t *testing.T) {
 
 	templates := ChatBuiltinTemplates()
 
-	t.Logf("Found %d built-in templates", len(templates))
-	for i := 0; i < len(templates); i++ {
-		if templates[i] != "" {
-			t.Logf("Template %d: %s", i, templates[i])
+	t.Logf("Found %d built-in templates\n", len(templates))
+	if len(templates) == 0 {
+		t.Fatal("no built-in templates found")
+	}
+
+	t.Logf("Template %v\n", templates)
+
+	existingTemplates := []string{"deepseek3", "gemma", "gpt-oss", "llama3", "llama4"}
+	for _, existingTemplate := range existingTemplates {
+		if !slices.Contains(templates, existingTemplate) {
+			t.Fatalf("missing expected template: %s\n", existingTemplate)
 		}
 	}
 }
