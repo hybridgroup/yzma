@@ -2,6 +2,12 @@
 MAKEFILE_PATH := $(realpath $(lastword $(MAKEFILE_LIST)))
 MAKEFILE_DIR := $(dir $(MAKEFILE_PATH))
 
+ifeq ($(shell uname -s),Darwin)
+    MAC_FLAG = -p metal
+else
+    MAC_FLAG =
+endif
+
 LLAMA_VER:=b7787
 YZMA_LIB:=$(MAKEFILE_DIR)lib
 
@@ -18,8 +24,14 @@ download-models:
 	$(MAKEFILE_DIR)yzma model get -y --show-progress=false -o $(MAKEFILE_DIR)models -u https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/split/stories15M-q8_0-00002-of-00003.gguf
 	$(MAKEFILE_DIR)yzma model get -y --show-progress=false -o $(MAKEFILE_DIR)models -u https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/split/stories15M-q8_0-00003-of-00003.gguf
 
+clean-llama.cpp:
+	rm -rf $(MAKEFILE_DIR)lib/lib*
+	rm -rf $(MAKEFILE_DIR)lib/llama*
+	rm $(MAKEFILE_DIR)lib/LICENSE
+	rm $(MAKEFILE_DIR)lib/rpc-server
+
 download-llama.cpp:
-	$(MAKEFILE_DIR)yzma install -lib $(YZMA_LIB) -version $(LLAMA_VER) -p metal
+	$(MAKEFILE_DIR)yzma install -lib $(YZMA_LIB) -version $(LLAMA_VER) $(MAC_FLAG)
 
 build:
 	YZMA_LIB=$(YZMA_LIB) go build -o yzma ./cmd/yzma
