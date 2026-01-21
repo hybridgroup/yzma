@@ -3,3 +3,4 @@ lib/
 *.dylib
 *.dll
 /models
+yzma
