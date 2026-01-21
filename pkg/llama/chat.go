@@ -74,32 +74,34 @@ func ChatApplyTemplate(template string, chat []ChatMessage, addAssistantPrompt b
 	return int32(result)
 }
 
-// ChatBuiltinTemplates returns a list of built-in chat template names.
-// The function populates the provided output slice with template names and returns
-// the number of templates found. If the output slice is too small, only the first
-// len(output) templates will be returned.
-func ChatBuiltinTemplates(output []string) int32 {
-	if len(output) == 0 {
-		return 0
+// ChatBuiltinTemplates returns a slice of built-in chat template names.
+func ChatBuiltinTemplates() []string {
+	// get the needed size
+	var (
+		result  ffi.Arg
+		cOutput *byte
+		length  uint32
+	)
+	chatBuiltinTemplatesFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&cOutput), &length)
+	count := int32(result)
+
+	if count == 0 {
+		return nil
 	}
 
-	cStrings := make([]*byte, len(output))
-	for i := range cStrings {
-		cStrings[i] = nil
-	}
+	// now get the actual templates
+	cStrings := make([]*byte, count)
+	cFinalOutput := unsafe.SliceData(cStrings)
+	length = uint32(count)
 
-	cOutput := unsafe.Pointer(&cStrings[0])
-	length := uint32(len(output))
+	chatBuiltinTemplatesFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&cFinalOutput), &length)
 
-	var result ffi.Arg
-	chatBuiltinTemplatesFunc.Call(unsafe.Pointer(&result), &cOutput, &length)
-
+	templates := make([]string, count)
 	for i, cStr := range cStrings {
-		output[i] = ""
 		if cStr != nil {
-			output[i] = utils.BytePtrToString(cStr)
+			templates[i] = utils.BytePtrToString(cStr)
 		}
 	}
 
-	return int32(result)
+	return templates
 }

@@ -26,22 +26,10 @@ func TestChatBuiltinTemplates(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	// Create a buffer to receive the template names
-	templates := make([]string, 10) // Assuming there are less than 10 built-in templates
+	templates := ChatBuiltinTemplates()
 
-	// Call the function
-	count := ChatBuiltinTemplates(templates)
-
-	// Check that we got a non-negative count
-	if count < 0 {
-		t.Errorf("ChatBuiltinTemplates returned negative count: %d", count)
-	}
-
-	// Check that the templates slice was populated
-	// Note: The actual content depends on the built-in templates in the llama.cpp library
-	// We're just verifying that the function call works without crashing
-	t.Logf("Found %d built-in templates", count)
-	for i := 0; i < int(count) && i < len(templates); i++ {
+	t.Logf("Found %d built-in templates", len(templates))
+	for i := 0; i < len(templates); i++ {
 		if templates[i] != "" {
 			t.Logf("Template %d: %s", i, templates[i])
 		}
