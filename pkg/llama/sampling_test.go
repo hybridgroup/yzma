@@ -112,6 +112,48 @@ func TestSamplerInitPenalties(t *testing.T) {
 	SamplerFree(sampler)
 }
 
+func TestSamplerInitDry(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	modelFile := testModelFileName(t)
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	vocab := ModelGetVocab(model)
+
+	sampler := SamplerInitDry(vocab, 1024, 0.2, 0.2, 1.0, 2, []string{"the", "and", "of"})
+	if sampler == (Sampler(0)) {
+		t.Fatal("SamplerInitDry failed to initialize a dry sampler")
+	}
+
+	SamplerFree(sampler)
+}
+
+func TestSamplerInitDry2(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	modelFile := testModelFileName(t)
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	vocab := ModelGetVocab(model)
+
+	sampler := SamplerInitDry(vocab, 1024, 0.2, 0.2, 1.0, 2, nil)
+	if sampler == (Sampler(0)) {
+		t.Fatal("SamplerInitDry failed to initialize a dry sampler")
+	}
+
+	SamplerFree(sampler)
+}
+
 func TestSamplerInitLogitBias(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
