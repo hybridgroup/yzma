@@ -258,11 +258,24 @@ func SamplerInitPenalties(lastN int32, repeat float32, freq float32, present flo
 
 // SamplerInitDry initializes a new DRY sampler.
 func SamplerInitDry(vocab Vocab, nCtxTrain int32, multiplier float32, base float32, allowedLength int32, penaltyLast int32,
-	seqBreakers **byte, numBreakers uint64) Sampler {
-	var p Sampler
-	samplerInitDryFunc.Call(unsafe.Pointer(&p), unsafe.Pointer(&vocab), unsafe.Pointer(&nCtxTrain), unsafe.Pointer(&multiplier), unsafe.Pointer(&base), unsafe.Pointer(&allowedLength), unsafe.Pointer(&penaltyLast),
-		unsafe.Pointer(seqBreakers), unsafe.Pointer(&numBreakers))
+	seqBreakers []string) Sampler {
+	var sp unsafe.Pointer
+	numBreakers := uint64(len(seqBreakers))
+	if numBreakers > 0 {
+		seq := make([]*byte, 0)
+		for _, s := range seqBreakers {
+			ptr, err := utils.BytePtrFromString(s)
+			if err != nil {
+				return Sampler(0)
+			}
+			seq = append(seq, ptr)
+		}
+		sp = unsafe.Pointer(&seq[0])
+	}
 
+	var p Sampler
+	samplerInitDryFunc.Call(unsafe.Pointer(&p), unsafe.Pointer(&vocab), &nCtxTrain, &multiplier, &base, &allowedLength, &penaltyLast,
+		&sp, &numBreakers)
 	return p
 }
 
@@ -420,17 +433,7 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 			SamplerChainAdd(sampler, bias)
 
 		case SamplerTypeDry:
-			var combined []*byte
-			for _, s := range params.DrySequenceBreakers {
-				ptr, err := utils.BytePtrFromString(s)
-				if err != nil {
-					panic(err)
-				}
-				combined = append(combined, ptr)
-			}
-			seqBreakersPtr := unsafe.SliceData(combined)
-
-			dry := SamplerInitDry(vocab, ModelNCtxTrain(model), params.DryMultiplier, params.DryBase, params.DryAllowedLength, params.DryPenaltyLastN, seqBreakersPtr, uint64(len(params.DrySequenceBreakers)))
+			dry := SamplerInitDry(vocab, ModelNCtxTrain(model), params.DryMultiplier, params.DryBase, params.DryAllowedLength, params.DryPenaltyLastN, params.DrySequenceBreakers)
 			SamplerChainAdd(sampler, dry)
 
 		case SamplerTypeTopK:
