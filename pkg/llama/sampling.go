@@ -22,7 +22,8 @@ const (
 	SamplerTypeInfill                  = 9
 	SamplerTypePenalties               = 10
 	SamplerTypeTopNSigma               = 11
-	SamplerTypeLogitBias               = 12
+	SamplerTypeAdaptiveP               = 12
+	SamplerTypeLogitBias               = 13
 )
 
 type Sampler uintptr
@@ -98,6 +99,12 @@ var (
 	//               	const char * grammar_str,
 	//               	const char * grammar_root);
 	samplerInitGrammarFunc ffi.Fun
+
+	// LLAMA_API struct llama_sampler * llama_sampler_init_adaptive_p(
+	//                            float   target,
+	//                            float   decay,
+	//                         uint32_t   seed);
+	samplerInitAdaptivePFunc ffi.Fun
 
 	// LLAMA_API llama_token llama_sampler_sample(struct llama_sampler * smpl, struct llama_context * ctx, int32_t idx);
 	samplerSampleFunc ffi.Fun
@@ -182,6 +189,10 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 
 	if samplerInitGrammarFunc, err = lib.Prep("llama_sampler_init_grammar", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return loadError("llama_sampler_init_grammar", err)
+	}
+
+	if samplerInitAdaptivePFunc, err = lib.Prep("llama_sampler_init_adaptive_p", &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeUint32); err != nil {
+		return loadError("llama_sampler_init_adaptive_p", err)
 	}
 
 	if samplerSampleFunc, err = lib.Prep("llama_sampler_sample", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
@@ -352,6 +363,13 @@ func SamplerInitGrammar(vocab Vocab, grammar, root string) Sampler {
 	r, _ := utils.BytePtrFromString(root)
 
 	samplerInitGrammarFunc.Call(unsafe.Pointer(&s), unsafe.Pointer(&vocab), unsafe.Pointer(&grmr), unsafe.Pointer(&r))
+
+	return s
+}
+
+func SamplerInitAdaptiveP(target float32, decay float32, seed uint32) Sampler {
+	var s Sampler
+	samplerInitAdaptivePFunc.Call(unsafe.Pointer(&s), unsafe.Pointer(&target), unsafe.Pointer(&decay), unsafe.Pointer(&seed))
 
 	return s
 }
