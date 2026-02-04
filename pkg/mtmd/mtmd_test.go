@@ -161,6 +161,88 @@ func TestHelperEvalChunks(t *testing.T) {
 	t.Log("HelperEvalChunks successfully evaluated the chunks")
 }
 
+func TestEncodeChunk(t *testing.T) {
+	modelFile := testModelFileName(t)
+	mmprojFile := testMMProjFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer llama.ModelFree(model)
+
+	params := ContextParamsDefault()
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("InitFromFile failed: %v", err)
+	}
+	defer Free(ctx)
+
+	chunks := InputChunksInit()
+	defer InputChunksFree(chunks)
+
+	testSetupChunks(t, ctx, chunks)
+	idx := uint32(1)
+	chunk := InputChunksGet(chunks, idx)
+
+	err = EncodeChunk(ctx, chunk)
+	if err != nil {
+		t.Fatalf("EncodeChunk failed: %v", err)
+	}
+
+	t.Log("EncodeChunk successfully encoded the chunk")
+}
+
+func TestGetOutputEmbd(t *testing.T) {
+	modelFile := testModelFileName(t)
+	mmprojFile := testMMProjFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer llama.ModelFree(model)
+
+	params := ContextParamsDefault()
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("InitFromFile failed: %v", err)
+	}
+	defer Free(ctx)
+
+	chunks := InputChunksInit()
+	defer InputChunksFree(chunks)
+
+	testSetupChunks(t, ctx, chunks)
+	idx := uint32(1)
+	chunk := InputChunksGet(chunks, idx)
+
+	err = EncodeChunk(ctx, chunk)
+	if err != nil {
+		t.Fatalf("EncodeChunk failed: %v", err)
+	}
+
+	sz := llama.ModelNEmbdInp(model) * int32(InputChunkGetNTokens(chunk))
+	if sz <= 0 {
+		t.Fatal("Calculated embedding size is invalid")
+	}
+	embd, err := GetOutputEmbd(ctx, sz)
+	if err != nil {
+		t.Fatalf("GetOutputEmbd failed: %v", err)
+	}
+	if embd == nil {
+		t.Fatal("GetOutputEmbd returned nil")
+	}
+
+	t.Logf("GetOutputEmbd successfully retrieved embeddings of length: %d", len(embd))
+}
+
 func TestDecodeUseNonCausal(t *testing.T) {
 	modelFile := testModelFileName(t)
 	mmprojFile := testMMProjFileName(t)
