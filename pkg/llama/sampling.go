@@ -105,6 +105,9 @@ var (
 	// LLAMA_API void  llama_sampler_accept(struct llama_sampler * smpl, llama_token token);
 	samplerAcceptFunc ffi.Fun
 
+	// LLAMA_API void  llama_sampler_apply (struct llama_sampler * smpl, llama_token_data_array * cur_p);
+	samplerApplyFunc ffi.Fun
+
 	// LLAMA_API void llama_sampler_free  (struct llama_sampler * smpl);
 	samplerFreeFunc ffi.Fun
 
@@ -187,6 +190,10 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 
 	if samplerAcceptFunc, err = lib.Prep("llama_sampler_accept", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
 		return loadError("llama_sampler_accept", err)
+	}
+
+	if samplerApplyFunc, err = lib.Prep("llama_sampler_apply", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("llama_sampler_apply", err)
 	}
 
 	if samplerFreeFunc, err = lib.Prep("llama_sampler_free", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
@@ -367,6 +374,14 @@ func SamplerAccept(smpl Sampler, token Token) {
 		return
 	}
 	samplerAcceptFunc.Call(nil, unsafe.Pointer(&smpl), unsafe.Pointer(&token))
+}
+
+// SamplerApply applies the sampler to the current token data array.
+func SamplerApply(smpl Sampler, curP *TokenDataArray) {
+	if smpl == 0 || curP == nil {
+		return
+	}
+	samplerApplyFunc.Call(nil, unsafe.Pointer(&smpl), unsafe.Pointer(&curP))
 }
 
 // SamplerFree frees the sampler.

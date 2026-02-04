@@ -312,6 +312,81 @@ func TestSamplerAccept(t *testing.T) {
 	t.Logf("SamplerAccept succeeded for token: %d", token)
 }
 
+func TestSamplerApply(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	modelFile := testModelFileName(t)
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
+	defer Free(ctx)
+
+	// Use a simple sampler (e.g., greedy)
+	sampler := SamplerInitGreedy()
+	if sampler == (Sampler(0)) {
+		t.Fatal("SamplerInitGreedy failed to initialize a greedy sampler")
+	}
+	defer SamplerFree(sampler)
+
+	// Tokenize a prompt and decode to produce logits
+	prompt := "Hello world"
+	vocab := ModelGetVocab(model)
+	tokens := Tokenize(vocab, prompt, true, true)
+	batch := BatchGetOne(tokens)
+	Decode(ctx, batch)
+
+	// Get logits from context
+	nVocab := VocabNTokens(vocab)
+	if nVocab <= 0 {
+		t.Fatal("VocabNTokens returned non-positive value")
+	}
+
+	logits, err := GetLogitsIth(ctx, -1, int(nVocab))
+	if err != nil || logits == nil {
+		t.Fatalf("GetLogitsIth failed: %v", err)
+	}
+
+	// Build token_data array from logits
+	tokenDataArr := make([]TokenData, int(nVocab))
+	for i := range tokenDataArr {
+		tokenDataArr[i] = TokenData{
+			Id:    Token(i),
+			Logit: logits[i],
+			P:     0,
+		}
+	}
+
+	curP := TokenDataArray{
+		Data:     &tokenDataArr[0],
+		Size:     uint64(nVocab),
+		Selected: -1,
+		Sorted:   0,
+	}
+
+	// Apply the sampler (grammar constraints, etc.)
+	SamplerApply(sampler, &curP)
+
+	// Optionally, copy modified logits back to logits slice
+	for i := range tokenDataArr {
+		logits[i] = tokenDataArr[i].Logit
+	}
+
+	// Now use normal sampling - it will read the modified logits from context.
+	token := SamplerSample(sampler, ctx, -1)
+	if token == TokenNull {
+		t.Fatal("SamplerSample returned TokenNull after applying sampler")
+	}
+	t.Logf("SamplerSample returned token: %d", token)
+}
+
 func TestNewSampler(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
