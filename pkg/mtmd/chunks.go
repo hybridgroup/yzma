@@ -86,7 +86,7 @@ func loadChunkFuncs(lib ffi.Lib) error {
 		return loadError("mtmd_input_chunks_size", err)
 	}
 
-	if inputChunksGetFunc, err = lib.Prep("mtmd_input_chunks_get", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+	if inputChunksGetFunc, err = lib.Prep("mtmd_input_chunks_get", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer); err != nil { // size_t idx
 		return loadError("mtmd_input_chunks_get", err)
 	}
 
@@ -179,7 +179,8 @@ func InputChunksGet(chunks InputChunks, idx uint32) InputChunk {
 	if chunks == 0 {
 		return chunk
 	}
-	inputChunksGetFunc.Call(unsafe.Pointer(&chunk), unsafe.Pointer(&chunks), unsafe.Pointer(&idx))
+	idxSizeT := uintptr(idx) // size_t in C
+	inputChunksGetFunc.Call(unsafe.Pointer(&chunk), unsafe.Pointer(&chunks), unsafe.Pointer(&idxSizeT))
 	return chunk
 }
 
@@ -198,14 +199,22 @@ func InputChunkGetTokensText(chunk InputChunk) []llama.Token {
 	if chunk == 0 {
 		return nil
 	}
-	var tokensPtr *llama.Token
-	var nTokens uint32
-	inputChunkGetTokensTextFunc.Call(unsafe.Pointer(&tokensPtr), unsafe.Pointer(&chunk), unsafe.Pointer(&nTokens))
+	var result ffi.Arg
+	var nTokens uintptr // size_t in C
+	
+	// The C function expects (chunk_ptr, size_t_ptr).
+	// For the second arg, we need to pass the ADDRESS of nTokens.
+	// FFI reads from our pointer, so we need a pointer that CONTAINS
+	// the address of nTokens.
+	nTokensAddr := uintptr(unsafe.Pointer(&nTokens))
+	
+	inputChunkGetTokensTextFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&chunk), unsafe.Pointer(&nTokensAddr))
 
-	if tokensPtr == nil || nTokens == 0 {
+	if result == 0 || nTokens == 0 {
 		return nil
 	}
 
+	tokensPtr := (*llama.Token)(unsafe.Pointer(uintptr(result)))
 	return unsafe.Slice(tokensPtr, int(nTokens))
 }
 
