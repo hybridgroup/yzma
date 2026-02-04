@@ -231,6 +231,18 @@ func TestSamplerInitGrammar(t *testing.T) {
 	SamplerFree(sampler)
 }
 
+func TestSamplerInitAdaptiveP(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	sampler := SamplerInitAdaptiveP(0.9, 0.5, 12345)
+	if sampler == (Sampler(0)) {
+		t.Fatal("SamplerInitAdaptiveP failed to initialize an adaptive-p sampler")
+	}
+
+	SamplerFree(sampler)
+}
+
 func TestSamplerSample(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
