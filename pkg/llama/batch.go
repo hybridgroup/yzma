@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	// FFITypeBatch represents the C struct llama_batch
-	FFITypeBatch = ffi.NewType(&ffi.TypeSint32,
+	// ffiTypeBatch represents the C struct llama_batch
+	ffiTypeBatch = ffi.NewType(&ffi.TypeSint32,
 		&ffi.TypePointer, &ffi.TypePointer,
 		&ffi.TypePointer, &ffi.TypePointer,
 		&ffi.TypePointer, &ffi.TypePointer)
@@ -31,15 +31,15 @@ var (
 func loadBatchFuncs(lib ffi.Lib) error {
 	var err error
 
-	if batchInitFunc, err = lib.Prep("llama_batch_init", &FFITypeBatch, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32); err != nil {
+	if batchInitFunc, err = lib.Prep("llama_batch_init", &ffiTypeBatch, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32); err != nil {
 		return loadError("llama_batch_init", err)
 	}
 
-	if batchFreeFunc, err = lib.Prep("llama_batch_free", &ffi.TypeVoid, &FFITypeBatch); err != nil {
+	if batchFreeFunc, err = lib.Prep("llama_batch_free", &ffi.TypeVoid, &ffiTypeBatch); err != nil {
 		return loadError("llama_batch_free", err)
 	}
 
-	if batchGetOneFunc, err = lib.Prep("llama_batch_get_one", &FFITypeBatch, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+	if batchGetOneFunc, err = lib.Prep("llama_batch_get_one", &ffiTypeBatch, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
 		return loadError("llama_batch_get_one", err)
 	}
 

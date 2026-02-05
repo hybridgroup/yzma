@@ -219,7 +219,7 @@ func GGMLBackendDeviceCount() uint64 {
 // GGMLBackendDeviceGet returns the backend device at the given index.
 func GGMLBackendDeviceGet(index uint64) GGMLBackendDevice {
 	var ret GGMLBackendDevice
-	ggmlBackendDevGetFunc.Call(unsafe.Pointer(&ret), unsafe.Pointer(&index))
+	ggmlBackendDevGetFunc.Call(unsafe.Pointer(&ret), &index)
 	return ret
 }
 
@@ -248,7 +248,7 @@ func GGMLBackendRegCount() uint64 {
 // GGMLBackendRegGet returns the backend registration at the given index.
 func GGMLBackendRegGet(index uint64) GGMLBackendReg {
 	var ret GGMLBackendReg
-	ggmlBackendRegGetFunc.Call(unsafe.Pointer(&ret), unsafe.Pointer(&index))
+	ggmlBackendRegGetFunc.Call(unsafe.Pointer(&ret), &index)
 	return ret
 }
 

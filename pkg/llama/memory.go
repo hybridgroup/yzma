@@ -94,7 +94,7 @@ func MemoryClear(mem Memory, data bool) error {
 	if mem == 0 {
 		return errInvalidMemory
 	}
-	memoryClearFunc.Call(nil, unsafe.Pointer(&mem), unsafe.Pointer(&data))
+	memoryClearFunc.Call(nil, unsafe.Pointer(&mem), &data)
 	return nil
 }
 

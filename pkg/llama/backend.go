@@ -177,7 +177,7 @@ func TimeUs() int64 {
 // FlashAttnTypeName returns the name for a given flash attention type.
 func FlashAttnTypeName(flashAttnType FlashAttentionType) string {
 	var result *byte
-	flashAttnTypeNameFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&flashAttnType))
+	flashAttnTypeNameFunc.Call(unsafe.Pointer(&result), &flashAttnType)
 
 	if result == nil {
 		return ""

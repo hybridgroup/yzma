@@ -179,7 +179,7 @@ func InputChunksGet(chunks InputChunks, idx uint64) InputChunk {
 	if chunks == 0 {
 		return chunk
 	}
-	inputChunksGetFunc.Call(unsafe.Pointer(&chunk), unsafe.Pointer(&chunks), unsafe.Pointer(&idx))
+	inputChunksGetFunc.Call(unsafe.Pointer(&chunk), unsafe.Pointer(&chunks), &idx)
 	return chunk
 }
 

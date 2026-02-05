@@ -162,7 +162,7 @@ func loadModelFuncs(lib ffi.Lib) error {
 		return loadError("llama_model_free", err)
 	}
 
-	if initFromModelFunc, err = lib.Prep("llama_init_from_model", &ffi.TypePointer, &ffi.TypePointer, &FFITypeContextParams); err != nil {
+	if initFromModelFunc, err = lib.Prep("llama_init_from_model", &ffi.TypePointer, &ffi.TypePointer, &ffiTypeContextParams); err != nil {
 		return loadError("llama_init_from_model", err)
 	}
 
@@ -503,7 +503,7 @@ func ModelClsLabel(model Model, index uint32) string {
 		return ""
 	}
 	var labelPtr *byte
-	modelClsLabelFunc.Call(unsafe.Pointer(&labelPtr), unsafe.Pointer(&model), unsafe.Pointer(&index))
+	modelClsLabelFunc.Call(unsafe.Pointer(&labelPtr), unsafe.Pointer(&model), &index)
 
 	if labelPtr == nil {
 		return ""
