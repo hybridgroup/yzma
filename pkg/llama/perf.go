@@ -60,7 +60,7 @@ var (
 func loadPerfFuncs(lib ffi.Lib) error {
 	var err error
 
-	if perfContextFunc, err = lib.Prep("llama_perf_context", &FFIPerfContextData, &ffi.TypePointer); err != nil {
+	if perfContextFunc, err = lib.Prep("llama_perf_context", &ffiPerfContextData, &ffi.TypePointer); err != nil {
 		return loadError("llama_perf_context", err)
 	}
 
@@ -68,7 +68,7 @@ func loadPerfFuncs(lib ffi.Lib) error {
 		return loadError("llama_perf_context_print", err)
 	}
 
-	if perfSamplerFunc, err = lib.Prep("llama_perf_sampler", &FFIPerfSamplerData, &ffi.TypePointer); err != nil {
+	if perfSamplerFunc, err = lib.Prep("llama_perf_sampler", &ffiPerfSamplerData, &ffi.TypePointer); err != nil {
 		return loadError("llama_perf_sampler", err)
 	}
 
@@ -87,11 +87,11 @@ func loadPerfFuncs(lib ffi.Lib) error {
 	return nil
 }
 
-// FFIPerfContextData represents the C struct llama_perf_context_data
-var FFIPerfContextData = ffi.NewType(&ffi.TypeDouble, &ffi.TypeDouble, &ffi.TypeDouble, &ffi.TypeDouble, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32)
+// ffiPerfContextData represents the C struct llama_perf_context_data
+var ffiPerfContextData = ffi.NewType(&ffi.TypeDouble, &ffi.TypeDouble, &ffi.TypeDouble, &ffi.TypeDouble, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32)
 
-// FFIPerfSamplerData represents the C struct llama_perf_sampler_data
-var FFIPerfSamplerData = ffi.NewType(&ffi.TypeDouble, &ffi.TypeSint32)
+// ffiPerfSamplerData represents the C struct llama_perf_sampler_data
+var ffiPerfSamplerData = ffi.NewType(&ffi.TypeDouble, &ffi.TypeSint32)
 
 // PerfContext returns performance data for the model context.
 func PerfContext(ctx Context) PerfContextData {

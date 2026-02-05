@@ -8,8 +8,8 @@ import (
 	"github.com/jupiterrider/ffi"
 )
 
-// FFITypeContextParams represents the C struct llama_context_params
-var FFITypeContextParams = ffi.NewType(
+// ffiTypeContextParams represents the C struct llama_context_params
+var ffiTypeContextParams = ffi.NewType(
 	&ffi.TypeUint32, &ffi.TypeUint32,
 	&ffi.TypeUint32, &ffi.TypeUint32,
 	&ffi.TypeSint32, &ffi.TypeSint32,
@@ -154,7 +154,7 @@ var (
 func loadContextFuncs(lib ffi.Lib) error {
 	var err error
 
-	if contextDefaultParamsFunc, err = lib.Prep("llama_context_default_params", &FFITypeContextParams); err != nil {
+	if contextDefaultParamsFunc, err = lib.Prep("llama_context_default_params", &ffiTypeContextParams); err != nil {
 		return loadError("llama_context_default_params", err)
 	}
 
@@ -166,11 +166,11 @@ func loadContextFuncs(lib ffi.Lib) error {
 		return loadError("llama_set_warmup", err)
 	}
 
-	if encodeFunc, err = lib.Prep("llama_encode", &ffi.TypeSint32, &ffi.TypePointer, &FFITypeBatch); err != nil {
+	if encodeFunc, err = lib.Prep("llama_encode", &ffi.TypeSint32, &ffi.TypePointer, &ffiTypeBatch); err != nil {
 		return loadError("llama_encode", err)
 	}
 
-	if decodeFunc, err = lib.Prep("llama_decode", &ffi.TypeSint32, &ffi.TypePointer, &FFITypeBatch); err != nil {
+	if decodeFunc, err = lib.Prep("llama_decode", &ffi.TypeSint32, &ffi.TypePointer, &ffiTypeBatch); err != nil {
 		return loadError("llama_decode", err)
 	}
 
@@ -420,7 +420,7 @@ func GetLogitsIth(ctx Context, i int32, nVocab int) ([]float32, error) {
 		return nil, errInvalidContext
 	}
 	var logitsPtr *float32
-	getLogitsIthFunc.Call(unsafe.Pointer(&logitsPtr), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
+	getLogitsIthFunc.Call(unsafe.Pointer(&logitsPtr), unsafe.Pointer(&ctx), &i)
 
 	if logitsPtr == nil {
 		return nil, nil
@@ -537,10 +537,10 @@ func ApplyAdapterCvec(ctx Context, data []float32, nEmbd, ilStart, ilEnd int32) 
 		unsafe.Pointer(&result),
 		unsafe.Pointer(&ctx),
 		unsafe.Pointer(&dataPtr),
-		unsafe.Pointer(&length),
-		unsafe.Pointer(&nEmbd),
-		unsafe.Pointer(&ilStart),
-		unsafe.Pointer(&ilEnd),
+		&length,
+		&nEmbd,
+		&ilStart,
+		&ilEnd,
 	)
 
 	return int32(result)
@@ -552,7 +552,7 @@ func GetSampledTokenIth(ctx Context, i int32) (Token, error) {
 		return TokenNull, errInvalidContext
 	}
 	var result ffi.Arg
-	getSampledTokenIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
+	getSampledTokenIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &i)
 	return Token(result), nil
 }
 
@@ -562,7 +562,7 @@ func GetSampledProbsIth(ctx Context, i int32, nVocab int) ([]float32, error) {
 		return nil, errInvalidContext
 	}
 	var result *float32
-	getSampledProbsIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
+	getSampledProbsIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &i)
 	if result == nil {
 		return nil, nil
 	}
@@ -575,7 +575,7 @@ func GetSampledProbsCountIth(ctx Context, i int32) (uint32, error) {
 		return 0, errInvalidContext
 	}
 	var result ffi.Arg
-	getSampledProbsCountIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
+	getSampledProbsCountIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &i)
 	return uint32(result), nil
 }
 
@@ -585,7 +585,7 @@ func GetSampledLogitsIth(ctx Context, i int32, nVocab int) ([]float32, error) {
 		return nil, errInvalidContext
 	}
 	var result *float32
-	getSampledLogitsIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
+	getSampledLogitsIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &i)
 	if result == nil {
 		return nil, nil
 	}
@@ -598,7 +598,7 @@ func GetSampledLogitsCountIth(ctx Context, i int32) (uint32, error) {
 		return 0, errInvalidContext
 	}
 	var result ffi.Arg
-	getSampledLogitsCountIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
+	getSampledLogitsCountIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &i)
 	return uint32(result), nil
 }
 
@@ -608,7 +608,7 @@ func GetSampledCandidatesIth(ctx Context, i int32, nVocab int) ([]Token, error) 
 		return nil, errInvalidContext
 	}
 	var result *Token
-	getSampledCandidatesIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
+	getSampledCandidatesIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &i)
 	if result == nil {
 		return nil, nil
 	}
@@ -621,7 +621,7 @@ func GetSampledCandidatesCountIth(ctx Context, i int32) (uint32, error) {
 		return 0, errInvalidContext
 	}
 	var result ffi.Arg
-	getSampledCandidatesCountIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&i))
+	getSampledCandidatesCountIthFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &i)
 	return uint32(result), nil
 }
 

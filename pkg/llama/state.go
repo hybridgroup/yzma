@@ -211,7 +211,7 @@ func StateLoadFile(ctx Context, path string, tokensOut []Token, nTokenCapacity u
 		unsafe.Pointer(&ctx),
 		unsafe.Pointer(&pathPtr),
 		unsafe.Pointer(&toks),
-		unsafe.Pointer(&nTokenCapacity),
+		&nTokenCapacity,
 		unsafe.Pointer(&nTokenCountOut),
 	)
 	return result.Bool()
@@ -266,7 +266,7 @@ func StateSeqGetSize(ctx Context, seqId SeqId) uint64 {
 		return 0
 	}
 	var result ffi.Arg
-	stateSeqGetSizeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&seqId))
+	stateSeqGetSizeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &seqId)
 	return uint64(result)
 }
 
@@ -281,7 +281,7 @@ func StateSeqGetData(ctx Context, dst []byte, seqId SeqId) uint64 {
 	if len(dst) > 0 {
 		dstPtr = &dst[0]
 	}
-	stateSeqGetDataFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&dstPtr), unsafe.Pointer(&size), unsafe.Pointer(&seqId))
+	stateSeqGetDataFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&dstPtr), unsafe.Pointer(&size), &seqId)
 	return uint64(result)
 }
 
@@ -296,7 +296,7 @@ func StateSeqSetData(ctx Context, src []byte, destSeqId SeqId) uint64 {
 	if len(src) > 0 {
 		srcPtr = &src[0]
 	}
-	stateSeqSetDataFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&srcPtr), unsafe.Pointer(&size), unsafe.Pointer(&destSeqId))
+	stateSeqSetDataFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&srcPtr), &size, &destSeqId)
 	return uint64(result)
 }
 
@@ -312,7 +312,7 @@ func StateSeqSaveFile(ctx Context, filepath string, seqId SeqId, tokens []Token)
 	}
 	tlen := uint64(len(tokens))
 	var result ffi.Arg
-	stateSeqSaveFileFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&pathPtr), unsafe.Pointer(&seqId), unsafe.Pointer(&toks), unsafe.Pointer(&tlen))
+	stateSeqSaveFileFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&pathPtr), &seqId, unsafe.Pointer(&toks), &tlen)
 	return uint64(result)
 }
 
@@ -331,9 +331,9 @@ func StateSeqLoadFile(ctx Context, filepath string, destSeqId SeqId, tokensOut [
 		unsafe.Pointer(&result),
 		unsafe.Pointer(&ctx),
 		unsafe.Pointer(&pathPtr),
-		unsafe.Pointer(&destSeqId),
+		&destSeqId,
 		unsafe.Pointer(&toks),
-		unsafe.Pointer(&nTokenCapacity),
+		&nTokenCapacity,
 		unsafe.Pointer(&nTokenCountOut),
 	)
 	return uint64(result)
@@ -345,7 +345,7 @@ func StateSeqGetSizeExt(ctx Context, seqId SeqId, flags uint32) uint64 {
 		return 0
 	}
 	var result ffi.Arg
-	stateSeqGetSizeExtFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&seqId), unsafe.Pointer(&flags))
+	stateSeqGetSizeExtFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &seqId, &flags)
 	return uint64(result)
 }
 
@@ -360,7 +360,7 @@ func StateSeqGetDataExt(ctx Context, dst []byte, seqId SeqId, flags uint32) uint
 	if len(dst) > 0 {
 		dstPtr = &dst[0]
 	}
-	stateSeqGetDataExtFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&dstPtr), unsafe.Pointer(&size), unsafe.Pointer(&seqId), unsafe.Pointer(&flags))
+	stateSeqGetDataExtFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&dstPtr), unsafe.Pointer(&size), &seqId, &flags)
 	return uint64(result)
 }
 
@@ -375,6 +375,6 @@ func StateSeqSetDataExt(ctx Context, src []byte, destSeqId SeqId, flags uint32) 
 	if len(src) > 0 {
 		srcPtr = &src[0]
 	}
-	stateSeqSetDataExtFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&srcPtr), unsafe.Pointer(&size), unsafe.Pointer(&destSeqId), unsafe.Pointer(&flags))
+	stateSeqSetDataExtFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&srcPtr), &size, &destSeqId, &flags)
 	return uint64(result)
 }

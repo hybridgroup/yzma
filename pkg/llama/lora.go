@@ -248,7 +248,7 @@ func SetAdapterLora(ctx Context, adapter AdapterLora, scale float32) int32 {
 		unsafe.Pointer(&result),
 		unsafe.Pointer(&ctx),
 		unsafe.Pointer(&adapter),
-		unsafe.Pointer(&scale),
+		&scale,
 	)
 	return int32(result)
 }

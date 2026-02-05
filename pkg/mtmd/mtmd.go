@@ -294,8 +294,8 @@ func HelperEvalChunks(ctx Context, lctx llama.Context, chunks InputChunks, nPast
 	defer muHelperEvalChunks.Unlock()
 
 	var result ffi.Arg
-	helperEvalChunksFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&lctx), unsafe.Pointer(&chunks), unsafe.Pointer(&nPast), unsafe.Pointer(&seqID),
-		unsafe.Pointer(&nBatch), unsafe.Pointer(&logitsLast), unsafe.Pointer(&newNPast))
+	helperEvalChunksFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&lctx), unsafe.Pointer(&chunks), &nPast, &seqID,
+		&nBatch, &logitsLast, unsafe.Pointer(&newNPast))
 
 	return int32(result)
 }
