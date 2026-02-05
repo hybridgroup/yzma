@@ -61,7 +61,7 @@ func TestInputChunksGetType(t *testing.T) {
 		t.Fatalf("invalid chunk size: %d", size)
 	}
 
-	idx := uint64(1)
+	idx := uint64(size - 1) // Use the last chunk index to ensure we are testing a valid chunk
 	chunk := InputChunksGet(chunks, idx)
 	if chunk == InputChunk(0) {
 		t.Fatalf("InputChunksGet returned an invalid chunk for index %d", idx)
@@ -70,12 +70,51 @@ func TestInputChunksGetType(t *testing.T) {
 	t.Logf("InputChunksGet successfully retrieved chunk at index %d", idx)
 
 	chunkType := InputChunkGetType(chunk)
-	t.Logf("InputChunkGetType returned: %d", chunkType)
+	if chunkType != InputChunkTypeText {
+		t.Fatalf("InputChunkGetType returned an unexpected type: %d", chunkType)
+	}
+}
 
-	switch chunkType {
-	case InputChunkTypeText:
-		tokens := InputChunkGetTokensText(chunk)
-		t.Logf("InputChunkGetTokensText returned %d tokens", len(tokens))
+func TestInputChunkGetTokensText(t *testing.T) {
+	modelFile := testModelFileName(t)
+	mmprojFile := testMMProjFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("Failed to load model from file: %v", err)
+	}
+	defer llama.ModelFree(model)
+
+	params := ContextParamsDefault()
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("Failed to initialize context from file: %v", err)
+	}
+	defer Free(ctx)
+
+	chunks := InputChunksInit()
+	defer InputChunksFree(chunks)
+
+	testSetupChunks(t, ctx, chunks)
+
+	size := InputChunksSize(chunks)
+	t.Logf("InputChunksSize returned: %d", size)
+	if size == 0 {
+		t.Fatalf("invalid chunk size: %d", size)
+	}
+
+	idx := uint64(size - 1) // Use the last chunk index to ensure we are testing a valid chunk
+	chunk := InputChunksGet(chunks, idx)
+	if chunk == InputChunk(0) {
+		t.Fatalf("InputChunksGet returned an invalid chunk for index %d", idx)
+	}
+
+	tokens := InputChunkGetTokensText(chunk)
+	if tokens == nil {
+		t.Fatal("InputChunkGetTokensText returned nil")
 	}
 }
 
