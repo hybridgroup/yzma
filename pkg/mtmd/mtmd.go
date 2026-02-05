@@ -144,7 +144,7 @@ func loadFuncs(lib ffi.Lib) error {
 		return loadError("mtmd_support_vision", err)
 	}
 
-	if tokenizeFunc, err = lib.Prep("mtmd_tokenize", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint64); err != nil {
+	if tokenizeFunc, err = lib.Prep("mtmd_tokenize", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize); err != nil {
 		return loadError("mtmd_tokenize", err)
 	}
 
@@ -264,7 +264,7 @@ func Tokenize(ctx Context, out InputChunks, text *InputText, bitmaps []Bitmap) i
 	nBitmaps := uint64(len(bitmaps))
 
 	var result ffi.Arg
-	tokenizeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&out), unsafe.Pointer(&text), unsafe.Pointer(&bt), unsafe.Pointer(&nBitmaps))
+	tokenizeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&out), unsafe.Pointer(&text), unsafe.Pointer(&bt), &nBitmaps)
 
 	return int32(result)
 }

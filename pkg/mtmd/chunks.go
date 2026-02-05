@@ -199,8 +199,9 @@ func InputChunkGetTokensText(chunk InputChunk) []llama.Token {
 		return nil
 	}
 	var tokensPtr *llama.Token
-	var nTokens uint32
-	inputChunkGetTokensTextFunc.Call(unsafe.Pointer(&tokensPtr), unsafe.Pointer(&chunk), unsafe.Pointer(&nTokens))
+	var nTokens uint64
+	nt := &nTokens
+	inputChunkGetTokensTextFunc.Call(unsafe.Pointer(&tokensPtr), unsafe.Pointer(&chunk), unsafe.Pointer(&nt))
 
 	if tokensPtr == nil || nTokens == 0 {
 		return nil
@@ -210,13 +211,13 @@ func InputChunkGetTokensText(chunk InputChunk) []llama.Token {
 }
 
 // InputChunkGetNTokens retrieves the number of tokens in the input chunk.
-func InputChunkGetNTokens(chunk InputChunk) uint32 {
+func InputChunkGetNTokens(chunk InputChunk) uint64 {
 	if chunk == 0 {
 		return 0
 	}
 	var result ffi.Arg
 	inputChunkGetNTokensFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&chunk))
-	return uint32(result)
+	return uint64(result)
 }
 
 // InputChunkGetId retrieves the ID of the input chunk.
@@ -273,33 +274,33 @@ func InputChunkGetTokensImage(chunk InputChunk) ImageTokens {
 }
 
 // ImageTokensGetNTokens returns the number of tokens in the image.
-func ImageTokensGetNTokens(imageTokens ImageTokens) uint32 {
+func ImageTokensGetNTokens(imageTokens ImageTokens) uint64 {
 	if imageTokens == 0 {
 		return 0
 	}
 	var result ffi.Arg
 	inputImageTokensGetNTokensFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&imageTokens))
-	return uint32(result)
+	return uint64(result)
 }
 
 // ImageTokensGetX returns the x size of the image tokens.
-func ImageTokensGetNX(imageTokens ImageTokens) uint32 {
+func ImageTokensGetNX(imageTokens ImageTokens) uint64 {
 	if imageTokens == 0 {
 		return 0
 	}
 	var result ffi.Arg
 	inputImageTokensGetNXFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&imageTokens))
-	return uint32(result)
+	return uint64(result)
 }
 
 // ImageTokensGetY returns the y size of the image tokens.
-func ImageTokensGetNY(imageTokens ImageTokens) uint32 {
+func ImageTokensGetNY(imageTokens ImageTokens) uint64 {
 	if imageTokens == 0 {
 		return 0
 	}
 	var result ffi.Arg
 	inputImageTokensGetNYFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&imageTokens))
-	return uint32(result)
+	return uint64(result)
 }
 
 // ImageTokensGetId returns the id of the image tokens.
