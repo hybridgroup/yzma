@@ -92,7 +92,7 @@ func benchmarkMultimodalInference(b *testing.B, mctx Context, ctx llama.Context,
 	if result != 0 {
 		b.Fatalf("Tokenize failed with result: %d", result)
 	}
-	for i := uint32(0); i < InputChunksSize(output); i++ {
+	for i := uint64(0); i < InputChunksSize(output); i++ {
 		chunk := InputChunksGet(output, i)
 		total += int(InputChunkGetNTokens(chunk))
 	}

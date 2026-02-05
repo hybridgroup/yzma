@@ -77,7 +77,7 @@ func loadLoraFuncs(lib ffi.Lib) error {
 		return loadError("llama_adapter_lora_free", err)
 	}
 
-	if adapterMetaValStrFunc, err = lib.Prep("llama_adapter_meta_val_str", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+	if adapterMetaValStrFunc, err = lib.Prep("llama_adapter_meta_val_str", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize); err != nil {
 		return loadError("llama_adapter_meta_val_str", err)
 	}
 
@@ -85,11 +85,11 @@ func loadLoraFuncs(lib ffi.Lib) error {
 		return loadError("llama_adapter_meta_count", err)
 	}
 
-	if adapterMetaKeyByIndexFunc, err = lib.Prep("llama_adapter_meta_key_by_index", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+	if adapterMetaKeyByIndexFunc, err = lib.Prep("llama_adapter_meta_key_by_index", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypePointer, &ffiTypeSize); err != nil {
 		return loadError("llama_adapter_meta_key_by_index", err)
 	}
 
-	if adapterMetaValStrByIndexFunc, err = lib.Prep("llama_adapter_meta_val_str_by_index", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+	if adapterMetaValStrByIndexFunc, err = lib.Prep("llama_adapter_meta_val_str_by_index", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypePointer, &ffiTypeSize); err != nil {
 		return loadError("llama_adapter_meta_val_str_by_index", err)
 	}
 

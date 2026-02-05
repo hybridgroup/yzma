@@ -46,12 +46,14 @@ type ContextParamsType struct {
 }
 
 var (
-	// FFITypeContextParams represents the C struct mtmd_context_params
-	FFITypeContextParams = ffi.NewType(&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer,
-		&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer)
+	ffiTypeSize = ffi.TypeUint64
 
-	// FFITypeInputText represents the C struct mtmd_input_text
-	FFITypeInputText = ffi.NewType(&ffi.TypePointer, &ffi.TypeUint8, &ffi.TypeUint8)
+	// ffiTypeContextParams represents the C struct mtmd_context_params
+	ffiTypeContextParams = ffi.NewType(&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer,
+		&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize)
+
+	// ffiTypeInputText represents the C struct mtmd_input_text
+	ffiTypeInputText = ffi.NewType(&ffi.TypePointer, &ffi.TypeUint8, &ffi.TypeUint8)
 )
 
 var (
@@ -126,11 +128,11 @@ func loadFuncs(lib ffi.Lib) error {
 		return loadError("mtmd_default_marker", err)
 	}
 
-	if contextParamsDefaultFunc, err = lib.Prep("mtmd_context_params_default", &FFITypeContextParams); err != nil {
+	if contextParamsDefaultFunc, err = lib.Prep("mtmd_context_params_default", &ffiTypeContextParams); err != nil {
 		return loadError("mtmd_context_params_default", err)
 	}
 
-	if initFromFileFunc, err = lib.Prep("mtmd_init_from_file", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &FFITypeContextParams); err != nil {
+	if initFromFileFunc, err = lib.Prep("mtmd_init_from_file", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeContextParams); err != nil {
 		return loadError("mtmd_init_from_file", err)
 	}
 

@@ -185,7 +185,7 @@ func TestEncodeChunk(t *testing.T) {
 	defer InputChunksFree(chunks)
 
 	testSetupChunks(t, ctx, chunks)
-	idx := uint32(1)
+	idx := uint64(1)
 	chunk := InputChunksGet(chunks, idx)
 
 	err = EncodeChunk(ctx, chunk)
@@ -220,7 +220,7 @@ func TestGetOutputEmbd(t *testing.T) {
 	defer InputChunksFree(chunks)
 
 	testSetupChunks(t, ctx, chunks)
-	idx := uint32(1)
+	idx := uint64(1)
 	chunk := InputChunksGet(chunks, idx)
 
 	err = EncodeChunk(ctx, chunk)
