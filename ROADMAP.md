@@ -1,6 +1,6 @@
 # Roadmap
 
-`yzma` currently has support for over 94% of `llama.cpp` functionality.
+`yzma` currently has support for over 95% of `llama.cpp` functionality.
 
 This is a list of all functions exposed by `llama.cpp` and the current state of the associated `yzma` wrapper.
 
@@ -85,6 +85,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_vocab_type`
 
 ### Context Functions
+- [x] `llama_apply_adapter_cvec`
 - [x] `llama_context_default_params`
 - [x] `llama_decode`
 - [x] `llama_encode`
@@ -231,7 +232,6 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 
 ## Functions in `llama.cpp` still needing wrappers
 
-- [ ] `llama_apply_adapter_cvec`
 - [ ] `llama_attach_threadpool`
 - [ ] `llama_detach_threadpool`
 - [ ] `llama_model_save_to_file`

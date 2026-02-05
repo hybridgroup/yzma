@@ -6,7 +6,7 @@
 
 `yzma` lets you write Go applications that directly integrate [`llama.cpp`](https://github.com/ggml-org/llama.cpp) for fully local inference using hardware acceleration.
 
-Run the latest Vision Language Models and Large/Small/Tiny Language Models on Linux, on macOS, and on Windows. Use hardware acceleration such as CUDA, Metal, and Vulkan. `yzma` uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed. This also means that `yzma` works with the newest `llama.cpp` releases.
+Run the latest Vision Language Models and Large/Small/Tiny Language Models on Linux, macOS, and Windows. Use hardware acceleration such as CUDA, Metal, and Vulkan. `yzma` uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed. This also means that `yzma` works with the newest `llama.cpp` releases.
 
 This example uses the [SmolLM-135M](https://huggingface.co/QuantFactory/SmolLM-135M-GGUF) model:
 
@@ -146,9 +146,9 @@ Check out the [Model Usage](./MODELS.md) page for more information.
 
 ## Support
 
-`yzma` currently has support for over 94% of `llama.cpp` functionality. See [ROADMAP.md](./ROADMAP.md) for the complete list.
+`yzma` currently has support for over 95% of `llama.cpp` functionality. See [ROADMAP.md](./ROADMAP.md) for the complete list.
 
-You can use multimodal models (image/audio) and text language models with full hardware acceleration on Linux, on macOS, and on Windows.
+You can use multimodal models (image/audio) and text language models with full hardware acceleration on Linux, macOS, and Windows.
 
 | OS      | CPU          | GPU                             |
 | ------- | ------------ | ------------------------------- |
