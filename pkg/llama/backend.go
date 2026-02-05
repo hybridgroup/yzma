@@ -60,15 +60,15 @@ func loadBackendFuncs(lib ffi.Lib) error {
 		return loadError("llama_numa_init", err)
 	}
 
-	if maxDevicesFunc, err = lib.Prep("llama_max_devices", &ffi.TypeUint32); err != nil {
+	if maxDevicesFunc, err = lib.Prep("llama_max_devices", &ffiTypeSize); err != nil {
 		return loadError("llama_max_devices", err)
 	}
 
-	if maxParallelSequencesFunc, err = lib.Prep("llama_max_parallel_sequences", &ffi.TypeUint32); err != nil {
+	if maxParallelSequencesFunc, err = lib.Prep("llama_max_parallel_sequences", &ffiTypeSize); err != nil {
 		return loadError("llama_max_parallel_sequences", err)
 	}
 
-	if maxTensorBuftOverridesFunc, err = lib.Prep("llama_max_tensor_buft_overrides", &ffi.TypeUint32); err != nil {
+	if maxTensorBuftOverridesFunc, err = lib.Prep("llama_max_tensor_buft_overrides", &ffiTypeSize); err != nil {
 		return loadError("llama_max_tensor_buft_overrides", err)
 	}
 
@@ -133,10 +133,10 @@ func MaxParallelSequences() uint64 {
 }
 
 // MaxTensorBuftOverrides returns the maximum number of tensor buffer overrides supported.
-func MaxTensorBuftOverrides() uint32 {
+func MaxTensorBuftOverrides() uint64 {
 	var result ffi.Arg
 	maxTensorBuftOverridesFunc.Call(unsafe.Pointer(&result))
-	return uint32(result)
+	return uint64(result)
 }
 
 // SupportsMmap checks if memory-mapped files are supported.

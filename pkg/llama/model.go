@@ -10,15 +10,17 @@ import (
 )
 
 var (
-	// FFITypeModelParams represents the C struct llama_model_params
-	FFITypeModelParams = ffi.NewType(&ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32,
+	ffiTypeSize = ffi.TypeUint64
+
+	// ffiTypeModelParams represents the C struct llama_model_params
+	ffiTypeModelParams = ffi.NewType(&ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32,
 		&ffi.TypeSint32, &ffi.TypeSint32,
 		&ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer,
 		&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8,
 		&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8)
 
-	// FFITypeModelQuantizeParams represents the C struct llama_model_quantize_params
-	FFITypeModelQuantizeParams = ffi.NewType(&ffi.TypeSint32, &ffi.TypeSint32,
+	// ffiTypeModelQuantizeParams represents the C struct llama_model_quantize_params
+	ffiTypeModelQuantizeParams = ffi.NewType(&ffi.TypeSint32, &ffi.TypeSint32,
 		&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8,
 		&ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer)
 )
@@ -144,15 +146,15 @@ var (
 func loadModelFuncs(lib ffi.Lib) error {
 	var err error
 
-	if modelDefaultParamsFunc, err = lib.Prep("llama_model_default_params", &FFITypeModelParams); err != nil {
+	if modelDefaultParamsFunc, err = lib.Prep("llama_model_default_params", &ffiTypeModelParams); err != nil {
 		return loadError("llama_model_default_params", err)
 	}
 
-	if modelLoadFromFileFunc, err = lib.Prep("llama_model_load_from_file", &ffi.TypePointer, &ffi.TypePointer, &FFITypeModelParams); err != nil {
+	if modelLoadFromFileFunc, err = lib.Prep("llama_model_load_from_file", &ffi.TypePointer, &ffi.TypePointer, &ffiTypeModelParams); err != nil {
 		return loadError("llama_model_load_from_file", err)
 	}
 
-	if modelLoadFromSplitsFunc, err = lib.Prep("llama_model_load_from_splits", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32, &FFITypeModelParams); err != nil {
+	if modelLoadFromSplitsFunc, err = lib.Prep("llama_model_load_from_splits", &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize, &ffiTypeModelParams); err != nil {
 		return loadError("llama_model_load_from_splits", err)
 	}
 
@@ -248,7 +250,7 @@ func loadModelFuncs(lib ffi.Lib) error {
 		return loadError("llama_model_rope_type", err)
 	}
 
-	if modelMetaValStrFunc, err = lib.Prep("llama_model_meta_val_str", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+	if modelMetaValStrFunc, err = lib.Prep("llama_model_meta_val_str", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize); err != nil {
 		return loadError("llama_model_meta_val_str", err)
 	}
 
@@ -256,11 +258,11 @@ func loadModelFuncs(lib ffi.Lib) error {
 		return loadError("llama_model_meta_count", err)
 	}
 
-	if modelMetaKeyByIndexFunc, err = lib.Prep("llama_model_meta_key_by_index", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+	if modelMetaKeyByIndexFunc, err = lib.Prep("llama_model_meta_key_by_index", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypePointer, &ffiTypeSize); err != nil {
 		return loadError("llama_model_meta_key_by_index", err)
 	}
 
-	if modelMetaValStrByIndexFunc, err = lib.Prep("llama_model_meta_val_str_by_index", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+	if modelMetaValStrByIndexFunc, err = lib.Prep("llama_model_meta_val_str_by_index", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypePointer, &ffiTypeSize); err != nil {
 		return loadError("llama_model_meta_val_str_by_index", err)
 	}
 
@@ -268,7 +270,7 @@ func loadModelFuncs(lib ffi.Lib) error {
 		return loadError("llama_model_meta_key_str", err)
 	}
 
-	if modelQuantizeDefaultParamsFunc, err = lib.Prep("llama_model_quantize_default_params", &FFITypeModelQuantizeParams); err != nil {
+	if modelQuantizeDefaultParamsFunc, err = lib.Prep("llama_model_quantize_default_params", &ffiTypeModelQuantizeParams); err != nil {
 		return loadError("llama_model_quantize_default_params", err)
 	}
 
@@ -317,7 +319,7 @@ func ModelLoadFromSplits(paths []string, params ModelParams) (Model, error) {
 		cStrs[i] = &[]byte(paths[i] + "\x00")[0]
 	}
 	cPaths := unsafe.Pointer(&cStrs[0])
-	nPaths := int32(len(paths))
+	nPaths := uint64(len(paths))
 
 	modelLoadFromSplitsFunc.Call(unsafe.Pointer(&model), &cPaths, &nPaths, unsafe.Pointer(&params))
 	if model == 0 {

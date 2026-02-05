@@ -23,13 +23,13 @@ var (
 
 func loadChatFuncs(lib ffi.Lib) error {
 	var err error
-	if chatApplyTemplateFunc, err = lib.Prep("llama_chat_apply_template", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32,
+	if chatApplyTemplateFunc, err = lib.Prep("llama_chat_apply_template", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize,
 		&ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
 
 		return loadError("llama_chat_apply_template", err)
 	}
 
-	if chatBuiltinTemplatesFunc, err = lib.Prep("llama_chat_builtin_templates", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+	if chatBuiltinTemplatesFunc, err = lib.Prep("llama_chat_builtin_templates", &ffi.TypeSint32, &ffi.TypePointer, &ffiTypeSize); err != nil {
 		return loadError("llama_chat_builtin_templates", err)
 	}
 
@@ -64,7 +64,7 @@ func ChatApplyTemplate(template string, chat []ChatMessage, addAssistantPrompt b
 	}
 
 	c := unsafe.Pointer(&chat[0])
-	nMsg := uint32(len(chat))
+	nMsg := uint64(len(chat))
 
 	out := unsafe.SliceData(buf)
 	len := uint32(len(buf))
@@ -80,7 +80,7 @@ func ChatBuiltinTemplates() []string {
 	var (
 		result  ffi.Arg
 		cOutput *byte
-		length  uint32
+		length  uint64
 	)
 	chatBuiltinTemplatesFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&cOutput), &length)
 	count := int32(result)
@@ -92,7 +92,7 @@ func ChatBuiltinTemplates() []string {
 	// now get the actual templates
 	cStrings := make([]*byte, count)
 	cFinalOutput := unsafe.SliceData(cStrings)
-	length = uint32(count)
+	length = uint64(count)
 
 	chatBuiltinTemplatesFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&cFinalOutput), &length)
 

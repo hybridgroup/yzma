@@ -154,7 +154,7 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 	}
 
 	if samplerInitDryFunc, err = lib.Prep("llama_sampler_init_dry", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeFloat, &ffi.TypeFloat,
-		&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeUint64); err != nil {
+		&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer, &ffiTypeSize); err != nil {
 
 		return loadError("llama_sampler_init_dry", err)
 	}
@@ -167,19 +167,19 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 		return loadError("llama_sampler_init_top_k", err)
 	}
 
-	if samplerInitTypicalFunc, err = lib.Prep("llama_sampler_init_typical", &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeUint32); err != nil {
+	if samplerInitTypicalFunc, err = lib.Prep("llama_sampler_init_typical", &ffi.TypePointer, &ffi.TypeFloat, &ffiTypeSize); err != nil {
 		return loadError("llama_sampler_init_typical", err)
 	}
 
-	if samplerInitTopPFunc, err = lib.Prep("llama_sampler_init_top_p", &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeUint32); err != nil {
+	if samplerInitTopPFunc, err = lib.Prep("llama_sampler_init_top_p", &ffi.TypePointer, &ffi.TypeFloat, &ffiTypeSize); err != nil {
 		return loadError("llama_sampler_init_top_p", err)
 	}
 
-	if samplerInitMinPFunc, err = lib.Prep("llama_sampler_init_min_p", &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeUint32); err != nil {
+	if samplerInitMinPFunc, err = lib.Prep("llama_sampler_init_min_p", &ffi.TypePointer, &ffi.TypeFloat, &ffiTypeSize); err != nil {
 		return loadError("llama_sampler_init_min_p", err)
 	}
 
-	if samplerInitXTCFunc, err = lib.Prep("llama_sampler_init_xtc", &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeUint32, &ffi.TypeUint32); err != nil {
+	if samplerInitXTCFunc, err = lib.Prep("llama_sampler_init_xtc", &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeFloat, &ffiTypeSize, &ffi.TypeUint32); err != nil {
 		return loadError("llama_sampler_init_xtc", err)
 	}
 
@@ -191,7 +191,7 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 		return loadError("llama_sampler_init_grammar", err)
 	}
 
-	if samplerInitAdaptivePFunc, err = lib.Prep("llama_sampler_init_adaptive_p", &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeUint32); err != nil {
+	if samplerInitAdaptivePFunc, err = lib.Prep("llama_sampler_init_adaptive_p", &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeFloat, &ffiTypeSize); err != nil {
 		return loadError("llama_sampler_init_adaptive_p", err)
 	}
 
