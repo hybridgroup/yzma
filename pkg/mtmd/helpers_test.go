@@ -98,19 +98,19 @@ func openImageFile(path string) ([]byte, uint32, uint32, error) {
 }
 
 func benchmarkModelFileName(b *testing.B) string {
-	if os.Getenv("YZMA_TEST_MMMODEL") == "" {
-		b.Skip("no YZMA_TEST_MMMODEL skipping test")
+	if os.Getenv("YZMA_BENCHMARK_MMMODEL") == "" {
+		b.Skip("no YZMA_BENCHMARK_MMMODEL skipping test")
 	}
 
-	return os.Getenv("YZMA_TEST_MMMODEL")
+	return os.Getenv("YZMA_BENCHMARK_MMMODEL")
 }
 
 func benchmarkProjectorFileName(b *testing.B) string {
-	if os.Getenv("YZMA_TEST_MMPROJ") == "" {
-		b.Skip("no YZMA_TEST_MMPROJ skipping test")
+	if os.Getenv("YZMA_BENCHMARK_MMPROJ") == "" {
+		b.Skip("no YZMA_BENCHMARK_MMPROJ skipping test")
 	}
 
-	return os.Getenv("YZMA_TEST_MMPROJ")
+	return os.Getenv("YZMA_BENCHMARK_MMPROJ")
 }
 
 func benchmarkSetup(b *testing.B) {
