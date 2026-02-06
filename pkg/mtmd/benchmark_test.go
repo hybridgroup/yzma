@@ -3,6 +3,7 @@ package mtmd
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 	"unsafe"
@@ -18,9 +19,10 @@ func BenchmarkMultimodalInference(b *testing.B) {
 	defer benchmarkCleanup(b)
 
 	mparams := llama.ModelDefaultParams()
-	if os.Getenv("YZMA_BENCHMARK_DEVICE") != "" {
+	bd := os.Getenv("YZMA_BENCHMARK_DEVICE")
+	if bd != "" {
 		devs := []llama.GGMLBackendDevice{}
-		devices := strings.Split(os.Getenv("YZMA_BENCHMARK_DEVICE"), ",")
+		devices := strings.Split(bd, ",")
 		for _, d := range devices {
 			dev := llama.GGMLBackendDeviceByName(d)
 			if dev == 0 {
@@ -32,6 +34,27 @@ func BenchmarkMultimodalInference(b *testing.B) {
 		mparams.SetDevices(devs)
 	}
 
+	params := llama.ContextDefaultParams()
+
+	switch {
+	case strings.Contains(bd, "CUDA"), strings.Contains(bd, "VULKAN"):
+		mparams.UseMmap = 0
+		mparams.UseDirectIO = 1
+		params.NCtx = 32000
+		params.NBatch = 4096
+
+	case runtime.GOOS == "darwin":
+		params.NCtx = 16000
+		params.NBatch = 4096
+		mparams.UseMmap = 0
+
+	default:
+		mparams.UseMmap = 1
+		mparams.UseDirectIO = 0
+		params.NCtx = 8192
+		params.NBatch = 4096
+	}
+
 	model, err := llama.ModelLoadFromFile(modelFile, mparams)
 
 	if err != nil {
@@ -39,17 +62,16 @@ func BenchmarkMultimodalInference(b *testing.B) {
 	}
 	defer llama.ModelFree(model)
 
-	params := llama.ContextDefaultParams()
-	params.NCtx = 4096
-	params.NBatch = 2048
-
 	ctx, err := llama.InitFromModel(model, params)
 	if err != nil {
 		b.Fatalf("InitFromModel failed: %v", err)
 	}
 	defer llama.Free(ctx)
 
-	mtmdCtx, err := InitFromFile(projectFile, model, ContextParamsDefault())
+	mprms := ContextParamsDefault()
+	mprms.ImageMinTokens = 1024
+
+	mtmdCtx, err := InitFromFile(projectFile, model, mprms)
 	if err != nil {
 		fmt.Println("unable to initialize context from file", err.Error())
 		os.Exit(1)
@@ -105,7 +127,10 @@ func benchmarkMultimodalInference(b *testing.B, mctx Context, ctx llama.Context,
 	}
 
 	sp := llama.DefaultSamplerParams()
-	sp.Temp = float32(0.7)
+	sp.Temp = float32(0.8)
+	sp.TopK = int32(40)
+	sp.TopP = float32(0.9)
+	sp.MinP = float32(0.1)
 
 	sampler := llama.NewSampler(model, llama.DefaultSamplers, sp)
 	defer llama.SamplerFree(sampler)
