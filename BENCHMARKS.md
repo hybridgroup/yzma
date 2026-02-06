@@ -19,13 +19,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkInference-32                100         111468211 ns/op               269.1 tokens/s
-BenchmarkInference-32                108         109933297 ns/op               272.9 tokens/s
-BenchmarkInference-32                 99         108908937 ns/op               275.5 tokens/s
-BenchmarkInference-32                 96         109742158 ns/op               273.4 tokens/s
-BenchmarkInference-32                100         108993386 ns/op               275.2 tokens/s
+BenchmarkInference-32                 96         111641439 ns/op               268.7 tokens/s
+BenchmarkInference-32                100         109954726 ns/op               272.8 tokens/s
+BenchmarkInference-32                 99         111312200 ns/op               269.5 tokens/s
+BenchmarkInference-32                100         113785241 ns/op               263.7 tokens/s
+BenchmarkInference-32                 93         112232836 ns/op               267.3 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/llama   58.614s
+ok      github.com/hybridgroup/yzma/pkg/llama   57.943s
 ```
 
 #### CUDA
@@ -50,13 +50,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkInference-32                349          34024582 ns/op               881.7 tokens/s
-BenchmarkInference-32                349          34442142 ns/op               871.0 tokens/s
-BenchmarkInference-32                350          34039915 ns/op               881.3 tokens/s
-BenchmarkInference-32                352          34228134 ns/op               876.5 tokens/s
-BenchmarkInference-32                351          34005275 ns/op               882.2 tokens/s
+BenchmarkInference-32                330          35788282 ns/op               838.3 tokens/s
+BenchmarkInference-32                337          35562432 ns/op               843.6 tokens/s
+BenchmarkInference-32                336          35605583 ns/op               842.6 tokens/s
+BenchmarkInference-32                337          35610519 ns/op               842.4 tokens/s
+BenchmarkInference-32                337          35509592 ns/op               844.8 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/llama   61.194s
+ok      github.com/hybridgroup/yzma/pkg/llama   62.938s
 ```
 
 #### Vulkan
@@ -71,18 +71,18 @@ Vulkan Instance Version: 1.3.275
 Devices:
 ========
 GPU0:
-        apiVersion         = 1.4.305
-        driverVersion      = 25.0.7
+        apiVersion         = 1.4.318
+        driverVersion      = 25.2.8
         vendorID           = 0x8086
         deviceID           = 0xa788
         deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
         deviceName         = Intel(R) Graphics (RPL-S)
         driverID           = DRIVER_ID_INTEL_OPEN_SOURCE_MESA
         driverName         = Intel open-source Mesa driver
-        driverInfo         = Mesa 25.0.7-0ubuntu0.24.04.2
+        driverInfo         = Mesa 25.2.8-0ubuntu0.24.04.1
         conformanceVersion = 1.4.0.0
         deviceUUID         = 868088a7-0400-0000-0002-000000000000
-        driverUUID         = 802b0057-40c2-aed9-e538-d78b797f04f4
+        driverUUID         = 032fbbbb-ddee-3516-8477-c17071969177
 GPU1:
         apiVersion         = 1.4.312
         driverVersion      = 580.95.5.0
@@ -104,13 +104,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkInference-32                 16         684923482 ns/op                43.80 tokens/s
-BenchmarkInference-32                 16         683619165 ns/op                43.88 tokens/s
-BenchmarkInference-32                 16         684708734 ns/op                43.81 tokens/s
-BenchmarkInference-32                 16         684328523 ns/op                43.84 tokens/s
-BenchmarkInference-32                 16         683029370 ns/op                43.92 tokens/s
+BenchmarkInference-32                 32         352943116 ns/op                85.00 tokens/s
+BenchmarkInference-32                 32         368368027 ns/op                81.44 tokens/s
+BenchmarkInference-32                 32         348202981 ns/op                86.16 tokens/s
+BenchmarkInference-32                 32         345188429 ns/op                86.91 tokens/s
+BenchmarkInference-32                 32         346846063 ns/op                86.49 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/llama   58.073s
+ok      github.com/hybridgroup/yzma/pkg/llama   62.292s
 ```
 
 ```
@@ -119,13 +119,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkInference-32                334          35314783 ns/op               849.5 tokens/s
-BenchmarkInference-32                338          35190386 ns/op               852.5 tokens/s
-BenchmarkInference-32                339          35332049 ns/op               849.1 tokens/s
-BenchmarkInference-32                338          35536944 ns/op               844.2 tokens/s
-BenchmarkInference-32                337          35432645 ns/op               846.7 tokens/s
+BenchmarkInference-32                327          35299822 ns/op               849.9 tokens/s
+BenchmarkInference-32                342          34959925 ns/op               858.1 tokens/s
+BenchmarkInference-32                343          34859873 ns/op               860.6 tokens/s
+BenchmarkInference-32                340          35097909 ns/op               854.8 tokens/s
+BenchmarkInference-32                340          35057110 ns/op               855.7 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/llama   63.392s
+ok      github.com/hybridgroup/yzma/pkg/llama   63.269s
 ```
 
 ### macOS
@@ -276,7 +276,14 @@ ok      github.com/hybridgroup/yzma/pkg/llama   65.798s
 
 ## Multimodal model benchmarks
 
-These benchmarks all use the [SmolVLM-256M-Instruct-Q8_0.gguf](https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF/blob/main/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf) model and projector to provide a description for an image.
+These benchmarks all use the [Qwen3-VL-2B-Instruct.Q4_K_M.gguf](https://huggingface.co/mradermacher/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3-VL-2B-Instruct.Q4_K_M.gguf) model and [projector](https://huggingface.co/mradermacher/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3-VL-2B-Instruct.mmproj-Q8_0.gguf) to provide a description for an image.
+
+```shell
+yzma model get https://huggingface.co/mradermacher/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3-VL-2B-Instruct.Q4_K_M.gguf
+yzma model get https://huggingface.co/mradermacher/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3-VL-2B-Instruct.mmproj-Q8_0.gguf
+export YZMA_BENCHMARK_MMMODEL=~/models/Qwen3-VL-2B-Instruct.Q4_K_M.gguf
+export YZMA_BENCHMARK_MMPROJ=~/models/Qwen3-VL-2B-Instruct.mmproj-Q8_0.gguf
+```
 
 See https://github.com/hybridgroup/yzma/blob/main/pkg/mtmd/benchmark_test.go
 
@@ -290,13 +297,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkMultimodalInference-32                8        1347800979 ns/op                66.78 tokens/s
-BenchmarkMultimodalInference-32                8        1343806557 ns/op                66.97 tokens/s
-BenchmarkMultimodalInference-32                8        1343664958 ns/op                66.98 tokens/s
-BenchmarkMultimodalInference-32                8        1327958184 ns/op                67.77 tokens/s
-BenchmarkMultimodalInference-32                8        1339477869 ns/op                67.19 tokens/s
+BenchmarkMultimodalInference-32                1        42969171941 ns/op               26.16 tokens/s
+BenchmarkMultimodalInference-32                1        47926256808 ns/op               26.00 tokens/s
+BenchmarkMultimodalInference-32                1        47091090108 ns/op               26.40 tokens/s
+BenchmarkMultimodalInference-32                1        43416576116 ns/op               25.89 tokens/s
+BenchmarkMultimodalInference-32                1        46271244033 ns/op               27.36 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/mtmd    54.800s
+ok      github.com/hybridgroup/yzma/pkg/mtmd    233.600s
 ```
 
 #### CUDA
@@ -321,13 +328,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkMultimodalInference-32              301          39020452 ns/op              2358 tokens/s
-BenchmarkMultimodalInference-32              310          38536473 ns/op              2387 tokens/s
-BenchmarkMultimodalInference-32              309          38666347 ns/op              2379 tokens/s
-BenchmarkMultimodalInference-32              308          38849429 ns/op              2368 tokens/s
-BenchmarkMultimodalInference-32              308          38680263 ns/op              2378 tokens/s
+BenchmarkMultimodalInference-32               12        1165425512 ns/op              1013 tokens/s
+BenchmarkMultimodalInference-32               10        1142957281 ns/op              1032 tokens/s
+BenchmarkMultimodalInference-32               10        1004667780 ns/op              1152 tokens/s
+BenchmarkMultimodalInference-32               18        1151246613 ns/op              1025 tokens/s
+BenchmarkMultimodalInference-32               13         978776993 ns/op              1176 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/mtmd    63.002s
+ok      github.com/hybridgroup/yzma/pkg/mtmd    76.957s
 ```
 
 #### Vulkan
@@ -342,18 +349,18 @@ Vulkan Instance Version: 1.3.275
 Devices:
 ========
 GPU0:
-        apiVersion         = 1.4.305
-        driverVersion      = 25.0.7
+        apiVersion         = 1.4.318
+        driverVersion      = 25.2.8
         vendorID           = 0x8086
         deviceID           = 0xa788
         deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
         deviceName         = Intel(R) Graphics (RPL-S)
         driverID           = DRIVER_ID_INTEL_OPEN_SOURCE_MESA
         driverName         = Intel open-source Mesa driver
-        driverInfo         = Mesa 25.0.7-0ubuntu0.24.04.2
+        driverInfo         = Mesa 25.2.8-0ubuntu0.24.04.1
         conformanceVersion = 1.4.0.0
         deviceUUID         = 868088a7-0400-0000-0002-000000000000
-        driverUUID         = 802b0057-40c2-aed9-e538-d78b797f04f4
+        driverUUID         = 032fbbbb-ddee-3516-8477-c17071969177
 GPU1:
         apiVersion         = 1.4.312
         driverVersion      = 580.95.5.0
@@ -375,13 +382,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkMultimodalInference-32               21         519478018 ns/op               179.0 tokens/s
-BenchmarkMultimodalInference-32               19         543824217 ns/op               171.0 tokens/s
-BenchmarkMultimodalInference-32               20         536617102 ns/op               173.3 tokens/s
-BenchmarkMultimodalInference-32               19         538537938 ns/op               172.7 tokens/s
-BenchmarkMultimodalInference-32               21         529357822 ns/op               175.7 tokens/s
+BenchmarkMultimodalInference-32                1        20030722296 ns/op               60.16 tokens/s
+BenchmarkMultimodalInference-32                1        18770055628 ns/op               63.24 tokens/s
+BenchmarkMultimodalInference-32                1        35520108840 ns/op               38.71 tokens/s
+BenchmarkMultimodalInference-32                1        24745078194 ns/op               50.76 tokens/s
+BenchmarkMultimodalInference-32                1        24393051539 ns/op               51.29 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/mtmd    56.240s
+ok      github.com/hybridgroup/yzma/pkg/mtmd    136.107s
 ```
 
 ```
@@ -390,13 +397,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkMultimodalInference-32              223          46226712 ns/op              2033 tokens/s
-BenchmarkMultimodalInference-32              286          41941633 ns/op              2241 tokens/s
-BenchmarkMultimodalInference-32              286          41697075 ns/op              2254 tokens/s
-BenchmarkMultimodalInference-32              286          41547813 ns/op              2262 tokens/s
-BenchmarkMultimodalInference-32              285          41792312 ns/op              2249 tokens/s
+BenchmarkMultimodalInference-32                9        1587911257 ns/op               775.7 tokens/s
+BenchmarkMultimodalInference-32                8        1438853680 ns/op               841.6 tokens/s
+BenchmarkMultimodalInference-32               13        1348601428 ns/op               888.4 tokens/s
+BenchmarkMultimodalInference-32                9        1277507362 ns/op               929.3 tokens/s
+BenchmarkMultimodalInference-32               15        1420791519 ns/op               851.4 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/mtmd    63.588s
+ok      github.com/hybridgroup/yzma/pkg/mtmd    85.301s
 ```
 
 ### macOS
