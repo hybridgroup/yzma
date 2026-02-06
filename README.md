@@ -162,21 +162,21 @@ Whenever there is a new release of `llama.cpp`, the tests for `yzma` are run aut
 
 `yzma` is fast because it calls `llama.cpp` in the same process. No external servers needed!
 
+For example, here is the `Qwen3-VL-2B-Instruct` Visual Language Model (VLM) performing multi-modal inference on an image and text prompt running on a Apple M4 Max with 128 GB RAM:
 
 ```shell
-$ go test -bench=BenchmarkInference -benchtime=10s -count=5 -v -run=nada ./pkg/llama
+$ go test -run none -benchtime=10s -count=5 -bench BenchmarkMultimodalInference
 goos: darwin
 goarch: arm64
-pkg: github.com/hybridgroup/yzma/pkg/llama
+pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: Apple M4 Max
-BenchmarkInference
-BenchmarkInference-16    	     212	  56221789 ns/op	       533.6 tokens/s
-BenchmarkInference-16    	     212	  56651795 ns/op	       529.6 tokens/s
-BenchmarkInference-16    	     213	  56220516 ns/op	       533.6 tokens/s
-BenchmarkInference-16    	     213	  56204004 ns/op	       533.8 tokens/s
-BenchmarkInference-16    	     208	  57035355 ns/op	       526.0 tokens/s
+BenchmarkMultimodalInference-16		10		1577948683 ns/op	788.9 tokens/s
+BenchmarkMultimodalInference-16		12		1243692014 ns/op	910.8 tokens/s
+BenchmarkMultimodalInference-16		 7		1654741804 ns/op	737.2 tokens/s
+BenchmarkMultimodalInference-16		 7		1568106947 ns/op	771.9 tokens/s
+BenchmarkMultimodalInference-16		10		1704669371 ns/op	706.1 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	60.415s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	76.644s
 ```
 
 Want to see more benchmarks? Take a look at the [BENCHMARKS.md](./BENCHMARKS.md) document.
