@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
@@ -97,6 +98,11 @@ func BenchmarkMultimodalInference(b *testing.B) {
 	elapsedSeconds := b.Elapsed().Seconds()
 	tokensPerSecond := float64(total) / elapsedSeconds
 	b.ReportMetric(tokensPerSecond, "tokens/s")
+
+	// extra time to cleanup
+	if runtime.GOOS == "darwin" {
+		time.Sleep(time.Second)
+	}
 }
 
 func benchmarkMultimodalInference(b *testing.B, mctx Context, ctx llama.Context, model llama.Model, template string, bitmap Bitmap, text string) int {
@@ -167,6 +173,7 @@ func benchmarkMultimodalInference(b *testing.B, mctx Context, ctx llama.Context,
 	llama.MemoryClear(mem, true)
 
 	b.StartTimer()
+
 	return total
 }
 

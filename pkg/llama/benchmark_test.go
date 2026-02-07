@@ -2,8 +2,10 @@ package llama
 
 import (
 	"os"
+	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 func BenchmarkInference(b *testing.B) {
@@ -53,6 +55,11 @@ func BenchmarkInference(b *testing.B) {
 	elapsedSeconds := b.Elapsed().Seconds()
 	tokensPerSecond := float64(total) / elapsedSeconds
 	b.ReportMetric(tokensPerSecond, "tokens/s")
+
+	// extra time to cleanup
+	if runtime.GOOS == "darwin" {
+		time.Sleep(time.Second)
+	}
 }
 
 func benchmarkInference(b *testing.B, ctx Context, model Model, text string) int {
@@ -82,12 +89,14 @@ func benchmarkInference(b *testing.B, ctx Context, model Model, text string) int
 	}
 
 	b.StopTimer()
+
 	Synchronize(ctx)
 	mem, err := GetMemory(ctx)
 	if err != nil {
 		b.Fatalf("GetMemory failed: %v", err)
 	}
 	MemoryClear(mem, true)
+
 	b.StartTimer()
 
 	return total
