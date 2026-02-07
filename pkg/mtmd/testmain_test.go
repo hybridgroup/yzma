@@ -61,22 +61,18 @@ func benchmarkSetupOnce(b *testing.B) {
 
 	switch {
 	case strings.Contains(bd, "CUDA"), strings.Contains(bd, "VULKAN"):
-		mparams.UseMmap = 0
 		mparams.UseDirectIO = 1
 		params.NCtx = 32000
-		params.NBatch = 4096
 
 	case runtime.GOOS == "darwin":
 		params.NCtx = 16000
-		params.NBatch = 4096
-		mparams.UseMmap = 0
 
 	default:
-		mparams.UseMmap = 1
-		mparams.UseDirectIO = 0
 		params.NCtx = 8192
-		params.NBatch = 4096
 	}
+
+	params.NBatch = 1024
+	mparams.UseMmap = 0
 
 	model, err := llama.ModelLoadFromFile(modelFile, mparams)
 	if err != nil {
