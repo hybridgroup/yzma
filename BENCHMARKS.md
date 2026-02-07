@@ -153,18 +153,18 @@ ok  	github.com/hybridgroup/yzma/pkg/llama	60.415s
 #### CPU
 
 ```
-C:\Users\ron\yzma>go test -bench=BenchmarkInference -benchtime=10s -count=5 -run=nada ./pkg/llama
+C:\Users\limbo\ron\yzma>go test -bench=BenchmarkInference -benchtime=10s -count=5 -run=nada ./pkg/llama
 goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: AMD Ryzen 9 7950X 16-Core Processor
-BenchmarkInference-32                219          54324292 ns/op               552.2 tokens/s
-BenchmarkInference-32                218          54365003 ns/op               551.8 tokens/s
-BenchmarkInference-32                219          54175797 ns/op               553.8 tokens/s
-BenchmarkInference-32                223          53792174 ns/op               557.7 tokens/s
-BenchmarkInference-32                216          55443764 ns/op               541.1 tokens/s
+BenchmarkInference-32                 51         211158431 ns/op               142.1 tokens/s
+BenchmarkInference-32                 54         211732807 ns/op               141.7 tokens/s
+BenchmarkInference-32                 55         208719991 ns/op               143.7 tokens/s
+BenchmarkInference-32                 55         209386684 ns/op               143.3 tokens/s
+BenchmarkInference-32                 54         207956502 ns/op               144.3 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/llama   62.396s
+ok      github.com/hybridgroup/yzma/pkg/llama   57.616s
 ```
 
 #### CUDA
@@ -187,18 +187,18 @@ C:\Users\ron>nvidia-smi
 ```
 C:\Users\ron\yzma>set YZMA_BENCHMARK_DEVICE=CUDA0
 
-C:\Users\ron\yzma>go test -bench=BenchmarkInference -benchtime=10s -count=5 -run=nada ./pkg/llama
+C:\Users\limbo\ron\yzma>go test -bench=BenchmarkInference -benchtime=10s -count=5 -run=nada ./pkg/llama
 goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: AMD Ryzen 9 7950X 16-Core Processor
-BenchmarkInference-32                260          45704590 ns/op               656.4 tokens/s
-BenchmarkInference-32                260          45915642 ns/op               653.4 tokens/s
-BenchmarkInference-32                262          45523990 ns/op               659.0 tokens/s
-BenchmarkInference-32                258          46101993 ns/op               650.7 tokens/s
-BenchmarkInference-32                261          45832454 ns/op               654.6 tokens/s
+BenchmarkInference-32                254          47057470 ns/op               637.5 tokens/s
+BenchmarkInference-32                252          47270689 ns/op               634.6 tokens/s
+BenchmarkInference-32                254          47281096 ns/op               634.5 tokens/s
+BenchmarkInference-32                252          47607048 ns/op               630.2 tokens/s
+BenchmarkInference-32                249          47880971 ns/op               626.6 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/llama   64.296s
+ok      github.com/hybridgroup/yzma/pkg/llama   62.562s
 ```
 
 
@@ -245,33 +245,33 @@ GPU1:
 ```
 C:\Users\ron\yzma>set YZMA_BENCHMARK_DEVICE=VULKAN0
 
-C:\Users\ron\yzma>go test -bench=BenchmarkInference -benchtime=10s -count=5 -run=nada ./pkg/llama
+C:\Users\limbo\ron\yzma>go test -bench=BenchmarkInference -benchtime=10s -count=5 -run=nada ./pkg/llama
 goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: AMD Ryzen 9 7950X 16-Core Processor
-BenchmarkInference-32                 30         370791227 ns/op                80.91 tokens/s
-BenchmarkInference-32                 36         326416361 ns/op                91.91 tokens/s
-BenchmarkInference-32                 36         325644942 ns/op                92.12 tokens/s
-BenchmarkInference-32                 36         325254353 ns/op                92.24 tokens/s
-BenchmarkInference-32                 36         324711861 ns/op                92.39 tokens/s
+BenchmarkInference-32                 34         330604594 ns/op                90.74 tokens/s
+BenchmarkInference-32                 39         300735477 ns/op                99.76 tokens/s
+BenchmarkInference-32                 38         300771805 ns/op                99.74 tokens/s
+BenchmarkInference-32                 39         300599485 ns/op                99.80 tokens/s
+BenchmarkInference-32                 39         300543574 ns/op                99.82 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/llama   59.649s
+ok      github.com/hybridgroup/yzma/pkg/llama   59.380s
 
 C:\Users\ron\yzma>set YZMA_BENCHMARK_DEVICE=VULKAN1
 
-C:\Users\ron\yzma>go test -bench=BenchmarkInference -benchtime=10s -count=5 -run=nada ./pkg/llama
+C:\Users\limbo\ron\yzma>go test -bench=BenchmarkInference -benchtime=10s -count=5 -run=nada ./pkg/llama
 goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: AMD Ryzen 9 7950X 16-Core Processor
-BenchmarkInference-32                272          43940693 ns/op               682.7 tokens/s
-BenchmarkInference-32                272          44012208 ns/op               681.6 tokens/s
-BenchmarkInference-32                271          44027857 ns/op               681.4 tokens/s
-BenchmarkInference-32                271          43851773 ns/op               684.1 tokens/s
-BenchmarkInference-32                274          43559242 ns/op               688.7 tokens/s
+BenchmarkInference-32                252          45340691 ns/op               661.7 tokens/s
+BenchmarkInference-32                296          40006768 ns/op               749.9 tokens/s
+BenchmarkInference-32                294          40285934 ns/op               744.7 tokens/s
+BenchmarkInference-32                294          40255082 ns/op               745.2 tokens/s
+BenchmarkInference-32                295          40230172 ns/op               745.7 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/llama   65.798s
+ok      github.com/hybridgroup/yzma/pkg/llama   67.275ss
 ```
 
 ## Multimodal model benchmarks
@@ -279,8 +279,8 @@ ok      github.com/hybridgroup/yzma/pkg/llama   65.798s
 These benchmarks all use the [Qwen3-VL-2B-Instruct.Q4_K_M.gguf](https://huggingface.co/mradermacher/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3-VL-2B-Instruct.Q4_K_M.gguf) model and [projector](https://huggingface.co/mradermacher/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3-VL-2B-Instruct.mmproj-Q8_0.gguf) to provide a description for an image.
 
 ```shell
-yzma model get https://huggingface.co/mradermacher/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3-VL-2B-Instruct.Q4_K_M.gguf
-yzma model get https://huggingface.co/mradermacher/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3-VL-2B-Instruct.mmproj-Q8_0.gguf
+yzma model get -u https://huggingface.co/mradermacher/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3-VL-2B-Instruct.Q4_K_M.gguf
+yzma model get -u https://huggingface.co/mradermacher/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3-VL-2B-Instruct.mmproj-Q8_0.gguf
 export YZMA_BENCHMARK_MMMODEL=~/models/Qwen3-VL-2B-Instruct.Q4_K_M.gguf
 export YZMA_BENCHMARK_MMPROJ=~/models/Qwen3-VL-2B-Instruct.mmproj-Q8_0.gguf
 ```
@@ -428,18 +428,18 @@ At present, this benchmark can only be run once.
 #### CPU
 
 ```
-C:\Users\ron\yzma>go test -bench=BenchmarkMultimodalInference -benchtime=10s -count=5 -run=nada ./pkg/mtmd/
+C:\Users\limbo\ron\yzma>go test -bench=BenchmarkMultimodalInference -benchtime=10s -count=5 -run=nada ./pkg/mtmd/
 goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: AMD Ryzen 9 7950X 16-Core Processor
-BenchmarkMultimodalInference-32                9        1155881378 ns/op                77.86 tokens/s
-BenchmarkMultimodalInference-32                9        1145209856 ns/op                78.59 tokens/s
-BenchmarkMultimodalInference-32                9        1138239900 ns/op                79.07 tokens/s
-BenchmarkMultimodalInference-32                9        1164351044 ns/op                77.30 tokens/s
-BenchmarkMultimodalInference-32                9        1141887544 ns/op                78.82 tokens/s
+BenchmarkMultimodalInference-32                1        31575326100 ns/op               40.66 tokens/s
+BenchmarkMultimodalInference-32                1        27726097200 ns/op               42.63 tokens/s
+BenchmarkMultimodalInference-32                1        27337048100 ns/op               42.76 tokens/s
+BenchmarkMultimodalInference-32                1        31019634700 ns/op               39.94 tokens/s
+BenchmarkMultimodalInference-32                1        25894544200 ns/op               43.33 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/mtmd    53.208s
+ok      github.com/hybridgroup/yzma/pkg/mtmd    148.749s
 ```
 
 #### CUDA
@@ -461,18 +461,18 @@ ok      github.com/hybridgroup/yzma/pkg/mtmd    53.208s
 ```
 C:\Users\ron\yzma>set YZMA_BENCHMARK_DEVICE=CUDA0
 
-C:\Users\ron\yzma>go test -bench=BenchmarkMultimodalInference -benchtime=10s -count=5 -run=nada ./pkg/mtmd/
+C:\Users\limbo\ron\yzma>go test -bench=BenchmarkMultimodalInference -benchtime=10s -count=5 -run=nada ./pkg/mtmd/
 goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: AMD Ryzen 9 7950X 16-Core Processor
-BenchmarkMultimodalInference-32              242          49375303 ns/op              1823 tokens/s
-BenchmarkMultimodalInference-32              238          49982951 ns/op              1801 tokens/s
-BenchmarkMultimodalInference-32              242          49070213 ns/op              1834 tokens/s
-BenchmarkMultimodalInference-32              240          49421740 ns/op              1821 tokens/s
-BenchmarkMultimodalInference-32              241          49404154 ns/op              1822 tokens/s
+BenchmarkMultimodalInference-32               20        1021667905 ns/op              1167 tokens/s
+BenchmarkMultimodalInference-32               19         983015732 ns/op              1204 tokens/s
+BenchmarkMultimodalInference-32               16        1110895319 ns/op              1091 tokens/s
+BenchmarkMultimodalInference-32               15         908261600 ns/op              1286 tokens/s
+BenchmarkMultimodalInference-32               16         941364706 ns/op              1248 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/mtmd    61.924s
+ok      github.com/hybridgroup/yzma/pkg/mtmd    91.365s
 ```
 
 #### Vulkan
@@ -516,35 +516,35 @@ GPU1:
 ```
 
 ```
-C:\Users\ron\yzma>set YZMA_BENCHMARK_DEVICE=VULKAN0
+C:\Users\limbo\ron\yzma>set YZMA_BENCHMARK_DEVICE=VULKAN0
 
-C:\Users\ron\yzma>go test -bench=BenchmarkMultimodalInference -benchtime=10s -count=5 -run=nada ./pkg/mtmd/
+C:\Users\limbo\ron\yzma>go test -bench=BenchmarkMultimodalInference -benchtime=10s -count=5 -run=nada ./pkg/mtmd/
 goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: AMD Ryzen 9 7950X 16-Core Processor
-BenchmarkMultimodalInference-32               28         365518636 ns/op               254.4 tokens/s
-BenchmarkMultimodalInference-32               32         351894122 ns/op               264.3 tokens/s
-BenchmarkMultimodalInference-32               33         350424224 ns/op               265.4 tokens/s
-BenchmarkMultimodalInference-32               33         343984294 ns/op               270.4 tokens/s
-BenchmarkMultimodalInference-32               33         347445833 ns/op               267.7 tokens/s
+BenchmarkMultimodalInference-32                1        31921097800 ns/op               40.38 tokens/s
+BenchmarkMultimodalInference-32                1        29552171600 ns/op               43.41 tokens/s
+BenchmarkMultimodalInference-32                1        15080235900 ns/op               74.00 tokens/s
+BenchmarkMultimodalInference-32                1        22364990200 ns/op               53.66 tokens/s
+BenchmarkMultimodalInference-32                1        15404597400 ns/op               72.71 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/mtmd    58.995s
+ok      github.com/hybridgroup/yzma/pkg/mtmd    122.115s
 ```
 
 ```
-C:\Users\ron\yzma>set YZMA_BENCHMARK_DEVICE=VULKAN1
+C:\Users\limbo\ron\yzma>set YZMA_BENCHMARK_DEVICE=VULKAN1
 
-C:\Users\ron\yzma>go test -bench=BenchmarkMultimodalInference -benchtime=10s -count=5 -run=nada ./pkg/mtmd/
+C:\Users\limbo\ron\yzma>go test -bench=BenchmarkMultimodalInference -benchtime=10s -count=5 -run=nada ./pkg/mtmd/
 goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: AMD Ryzen 9 7950X 16-Core Processor
-BenchmarkMultimodalInference-32              240          49816347 ns/op              1887 tokens/s
-BenchmarkMultimodalInference-32              201          51165695 ns/op              1837 tokens/s
-BenchmarkMultimodalInference-32              229          50212528 ns/op              1872 tokens/s
-BenchmarkMultimodalInference-32              219          50358109 ns/op              1867 tokens/s
-BenchmarkMultimodalInference-32              241          49475198 ns/op              1900 tokens/s
+BenchmarkMultimodalInference-32               15         890444833 ns/op              1314 tokens/s
+BenchmarkMultimodalInference-32               16         952690756 ns/op              1243 tokens/s
+BenchmarkMultimodalInference-32                9        1128096289 ns/op              1080 tokens/s
+BenchmarkMultimodalInference-32                9        1247414711 ns/op               996.7 tokens/s
+BenchmarkMultimodalInference-32               12         848426400 ns/op              1361 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/mtmd    64.397s
+ok      github.com/hybridgroup/yzma/pkg/mtmd    76.636s
 ```
