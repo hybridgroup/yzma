@@ -1,105 +1,26 @@
 package mtmd
 
 import (
-	"fmt"
-	"os"
 	"runtime"
-	"strings"
 	"testing"
 	"time"
-	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
 )
 
 func BenchmarkMultimodalInference(b *testing.B) {
-	modelFile := benchmarkModelFileName(b)
-	projectFile := benchmarkProjectorFileName(b)
-
-	benchmarkSetup(b)
-	defer benchmarkCleanup(b)
-
-	mparams := llama.ModelDefaultParams()
-	bd := os.Getenv("YZMA_BENCHMARK_DEVICE")
-	if bd != "" {
-		devs := []llama.GGMLBackendDevice{}
-		devices := strings.Split(bd, ",")
-		for _, d := range devices {
-			dev := llama.GGMLBackendDeviceByName(d)
-			if dev == 0 {
-				b.Fatalf("unknown device: %s", d)
-			}
-			devs = append(devs, dev)
-		}
-
-		mparams.SetDevices(devs)
-	}
-
-	params := llama.ContextDefaultParams()
-
-	switch {
-	case strings.Contains(bd, "CUDA"), strings.Contains(bd, "VULKAN"):
-		mparams.UseMmap = 0
-		mparams.UseDirectIO = 1
-		params.NCtx = 32000
-		params.NBatch = 4096
-
-	case runtime.GOOS == "darwin":
-		params.NCtx = 16000
-		params.NBatch = 4096
-		mparams.UseMmap = 0
-
-	default:
-		mparams.UseMmap = 1
-		mparams.UseDirectIO = 0
-		params.NCtx = 8192
-		params.NBatch = 4096
-	}
-
-	model, err := llama.ModelLoadFromFile(modelFile, mparams)
-
-	if err != nil {
-		b.Fatalf("ModelLoadFromFile failed: %v", err)
-	}
-	defer llama.ModelFree(model)
-
-	ctx, err := llama.InitFromModel(model, params)
-	if err != nil {
-		b.Fatalf("InitFromModel failed: %v", err)
-	}
-	defer llama.Free(ctx)
-
-	mprms := ContextParamsDefault()
-	mprms.ImageMinTokens = 1024
-
-	mtmdCtx, err := InitFromFile(projectFile, model, mprms)
-	if err != nil {
-		fmt.Println("unable to initialize context from file", err.Error())
-		os.Exit(1)
-	}
-	defer Free(mtmdCtx)
-
-	template := llama.ModelChatTemplate(model, "")
-
-	data, x, y, err := openImageFile("../../images/domestic_llama.jpg")
-	if err != nil {
-		b.Fatal("count not open file")
-	}
-	bitmap := BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
-	defer BitmapFree(bitmap)
+	benchmarkSetupOnce(b)
 
 	total := 0
 	b.ResetTimer()
 	for b.Loop() {
-		total += benchmarkMultimodalInference(b, mtmdCtx, ctx, model, template, bitmap, "What is in this image?")
+		total += benchmarkMultimodalInference(b, benchMtmdCtx, benchCtx, benchModel, benchTemplate, benchBitmap, "What is in this image?")
 	}
 
-	// Calculate tokens/second
 	elapsedSeconds := b.Elapsed().Seconds()
 	tokensPerSecond := float64(total) / elapsedSeconds
 	b.ReportMetric(tokensPerSecond, "tokens/s")
 
-	// extra time to cleanup
 	if runtime.GOOS == "darwin" {
 		time.Sleep(time.Second)
 	}
@@ -155,7 +76,6 @@ func benchmarkMultimodalInference(b *testing.B, mctx Context, ctx llama.Context,
 		buf := make([]byte, 128)
 		llama.TokenToPiece(vocab, token, buf, 0, true)
 
-		// Use BatchGetOne instead of manually constructing the batch
 		batch := llama.BatchGetOne([]llama.Token{token})
 		batch.Pos = &n
 
