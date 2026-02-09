@@ -10,6 +10,10 @@ func TestInstall(t *testing.T) {
 		t.Skip("skipping test since github API sends 403 error")
 	}
 
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test since no arm64 binaries without CUDA are currently available on github releases")
+	}
+
 	dest := t.TempDir()
 
 	exists := alreadyInstalled(dest)
