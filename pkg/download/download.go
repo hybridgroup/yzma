@@ -98,7 +98,8 @@ func getDownloadLocationAndFilename(arch Arch, os OS, prcssr Processor, version 
 		case CUDA:
 			location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
 			if arch == ARM64 {
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-13-arm64.tar.gz", version)
+				// defaults to CUDA 12 assuming that is running Jetson Orin.
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-arm64.tar.gz", version)
 			} else {
 				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-13-x64.tar.gz", version)
 			}
