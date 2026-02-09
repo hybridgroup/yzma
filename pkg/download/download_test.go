@@ -29,7 +29,7 @@ func TestLlamaLatestVersion(t *testing.T) {
 		response := struct {
 			TagName string `json:"tag_name"`
 		}{
-			TagName: "b7225",
+			TagName: "b7974",
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -51,8 +51,8 @@ func TestLlamaLatestVersion(t *testing.T) {
 		t.Fatalf("Expected version should start with 'b', got '%s'", version)
 	}
 
-	if version != "b7225" {
-		t.Fatalf("Expected version 'b7225', got '%s'", version)
+	if version != "b7974" {
+		t.Fatalf("Expected version 'b7974', got '%s'", version)
 	}
 
 	t.Logf("LlamaLatestVersion returned: %s", version)
@@ -88,7 +88,7 @@ func TestLlamaLatestVersion_Error(t *testing.T) {
 }
 
 // createMockTarGz creates a mock .tar.gz file containing a fake libllama.so
-// with a top-level directory prefix (e.g., "llama-b7225/")
+// with a top-level directory prefix (e.g., "llama-b7974/")
 func createMockTarGz(t *testing.T, version string) []byte {
 	t.Helper()
 
@@ -152,14 +152,14 @@ func createMockTarGz(t *testing.T, version string) []byte {
 }
 
 func TestGetLinuxCPU(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 
 	// Create mock tar.gz content with version prefix
 	mockTarGz := createMockTarGz(t, version)
 
 	// Create a mock server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		expectedPath := "/b7225/llama-b7225-bin-ubuntu-x64.tar.gz"
+		expectedPath := "/b7974/llama-b7974-bin-ubuntu-x64.tar.gz"
 		if r.URL.Path != expectedPath {
 			t.Errorf("unexpected path: %s, want %s", r.URL.Path, expectedPath)
 			w.WriteHeader(http.StatusNotFound)
@@ -180,7 +180,7 @@ func TestGetLinuxCPU(t *testing.T) {
 	originalGet := getFunc
 	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
 		// Replace the real URL with our mock server URL
-		mockURL := server.URL + "/b7225/llama-b7225-bin-ubuntu-x64.tar.gz"
+		mockURL := server.URL + "/b7974/llama-b7974-bin-ubuntu-x64.tar.gz"
 		return downloadAndExtractTarGz(mockURL, dest, nil)
 	}
 	defer func() { getFunc = originalGet }()
@@ -212,7 +212,7 @@ func TestGetLinuxCPU(t *testing.T) {
 }
 
 func TestGetInvalidOS(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 	arch := "amd64"
 	osVer := "cpm"
 	processor := "cpu"
@@ -225,7 +225,7 @@ func TestGetInvalidOS(t *testing.T) {
 }
 
 func TestGetInvalidProcessor(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 	arch := "amd64"
 	osVer := "windows"
 	processor := "flux"
@@ -251,7 +251,7 @@ func TestGetInvalidVersion(t *testing.T) {
 }
 
 func TestGetDownloadLocationAndFilename_LinuxCPU(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 	dest := t.TempDir()
 
 	location, filename, err := getDownloadLocationAndFilename(AMD64, Linux, CPU, version, dest)
@@ -259,8 +259,8 @@ func TestGetDownloadLocationAndFilename_LinuxCPU(t *testing.T) {
 		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
 	}
 
-	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7225"
-	expectedFilename := "llama-b7225-bin-ubuntu-x64.tar.gz"
+	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-ubuntu-x64.tar.gz"
 
 	if location != expectedLocation {
 		t.Errorf("location = %q, want %q", location, expectedLocation)
@@ -271,7 +271,7 @@ func TestGetDownloadLocationAndFilename_LinuxCPU(t *testing.T) {
 }
 
 func TestGetDownloadLocationAndFilename_LinuxCPU_ARM64(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 	dest := t.TempDir()
 
 	_, _, err := getDownloadLocationAndFilename(ARM64, Linux, CPU, version, dest)
@@ -281,7 +281,7 @@ func TestGetDownloadLocationAndFilename_LinuxCPU_ARM64(t *testing.T) {
 }
 
 func TestGetDownloadLocationAndFilename_LinuxCUDA_AMD64(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 	dest := t.TempDir()
 
 	location, filename, err := getDownloadLocationAndFilename(AMD64, Linux, CUDA, version, dest)
@@ -289,8 +289,8 @@ func TestGetDownloadLocationAndFilename_LinuxCUDA_AMD64(t *testing.T) {
 		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
 	}
 
-	expectedLocation := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b7225"
-	expectedFilename := "llama-b7225-bin-ubuntu-cuda-13-x64.tar.gz"
+	expectedLocation := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-ubuntu-cuda-13-x64.tar.gz"
 
 	if location != expectedLocation {
 		t.Errorf("location = %q, want %q", location, expectedLocation)
@@ -301,7 +301,7 @@ func TestGetDownloadLocationAndFilename_LinuxCUDA_AMD64(t *testing.T) {
 }
 
 func TestGetDownloadLocationAndFilename_LinuxCUDA_ARM64(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 	dest := t.TempDir()
 
 	location, filename, err := getDownloadLocationAndFilename(ARM64, Linux, CUDA, version, dest)
@@ -309,8 +309,8 @@ func TestGetDownloadLocationAndFilename_LinuxCUDA_ARM64(t *testing.T) {
 		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
 	}
 
-	expectedLocation := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b7225"
-	expectedFilename := "llama-b7225-bin-ubuntu-cuda-13-arm64.tar.gz"
+	expectedLocation := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-ubuntu-cuda-arm64.tar.gz"
 
 	if location != expectedLocation {
 		t.Errorf("location = %q, want %q", location, expectedLocation)
@@ -321,7 +321,7 @@ func TestGetDownloadLocationAndFilename_LinuxCUDA_ARM64(t *testing.T) {
 }
 
 func TestGetDownloadLocationAndFilename_LinuxVulkan_AMD64(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 	dest := t.TempDir()
 
 	location, filename, err := getDownloadLocationAndFilename(AMD64, Linux, Vulkan, version, dest)
@@ -329,8 +329,8 @@ func TestGetDownloadLocationAndFilename_LinuxVulkan_AMD64(t *testing.T) {
 		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
 	}
 
-	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7225"
-	expectedFilename := "llama-b7225-bin-ubuntu-vulkan-x64.tar.gz"
+	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-ubuntu-vulkan-x64.tar.gz"
 
 	if location != expectedLocation {
 		t.Errorf("location = %q, want %q", location, expectedLocation)
@@ -341,7 +341,7 @@ func TestGetDownloadLocationAndFilename_LinuxVulkan_AMD64(t *testing.T) {
 }
 
 func TestGetDownloadLocationAndFilename_LinuxVulkan_ARM64(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 	dest := t.TempDir()
 
 	location, filename, err := getDownloadLocationAndFilename(ARM64, Linux, Vulkan, version, dest)
@@ -349,8 +349,8 @@ func TestGetDownloadLocationAndFilename_LinuxVulkan_ARM64(t *testing.T) {
 		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
 	}
 
-	expectedLocation := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b7225"
-	expectedFilename := "llama-b7225-bin-ubuntu-vulkan-arm64.tar.gz"
+	expectedLocation := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-ubuntu-vulkan-arm64.tar.gz"
 
 	if location != expectedLocation {
 		t.Errorf("location = %q, want %q", location, expectedLocation)
@@ -361,7 +361,7 @@ func TestGetDownloadLocationAndFilename_LinuxVulkan_ARM64(t *testing.T) {
 }
 
 func TestGetDownloadLocationAndFilename_DarwinMetal_ARM64(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 	dest := t.TempDir()
 
 	location, filename, err := getDownloadLocationAndFilename(ARM64, Darwin, Metal, version, dest)
@@ -369,8 +369,8 @@ func TestGetDownloadLocationAndFilename_DarwinMetal_ARM64(t *testing.T) {
 		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
 	}
 
-	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7225"
-	expectedFilename := "llama-b7225-bin-macos-arm64.tar.gz"
+	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-macos-arm64.tar.gz"
 
 	if location != expectedLocation {
 		t.Errorf("location = %q, want %q", location, expectedLocation)
@@ -381,7 +381,7 @@ func TestGetDownloadLocationAndFilename_DarwinMetal_ARM64(t *testing.T) {
 }
 
 func TestGetDownloadLocationAndFilename_DarwinMetal_AMD64(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 	dest := t.TempDir()
 
 	_, _, err := getDownloadLocationAndFilename(AMD64, Darwin, Metal, version, dest)
@@ -391,7 +391,7 @@ func TestGetDownloadLocationAndFilename_DarwinMetal_AMD64(t *testing.T) {
 }
 
 func TestGetDownloadLocationAndFilename_DarwinCPU_ARM64(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 	dest := t.TempDir()
 
 	location, filename, err := getDownloadLocationAndFilename(ARM64, Darwin, CPU, version, dest)
@@ -399,8 +399,8 @@ func TestGetDownloadLocationAndFilename_DarwinCPU_ARM64(t *testing.T) {
 		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
 	}
 
-	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7225"
-	expectedFilename := "llama-b7225-bin-macos-arm64.tar.gz"
+	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-macos-arm64.tar.gz"
 
 	if location != expectedLocation {
 		t.Errorf("location = %q, want %q", location, expectedLocation)
@@ -411,7 +411,7 @@ func TestGetDownloadLocationAndFilename_DarwinCPU_ARM64(t *testing.T) {
 }
 
 func TestGetDownloadLocationAndFilename_DarwinCPU_AMD64(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 	dest := t.TempDir()
 
 	location, filename, err := getDownloadLocationAndFilename(AMD64, Darwin, CPU, version, dest)
@@ -419,8 +419,8 @@ func TestGetDownloadLocationAndFilename_DarwinCPU_AMD64(t *testing.T) {
 		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
 	}
 
-	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7225"
-	expectedFilename := "llama-b7225-bin-macos-x64.tar.gz"
+	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-macos-x64.tar.gz"
 
 	if location != expectedLocation {
 		t.Errorf("location = %q, want %q", location, expectedLocation)
@@ -431,7 +431,7 @@ func TestGetDownloadLocationAndFilename_DarwinCPU_AMD64(t *testing.T) {
 }
 
 func TestGetDownloadLocationAndFilename_WindowsCPU_AMD64(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 	dest := t.TempDir()
 
 	location, filename, err := getDownloadLocationAndFilename(AMD64, Windows, CPU, version, dest)
@@ -439,8 +439,8 @@ func TestGetDownloadLocationAndFilename_WindowsCPU_AMD64(t *testing.T) {
 		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
 	}
 
-	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7225"
-	expectedFilename := "llama-b7225-bin-win-cpu-x64.zip"
+	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-win-cpu-x64.zip"
 
 	if location != expectedLocation {
 		t.Errorf("location = %q, want %q", location, expectedLocation)
@@ -451,7 +451,7 @@ func TestGetDownloadLocationAndFilename_WindowsCPU_AMD64(t *testing.T) {
 }
 
 func TestGetDownloadLocationAndFilename_WindowsCPU_ARM64(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 	dest := t.TempDir()
 
 	location, filename, err := getDownloadLocationAndFilename(ARM64, Windows, CPU, version, dest)
@@ -459,8 +459,8 @@ func TestGetDownloadLocationAndFilename_WindowsCPU_ARM64(t *testing.T) {
 		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
 	}
 
-	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7225"
-	expectedFilename := "llama-b7225-bin-win-cpu-arm64.zip"
+	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-win-cpu-arm64.zip"
 
 	if location != expectedLocation {
 		t.Errorf("location = %q, want %q", location, expectedLocation)
@@ -471,7 +471,7 @@ func TestGetDownloadLocationAndFilename_WindowsCPU_ARM64(t *testing.T) {
 }
 
 func TestGetDownloadLocationAndFilename_WindowsCUDA_ARM64(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 	dest := t.TempDir()
 
 	_, _, err := getDownloadLocationAndFilename(ARM64, Windows, CUDA, version, dest)
@@ -481,7 +481,7 @@ func TestGetDownloadLocationAndFilename_WindowsCUDA_ARM64(t *testing.T) {
 }
 
 func TestGetDownloadLocationAndFilename_WindowsVulkan_AMD64(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 	dest := t.TempDir()
 
 	location, filename, err := getDownloadLocationAndFilename(AMD64, Windows, Vulkan, version, dest)
@@ -489,8 +489,8 @@ func TestGetDownloadLocationAndFilename_WindowsVulkan_AMD64(t *testing.T) {
 		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
 	}
 
-	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7225"
-	expectedFilename := "llama-b7225-bin-win-vulkan-x64.zip"
+	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-win-vulkan-x64.zip"
 
 	if location != expectedLocation {
 		t.Errorf("location = %q, want %q", location, expectedLocation)
@@ -501,7 +501,7 @@ func TestGetDownloadLocationAndFilename_WindowsVulkan_AMD64(t *testing.T) {
 }
 
 func TestGetDownloadLocationAndFilename_WindowsVulkan_ARM64(t *testing.T) {
-	version := "b7225"
+	version := "b7974"
 	dest := t.TempDir()
 
 	_, _, err := getDownloadLocationAndFilename(ARM64, Windows, Vulkan, version, dest)
