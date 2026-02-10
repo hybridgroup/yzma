@@ -7,6 +7,11 @@
 
 These benchmarks all use the [SmolLM-135M-GGUF](https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf) model to perform simple text generation.
 
+```shell
+yzma model get -u https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf
+export YZMA_BENCHMARK_MODEL=~/models/SmolLM-135M.Q2_K.gguf
+```
+
 See https://github.com/hybridgroup/yzma/blob/main/pkg/llama/benchmark_test.go
 
 ### Linux
@@ -15,6 +20,7 @@ See https://github.com/hybridgroup/yzma/blob/main/pkg/llama/benchmark_test.go
 
 ```
 $ go test -benchtime=10s -count=5 -run=nada -bench .
+goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
@@ -28,6 +34,8 @@ ok      github.com/hybridgroup/yzma/pkg/llama   61.199s
 ```
 
 #### CUDA
+
+##### amd64
 
 ```
 +-----------------------------------------------------------------------------------------+
@@ -44,7 +52,7 @@ ok      github.com/hybridgroup/yzma/pkg/llama   61.199s
 ```
 
 ```
-$ YZMA_BENCHMARK_DEVICE="CUDA0" go test -benchtime=10s -count=5 -run=nada -bench .
+$ go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="CUDA0"
 goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
@@ -56,6 +64,39 @@ BenchmarkInference-32                336          35609522 ns/op               8
 BenchmarkInference-32                337          35550352 ns/op               843.9 tokens/s
 PASS
 ok      github.com/hybridgroup/yzma/pkg/llama   67.491s
+```
+
+##### arm64
+
+Jetson Orin Nano Developer Kit - 8GB
+
+```
++---------------------------------------------------------------------------------------+
+| NVIDIA-SMI 540.5.0                Driver Version: 540.5.0      CUDA Version: 12.6     |
+|-----------------------------------------+----------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |         Memory-Usage | GPU-Util  Compute M. |
+|                                         |                      |               MIG M. |
+|=========================================+======================+======================|
+|   0  Orin (nvgpu)                  N/A  | N/A              N/A |                  N/A |
+| N/A   N/A  N/A               N/A /  N/A | Not Supported        |     N/A          N/A |
+|                                         |                      |                  N/A |
++-----------------------------------------+----------------------+----------------------+
+```
+
+```
+$ go test -benchtime=10s -count=5 -run=nada -bench . -nctx=16000 -device="CUDA0"
+goos: linux
+goarch: arm64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: ARMv8 Processor rev 1 (v8l)
+BenchmarkInference-6          51         222138094 ns/op               135.1 tokens/s
+BenchmarkInference-6          52         216104925 ns/op               138.8 tokens/s
+BenchmarkInference-6          54         215961553 ns/op               138.9 tokens/s
+BenchmarkInference-6          52         215498575 ns/op               139.2 tokens/s
+BenchmarkInference-6          52         214849130 ns/op               139.6 tokens/s
+PASS
+ok      github.com/hybridgroup/yzma/pkg/llama   61.014s
 ```
 
 #### Vulkan
@@ -98,7 +139,7 @@ GPU1:
 ```
 
 ```
-$ YZMA_BENCHMARK_DEVICE="VULKAN0" go test -benchtime=10s -count=5 -run=nada -bench .
+$ go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="VULKAN0"
 goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
@@ -113,7 +154,7 @@ ok      github.com/hybridgroup/yzma/pkg/llama   70.757s
 ```
 
 ```
-$ YZMA_BENCHMARK_DEVICE="VULKAN1" go test -benchtime=10s -count=5 -run=nada -bench .
+$ go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="VULKAN1"
 goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
@@ -134,7 +175,7 @@ ok      github.com/hybridgroup/yzma/pkg/llama   83.142s
 Apple M4 Max with 128 GB RAM
 
 ```
-$$ go test -run none -benchtime=10s -count=5 -bench BenchmarkInference
+$ go test -run none -benchtime=10s -count=5 -bench BenchmarkInference -nctx=16000
 goos: darwin
 goarch: arm64
 pkg: github.com/hybridgroup/yzma/pkg/llama
@@ -153,7 +194,7 @@ ok  	github.com/hybridgroup/yzma/pkg/llama	62.042s
 #### CPU
 
 ```
-C:\Users\limbo\ron\yzma\pkg\llama>go test -benchtime=10s -count=5 -run=nada -bench .
+C:\Users\limbo\ron\yzma\pkg\llama>go test -benchtime=10s -count=5 -run=nada -bench . -nctx=8192
 goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
@@ -185,9 +226,7 @@ C:\Users\ron>nvidia-smi
 ```
 
 ```
-C:\Users\ron\yzma>set YZMA_BENCHMARK_DEVICE=CUDA0
-
-C:\Users\limbo\ron\yzma\pkg\llama>go test -benchtime=10s -count=5 -run=nada -bench .
+C:\Users\limbo\ron\yzma\pkg\llama>go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="CUDA0"
 goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
@@ -243,9 +282,7 @@ GPU1:
 ```
 
 ```
-C:\Users\ron\yzma>set YZMA_BENCHMARK_DEVICE=VULKAN0
-
-C:\Users\limbo\ron\yzma\pkg\llama>go test -benchtime=10s -count=5 -run=nada -bench .
+C:\Users\limbo\ron\yzma\pkg\llama>go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="VULKAN0"
 goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
@@ -258,9 +295,7 @@ BenchmarkInference-32                 39         304536574 ns/op                
 PASS
 ok      github.com/hybridgroup/yzma/pkg/llama   61.326s
 
-C:\Users\ron\yzma>set YZMA_BENCHMARK_DEVICE=VULKAN1
-
-CC:\Users\limbo\ron\yzma\pkg\llama>go test -benchtime=10s -count=5 -run=nada -bench .
+C:\Users\limbo\ron\yzma\pkg\llama>go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="VULKAN1"
 goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
@@ -292,7 +327,7 @@ See https://github.com/hybridgroup/yzma/blob/main/pkg/mtmd/benchmark_test.go
 #### CPU
 
 ```
-$ go test -benchtime=10s -count=5 -run=nada -bench .
+$ go test -benchtime=10s -count=5 -run=nada -bench . -nctx=8192
 goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
@@ -307,6 +342,8 @@ ok      github.com/hybridgroup/yzma/pkg/mtmd    226.685s
 ```
 
 #### CUDA
+
+##### amd64
 
 ```
 +-----------------------------------------------------------------------------------------+
@@ -323,7 +360,7 @@ ok      github.com/hybridgroup/yzma/pkg/mtmd    226.685s
 ```
 
 ```
-$ YZMA_BENCHMARK_DEVICE="CUDA0" go test -benchtime=10s -count=5 -run=nada -bench .
+$ go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="CUDA0"
 goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
@@ -335,6 +372,39 @@ BenchmarkMultimodalInference-32               14        1118362797 ns/op        
 BenchmarkMultimodalInference-32                8        1336574088 ns/op               900.2 tokens/s
 PASS
 ok      github.com/hybridgroup/yzma/pkg/mtmd    82.619s
+```
+
+##### arm64
+
+Jetson Orin Nano Developer Kit - 8GB
+
+```
++---------------------------------------------------------------------------------------+
+| NVIDIA-SMI 540.5.0                Driver Version: 540.5.0      CUDA Version: 12.6     |
+|-----------------------------------------+----------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |         Memory-Usage | GPU-Util  Compute M. |
+|                                         |                      |               MIG M. |
+|=========================================+======================+======================|
+|   0  Orin (nvgpu)                  N/A  | N/A              N/A |                  N/A |
+| N/A   N/A  N/A               N/A /  N/A | Not Supported        |     N/A          N/A |
+|                                         |                      |                  N/A |
++-----------------------------------------+----------------------+----------------------+
+```
+
+```
+$ go test -benchtime=10s -count=5 -run=nada -bench . -nctx=16000 -device="CUDA0"
+goos: linux
+goarch: arm64
+pkg: github.com/hybridgroup/yzma/pkg/mtmd
+cpu: ARMv8 Processor rev 1 (v8l)
+BenchmarkMultimodalInference-6                 2        7077293280 ns/op               166.9 tokens/s
+BenchmarkMultimodalInference-6                 2        8106794026 ns/op               150.8 tokens/s
+BenchmarkMultimodalInference-6                 1        10837943077 ns/op              120.7 tokens/s
+BenchmarkMultimodalInference-6                 1        12015033493 ns/op              112.1 tokens/s
+BenchmarkMultimodalInference-6                 1        10055887615 ns/op              127.6 tokens/s
+PASS
+ok      github.com/hybridgroup/yzma/pkg/mtmd    69.733s
 ```
 
 #### Vulkan
@@ -377,7 +447,7 @@ GPU1:
 ```
 
 ```
-$ YZMA_BENCHMARK_DEVICE="VULKAN0" go test -benchtime=10s -count=5 -run=nada -bench .
+$ go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="VULKAN0"
 goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
@@ -392,7 +462,7 @@ ok      github.com/hybridgroup/yzma/pkg/mtmd    79.922s
 ```
 
 ```
-$ YZMA_BENCHMARK_DEVICE="VULKAN1" go test -benchtime=10s -count=5 -run=nada -bench .
+$ go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="VULKAN1"
 goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
@@ -413,7 +483,7 @@ ok      github.com/hybridgroup/yzma/pkg/mtmd    76.276s
 Apple M4 Max with 128 GB RAM
 
 ```
-$ go test -run none -benchtime=10s -count=5 -bench BenchmarkMultimodalInference
+$ go test -run none -benchtime=10s -count=5 -bench BenchmarkMultimodalInference -nctx=16000
 goos: darwin
 goarch: arm64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
@@ -432,7 +502,7 @@ ok  	github.com/hybridgroup/yzma/pkg/mtmd	76.644s
 #### CPU
 
 ```
-C:\Users\limbo\ron\yzma\pkg\mtmd>go test -benchtime=10s -count=5 -run=nada -bench .
+C:\Users\limbo\ron\yzma\pkg\mtmd>go test -benchtime=10s -count=5 -run=nada -bench . -nctx=8192
 goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
@@ -463,9 +533,7 @@ ok      github.com/hybridgroup/yzma/pkg/mtmd    171.920s
 ```
 
 ```
-C:\Users\ron\yzma>set YZMA_BENCHMARK_DEVICE=CUDA0
-
-C:\Users\limbo\ron\yzma\pkg\mtmd>go test -benchtime=10s -count=5 -run=nada -bench .
+C:\Users\limbo\ron\yzma\pkg\mtmd>go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="CUDA0"
 goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
@@ -520,9 +588,7 @@ GPU1:
 ```
 
 ```
-C:\Users\limbo\ron\yzma>set YZMA_BENCHMARK_DEVICE=VULKAN0
-
-C:\Users\limbo\ron\yzma\pkg\mtmd>go test -benchtime=10s -count=5 -run=nada -bench .
+C:\Users\limbo\ron\yzma\pkg\mtmd>go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="VULKAN0"
 goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
@@ -537,9 +603,7 @@ ok      github.com/hybridgroup/yzma/pkg/mtmd    96.114s
 ```
 
 ```
-C:\Users\limbo\ron\yzma>set YZMA_BENCHMARK_DEVICE=VULKAN1
-
-C:\Users\limbo\ron\yzma\pkg\mtmd>go test -benchtime=10s -count=5 -run=nada -bench .
+C:\Users\limbo\ron\yzma\pkg\mtmd>go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="VULKAN1"
 goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
