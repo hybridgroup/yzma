@@ -101,6 +101,8 @@ ok      github.com/hybridgroup/yzma/pkg/llama   61.014s
 
 #### Vulkan
 
+##### amd64
+
 ```
 ==========
 VULKANINFO
@@ -166,6 +168,65 @@ BenchmarkInference-32                331          36366451 ns/op               8
 BenchmarkInference-32                330          36262953 ns/op               827.3 tokens/s
 PASS
 ok      github.com/hybridgroup/yzma/pkg/llama   83.142s
+```
+
+##### arm64
+
+Jetson Orin Nano Developer Kit - 8GB
+
+```
+ron@ubuntu:~/yzma/pkg/mtmd$ vulkaninfo --summary
+==========
+VULKANINFO
+==========
+
+Vulkan Instance Version: 1.3.204
+...
+Devices:
+========
+GPU0:
+        apiVersion         = 4206843 (1.3.251)
+        driverVersion      = 2265006080 (0x87014000)
+        vendorID           = 0x10de
+        deviceID           = 0x97ba03d7
+        deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
+        deviceName         = NVIDIA Tegra Orin (nvgpu)
+        driverID           = DRIVER_ID_NVIDIA_PROPRIETARY
+        driverName         = NVIDIA
+        driverInfo         = 540.5.0
+        conformanceVersion = 1.3.6.0
+        deviceUUID         = 1388f9e0-987e-54a0-908f-6a30d8fd5f29
+        driverUUID         = ed5ba772-f592-5949-9d1f-236f7ad81bcc
+```
+
+```
+ron@ubuntu:~/yzma/pkg/llama$ go test -benchtime=10s -count=5 -run=nada -bench . -nctx=16000 -device="CPU"
+goos: linux
+goarch: arm64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: ARMv8 Processor rev 1 (v8l)
+BenchmarkInference-6          43         432432689 ns/op                69.37 tokens/s
+BenchmarkInference-6          20         506747397 ns/op                59.20 tokens/s
+BenchmarkInference-6          21         514736186 ns/op                58.28 tokens/s
+BenchmarkInference-6          27         496646058 ns/op                60.41 tokens/s
+BenchmarkInference-6          22         519434233 ns/op                57.76 tokens/s
+PASS
+ok      github.com/hybridgroup/yzma/pkg/llama   68.009s
+```
+
+```
+ron@ubuntu:~/yzma/pkg/llama$ go test -benchtime=10s -count=5 -run=nada -bench . -nctx=16000 -device="VULKAN0"
+goos: linux
+goarch: arm64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: ARMv8 Processor rev 1 (v8l)
+BenchmarkInference-6          52         222098600 ns/op               135.1 tokens/s
+BenchmarkInference-6          52         222072877 ns/op               135.1 tokens/s
+BenchmarkInference-6          54         219825013 ns/op               136.5 tokens/s
+BenchmarkInference-6          52         220919304 ns/op               135.8 tokens/s
+BenchmarkInference-6          54         221925680 ns/op               135.2 tokens/s
+PASS
+ok      github.com/hybridgroup/yzma/pkg/llama   63.318s
 ```
 
 ### macOS
@@ -409,6 +470,8 @@ ok      github.com/hybridgroup/yzma/pkg/mtmd    69.733s
 
 #### Vulkan
 
+##### amd64
+
 ```
 ==========
 VULKANINFO
@@ -474,6 +537,65 @@ BenchmarkMultimodalInference-32               18        1122849292 ns/op        
 BenchmarkMultimodalInference-32                7        1471154871 ns/op               825.9 tokens/s
 PASS
 ok      github.com/hybridgroup/yzma/pkg/mtmd    76.276s
+```
+
+##### arm64
+
+Jetson Orin Nano Developer Kit - 8GB
+
+```
+ron@ubuntu:~/yzma/pkg/mtmd$ vulkaninfo --summary
+==========
+VULKANINFO
+==========
+
+Vulkan Instance Version: 1.3.204
+...
+Devices:
+========
+GPU0:
+        apiVersion         = 4206843 (1.3.251)
+        driverVersion      = 2265006080 (0x87014000)
+        vendorID           = 0x10de
+        deviceID           = 0x97ba03d7
+        deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
+        deviceName         = NVIDIA Tegra Orin (nvgpu)
+        driverID           = DRIVER_ID_NVIDIA_PROPRIETARY
+        driverName         = NVIDIA
+        driverInfo         = 540.5.0
+        conformanceVersion = 1.3.6.0
+        deviceUUID         = 1388f9e0-987e-54a0-908f-6a30d8fd5f29
+        driverUUID         = ed5ba772-f592-5949-9d1f-236f7ad81bcc
+```
+
+```
+ron@ubuntu:~/yzma/pkg/mtmd$ go test -benchtime=10s -count=5 -run=nada -bench . -nctx=16000 -device="CPU"
+goos: linux
+goarch: arm64
+pkg: github.com/hybridgroup/yzma/pkg/mtmd
+cpu: ARMv8 Processor rev 1 (v8l)
+BenchmarkMultimodalInference-6                 1        72233629960 ns/op               15.03 tokens/s
+BenchmarkMultimodalInference-6                 1        75555489707 ns/op               15.37 tokens/s
+BenchmarkMultimodalInference-6                 1        87238792057 ns/op               14.65 tokens/s
+BenchmarkMultimodalInference-6                 1        71406835155 ns/op               15.70 tokens/s
+BenchmarkMultimodalInference-6                 1        70659234723 ns/op               15.74 tokens/s
+PASS
+ok      github.com/hybridgroup/yzma/pkg/mtmd    383.358s
+```
+
+```
+ron@ubuntu:~/yzma/pkg/mtmd$ go test -benchtime=10s -count=5 -run=nada -bench . -nctx=16000 -device="VULKAN0"
+goos: linux
+goarch: arm64
+pkg: github.com/hybridgroup/yzma/pkg/mtmd
+cpu: ARMv8 Processor rev 1 (v8l)
+BenchmarkMultimodalInference-6                 1        13718208893 ns/op               81.13 tokens/s
+BenchmarkMultimodalInference-6                 1        16724822437 ns/op               71.39 tokens/s
+BenchmarkMultimodalInference-6                 1        13133369170 ns/op               84.14 tokens/s
+BenchmarkMultimodalInference-6                 1        13515072899 ns/op               82.43 tokens/s
+BenchmarkMultimodalInference-6                 1        12471954537 ns/op               87.24 tokens/s
+PASS
+ok      github.com/hybridgroup/yzma/pkg/mtmd    76.766s
 ```
 
 ### macOS
