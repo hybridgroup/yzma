@@ -1,8 +1,8 @@
 package llama
 
 import (
+	"flag"
 	"os"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -14,7 +14,19 @@ var (
 	benchReady    bool
 )
 
+var (
+	nCtx   int
+	device string
+)
+
+func init() {
+	flag.IntVar(&nCtx, "nctx", 8192, "number of context tokens for llama.Context")
+	flag.StringVar(&device, "device", "", "comma-separated list of devices to use for benchmarking (e.g. 'CUDA0')")
+}
+
 func TestMain(m *testing.M) {
+	flag.Parse() // Parse flags before running tests
+
 	code := m.Run()
 
 	if benchReady {
@@ -34,10 +46,11 @@ func benchmarkSetupOnce(b *testing.B) {
 	benchmarkSetup(b)
 
 	mparams := ModelDefaultParams()
-	bd := os.Getenv("YZMA_BENCHMARK_DEVICE")
-	if bd != "" {
+	mparams.UseMmap = 0
+
+	if device != "" {
 		devs := []GGMLBackendDevice{}
-		devices := strings.Split(bd, ",")
+		devices := strings.Split(device, ",")
 		for _, d := range devices {
 			dev := GGMLBackendDeviceByName(d)
 			if dev == 0 {
@@ -49,28 +62,15 @@ func benchmarkSetupOnce(b *testing.B) {
 		mparams.SetDevices(devs)
 	}
 
-	params := ContextDefaultParams()
-
-	switch {
-	case strings.Contains(bd, "CUDA"), strings.Contains(bd, "VULKAN"):
-		mparams.UseDirectIO = 1
-		params.NCtx = 32000
-
-	case runtime.GOOS == "darwin":
-		params.NCtx = 16000
-
-	default:
-		params.NCtx = 8192
-	}
-
-	params.NBatch = 1024
-	mparams.UseMmap = 0
-
 	model, err := ModelLoadFromFile(modelFile, mparams)
 	if err != nil {
 		b.Fatalf("ModelLoadFromFile failed: %v", err)
 	}
 	benchModel = model
+
+	params := ContextDefaultParams()
+	params.NBatch = 1024
+	params.NCtx = uint32(nCtx)
 
 	ctx, err := InitFromModel(model, params)
 	if err != nil {
