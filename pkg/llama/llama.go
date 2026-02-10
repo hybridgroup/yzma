@@ -2,10 +2,11 @@ package llama
 
 // Common types matching llama.cpp
 type (
-	Token  int32
-	Pos    int32
-	SeqId  int32
-	Memory uintptr
+	Token   int32
+	Pos     int32
+	SeqId   int32
+	Memory  uintptr
+	Sampler uintptr
 )
 
 // Constants from llama.h
@@ -377,6 +378,12 @@ type ChatMessage struct {
 // Sampler chain parameters
 type SamplerChainParams struct {
 	NoPerf uint8 // whether to measure performance timings (bool as uint8)
+}
+
+// llama_sampler_seq_config
+type SamplerSeqConfig struct {
+	SeqId   SeqId
+	Sampler Sampler
 }
 
 // Logit bias
