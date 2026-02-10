@@ -26,8 +26,6 @@ const (
 	SamplerTypeLogitBias               = 13
 )
 
-type Sampler uintptr
-
 var (
 	// ffiSamplerChainParams represents the C struct llama_sampler_chain_params
 	ffiSamplerChainParams = ffi.NewType(&ffi.TypePointer)
@@ -42,6 +40,9 @@ var (
 
 	// LLAMA_API void llama_sampler_chain_add(struct llama_sampler * chain, struct llama_sampler * smpl);
 	samplerChainAddFunc ffi.Fun
+
+	// LLAMA_API struct llama_sampler * llama_sampler_chain_get(struct llama_sampler * chain, int32_t i);
+	samplerChainGetFunc ffi.Fun
 
 	// LLAMA_API struct llama_sampler * llama_sampler_init_greedy(void);
 	samplerInitGreedyFunc ffi.Fun
@@ -135,6 +136,10 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 
 	if samplerChainAddFunc, err = lib.Prep("llama_sampler_chain_add", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return loadError("llama_sampler_chain_add", err)
+	}
+
+	if samplerChainGetFunc, err = lib.Prep("llama_sampler_chain_get", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_sampler_chain_get", err)
 	}
 
 	if samplerInitGreedyFunc, err = lib.Prep("llama_sampler_init_greedy", &ffi.TypePointer); err != nil {
@@ -240,6 +245,17 @@ func SamplerChainAdd(chain Sampler, smpl Sampler) {
 		return
 	}
 	samplerChainAddFunc.Call(nil, unsafe.Pointer(&chain), unsafe.Pointer(&smpl))
+}
+
+// SamplerChainGet returns the i-th sampler from a sampler chain, or the chain itself if i == -1.
+// Returns 0 if the chain is not valid or index is out of bounds.
+func SamplerChainGet(chain Sampler, i int32) Sampler {
+	if chain == 0 {
+		return 0
+	}
+	var s Sampler
+	samplerChainGetFunc.Call(unsafe.Pointer(&s), unsafe.Pointer(&chain), &i)
+	return s
 }
 
 // SamplerInitGreedy initializes a new greedy sampler.

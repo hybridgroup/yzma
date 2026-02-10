@@ -128,6 +128,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_sampler_accept`
 - [x] `llama_sampler_chain_add`
 - [x] `llama_sampler_chain_default_params`
+- [x] `llama_sampler_chain_get`
 - [x] `llama_sampler_chain_init`
 - [x] `llama_sampler_free`
 - [x] `llama_sampler_init_dist`
@@ -239,6 +240,8 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `llama_opt_init`
 - [ ] `llama_opt_param_filter_all`
 - [ ] `llama_params_fit`
+- [ ] `llama_sampler_init`
+- [ ] `llama_set_sampler`
 
 ### `mtmd` Functions still needing wrappers
 
