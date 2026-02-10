@@ -21,6 +21,19 @@ To use Vulkan on your Linux system, your will also need to install the Vulkan dr
 ```shell
 sudo apt install -y mesa-vulkan-drivers vulkan-tools
 ```
+
+### NVIDIA Jetson Orin
+
+To use CUDA with the GPU on your [NVIDIA Jetson Orin](https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/nano-super-developer-kit/) you should install the latest version of the Jetpack software for your device.
+
+To use Vulkan with the GPU on your Jetson Orin, you will also need to also update the GLIBC shared libraries:
+
+```shell
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+sudo apt-get update
+sudo apt-get install --only-upgrade libstdc++6
+```
+
 ### macOS
 
 No extra installation required to use the GPU on any M-series computer.
@@ -29,11 +42,17 @@ No extra installation required to use the GPU on any M-series computer.
 
 No extra installation required to use the CPU on any Windows computer.
 
-### Windows - CUDA/Vulkan
+### Windows - CUDA
 
 If you want to use a GPU on your Windows machine, you will need to install the CUDA drivers.
 
 See https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/
+
+### Windows - Vulkan
+
+To use Vulkan, you will need to install the Vulkan SDK.
+
+https://vulkan.lunarg.com/doc/sdk/latest/windows/getting_started.html
 
 ## Quick Start
 
