@@ -92,7 +92,9 @@ func getDownloadLocationAndFilename(arch Arch, os OS, prcssr Processor, version 
 		switch prcssr {
 		case CPU:
 			if arch == ARM64 {
-				return "", "", errors.New("precompiled binaries for Linux ARM64 CPU are not available")
+				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cpu-arm64.tar.gz", version)
+				break
 			}
 			filename = fmt.Sprintf("llama-%s-bin-ubuntu-x64.tar.gz", version)
 		case CUDA:

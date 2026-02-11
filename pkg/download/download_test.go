@@ -274,9 +274,19 @@ func TestGetDownloadLocationAndFilename_LinuxCPU_ARM64(t *testing.T) {
 	version := "b7974"
 	dest := t.TempDir()
 
-	_, _, err := getDownloadLocationAndFilename(ARM64, Linux, CPU, version, dest)
-	if err == nil {
-		t.Fatal("getDownloadLocationAndFilename() should have failed for Linux ARM64 CPU")
+	location, filename, err := getDownloadLocationAndFilename(ARM64, Linux, CPU, version, dest)
+	if err != nil {
+		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
+	}
+
+	expectedLocation := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-ubuntu-cpu-arm64.tar.gz"
+
+	if location != expectedLocation {
+		t.Errorf("location = %q, want %q", location, expectedLocation)
+	}
+	if filename != expectedFilename {
+		t.Errorf("filename = %q, want %q", filename, expectedFilename)
 	}
 }
 
