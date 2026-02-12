@@ -2,19 +2,55 @@
 
 Here is information on how to install `yzma`.
 
-## Prerequisites
+## Install `yzma` command
 
-### Linux - CPU
+First install the `yzma` command line tool. You can then use it to install the `llama.cpp` libraries for your platform.
 
-No extra installation required to use the CPU on any Linux computer.
+```
+go install github.com/hybridgroup/yzma/cmd/yzma@latest
+```
 
-### Linux - CUDA
+For more info, see the [`yzma` command documentation](./cmd/yzma/README.md).
+
+## Install `llama.cpp` libraries
+
+Now, using the `yzma` command, you can install the `llama.cpp` libraries. Follow the instructions for your system:
+
+- [Linux - CPU](#linux-cpu)
+- [Linux - CUDA](#linux-cuda)
+- [Linux - Vulkan](#linux-vulkan)
+- [NVIDIA Jetson Orin](#nvidia-jetson-orin)
+- [Raspberry Pi 4/5](#raspberry-pi)
+- [macOS](#macos)
+- [Windows - CPU](#windows-cpu)
+- [Windows - CUDA](#windows-cuda)
+- [Windows - Vulkan](#windows-vulkan)
+
+### Linux CPU
+
+Decide where you want put the files for your local installation, then run the following command:
+
+```
+yzma install --lib /path/to/lib
+```
+
+To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
+
+### Linux CUDA
 
 If you want to use a GPU with CUDA on a Linux machine, you will need to install the CUDA drivers.
 
 See https://docs.nvidia.com/cuda/cuda-installation-guide-linux/
 
-### Linux - Vulkan
+Once that is complete, decide where you want put the files for your local installation, then run the following command:
+
+```
+yzma install --lib /path/to/lib --processor cuda
+```
+
+To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
+
+### Linux Vulkan
 
 To use Vulkan on your Linux system, your will also need to install the Vulkan drivers. For example:
 
@@ -22,9 +58,29 @@ To use Vulkan on your Linux system, your will also need to install the Vulkan dr
 sudo apt install -y mesa-vulkan-drivers vulkan-tools
 ```
 
+Once that is complete, decide where you want put the files for your local installation, then run the following command:
+
+```
+yzma install --lib /path/to/lib --processor vulkan
+```
+
+To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
+
 ### NVIDIA Jetson Orin
 
-To use CUDA with the GPU on your [NVIDIA Jetson Orin](https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/nano-super-developer-kit/) you should install the latest version of the Jetpack software for your device.
+To the GPU on your [NVIDIA Jetson Orin](https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/nano-super-developer-kit/) you should install the latest version of the Jetpack software for your device.
+
+#### CUDA
+
+Decide where you want put the files for your local installation, then run the following command:
+
+```
+yzma install --lib /path/to/lib --processor cuda
+```
+
+To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
+
+#### Vulkan
 
 To use Vulkan with the GPU on your Jetson Orin, you will also need to also update the GLIBC shared libraries:
 
@@ -34,51 +90,51 @@ sudo apt-get update
 sudo apt-get install --only-upgrade libstdc++6
 ```
 
+Once that is complete, decide where you want put the files for your local installation, then run the following command:
+
+```
+yzma install --lib /path/to/lib --processor vulkan
+```
+
+To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
+
+### Raspberry Pi
+
+You can run `yzma` on a Raspberry Pi 4 or 5.
+
+#### Raspberry Pi OS (64-bit)
+
+If you are running the latest version of the Raspberry Pi OS, decide where you want put the files for your local installation, then run the following command:
+
+```
+yzma install --lib /path/to/lib --processor cpu --os trixie
+```
+
+To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
+
+#### Raspberry Pi OS (Legacy, 64-bit)
+
+If you are running an older version of the Raspberry Pi OS, decide where you want put the files for your local installation, then run the following command:
+
+```
+yzma install --lib /path/to/lib --processor cpu --os bookworm
+```
+
+To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
+
 ### macOS
 
-No extra installation required to use the GPU on any M-series computer.
-
-### Windows - CPU
-
-No extra installation required to use the CPU on any Windows computer.
-
-### Windows - CUDA
-
-If you want to use a GPU on your Windows machine, you will need to install the CUDA drivers.
-
-See https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/
-
-### Windows - Vulkan
-
-To use Vulkan, you will need to install the Vulkan SDK.
-
-https://vulkan.lunarg.com/doc/sdk/latest/windows/getting_started.html
-
-## Quick Start
-
-### Install `yzma` command
-
-Install the `yzma` command line tool.
-
-```
-go install github.com/hybridgroup/yzma/cmd/yzma@latest
-```
-
-For more info, see the [`yzma` command documentation](./cmd/yzma/README.md).
-
-### Install `llama.cpp` libraries
-
-Use the `yzma` command to install the `llama.cpp` libraries on your local machine.
-
-Decide where you want put the files for your local installation. Do you have a GPU with either CUDA or Vulkan installed? You can use the `-processor` flag to download the hardware accelerated version for your system configuration.
-
-For CPU only installation, run the following command:
+Decide where you want put the files for your local installation, then run the following command:
 
 ```
 yzma install --lib /path/to/lib
 ```
 
-To install one of the hardware accelerated versions for your configuration such as CUDA, instead run the following command:
+To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
+
+### Windows CPU
+
+Decide where you want put the files for your local installation, then run the following command:
 
 ```
 yzma install --lib /path/to/lib --processor cuda
@@ -86,7 +142,35 @@ yzma install --lib /path/to/lib --processor cuda
 
 To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
 
-### Next steps
+### Windows CUDA
+
+If you want to use a GPU on your Windows machine, you will need to install the CUDA drivers.
+
+See https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/
+
+Decide where you want put the files for your local installation, then run the following command:
+
+```
+yzma install --lib /path/to/lib --processor cuda
+```
+
+To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
+
+### Windows Vulkan
+
+To use Vulkan, you will need to install the Vulkan SDK.
+
+https://vulkan.lunarg.com/doc/sdk/latest/windows/getting_started.html
+
+Decide where you want put the files for your local installation, then run the following command:
+
+```
+yzma install --lib /path/to/lib --processor vulkan
+```
+
+To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
+
+## Next steps
 
 Now the installation is complete. Try running one of the example programs!
 
