@@ -16,15 +16,27 @@ For more info, see the [`yzma` command documentation](./cmd/yzma/README.md).
 
 Now, using the `yzma` command, you can install the `llama.cpp` libraries. Follow the instructions for your system:
 
+- [macOS](#macos)
 - [Linux - CPU](#linux-cpu)
 - [Linux - CUDA](#linux-cuda)
 - [Linux - Vulkan](#linux-vulkan)
 - [NVIDIA Jetson Orin](#nvidia-jetson-orin)
 - [Raspberry Pi 4/5](#raspberry-pi)
-- [macOS](#macos)
 - [Windows - CPU](#windows-cpu)
 - [Windows - CUDA](#windows-cuda)
 - [Windows - Vulkan](#windows-vulkan)
+
+### macOS
+
+Decide where you want put the files for your local installation, then run the following command:
+
+```
+yzma install --lib /path/to/lib
+```
+
+To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
+
+Now try running one of the example programs!
 
 ### Linux CPU
 
@@ -118,16 +130,6 @@ If you are running an older version of the Raspberry Pi OS, decide where you wan
 
 ```
 yzma install --lib /path/to/lib --processor cpu --os bookworm
-```
-
-To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
-
-### macOS
-
-Decide where you want put the files for your local installation, then run the following command:
-
-```
-yzma install --lib /path/to/lib
 ```
 
 To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
