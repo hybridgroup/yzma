@@ -18,6 +18,8 @@ See https://github.com/hybridgroup/yzma/blob/main/pkg/llama/benchmark_test.go
 
 #### CPU
 
+##### amd64
+
 ```
 $ go test -benchtime=10s -count=5 -run=nada -bench .
 goos: linux
@@ -31,6 +33,24 @@ BenchmarkInference-32                100         112705133 ns/op               2
 BenchmarkInference-32                100         111892770 ns/op               268.1 tokens/s
 PASS
 ok      github.com/hybridgroup/yzma/pkg/llama   61.199s
+```
+
+##### arm64
+
+Raspberry Pi 4 Model B Rev 1.4 8GB
+
+```
+ron@raspberrypi:~/yzma/pkg/llama $ go test -benchtime=10s -count=5 -run=nada -bench .
+goos: linux
+goarch: arm64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+BenchmarkInference-4          15         893788634 ns/op                33.56 tokens/s
+BenchmarkInference-4          12         923948131 ns/op                32.47 tokens/s
+BenchmarkInference-4          12         918284434 ns/op                32.67 tokens/s
+BenchmarkInference-4          12         918693617 ns/op                32.66 tokens/s
+BenchmarkInference-4          12         917186754 ns/op                32.71 tokens/s
+PASS
+ok      github.com/hybridgroup/yzma/pkg/llama   64.583s
 ```
 
 #### CUDA
@@ -387,6 +407,8 @@ See https://github.com/hybridgroup/yzma/blob/main/pkg/mtmd/benchmark_test.go
 
 #### CPU
 
+##### amd64
+
 ```
 $ go test -benchtime=10s -count=5 -run=nada -bench . -nctx=8192
 goos: linux
@@ -400,6 +422,29 @@ BenchmarkMultimodalInference-32                1        46803510445 ns/op       
 BenchmarkMultimodalInference-32                1        45700830384 ns/op               25.91 tokens/s
 PASS
 ok      github.com/hybridgroup/yzma/pkg/mtmd    226.685s
+```
+
+##### arm64
+
+Raspberry Pi 4 Model B Rev 1.4 8GB
+
+NOTE: Due to less available memory, the benchmarks on this device used the [SmolVLM2-500M-Video-Instruct-Q8_0](https://huggingface.co/ggml-org/SmolVLM2-500M-Video-Instruct-GGUF) model.
+
+
+```
+ron@raspberrypi:~/yzma/pkg/mtmd $ export YZMA_BENCHMARK_MMMODEL=/home/ron/models/SmolVLM2-500M-Video-Instruct-Q8_0.gguf
+ron@raspberrypi:~/yzma/pkg/mtmd $ export YZMA_BENCHMARK_MMPROJ=/home/ron/models/mmproj-SmolVLM2-500M-Video-Instruct-Q8_0.gguf
+ron@raspberrypi:~/yzma/pkg/mtmd $ go test -benchtime=10s -count=5 -run=nada -bench .
+goos: linux
+goarch: arm64
+pkg: github.com/hybridgroup/yzma/pkg/mtmd
+BenchmarkMultimodalInference-4                 1        50239133481 ns/op                6.748 tokens/s
+BenchmarkMultimodalInference-4                 1        49358181828 ns/op                6.341 tokens/s
+BenchmarkMultimodalInference-4                 1        48164506831 ns/op                5.917 tokens/s
+BenchmarkMultimodalInference-4                 1        40171997080 ns/op                5.551 tokens/s
+BenchmarkMultimodalInference-4                 1        41428165840 ns/op                5.504 tokens/s
+PASS
+ok      github.com/hybridgroup/yzma/pkg/mtmd    243.876s
 ```
 
 #### CUDA
