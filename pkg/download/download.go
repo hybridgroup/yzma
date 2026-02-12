@@ -116,6 +116,68 @@ func getDownloadLocationAndFilename(arch Arch, os OS, prcssr Processor, version 
 			return "", "", ErrUnknownProcessor
 		}
 
+	case Bookworm:
+		switch prcssr {
+		case CPU:
+			if arch == ARM64 {
+				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cpu-arm64.tar.gz", version)
+				break
+			}
+
+			// no AMD64 for bookworm
+			return "", "", ErrUnknownProcessor
+		case CUDA:
+			location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
+			if arch == ARM64 {
+				// Jetson Orin.
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-arm64.tar.gz", version)
+				break
+			}
+
+			// no AMD64 for bookworm
+			return "", "", ErrUnknownProcessor
+		case Vulkan:
+			if arch == ARM64 {
+				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-arm64.tar.gz", version)
+				break
+			}
+
+			// no AMD64 for bookworm
+			return "", "", ErrUnknownProcessor
+		default:
+			return "", "", ErrUnknownProcessor
+		}
+
+	case Trixie:
+		switch prcssr {
+		case CPU:
+			if arch == ARM64 {
+				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-trixie-cpu-arm64.tar.gz", version)
+				break
+			}
+			filename = fmt.Sprintf("llama-%s-bin-ubuntu-x64.tar.gz", version)
+		case CUDA:
+			location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
+			if arch == ARM64 {
+				// not yet
+				return "", "", ErrUnknownProcessor
+			} else {
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-13-x64.tar.gz", version)
+			}
+		case Vulkan:
+			if arch == ARM64 {
+				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-trixie-vulkan-arm64.tar.gz", version)
+				break
+			}
+			filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-x64.tar.gz", version)
+		default:
+			return "", "", ErrUnknownProcessor
+		}
+
 	case Darwin:
 		switch prcssr {
 		case Metal:
@@ -173,7 +235,7 @@ var getFunc = get
 
 // Get downloads the llama.cpp precompiled binaries for the desired arch/OS/processor.
 // arch can be one of the following values: "amd64", "arm64".
-// os can be one of the following values: "linux", "darwin", "windows".
+// os can be one of the following values: "linux", "darwin", "windows", "bookworm", "trixie".
 // processor can be one of the following values: "cpu", "cuda", "vulkan", "metal".
 // version should be the desired `b1234` formatted llama.cpp version. You can use the
 // [LlamaLatestVersion] function to obtain the latest release.
@@ -185,7 +247,7 @@ func Get(architecture string, operatingSystem string, processor string, version 
 // GetWithProgress downloads the llama.cpp precompiled binaries for the desired arch/OS/processor
 // using the provided progress tracker.
 // arch can be one of the following values: "amd64", "arm64".
-// os can be one of the following values: "linux", "darwin", "windows".
+// os can be one of the following values: "linux", "darwin", "windows", "bookworm", "trixie".
 // processor can be one of the following values: "cpu", "cuda", "vulkan", "metal".
 // version should be the desired `b1234` formatted llama.cpp version. You can use the
 // [LlamaLatestVersion] function to obtain the latest release.
@@ -197,7 +259,7 @@ func GetWithProgress(architecture string, operatingSystem string, processor stri
 // GetWithContext downloads the llama.cpp precompiled binaries for the desired arch/OS/processor
 // using the provided context and progress tracker.
 // arch can be one of the following values: "amd64", "arm64".
-// os can be one of the following values: "linux", "darwin", "windows".
+// os can be one of the following values: "linux", "darwin", "windows", "bookworm", "trixie".
 // processor can be one of the following values: "cpu", "cuda", "vulkan", "metal".
 // version should be the desired `b1234` formatted llama.cpp version. You can use the
 // [LlamaLatestVersion] function to obtain the latest release.

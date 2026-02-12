@@ -4,9 +4,11 @@ import "fmt"
 
 // The set of processors that can be used.
 var (
-	Linux   = newOS("linux")
-	Darwin  = newOS("darwin")
-	Windows = newOS("windows")
+	Linux    = newOS("linux")
+	Bookworm = newOS("bookworm")
+	Trixie   = newOS("trixie")
+	Darwin   = newOS("darwin")
+	Windows  = newOS("windows")
 )
 
 // =============================================================================
