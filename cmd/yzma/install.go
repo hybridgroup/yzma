@@ -32,6 +32,11 @@ var installCmd = &cli.Command{
 			Usage:   "processor to use (cpu, cuda, metal, vulkan)",
 			Value:   "cpu",
 		},
+		&cli.StringFlag{
+			Name:  "os",
+			Usage: "operating system to use (linux, windows, darwin, bookworm, trixie)",
+			Value: runtime.GOOS,
+		},
 		&cli.BoolFlag{
 			Name:    "upgrade",
 			Aliases: []string{"u"},
@@ -54,6 +59,7 @@ func runInstall(c *cli.Context) error {
 	libPath := c.String("lib")
 	version := c.String("version")
 	processor := c.String("processor")
+	osInstall := c.String("os")
 	upgrade := c.Bool("upgrade")
 
 	if libPath == "" {
@@ -82,7 +88,7 @@ func runInstall(c *cli.Context) error {
 		download.ProgressTracker = nil
 	}
 
-	if err := download.Get(runtime.GOARCH, runtime.GOOS, processor, version, libPath); err != nil {
+	if err := download.Get(runtime.GOARCH, osInstall, processor, version, libPath); err != nil {
 		return fmt.Errorf("failed to download llama.cpp: %w", err)
 	}
 
