@@ -6,7 +6,7 @@
 
 `yzma` lets you write Go applications that directly integrate [`llama.cpp`](https://github.com/ggml-org/llama.cpp) for fully local inference using hardware acceleration.
 
-Run the latest Vision Language Models and Large/Small/Tiny Language Models on Linux, macOS, and Windows. Use hardware acceleration such as CUDA, Metal, and Vulkan. `yzma` uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed. This also means that `yzma` works with the newest `llama.cpp` releases.
+Run the latest Vision Language Models and Large/Small/Tiny Language Models on Linux, macOS, or Windows. Use hardware acceleration such as CUDA, Metal, or Vulkan. `yzma` uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed. This also means that `yzma` always works with the newest `llama.cpp` releases, so you can use the latest features and models.
 
 This example uses the [SmolLM-135M](https://huggingface.co/QuantFactory/SmolLM-135M-GGUF) model:
 
@@ -80,7 +80,7 @@ Didn't get any output? You probably don't have the model, make sure you download
 
 You can use the convenient `yzma` command line tool to download the `llama.cpp` prebuilt libraries for your platform, download them manually, or even have your application download them automatically.
 
-See [INSTALL.md](./INSTALL.md) for detailed information on installation on Linux, macOS, and Windows.
+See [INSTALL.md](./INSTALL.md) for installation instructions for macOS, Linux, and Windows. We also have specific information on running `yzma` on Raspberry Pi or NVIDIA Jetson Orin.
 
 ## Examples
 
@@ -129,7 +129,7 @@ Who is using yzma? Check out some of the [tools, applications, examples, and blo
 
 ## Models
 
-`yzma` uses models in the GGUF format supported by `llama.cpp`. There are many models in GGUF format on Hugging Face (over 151k at last count):
+`yzma` uses models in the GGUF format supported by `llama.cpp`. There are many models in GGUF format on Hugging Face (over 161k at last count):
 
 https://huggingface.co/models?library=gguf&sort=trending
 
