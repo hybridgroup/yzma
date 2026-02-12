@@ -370,6 +370,206 @@ func TestGetDownloadLocationAndFilename_LinuxVulkan_ARM64(t *testing.T) {
 	}
 }
 
+func TestGetDownloadLocationAndFilename_BookwormCPU_ARM64(t *testing.T) {
+	version := "b7974"
+	dest := t.TempDir()
+
+	location, filename, err := getDownloadLocationAndFilename(ARM64, Bookworm, CPU, version, dest)
+	if err != nil {
+		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
+	}
+
+	expectedLocation := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-ubuntu-cpu-arm64.tar.gz"
+
+	if location != expectedLocation {
+		t.Errorf("location = %q, want %q", location, expectedLocation)
+	}
+	if filename != expectedFilename {
+		t.Errorf("filename = %q, want %q", filename, expectedFilename)
+	}
+}
+
+func TestGetDownloadLocationAndFilename_BookwormCPU_AMD64(t *testing.T) {
+	version := "b7974"
+	dest := t.TempDir()
+
+	_, _, err := getDownloadLocationAndFilename(AMD64, Bookworm, CPU, version, dest)
+	if err == nil {
+		t.Fatal("getDownloadLocationAndFilename() should have failed for Bookworm AMD64 CPU")
+	}
+}
+
+func TestGetDownloadLocationAndFilename_BookwormCUDA_ARM64(t *testing.T) {
+	version := "b7974"
+	dest := t.TempDir()
+
+	location, filename, err := getDownloadLocationAndFilename(ARM64, Bookworm, CUDA, version, dest)
+	if err != nil {
+		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
+	}
+
+	expectedLocation := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-ubuntu-cuda-arm64.tar.gz"
+
+	if location != expectedLocation {
+		t.Errorf("location = %q, want %q", location, expectedLocation)
+	}
+	if filename != expectedFilename {
+		t.Errorf("filename = %q, want %q", filename, expectedFilename)
+	}
+}
+
+func TestGetDownloadLocationAndFilename_BookwormCUDA_AMD64(t *testing.T) {
+	version := "b7974"
+	dest := t.TempDir()
+
+	_, _, err := getDownloadLocationAndFilename(AMD64, Bookworm, CUDA, version, dest)
+	if err == nil {
+		t.Fatal("getDownloadLocationAndFilename() should have failed for Bookworm AMD64 CUDA")
+	}
+}
+
+func TestGetDownloadLocationAndFilename_BookwormVulkan_ARM64(t *testing.T) {
+	version := "b7974"
+	dest := t.TempDir()
+
+	location, filename, err := getDownloadLocationAndFilename(ARM64, Bookworm, Vulkan, version, dest)
+	if err != nil {
+		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
+	}
+
+	expectedLocation := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-ubuntu-vulkan-arm64.tar.gz"
+
+	if location != expectedLocation {
+		t.Errorf("location = %q, want %q", location, expectedLocation)
+	}
+	if filename != expectedFilename {
+		t.Errorf("filename = %q, want %q", filename, expectedFilename)
+	}
+}
+
+func TestGetDownloadLocationAndFilename_BookwormVulkan_AMD64(t *testing.T) {
+	version := "b7974"
+	dest := t.TempDir()
+
+	_, _, err := getDownloadLocationAndFilename(AMD64, Bookworm, Vulkan, version, dest)
+	if err == nil {
+		t.Fatal("getDownloadLocationAndFilename() should have failed for Bookworm AMD64 Vulkan")
+	}
+}
+
+func TestGetDownloadLocationAndFilename_TrixieCPU_ARM64(t *testing.T) {
+	version := "b7974"
+	dest := t.TempDir()
+
+	location, filename, err := getDownloadLocationAndFilename(ARM64, Trixie, CPU, version, dest)
+	if err != nil {
+		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
+	}
+
+	expectedLocation := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-ubuntu-trixie-cpu-arm64.tar.gz"
+
+	if location != expectedLocation {
+		t.Errorf("location = %q, want %q", location, expectedLocation)
+	}
+	if filename != expectedFilename {
+		t.Errorf("filename = %q, want %q", filename, expectedFilename)
+	}
+}
+
+func TestGetDownloadLocationAndFilename_TrixieCPU_AMD64(t *testing.T) {
+	version := "b7974"
+	dest := t.TempDir()
+
+	location, filename, err := getDownloadLocationAndFilename(AMD64, Trixie, CPU, version, dest)
+	if err != nil {
+		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
+	}
+
+	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-ubuntu-x64.tar.gz"
+
+	if location != expectedLocation {
+		t.Errorf("location = %q, want %q", location, expectedLocation)
+	}
+	if filename != expectedFilename {
+		t.Errorf("filename = %q, want %q", filename, expectedFilename)
+	}
+}
+
+func TestGetDownloadLocationAndFilename_TrixieCUDA_ARM64(t *testing.T) {
+	version := "b7974"
+	dest := t.TempDir()
+
+	_, _, err := getDownloadLocationAndFilename(ARM64, Trixie, CUDA, version, dest)
+	if err == nil {
+		t.Fatal("getDownloadLocationAndFilename() should have failed for Trixie ARM64 CUDA")
+	}
+}
+
+func TestGetDownloadLocationAndFilename_TrixieCUDA_AMD64(t *testing.T) {
+	version := "b7974"
+	dest := t.TempDir()
+
+	location, filename, err := getDownloadLocationAndFilename(AMD64, Trixie, CUDA, version, dest)
+	if err != nil {
+		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
+	}
+
+	expectedLocation := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-ubuntu-cuda-13-x64.tar.gz"
+
+	if location != expectedLocation {
+		t.Errorf("location = %q, want %q", location, expectedLocation)
+	}
+	if filename != expectedFilename {
+		t.Errorf("filename = %q, want %q", filename, expectedFilename)
+	}
+}
+
+func TestGetDownloadLocationAndFilename_TrixieVulkan_ARM64(t *testing.T) {
+	version := "b7974"
+	dest := t.TempDir()
+
+	location, filename, err := getDownloadLocationAndFilename(ARM64, Trixie, Vulkan, version, dest)
+	if err != nil {
+		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
+	}
+
+	expectedLocation := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-ubuntu-trixie-vulkan-arm64.tar.gz"
+
+	if location != expectedLocation {
+		t.Errorf("location = %q, want %q", location, expectedLocation)
+	}
+	if filename != expectedFilename {
+		t.Errorf("filename = %q, want %q", filename, expectedFilename)
+	}
+}
+
+func TestGetDownloadLocationAndFilename_TrixieVulkan_AMD64(t *testing.T) {
+	version := "b7974"
+	dest := t.TempDir()
+
+	location, filename, err := getDownloadLocationAndFilename(AMD64, Trixie, Vulkan, version, dest)
+	if err != nil {
+		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
+	}
+
+	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-ubuntu-vulkan-x64.tar.gz"
+
+	if location != expectedLocation {
+		t.Errorf("location = %q, want %q", location, expectedLocation)
+	}
+	if filename != expectedFilename {
+		t.Errorf("filename = %q, want %q", filename, expectedFilename)
+	}
+}
+
 func TestGetDownloadLocationAndFilename_DarwinMetal_ARM64(t *testing.T) {
 	version := "b7974"
 	dest := t.TempDir()
