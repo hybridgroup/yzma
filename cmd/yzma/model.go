@@ -3,22 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/hybridgroup/yzma/pkg/download"
 	"github.com/hybridgroup/yzma/pkg/llama"
 	"github.com/urfave/cli/v2"
 )
-
-// defaultModelsDir returns the default models directory in the user's home directory
-func defaultModelsDir() string {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "./models"
-	}
-	return filepath.Join(homeDir, "models")
-}
 
 var modelCmd = &cli.Command{
 	Name:  "model",
@@ -120,7 +110,7 @@ var modelGetCmd = &cli.Command{
 			Name:        "output",
 			Aliases:     []string{"o"},
 			Usage:       "Path to save the downloaded model",
-			Value:       defaultModelsDir(),
+			Value:       download.DefaultModelsDir(),
 			DefaultText: "~/models",
 		},
 		&cli.BoolFlag{
