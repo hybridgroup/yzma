@@ -47,3 +47,11 @@ test:
 	export YZMA_TEST_LORA_ADAPTER=$(MAKEFILE_DIR)models/Gemma2-Lora-F32-LoRA.gguf && \
 	export YZMA_TEST_SPLIT_MODELS="$(MAKEFILE_DIR)models/stories15M-q8_0-00001-of-00003.gguf,$(MAKEFILE_DIR)models/stories15M-q8_0-00002-of-00003.gguf,$(MAKEFILE_DIR)models/stories15M-q8_0-00003-of-00003.gguf" && \
 	go test -count=1 ./...
+
+roadmap:
+	@echo "Checked items (have wrapper):"
+	@grep -E '^\s*[-*]\s*\[x\]' ROADMAP.md | wc -l
+	@echo "Unchecked items (no wrapper):"
+	@grep -E '^\s*[-*]\s*\[ \]' ROADMAP.md | wc -l
+	@echo "Total checklist items:"
+	@grep -E '^\s*[-*]\s*\[(x| )\]' ROADMAP.md | wc -l
