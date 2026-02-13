@@ -55,6 +55,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_model_rope_freq_scale_train`
 - [x] `llama_model_rope_type`
 - [x] `llama_model_size`
+- [x] `llama_params_fit`
 
 ### Vocab Functions
 - [x] `llama_model_get_vocab`
@@ -239,7 +240,6 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `llama_opt_epoch`
 - [ ] `llama_opt_init`
 - [ ] `llama_opt_param_filter_all`
-- [ ] `llama_params_fit`
 - [ ] `llama_sampler_init`
 - [ ] `llama_set_sampler`
 
