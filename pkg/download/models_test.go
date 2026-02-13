@@ -39,3 +39,10 @@ func TestGetModelProgress(t *testing.T) {
 
 	t.Logf("GetModel() successfully downloaded the model to: %s", dest)
 }
+
+func TestDefaultModelsDir(t *testing.T) {
+	dir := DefaultModelsDir()
+	if dir == "" {
+		t.Fatal("DefaultModelsDir should not return an empty string")
+	}
+}

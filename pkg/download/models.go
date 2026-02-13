@@ -2,9 +2,20 @@ package download
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
 	getter "github.com/hashicorp/go-getter"
 )
+
+// DefaultModelsDir returns the default models directory in the user's home directory
+func DefaultModelsDir() string {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "./models"
+	}
+	return filepath.Join(homeDir, "models")
+}
 
 // GetModel downloads a model from the specified URL to the destination path.
 func GetModel(url, dest string) error {
