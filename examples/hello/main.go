@@ -3,15 +3,17 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/hybridgroup/yzma/pkg/download"
 	"github.com/hybridgroup/yzma/pkg/llama"
 )
 
 var (
-	modelFile            = "./models/SmolLM-135M.Q2_K.gguf"
+	modelFile            = "SmolLM2-135M.Q4_K_M.gguf"
 	prompt               = "Are you ready to go?"
 	libPath              = os.Getenv("YZMA_LIB")
-	responseLength int32 = 18
+	responseLength int32 = 12
 )
 
 func main() {
@@ -20,12 +22,11 @@ func main() {
 
 	llama.Init()
 
-	model, _ := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
-	lctx, _ := llama.InitFromModel(model, llama.ContextDefaultParams())
+	model, _ := llama.ModelLoadFromFile(filepath.Join(download.DefaultModelsDir(), modelFile), llama.ModelDefaultParams())
+	ctx, _ := llama.InitFromModel(model, llama.ContextDefaultParams())
 
 	vocab := llama.ModelGetVocab(model)
 
-	// get tokens from the prompt
 	tokens := llama.Tokenize(vocab, prompt, true, false)
 
 	batch := llama.BatchGetOne(tokens)
@@ -34,8 +35,8 @@ func main() {
 	llama.SamplerChainAdd(sampler, llama.SamplerInitGreedy())
 
 	for pos := int32(0); pos < responseLength; pos += batch.NTokens {
-		llama.Decode(lctx, batch)
-		token := llama.SamplerSample(sampler, lctx, -1)
+		llama.Decode(ctx, batch)
+		token := llama.SamplerSample(sampler, ctx, -1)
 
 		if llama.VocabIsEOG(vocab, token) {
 			fmt.Println()
