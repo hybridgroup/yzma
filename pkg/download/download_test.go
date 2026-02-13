@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -718,4 +719,39 @@ func TestGetDownloadLocationAndFilename_WindowsVulkan_ARM64(t *testing.T) {
 	if err == nil {
 		t.Fatal("getDownloadLocationAndFilename() should have failed for Windows ARM64 Vulkan")
 	}
+}
+
+func TestGet404Error(t *testing.T) {
+	version := "b7974"
+
+	// Create a mock server that returns 404
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("Not Found"))
+	}))
+	defer server.Close()
+
+	arch := "amd64"
+	osVer := "linux"
+	processor := "cpu"
+	dest := t.TempDir()
+
+	// Override the get function to use our mock server
+	originalGet := getFunc
+	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+		mockURL := server.URL + "/mock.tar.gz"
+		return get(ctx, mockURL, dest, nil)
+	}
+	defer func() { getFunc = originalGet }()
+
+	err := Get(arch, osVer, processor, version, dest)
+	if err == nil {
+		t.Fatal("expected error for 404 response")
+	}
+
+	if !errors.Is(err, ErrFileNotFound) {
+		t.Fatalf("expected ErrFileNotFound, got: %v", err)
+	}
+
+	t.Logf("Got expected error: %v", err)
 }

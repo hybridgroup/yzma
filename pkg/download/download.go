@@ -22,6 +22,7 @@ var (
 	ErrUnknownOS        = errors.New("unknown OS")
 	ErrUnknownProcessor = errors.New("unknown processor")
 	ErrInvalidVersion   = errors.New("invalid version")
+	ErrFileNotFound     = errors.New("could not download file: the requested llama.cpp version may still be building for your platform.")
 )
 
 var (
@@ -296,7 +297,11 @@ func GetWithContext(ctx context.Context, architecture string, operatingSystem st
 func get(ctx context.Context, url, dest string, progress getter.ProgressTracker) error {
 	// Check if it's a .tar.gz file
 	if strings.HasSuffix(url, ".tar.gz") {
-		return downloadAndExtractTarGz(url, dest, progress)
+		err := downloadAndExtractTarGz(url, dest, progress)
+		if err != nil && strings.Contains(err.Error(), "404") {
+			return fmt.Errorf("%w: %s", ErrFileNotFound, url)
+		}
+		return err
 	}
 
 	// Use go-getter for other file types (e.g., .zip)
@@ -312,6 +317,9 @@ func get(ctx context.Context, url, dest string, progress getter.ProgressTracker)
 	}
 
 	if err := client.Get(); err != nil {
+		if strings.Contains(err.Error(), "404") {
+			return fmt.Errorf("%w: %s", ErrFileNotFound, url)
+		}
 		return err
 	}
 
@@ -334,6 +342,10 @@ func downloadAndExtractTarGz(url, dest string, progress getter.ProgressTracker) 
 	}
 
 	if err := client.Get(); err != nil {
+		// Check for 404 errors specifically
+		if strings.Contains(err.Error(), "404") {
+			return fmt.Errorf("404 not found: %s", url)
+		}
 		return err
 	}
 	defer os.Remove(downloadFile)
