@@ -8,7 +8,7 @@
 
 Run the latest Vision Language Models and Large/Small/Tiny Language Models on Linux, macOS, or Windows. Use hardware acceleration such as CUDA, Metal, or Vulkan. `yzma` uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed. This also means that `yzma` always works with the newest `llama.cpp` releases, so you can use the latest features and models.
 
-This example uses the [SmolLM-135M](https://huggingface.co/QuantFactory/SmolLM-135M-GGUF) model:
+This example uses the [SmolLM2-135M-Instruct](https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF) model:
 
 ```go
 package main
@@ -16,28 +16,30 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/hybridgroup/yzma/pkg/download"
 	"github.com/hybridgroup/yzma/pkg/llama"
 )
 
 var (
-	modelFile            = "./models/SmolLM-135M.Q2_K.gguf"
+	modelFile            = "SmolLM2-135M.Q4_K_M.gguf"
 	prompt               = "Are you ready to go?"
 	libPath              = os.Getenv("YZMA_LIB")
-	responseLength int32 = 18
+	responseLength int32 = 12
 )
 
 func main() {
 	llama.Load(libPath)
 	llama.LogSet(llama.LogSilent())
+
 	llama.Init()
 
-	model, _ := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
-	lctx, _ := llama.InitFromModel(model, llama.ContextDefaultParams())
+	model, _ := llama.ModelLoadFromFile(filepath.Join(download.DefaultModelsDir(), modelFile), llama.ModelDefaultParams())
+	ctx, _ := llama.InitFromModel(model, llama.ContextDefaultParams())
 
 	vocab := llama.ModelGetVocab(model)
 
-	// get tokens from the prompt
 	tokens := llama.Tokenize(vocab, prompt, true, false)
 
 	batch := llama.BatchGetOne(tokens)
@@ -46,8 +48,8 @@ func main() {
 	llama.SamplerChainAdd(sampler, llama.SamplerInitGreedy())
 
 	for pos := int32(0); pos < responseLength; pos += batch.NTokens {
-		llama.Decode(lctx, batch)
-		token := llama.SamplerSample(sampler, lctx, -1)
+		llama.Decode(ctx, batch)
+		token := llama.SamplerSample(sampler, ctx, -1)
 
 		if llama.VocabIsEOG(vocab, token) {
 			fmt.Println()
@@ -66,15 +68,20 @@ func main() {
 }
 ```
 
-Produces the following output:
+Download the model using the `yzma` command line tool:
+
+```shell
+yzma model get -u https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF/resolve/main/SmolLM2-135M-Instruct-Q4_K_M.gguf
+```
+
+And run the Go program:
 
 ```shell
 $ go run ./examples/hello/
 
-The first thing you need to do is to get your hands on a computer.
-```
 
-Didn't get any output? You probably don't have the model, make sure you download it.
+"Yes, I'm ready to go."
+```
 
 ## Installation
 
