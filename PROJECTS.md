@@ -1,6 +1,6 @@
 # Projects
 
-Hera are some projects that are using `yzma`.
+Hera are some projects that are using `yzma`. Also some tools/frameworks and blog posts.
 
 ## Tools and Frameworks
 
@@ -54,7 +54,19 @@ https://github.com/hybridgroup/captions-with-attitude
 
 https://codeberg.org/GenAI-On-Small-Devices/yzma-on-jetson
 
-## Blog Posts
+## Blog Posts/Video
+
+### "🤖 yzma 1.7: Perform Local Inference with llama.cpp" - Golang Weekly
+
+https://golangweekly.com/issues/588
+
+### "Go Lightning talks @ FOSDEM 2026" - Bill Kennedy
+
+https://cuddly.tube/w/mBtDbXQLdeHQh1PqLmeV99?start=7m58s
+
+### "Go in the AI/ML Landscape: A Practical Guide" - Vladimir Vivien
+
+https://medium.com/@vladimirvivien/go-in-the-ai-ml-landscape-a-practical-guide-d36d44f360d2
 
 ### "Installing and Using Yzma on a Jetson Orin Nano" - Philippe Charrière
 
