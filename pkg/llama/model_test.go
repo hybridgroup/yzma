@@ -544,3 +544,65 @@ func TestModelLoadFromSplitsValid(t *testing.T) {
 		t.Fatal("ModelLoadFromSplits failed to load model")
 	}
 }
+
+func TestModelParamsFit(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	mparams := ModelDefaultParams()
+	cparams := ContextDefaultParams()
+	cparams.NCtx = 0 // set to 0 to allow fitting
+
+	nDevices := int(MaxDevices())
+	tensorSplit := make([]float32, nDevices)
+	tensorBuftOverrides := make([]TensorBuftOverride, MaxTensorBuftOverrides())
+	margins := make([]uint64, nDevices)
+
+	status := ModelParamsFit(
+		modelFile,
+		&mparams,
+		&cparams,
+		tensorSplit,
+		tensorBuftOverrides,
+		margins,
+		512,
+		LogLevelWarn,
+	)
+
+	if status == ModelParamsFitStatusError {
+		t.Fatal("ParamsFit returned error status")
+	}
+
+	t.Logf("ParamsFit status: %d", status)
+	t.Logf("Fitted context size: %d", cparams.NCtx)
+}
+
+func TestModelParamsFitInvalidPath(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	mparams := ModelDefaultParams()
+	cparams := ContextDefaultParams()
+
+	nDevices := int(MaxDevices())
+	tensorSplit := make([]float32, nDevices)
+	tensorBuftOverrides := make([]TensorBuftOverride, MaxTensorBuftOverrides())
+	margins := make([]uint64, nDevices)
+
+	status := ModelParamsFit(
+		"nonexistent_model.gguf",
+		&mparams,
+		&cparams,
+		tensorSplit,
+		tensorBuftOverrides,
+		margins,
+		512,
+		LogLevelWarn,
+	)
+
+	if status != ModelParamsFitStatusError {
+		t.Fatalf("ParamsFit should return error status for invalid path, got: %d", status)
+	}
+}

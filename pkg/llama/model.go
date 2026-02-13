@@ -141,6 +141,17 @@ var (
 	//        const char * fname_out,
 	//        const llama_model_quantize_params * params);
 	modelQuantizeFunc ffi.Fun
+
+	// LLAMA_API enum llama_params_fit_status llama_params_fit(
+	//                            const char   * path_model,
+	//             struct llama_model_params   * mparams,
+	//             struct llama_context_params * cparams,
+	//                                   float * tensor_split,
+	// struct llama_model_tensor_buft_override * tensor_buft_overrides,
+	//                                  size_t * margins,
+	//                                uint32_t   n_ctx_min,
+	//                     enum ggml_log_level   log_level);
+	modelParamsFitFunc ffi.Fun
 )
 
 func loadModelFuncs(lib ffi.Lib) error {
@@ -276,6 +287,10 @@ func loadModelFuncs(lib ffi.Lib) error {
 
 	if modelQuantizeFunc, err = lib.Prep("llama_model_quantize", &ffi.TypeUint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return loadError("llama_model_quantize", err)
+	}
+
+	if modelParamsFitFunc, err = lib.Prep("llama_params_fit", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32, &ffi.TypeSint32); err != nil {
+		return loadError("llama_params_fit", err)
 	}
 
 	return nil
@@ -856,4 +871,65 @@ func ModelQuantize(fnameInp, fnameOut string, params *ModelQuantizeParams) uint3
 	var result ffi.Arg
 	modelQuantizeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&fileInp), unsafe.Pointer(&fileOut), unsafe.Pointer(&params))
 	return uint32(result)
+}
+
+type ModelParamsFitStatus int32
+
+const (
+	ModelParamsFitStatusSuccess ModelParamsFitStatus = 0 // found allocations that are projected to fit
+	ModelParamsFitStatusFailure ModelParamsFitStatus = 1 // could not find allocations that are projected to fit
+	ModelParamsFitStatusError   ModelParamsFitStatus = 2 // a hard error occurred
+)
+
+// ModelParamsFit attempts to fit model and context parameters to available device memory.
+// It assumes system memory is unlimited and only modifies parameters that have the same
+// value as in the default model params, with the exception of context size which is
+// modified if and only if equal to 0.
+//
+// Parameters:
+//   - pathModel: path to the model file
+//   - mparams: pointer to model parameters (will be modified to fit)
+//   - cparams: pointer to context parameters (will be modified to fit)
+//   - tensorSplit: writable buffer for tensor split, needs at least MaxDevices() elements
+//   - tensorBuftOverrides: writable buffer for overrides, needs at least MaxTensorBuftOverrides() elements
+//   - margins: margins of memory to leave per device in bytes
+//   - nCtxMin: minimum context size to set when trying to reduce memory use
+//   - logLevel: minimum log level to print during fitting, lower levels go to debug log
+//
+// Note: This function is NOT thread safe because it modifies the global llama logger state.
+func ModelParamsFit(pathModel string, mparams *ModelParams, cparams *ContextParams, tensorSplit []float32, tensorBuftOverrides []TensorBuftOverride, margins []uint64, nCtxMin uint32, logLevel LogLevel) ModelParamsFitStatus {
+	pathPtr, err := utils.BytePtrFromString(pathModel)
+	if err != nil {
+		return ModelParamsFitStatusError
+	}
+
+	var tensorSplitPtr *float32
+	if len(tensorSplit) > 0 {
+		tensorSplitPtr = &tensorSplit[0]
+	}
+
+	var tensorBuftOverridesPtr *TensorBuftOverride
+	if len(tensorBuftOverrides) > 0 {
+		tensorBuftOverridesPtr = &tensorBuftOverrides[0]
+	}
+
+	var marginsPtr *uint64
+	if len(margins) > 0 {
+		marginsPtr = &margins[0]
+	}
+
+	var result ffi.Arg
+	modelParamsFitFunc.Call(
+		unsafe.Pointer(&result),
+		unsafe.Pointer(&pathPtr),
+		unsafe.Pointer(&mparams),
+		unsafe.Pointer(&cparams),
+		unsafe.Pointer(&tensorSplitPtr),
+		unsafe.Pointer(&tensorBuftOverridesPtr),
+		unsafe.Pointer(&marginsPtr),
+		&nCtxMin,
+		&logLevel,
+	)
+
+	return ModelParamsFitStatus(int32(result))
 }
