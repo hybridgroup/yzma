@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
 
 	"github.com/hybridgroup/yzma/pkg/download"
@@ -16,8 +15,8 @@ func main() {
 	}
 
 	if !*upgrade {
-		if _, err := os.Stat(filepath.Join(*libPath, download.LibraryName(runtime.GOOS))); !os.IsNotExist(err) {
-			fmt.Println("llama.cpp already installed at", libPath)
+		if download.AlreadyInstalled(*libPath) {
+			fmt.Println("llama.cpp already installed at", *libPath)
 			return
 		}
 	}
