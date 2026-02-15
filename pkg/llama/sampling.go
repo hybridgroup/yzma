@@ -127,6 +127,9 @@ var (
 
 	// LLAMA_API void llama_sampler_reset (struct llama_sampler * smpl);
 	samplerResetFunc ffi.Fun
+
+	// LLAMA_API struct llama_sampler * llama_sampler_clone(const struct llama_sampler * smpl);
+	samplerCloneFunc ffi.Fun
 )
 
 func loadSamplingFuncs(lib ffi.Lib) error {
@@ -232,6 +235,10 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 
 	if samplerResetFunc, err = lib.Prep("llama_sampler_reset", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
 		return loadError("llama_sampler_reset", err)
+	}
+
+	if samplerCloneFunc, err = lib.Prep("llama_sampler_clone", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("llama_sampler_clone", err)
 	}
 
 	return nil
@@ -467,6 +474,16 @@ func SamplerReset(smpl Sampler) {
 		return
 	}
 	samplerResetFunc.Call(nil, unsafe.Pointer(&smpl))
+}
+
+// SamplerClone creates a clone of the given sampler.
+func SamplerClone(smpl Sampler) Sampler {
+	if smpl == 0 {
+		return 0
+	}
+	var clone Sampler
+	samplerCloneFunc.Call(unsafe.Pointer(&clone), unsafe.Pointer(&smpl))
+	return clone
 }
 
 var (
