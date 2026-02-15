@@ -94,6 +94,44 @@ func TestSamplerChainN(t *testing.T) {
 	}
 }
 
+func TestSamplerChainRemove(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := SamplerChainDefaultParams()
+	chain := SamplerChainInit(params)
+	if chain == 0 {
+		t.Fatal("SamplerChainInit failed")
+	}
+	defer SamplerFree(chain)
+
+	greedy := SamplerInitGreedy()
+	if greedy == 0 {
+		t.Fatal("SamplerInitGreedy failed")
+	}
+	SamplerChainAdd(chain, greedy)
+
+	// Chain should have 1 sampler
+	n := SamplerChainN(chain)
+	if n != 1 {
+		t.Fatalf("SamplerChainN(chain) = %d, want 1", n)
+	}
+
+	removed := SamplerChainRemove(chain, 0)
+	if removed == 0 {
+		t.Fatal("SamplerChainRemove failed to remove sampler")
+	}
+
+	// After removal, chain should have 0 samplers
+	n = SamplerChainN(chain)
+	if n != 0 {
+		t.Fatalf("SamplerChainN(chain) = %d, want 0 after removal", n)
+	}
+
+	// The removed sampler should still be valid and can be freed manually
+	SamplerFree(removed)
+}
+
 func TestSamplerInitGreedy(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
