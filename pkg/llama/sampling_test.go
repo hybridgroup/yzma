@@ -563,3 +563,20 @@ func TestSamplerClone(t *testing.T) {
 	}
 	t.Logf("SamplerClone succeeded: orig=%v, clone=%v", orig, clone)
 }
+
+func TestSamplerName(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	sampler := SamplerInitGreedy()
+	if sampler == 0 {
+		t.Fatal("SamplerInitGreedy failed")
+	}
+	defer SamplerFree(sampler)
+
+	name := SamplerName(sampler)
+	if name == "" {
+		t.Fatal("SamplerName returned empty string")
+	}
+	t.Logf("SamplerName: %s", name)
+}
