@@ -541,3 +541,25 @@ func TestSamplerReset(t *testing.T) {
 
 	SamplerFree(sampler)
 }
+
+func TestSamplerClone(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	orig := SamplerInitGreedy()
+	if orig == 0 {
+		t.Fatal("SamplerInitGreedy failed")
+	}
+	defer SamplerFree(orig)
+
+	clone := SamplerClone(orig)
+	if clone == 0 {
+		t.Fatal("SamplerClone failed to clone sampler")
+	}
+	defer SamplerFree(clone)
+
+	if clone == orig {
+		t.Fatal("SamplerClone returned the same pointer as original")
+	}
+	t.Logf("SamplerClone succeeded: orig=%v, clone=%v", orig, clone)
+}
