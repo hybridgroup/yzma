@@ -47,6 +47,9 @@ var (
 	// LLAMA_API int llama_sampler_chain_n(const struct llama_sampler * chain);
 	samplerChainNFunc ffi.Fun
 
+	// LLAMA_API struct llama_sampler * llama_sampler_chain_remove(struct llama_sampler * chain, int32_t i);
+	samplerChainRemoveFunc ffi.Fun
+
 	// LLAMA_API struct llama_sampler * llama_sampler_init_greedy(void);
 	samplerInitGreedyFunc ffi.Fun
 
@@ -147,6 +150,10 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 
 	if samplerChainNFunc, err = lib.Prep("llama_sampler_chain_n", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
 		return loadError("llama_sampler_chain_n", err)
+	}
+
+	if samplerChainRemoveFunc, err = lib.Prep("llama_sampler_chain_remove", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_sampler_chain_remove", err)
 	}
 
 	if samplerInitGreedyFunc, err = lib.Prep("llama_sampler_init_greedy", &ffi.TypePointer); err != nil {
@@ -273,6 +280,17 @@ func SamplerChainN(chain Sampler) int {
 	var n ffi.Arg
 	samplerChainNFunc.Call(unsafe.Pointer(&n), unsafe.Pointer(&chain))
 	return int(n)
+}
+
+// SamplerChainRemove removes the i-th sampler from the chain and returns it.
+// After removal, the chain will no longer own the sampler, and it will not be freed when the chain is freed.
+func SamplerChainRemove(chain Sampler, i int32) Sampler {
+	if chain == 0 {
+		return 0
+	}
+	var removed Sampler
+	samplerChainRemoveFunc.Call(unsafe.Pointer(&removed), unsafe.Pointer(&chain), &i)
+	return removed
 }
 
 // SamplerInitGreedy initializes a new greedy sampler.
