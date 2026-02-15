@@ -6,7 +6,10 @@
 
 `yzma` lets you write Go applications that directly integrate [`llama.cpp`](https://github.com/ggml-org/llama.cpp) for fully local inference using hardware acceleration.
 
-Run the latest Vision Language Models and Large/Small/Tiny Language Models on Linux, macOS, or Windows. Use hardware acceleration such as CUDA, Metal, or Vulkan. `yzma` uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed. This also means that `yzma` always works with the newest `llama.cpp` releases, so you can use the latest features and models.
+- Run the latest Vision Language Models (VLM) and Large/Small/Tiny Language Models (LLM) on Linux, macOS, or Windows.
+- Use any available hardware acceleration such as [CUDA](https://en.wikipedia.org/wiki/CUDA), [Metal](https://en.wikipedia.org/wiki/Metal_(API)), or [Vulkan](https://en.wikipedia.org/wiki/Vulkan) for maximum performance.
+- `yzma` uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed.
+- Works with the newest `llama.cpp` releases so you can use the latest features and model support.
 
 This example uses the [SmolLM2-135M-Instruct](https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF) model:
 
@@ -85,11 +88,13 @@ $ go run ./examples/hello/
 
 ## Installation
 
-You can use the convenient `yzma` command line tool to download the `llama.cpp` prebuilt libraries for your platform, download them manually, or even have your application download them automatically.
+You can use the convenient `yzma` command line tool to download the `llama.cpp` prebuilt libraries for your platform. You can also have your application download them automatically at installation time, including auto-detection for CUDA.
 
 See [INSTALL.md](./INSTALL.md) for installation instructions for macOS, Linux, and Windows. We also have specific information on running `yzma` on Raspberry Pi or NVIDIA Jetson Orin.
 
 ## Examples
+
+We have several examples of how you can use `yzma` in our [examples](./examples/) directory.
 
 ### Vision Language Model (VLM) Multimodal Example
 
@@ -132,7 +137,7 @@ See the [examples](./examples/) directory for more examples of how to use `yzma`
 
 ## Projects
 
-Who is using yzma? Check out some of the [tools, applications, examples, and blog posts](./PROJECTS.md) here!
+Who is using `yzma`? Check out some of the [tools, applications, examples, and blog posts](./PROJECTS.md) here!
 
 ## Models
 
