@@ -153,7 +153,7 @@ Check out the [Model Usage](./MODELS.md) page for more information.
 
 ## Support
 
-`yzma` currently has support for over 93% of `llama.cpp` functionality. See [ROADMAP.md](./ROADMAP.md) for the complete list.
+`yzma` currently has support for over 95% of `llama.cpp` functionality. See [ROADMAP.md](./ROADMAP.md) for the complete list.
 
 You can use multimodal models (image/audio) and text language models with full hardware acceleration on Linux, macOS, and Windows.
 

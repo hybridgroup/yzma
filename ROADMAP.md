@@ -1,6 +1,6 @@
 # Roadmap
 
-`yzma` currently has support for over 93% of `llama.cpp` functionality.
+`yzma` currently has support for over 95% of `llama.cpp` functionality.
 
 This is a list of all functions exposed by `llama.cpp` and the current state of the associated `yzma` wrapper.
 
@@ -132,6 +132,9 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_sampler_chain_default_params`
 - [x] `llama_sampler_chain_get`
 - [x] `llama_sampler_chain_init`
+- [x] `llama_sampler_chain_n`
+- [x] `llama_sampler_chain_remove`
+- [x] `llama_sampler_clone`
 - [x] `llama_sampler_free`
 - [x] `llama_sampler_init_dist`
 - [x] `llama_sampler_init_dry`
@@ -146,6 +149,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_sampler_init_top_p`
 - [x] `llama_sampler_init_typical`
 - [x] `llama_sampler_init_xtc`
+- [x] `llama_sampler_name`
 - [x] `llama_sampler_reset`
 - [x] `llama_sampler_sample`
 
@@ -239,12 +243,8 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `llama_opt_epoch`
 - [ ] `llama_opt_init`
 - [ ] `llama_opt_param_filter_all`
-- [ ] `llama_sampler_chain_n`
-- [ ] `llama_sampler_chain_remove`
-- [ ] `llama_sampler_clone`
 - [ ] `llama_sampler_init_grammar_lazy_patterns`
 - [ ] `llama_sampler_init`
-- [ ] `llama_sampler_name`
 - [ ] `llama_set_sampler`
 
 ### `mtmd` Functions still needing wrappers
