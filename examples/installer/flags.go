@@ -25,7 +25,7 @@ func handleFlags() error {
 	help = flag.String("help", "", "show help")
 	version = flag.String("version", "", "version of llama.cpp to install (leave empty for latest)")
 	libPath = flag.String("lib", "", "path to llama.cpp compiled library files (leave empty to use YZMA_LIB env var)")
-	processor = flag.String("processor", "cpu", "processor to use (cpu, cuda, metal, vulkan)")
+	processor = flag.String("processor", "", "processor to use (cpu, cuda, metal, vulkan)")
 	upgrade = flag.Bool("upgrade", false, "upgrade existing installation")
 
 	flag.Parse()

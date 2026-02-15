@@ -30,6 +30,14 @@ func main() {
 		}
 	}
 
+	if *processor == "" {
+		*processor = "cpu"
+		if cudaInstalled, cudaVersion := download.HasCUDA(); cudaInstalled {
+			fmt.Printf("CUDA detected (version %s), using CUDA build\n", cudaVersion)
+			*processor = "cuda"
+		}
+	}
+
 	fmt.Println("installing llama.cpp version", *version, "to", *libPath)
 	if err := download.Get(runtime.GOARCH, runtime.GOOS, *processor, *version, *libPath); err != nil {
 		fmt.Println("failed to download llama.cpp:", err.Error())
