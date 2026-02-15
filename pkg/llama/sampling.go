@@ -38,6 +38,9 @@ var (
 	// LLAMA_API struct llama_sampler * llama_sampler_chain_init(struct llama_sampler_chain_params params);
 	samplerChainInitFunc ffi.Fun
 
+	// LLAMA_API const char * llama_sampler_name(const struct llama_sampler * smpl);
+	samplerNameFunc ffi.Fun
+
 	// LLAMA_API void llama_sampler_chain_add(struct llama_sampler * chain, struct llama_sampler * smpl);
 	samplerChainAddFunc ffi.Fun
 
@@ -141,6 +144,10 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 
 	if samplerChainInitFunc, err = lib.Prep("llama_sampler_chain_init", &ffi.TypePointer, &ffiSamplerChainParams); err != nil {
 		return loadError("llama_sampler_chain_init", err)
+	}
+
+	if samplerNameFunc, err = lib.Prep("llama_sampler_name", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("llama_sampler_name", err)
 	}
 
 	if samplerChainAddFunc, err = lib.Prep("llama_sampler_chain_add", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
@@ -258,6 +265,20 @@ func SamplerChainInit(params SamplerChainParams) Sampler {
 	samplerChainInitFunc.Call(unsafe.Pointer(&p), unsafe.Pointer(&params))
 
 	return p
+}
+
+// SamplerName returns the name of the sampler as a string.
+func SamplerName(smpl Sampler) string {
+	if smpl == 0 {
+		return ""
+	}
+	var ptr *byte
+	samplerNameFunc.Call(unsafe.Pointer(&ptr), unsafe.Pointer(&smpl))
+	if ptr == nil {
+		return ""
+	}
+
+	return utils.BytePtrToString(ptr)
 }
 
 // SamplerChainAdd adds a sampler to a sampling chain.
