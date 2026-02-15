@@ -2,6 +2,7 @@ package download
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -23,5 +24,48 @@ func TestAlreadyInstalled(t *testing.T) {
 
 	if !AlreadyInstalled(dest) {
 		t.Fatal("AlreadyInstalled should return true when library file exists")
+	}
+}
+
+func TestHasCUDA_ParseVersion(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skip("CUDA is not available on macOS, skipping test")
+	}
+
+	origExecCommand := execCommand
+	defer func() { execCommand = origExecCommand }()
+
+	// Use a shell command to echo fake output
+	execCommand = func(name string, arg ...string) *exec.Cmd {
+		if runtime.GOOS == "windows" {
+			return exec.Command("cmd", "/C", "echo CUDA Version: 13.0")
+		}
+		return exec.Command("sh", "-c", "echo CUDA Version: 13.0")
+	}
+
+	ok, version := HasCUDA()
+	if !ok {
+		t.Fatal("expected CUDA to return true")
+	}
+	if version != "13.0" {
+		t.Fatalf("expected version '13.0', got '%s'", version)
+	}
+}
+
+func TestCUDA_NoCUDA(t *testing.T) {
+	origExecCommand := execCommand
+	defer func() { execCommand = origExecCommand }()
+
+	// Simulate nvidia-smi not found or error
+	execCommand = func(name string, arg ...string) *exec.Cmd {
+		return exec.Command("false") // always fails
+	}
+
+	ok, version := HasCUDA()
+	if ok {
+		t.Fatal("expected CUDA to return false")
+	}
+	if version != "" {
+		t.Fatalf("expected empty version, got '%s'", version)
 	}
 }
