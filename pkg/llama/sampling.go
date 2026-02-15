@@ -44,6 +44,9 @@ var (
 	// LLAMA_API struct llama_sampler * llama_sampler_chain_get(struct llama_sampler * chain, int32_t i);
 	samplerChainGetFunc ffi.Fun
 
+	// LLAMA_API int llama_sampler_chain_n(const struct llama_sampler * chain);
+	samplerChainNFunc ffi.Fun
+
 	// LLAMA_API struct llama_sampler * llama_sampler_init_greedy(void);
 	samplerInitGreedyFunc ffi.Fun
 
@@ -140,6 +143,10 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 
 	if samplerChainGetFunc, err = lib.Prep("llama_sampler_chain_get", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
 		return loadError("llama_sampler_chain_get", err)
+	}
+
+	if samplerChainNFunc, err = lib.Prep("llama_sampler_chain_n", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_sampler_chain_n", err)
 	}
 
 	if samplerInitGreedyFunc, err = lib.Prep("llama_sampler_init_greedy", &ffi.TypePointer); err != nil {
@@ -256,6 +263,16 @@ func SamplerChainGet(chain Sampler, i int32) Sampler {
 	var s Sampler
 	samplerChainGetFunc.Call(unsafe.Pointer(&s), unsafe.Pointer(&chain), &i)
 	return s
+}
+
+// SamplerChainN returns the total number of samplers in the chain.
+func SamplerChainN(chain Sampler) int {
+	if chain == 0 {
+		return 0
+	}
+	var n ffi.Arg
+	samplerChainNFunc.Call(unsafe.Pointer(&n), unsafe.Pointer(&chain))
+	return int(n)
 }
 
 // SamplerInitGreedy initializes a new greedy sampler.

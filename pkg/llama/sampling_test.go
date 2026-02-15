@@ -65,6 +65,35 @@ func TestSamplerChainGet(t *testing.T) {
 	}
 }
 
+func TestSamplerChainN(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := SamplerChainDefaultParams()
+	chain := SamplerChainInit(params)
+	if chain == 0 {
+		t.Fatal("SamplerChainInit failed")
+	}
+	defer SamplerFree(chain)
+
+	// Initially, chain should have 0 samplers
+	n := SamplerChainN(chain)
+	if n != 0 {
+		t.Errorf("SamplerChainN(chain) = %d, want 0", n)
+	}
+
+	greedy := SamplerInitGreedy()
+	if greedy == 0 {
+		t.Fatal("SamplerInitGreedy failed")
+	}
+	SamplerChainAdd(chain, greedy)
+
+	n = SamplerChainN(chain)
+	if n != 1 {
+		t.Errorf("SamplerChainN(chain) = %d, want 1 after adding one sampler", n)
+	}
+}
+
 func TestSamplerInitGreedy(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
