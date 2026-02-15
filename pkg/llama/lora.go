@@ -36,24 +36,13 @@ var (
 	// LLAMA_API int32_t llama_adapter_meta_val_str_by_index(const struct llama_adapter_lora * adapter, int32_t i, char * buf, size_t buf_size);
 	adapterMetaValStrByIndexFunc ffi.Fun
 
-	// Add a loaded LoRA adapter to given context
-	// This will not modify model's weight
-	// LLAMA_API int32_t llama_set_adapter_lora(
-	//         struct llama_context * ctx,
-	//         struct llama_adapter_lora * adapter,
-	//         float scale);
-	setAdapterLoraFunc ffi.Fun
-
-	// Remove a specific LoRA adapter from given context
-	// Return -1 if the adapter is not present in the context
-	// LLAMA_API int32_t llama_rm_adapter_lora(
-	//         struct llama_context * ctx,
-	//         struct llama_adapter_lora * adapter);
-	rmAdapterLoraFunc ffi.Fun
-
-	// Remove all LoRA adapters from given context
-	// LLAMA_API void llama_clear_adapter_lora(struct llama_context * ctx);
-	clearAdapterLoraFunc ffi.Fun
+	// Set LoRa adapters on the context. Will only modify if the adapters currently in context are different.
+	// LLAMA_API int32_t llama_set_adapters_lora(
+	//     struct llama_context * ctx,
+	//     struct llama_adapter_lora ** adapters,
+	//     size_t n_adapters,
+	//     float * scales);
+	setAdaptersLoraFunc ffi.Fun
 
 	// LLAMA_API uint64_t            llama_adapter_get_alora_n_invocation_tokens(const struct llama_adapter_lora * adapter);
 	adapterGetAloraNInvocationTokensFunc ffi.Fun
@@ -93,16 +82,8 @@ func loadLoraFuncs(lib ffi.Lib) error {
 		return loadError("llama_adapter_meta_val_str_by_index", err)
 	}
 
-	if setAdapterLoraFunc, err = lib.Prep("llama_set_adapter_lora", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeFloat); err != nil {
-		return loadError("llama_set_adapter_lora", err)
-	}
-
-	if rmAdapterLoraFunc, err = lib.Prep("llama_rm_adapter_lora", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer); err != nil {
-		return loadError("llama_rm_adapter_lora", err)
-	}
-
-	if clearAdapterLoraFunc, err = lib.Prep("llama_clear_adapter_lora", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
-		return loadError("llama_clear_adapter_lora", err)
+	if setAdaptersLoraFunc, err = lib.Prep("llama_set_adapters_lora", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize, &ffi.TypePointer); err != nil {
+		return loadError("llama_set_adapters_lora", err)
 	}
 
 	if adapterGetAloraNInvocationTokensFunc, err = lib.Prep("llama_adapter_get_alora_n_invocation_tokens", &ffi.TypeUint64, &ffi.TypePointer); err != nil {
@@ -233,51 +214,26 @@ func AdapterMetaValStrByIndex(adapter AdapterLora, i int32) (string, bool) {
 	return string(value), true
 }
 
-// SetAdapterLora adds a loaded LoRA adapter to the given context.
+// SetAdaptersLora sets LoRa adapters on the context. Will only modify if the adapters currently in context are different.
 // Returns 0 on success, or a negative value on failure.
-func SetAdapterLora(ctx Context, adapter AdapterLora, scale float32) int32 {
-	if ctx == 0 {
+func SetAdaptersLora(ctx Context, adapters []AdapterLora, scales []float32) int32 {
+	if ctx == 0 || len(adapters) == 0 || len(adapters) != len(scales) {
 		return -1
 	}
-	if adapter == 0 {
-		return -1
-	}
+
+	adaptersPtr := unsafe.SliceData(adapters)
+	l := len(adapters)
+	scalesPtr := unsafe.SliceData(scales)
 
 	var result ffi.Arg
-	setAdapterLoraFunc.Call(
+	setAdaptersLoraFunc.Call(
 		unsafe.Pointer(&result),
 		unsafe.Pointer(&ctx),
-		unsafe.Pointer(&adapter),
-		&scale,
+		unsafe.Pointer(&adaptersPtr),
+		&l,
+		unsafe.Pointer(&scalesPtr),
 	)
 	return int32(result)
-}
-
-// RmAdapterLora removes a specific LoRA adapter from the given context.
-// Returns 0 on success, or -1 if the adapter is not present.
-func RmAdapterLora(ctx Context, adapter AdapterLora) int32 {
-	if ctx == 0 {
-		return -1
-	}
-	if adapter == 0 {
-		return -1
-	}
-
-	var result ffi.Arg
-	rmAdapterLoraFunc.Call(
-		unsafe.Pointer(&result),
-		unsafe.Pointer(&ctx),
-		unsafe.Pointer(&adapter),
-	)
-	return int32(result)
-}
-
-// ClearAdapterLora removes all LoRA adapters from the given context.
-func ClearAdapterLora(ctx Context) {
-	if ctx == 0 {
-		return
-	}
-	clearAdapterLoraFunc.Call(nil, unsafe.Pointer(&ctx))
 }
 
 // AdapterGetAloraNInvocationTokens returns the number of invocation tokens for the adapter.

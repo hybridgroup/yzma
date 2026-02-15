@@ -117,14 +117,14 @@ var (
 	// LLAMA_API void llama_set_causal_attn(struct llama_context * ctx, bool causal_attn);
 	setCausalAttnFunc ffi.Fun
 
-	// LLAMA_API int32_t llama_apply_adapter_cvec(
+	// LLAMA_API int32_t llama_set_adapter_cvec(
 	//         struct llama_context * ctx,
 	//                  const float * data,
 	//                       size_t   len,
 	//                      int32_t   n_embd,
 	//                      int32_t   il_start,
 	//                      int32_t   il_end);
-	applyAdapterCvecFunc ffi.Fun
+	setAdapterCvecFunc ffi.Fun
 
 	// LLAMA_API llama_token llama_get_sampled_token_ith(struct llama_context * ctx, int32_t i);
 	getSampledTokenIthFunc ffi.Fun
@@ -238,8 +238,8 @@ func loadContextFuncs(lib ffi.Lib) error {
 		return loadError("llama_set_causal_attn", err)
 	}
 
-	if applyAdapterCvecFunc, err = lib.Prep("llama_apply_adapter_cvec", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint64, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32); err != nil {
-		return loadError("llama_apply_adapter_cvec", err)
+	if setAdapterCvecFunc, err = lib.Prep("llama_set_adapter_cvec", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint64, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32); err != nil {
+		return loadError("llama_set_adapter_cvec", err)
 	}
 
 	if getSampledTokenIthFunc, err = lib.Prep("llama_get_sampled_token_ith", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
@@ -510,13 +510,13 @@ func SetCausalAttn(ctx Context, causalAttn bool) {
 	setCausalAttnFunc.Call(nil, unsafe.Pointer(&ctx), &causalAttn)
 }
 
-// ApplyAdapterCvec applies a loaded control vector to a llama_context, or if data is nil, clear
+// SetAdapterCvec sets a loaded control vector to a llama_context, or if data is nil, clears
 // the currently loaded vector.
 // nEmbd should be the size of a single layer's control, and data should point
 // to an nEmbd x nLayers buffer starting from layer 1.
 // ilStart and ilEnd are the layer range the vector should apply to (both inclusive)
 // Returns 0 on success, or a negative value on failure.
-func ApplyAdapterCvec(ctx Context, data []float32, nEmbd, ilStart, ilEnd int32) int32 {
+func SetAdapterCvec(ctx Context, data []float32, nEmbd, ilStart, ilEnd int32) int32 {
 	if ctx == 0 {
 		return -1
 	}
@@ -533,7 +533,7 @@ func ApplyAdapterCvec(ctx Context, data []float32, nEmbd, ilStart, ilEnd int32) 
 		length = uint64(len(data))
 	}
 
-	applyAdapterCvecFunc.Call(
+	setAdapterCvecFunc.Call(
 		unsafe.Pointer(&result),
 		unsafe.Pointer(&ctx),
 		unsafe.Pointer(&dataPtr),
