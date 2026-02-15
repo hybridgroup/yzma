@@ -30,7 +30,7 @@ var installCmd = &cli.Command{
 			Name:    "processor",
 			Aliases: []string{"p"},
 			Usage:   "processor to use (cpu, cuda, metal, vulkan)",
-			Value:   "cpu",
+			Value:   "",
 		},
 		&cli.StringFlag{
 			Name:  "os",
@@ -86,6 +86,17 @@ func runInstall(c *cli.Context) error {
 		fmt.Println("installing llama.cpp version", version, "to", libPath)
 	} else {
 		download.ProgressTracker = nil
+	}
+
+	if processor == "" {
+		processor = "cpu"
+
+		if cudaInstalled, cudaVersion := download.HasCUDA(); cudaInstalled {
+			if !quiet {
+				fmt.Printf("CUDA detected (version %s), using CUDA build\n", cudaVersion)
+			}
+			processor = "cuda"
+		}
 	}
 
 	if err := download.Get(runtime.GOARCH, osInstall, processor, version, libPath); err != nil {
