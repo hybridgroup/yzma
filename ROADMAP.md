@@ -1,6 +1,6 @@
 # Roadmap
 
-`yzma` currently has support for over 95% of `llama.cpp` functionality.
+`yzma` currently has support for over 93% of `llama.cpp` functionality.
 
 This is a list of all functions exposed by `llama.cpp` and the current state of the associated `yzma` wrapper.
 
@@ -86,7 +86,6 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_vocab_type`
 
 ### Context Functions
-- [x] `llama_apply_adapter_cvec`
 - [x] `llama_context_default_params`
 - [x] `llama_decode`
 - [x] `llama_encode`
@@ -104,6 +103,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_n_ubatch`
 - [x] `llama_perf_context_reset`
 - [x] `llama_pooling_type`
+- [x] `llama_set_adapter_cvec`
 - [x] `llama_set_causal_attn`
 - [x] `llama_set_embeddings`
 - [x] `llama_set_warmup`
@@ -127,6 +127,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 
 ### Sampling Functions
 - [x] `llama_sampler_accept`
+- [x] `llama_sampler_apply`
 - [x] `llama_sampler_chain_add`
 - [x] `llama_sampler_chain_default_params`
 - [x] `llama_sampler_chain_get`
@@ -178,9 +179,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_adapter_meta_key_by_index`
 - [x] `llama_adapter_meta_val_str_by_index`
 - [x] `llama_adapter_meta_val_str`
-- [x] `llama_clear_adapter_lora`
-- [x] `llama_rm_adapter_lora`
-- [x] `llama_set_adapter_lora`
+- [x] `llama_set_adapters_lora`
 
 ### `mtmd` Functions
 
@@ -240,7 +239,12 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `llama_opt_epoch`
 - [ ] `llama_opt_init`
 - [ ] `llama_opt_param_filter_all`
+- [ ] `llama_sampler_chain_n`
+- [ ] `llama_sampler_chain_remove`
+- [ ] `llama_sampler_clone`
+- [ ] `llama_sampler_init_grammar_lazy_patterns`
 - [ ] `llama_sampler_init`
+- [ ] `llama_sampler_name`
 - [ ] `llama_set_sampler`
 
 ### `mtmd` Functions still needing wrappers
