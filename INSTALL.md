@@ -7,7 +7,7 @@ Here is information on how to install `yzma`.
 First install the `yzma` command line tool. You can then use it to install the `llama.cpp` libraries for your platform.
 
 ```
-go install github.com/hybridgroup/yzma/cmd/yzma@latest
+go install github.com/hybridgroup/yzma/cmd/yzma@v1.9.0
 ```
 
 For more info, see the [`yzma` command documentation](./cmd/yzma/README.md).

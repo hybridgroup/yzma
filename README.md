@@ -71,7 +71,7 @@ func main() {
 }
 ```
 
-Download the model using the `yzma` command line tool:
+Install `yzma`, then download the model using the `yzma` command line tool:
 
 ```shell
 yzma model get -u https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF/resolve/main/SmolLM2-135M-Instruct-Q4_K_M.gguf
