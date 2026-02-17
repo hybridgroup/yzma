@@ -430,6 +430,10 @@ Raspberry Pi 4 Model B Rev 1.4 8GB
 
 NOTE: Due to less available memory, the benchmarks on this device used the [SmolVLM2-500M-Video-Instruct-Q8_0](https://huggingface.co/ggml-org/SmolVLM2-500M-Video-Instruct-GGUF) model.
 
+```
+yzma model get -u https://huggingface.co/ggml-org/SmolVLM2-500M-Video-Instruct-GGUF/resolve/main/SmolVLM2-500M-Video-Instruct-Q8_0.gguf
+yzma model get -u https://huggingface.co/ggml-org/SmolVLM2-500M-Video-Instruct-GGUF/resolve/main/mmproj-SmolVLM2-500M-Video-Instruct-Q8_0.gguf
+```
 
 ```
 ron@raspberrypi:~/yzma/pkg/mtmd $ export YZMA_BENCHMARK_MMMODEL=/home/ron/models/SmolVLM2-500M-Video-Instruct-Q8_0.gguf
