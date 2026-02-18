@@ -8,7 +8,13 @@ Here are just a few examples of `yzma` with various well-known language models.
 
 Don't forget to set your `YZMA_LIB` env variable to the directory with your `llama.cpp` library files!
 
+- [Vision Language Models (VLM)](#vision-language-models-vlm)
+- [Text Generation Models](#text-generation-models)
+- [Vision Language Action Models (VLA)](#vision-language-action-models-vla)
+
 ## Vision Language Models (VLM)
+
+Vision language models are a type of generative models that take image and text inputs, and generate text outputs.
 
 ### Qwen3-VL-2B-Instruct
 
@@ -38,6 +44,30 @@ yzma model get -u https://huggingface.co/bartowski/Qwen_Qwen3-VL-2B-Instruct-GGU
 
 ```
 go run ./examples/vlm/ -model ~/models/Qwen_Qwen3-VL-2B-Instruct-Q4_K_M.gguf -mmproj ~/models/mmproj-Qwen_Qwen3-VL-2B-Instruct-f16.gguf -image ./images/domestic_llama.jpg -p "What is in this picture?"
+```
+
+### SmolVLM2-500M-Video-Instruct
+
+One of the smallest VLM with good performance on smaller devices.
+
+#### Download the model and projector
+
+Fast, recommended.
+
+```
+yzma model get -u https://huggingface.co/mradermacher/SmolVLM2-500M-Video-Instruct-i1-GGUF/resolve/main/SmolVLM2-500M-Video-Instruct.i1-Q4_K_M.gguf
+```
+
+Optimal size/speed/quality.
+
+```
+yzma model get -u https://huggingface.co/mradermacher/SmolVLM2-500M-Video-Instruct-i1-GGUF/resolve/main/SmolVLM2-500M-Video-Instruct.i1-Q4_K_S.gguf
+```
+
+In either case, you will need the projector:
+
+```
+yzma model get -u https://huggingface.co/ggml-org/SmolVLM2-500M-Video-Instruct-GGUF/resolve/main/mmproj-SmolVLM2-500M-Video-Instruct-Q8_0.gguf
 ```
 
 ### LFM2.5-VL-1.6B
@@ -201,8 +231,9 @@ yzma model get -u https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF/re
 go run ./examples/chat/ -model ~/models/SmolLM2-135M-Instruct-Q4_K_M.gguf -c 2048 -temp 0.8 -n 48 -sys "You are a helpful robot companion."
 ```
 
-## Visual Language Action (VLA) models
+## Vision Language Action Models (VLA)
 
+A vision-language-action model (VLA) is a class of multimodal foundation models that integrates vision, language and actions. Given an input image (or video) and a text instruction, a VLA outputs actions that can be executed to accomplish the requested task.
 
 ### Pelican1.0-VL-3B
 
