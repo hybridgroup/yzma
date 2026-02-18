@@ -20,6 +20,7 @@ Now, using the `yzma` command, you can install the `llama.cpp` libraries. Follow
 - [Linux - CPU](#linux-cpu)
 - [Linux - CUDA](#linux-cuda)
 - [Linux - Vulkan](#linux-vulkan)
+- [Arduino UNO Q](#arduino-uno-q)
 - [NVIDIA Jetson Orin](#nvidia-jetson-orin)
 - [Raspberry Pi 4/5](#raspberry-pi)
 - [Windows - CPU](#windows-cpu)
@@ -27,6 +28,8 @@ Now, using the `yzma` command, you can install the `llama.cpp` libraries. Follow
 - [Windows - Vulkan](#windows-vulkan)
 
 ### macOS
+
+![Apple logo](./images/apple-logo.png)
 
 Decide where you want put the files for your local installation, then run the following command:
 
@@ -39,6 +42,8 @@ To complete your installation, follow any specific instructions for your operati
 Now try running one of the example programs!
 
 ### Linux CPU
+
+![Linux logo](./images/linux-logo.webp)
 
 Decide where you want put the files for your local installation, then run the following command:
 
@@ -80,6 +85,8 @@ To complete your installation, follow any specific instructions for your operati
 
 ### NVIDIA Jetson Orin
 
+![NVIDIA logo](./images/NVIDIA-logo.png)
+
 To the GPU on your [NVIDIA Jetson Orin](https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/nano-super-developer-kit/) you should install the latest version of the Jetpack software for your device.
 
 #### CUDA
@@ -112,6 +119,8 @@ To complete your installation, follow any specific instructions for your operati
 
 ### Raspberry Pi
 
+![Raspberry Pi logo](./images/raspberry-pi-os-logo.png)
+
 You can run `yzma` on a Raspberry Pi 4 or 5.
 
 #### Raspberry Pi OS (64-bit)
@@ -134,7 +143,19 @@ yzma install --lib /path/to/lib --processor cpu --os bookworm
 
 To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
 
+### Arduino UNO Q
+
+![Arduino logo](./images/arduino-logo.png)
+
+You can run `yzma` on a [Arduino UNO Q board](https://docs.arduino.cc/hardware/uno-q/).
+
+```
+yzma install --lib /path/to/lib --processor cpu --os trixie
+```
+
 ### Windows CPU
+
+![Windows logo](./images/windows-10-logo.png)
 
 Decide where you want put the files for your local installation, then run the following command:
 

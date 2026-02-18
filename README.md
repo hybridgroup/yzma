@@ -11,7 +11,7 @@
 - `yzma` uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed.
 - Works with the newest `llama.cpp` releases so you can use the latest features and model support.
 
-This example uses the [SmolLM2-135M-Instruct](https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF) model:
+This example uses the [SmolLM2-135M-GGUF](https://huggingface.co/QuantFactory/SmolLM2-135M-GGUF) model:
 
 ```go
 package main
@@ -90,7 +90,7 @@ $ go run ./examples/hello/
 
 You can use the convenient `yzma` command line tool to download the `llama.cpp` prebuilt libraries for your platform. You can also have your application download them automatically at installation time, including auto-detection for CUDA.
 
-See [INSTALL.md](./INSTALL.md) for installation instructions for macOS, Linux, and Windows. We also have specific information on running `yzma` on Raspberry Pi or NVIDIA Jetson Orin.
+See [INSTALL.md](./INSTALL.md) for installation instructions for macOS, Linux, and Windows. We also have specific information on running `yzma` on Raspberry Pi, NVIDIA Jetson Orin, or the Arduino UNO Q.
 
 ## Examples
 
