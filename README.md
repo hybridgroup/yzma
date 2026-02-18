@@ -74,7 +74,7 @@ func main() {
 Install `yzma`, then download the model using the `yzma` command line tool:
 
 ```shell
-yzma model get -u https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF/resolve/main/SmolLM2-135M-Instruct-Q4_K_M.gguf
+yzma model get -u https://huggingface.co/QuantFactory/SmolLM2-135M-GGUF/resolve/main/SmolLM2-135M.Q4_K_M.gguf
 ```
 
 And run the Go program:

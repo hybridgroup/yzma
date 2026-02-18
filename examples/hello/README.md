@@ -13,7 +13,7 @@ Once installed, follow the instructions from your installer to set the `YZMA_LIB
 Download the model to the default location on your machine:
 
 ```shell
-yzma model get -u https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF/resolve/main/SmolLM2-135M-Instruct-Q4_K_M.gguf
+yzma model get -u https://huggingface.co/QuantFactory/SmolLM2-135M-GGUF/resolve/main/SmolLM2-135M.Q4_K_M.gguf
 ```
 
 ## Run
