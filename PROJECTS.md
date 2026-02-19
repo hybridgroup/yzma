@@ -38,6 +38,12 @@ https://github.com/orneryd/NornicDB
 
 ## Examples and Tutorials
 
+### Running local LLMs and VLMs on the Arduino UNO Q with yzma - Arduino Project Hub
+
+Marc Pous ([@mpous](https://github.com/mpous)) shows how to run local LLMs and VLMs directly on the [Arduino UNO Q](https://docs.arduino.cc/hardware/uno-q/) using yzma and llama.cpp.
+
+https://projecthub.arduino.cc/marc-edgeimpulse/running-local-llms-and-vlms-on-the-arduino-uno-q-with-yzma-74e288
+
 ### Ardan Labs ai-training repository
 
 Provides examples for Go developers to use AI in their products.
