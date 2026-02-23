@@ -6,4 +6,4 @@
 //     or Vulkan (https://en.wikipedia.org/wiki/Vulkan) for maximum performance.
 //   - yzma uses the purego (https://github.com/ebitengine/purego) and  ffi (https://github.com/JupiterRider/ffi) packages so CGo is not needed.
 //   - Works with the newest llama.cpp releases so you can use the latest features and model support.
-package yzma
+package main

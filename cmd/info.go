@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"fmt"
@@ -6,19 +6,10 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var infoCmd = &cli.Command{
-	Name:  "info",
-	Usage: "Show yzma version",
-	Action: func(c *cli.Context) error {
-		return showInfo(c)
-	},
-}
-
-func showInfo(c *cli.Context) error {
+func ShowInfo(c *cli.Context) error {
 	fmt.Println(logo)
 	fmt.Println()
 	fmt.Println("Local inference in Go using llama.cpp with hardware acceleration")
-	showYzmaVersion()
 
 	return nil
 }

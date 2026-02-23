@@ -5,7 +5,7 @@ Command line tool for managing yzma and llama.cpp libraries.
 ## Installation
 
 ```shell
-go install github.com/hybridgroup/yzma/cmd/yzma@latest
+go install github.com/hybridgroup/yzma@latest
 ```
 
 ## Commands

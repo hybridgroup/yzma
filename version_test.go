@@ -1,4 +1,4 @@
-package yzma
+package main
 
 import (
 	"testing"
