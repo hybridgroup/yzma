@@ -1,4 +1,4 @@
-package yzma
+package main
 
 const currentVersion = "1.9.0"
 

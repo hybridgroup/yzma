@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var modelCmd = &cli.Command{
+var ModelCmd = &cli.Command{
 	Name:  "model",
 	Usage: "Manage models",
 	Subcommands: []*cli.Command{

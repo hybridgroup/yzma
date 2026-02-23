@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var installCmd = &cli.Command{
+var InstallCmd = &cli.Command{
 	Name:  "install",
 	Usage: "Install llama.cpp libraries used by yzma",
 	Flags: []cli.Flag{

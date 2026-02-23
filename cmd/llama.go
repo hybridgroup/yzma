@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var llamaCmd = &cli.Command{
+var LlamaCmd = &cli.Command{
 	Name:  "llama",
 	Usage: "Show most recent llama.cpp version",
 	Flags: []cli.Flag{

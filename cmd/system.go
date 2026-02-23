@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var systemCmd = &cli.Command{
+var SystemCmd = &cli.Command{
 	Name:  "system",
 	Usage: "Show llama.cpp system information",
 	Flags: []cli.Flag{
