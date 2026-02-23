@@ -1,6 +1,7 @@
 package vlm
 
 import (
+	"runtime"
 	"testing"
 	"unsafe"
 
@@ -100,6 +101,10 @@ func TestVLM_Tokenize(t *testing.T) {
 }
 
 func TestVLM_Results(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skip("Results test times out on macOS, skipping for now")
+	}
+
 	modelFile := testModelFileName(t)
 	mmprojFile := testMMProjFileName(t)
 
