@@ -71,7 +71,7 @@ func main() {
 }
 ```
 
-Install `yzma`, then download the model using the `yzma` command line tool:
+[Install `yzma`](./INSTALL.md), then download the model using the `yzma` command line tool:
 
 ```shell
 yzma model get -u https://huggingface.co/QuantFactory/SmolLM2-135M-GGUF/resolve/main/SmolLM2-135M.Q4_K_M.gguf
