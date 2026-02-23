@@ -9,7 +9,7 @@
 - Run the latest Vision Language Models (VLM) and Large/Small/Tiny Language Models (LLM) on Linux, macOS, or Windows.
 - Use any available hardware acceleration such as [CUDA](https://en.wikipedia.org/wiki/CUDA), [Metal](https://en.wikipedia.org/wiki/Metal_(API)), or [Vulkan](https://en.wikipedia.org/wiki/Vulkan) for maximum performance.
 - `yzma` uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed.
-- Works with the newest `llama.cpp` releases so you can use the latest features and model support.
+- Works with the newest `llama.cpp` releases so you can use the latest features, performance improvements, and bugfixes.
 
 This example uses the [SmolLM2-135M-GGUF](https://huggingface.co/QuantFactory/SmolLM2-135M-GGUF) model:
 
@@ -88,9 +88,9 @@ $ go run ./examples/hello/
 
 ## Installation
 
-You can use the convenient `yzma` command line tool to download the `llama.cpp` prebuilt libraries for your platform. You can also have your application download them automatically at installation time, including auto-detection for CUDA.
+You can use the convenient `yzma` command line tool to download the `llama.cpp` prebuilt libraries for your platform. You can also have your application self-download them automatically at installation time, including auto-detection for CUDA.
 
-See [INSTALL.md](./INSTALL.md) for installation instructions for macOS, Linux, and Windows. We also have specific information on running `yzma` on Raspberry Pi, NVIDIA Jetson Orin, or the Arduino UNO Q.
+See [INSTALL.md](./INSTALL.md) for installation instructions for [macOS](./INSTALL.md#macos), [Linux](./INSTALL.md#linux), and [Windows](./INSTALL.md#windows). We also have specific information on running `yzma` on [Raspberry Pi](./INSTALL.md#raspberry-pi), [NVIDIA Jetson Orin](./INSTALL.md#nvidia-jetson-orin), or the [Arduino UNO Q](./INSTALL.md#arduino-uno-q).
 
 ## Examples
 
