@@ -10,7 +10,7 @@ First install the `yzma` command line tool. You can then use it to install the `
 go install github.com/hybridgroup/yzma@latest
 ```
 
-For more info, see the [`yzma` command documentation](./cmd/yzma/README.md).
+For more info, see the [`yzma` command documentation](./cmd/README.md).
 
 ## Install `llama.cpp` libraries
 

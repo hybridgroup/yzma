@@ -27,7 +27,7 @@ download-llama.cpp:
 	yzma install -lib $(YZMA_LIB) $(if $(VERSION),-v $(VERSION))
 
 build:
-	YZMA_LIB=$(YZMA_LIB) go build -o yzma ./cmd/yzma
+	YZMA_LIB=$(YZMA_LIB) go build -o yzma .
 
 install:
 	go install .
