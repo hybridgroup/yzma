@@ -30,7 +30,7 @@ build:
 	YZMA_LIB=$(YZMA_LIB) go build -o yzma ./cmd/yzma
 
 install:
-	go install ./cmd/yzma
+	go install .
 
 # make test to run the tests. Make sure to run `make download-models` first to download the models used in the tests.
 # make test MODELS_DIR=/path/to/models to specify a different directory for the models if you didn't use the default one when downloading the models.
