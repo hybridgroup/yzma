@@ -46,6 +46,26 @@ Fantasy lets you build AI agents with Go. Multi-provider, multi-model, one API. 
 
 https://github.com/charmbracelet/fantasy
 
+### Crush
+
+<a href="hhttps://github.com/charmbracelet/crush" target="_blank">
+<img src="https://github.com/user-attachments/assets/cf8ca3ce-8b02-43f0-9d0f-5a331488da4b" width="300" alt="Crush logo">
+</a>
+
+Crush provides glamourous agentic coding for all. Built on Fantasy, see above.
+
+https://github.com/charmbracelet/crush
+
+### floop
+
+<a href="https://github.com/nvandessel/floop" target="_blank">
+<img src="https://github.com/user-attachments/assets/bc695966-8c2b-4956-9b8b-e711333588e4" width="300" alt="floop logo">
+</a>
+
+floop provides persistent memory for AI coding agents.
+
+https://github.com/nvandessel/floop
+
 ## Examples and Tutorials
 
 ### Running local LLMs and VLMs on the Arduino UNO Q with yzma - Arduino Project Hub
