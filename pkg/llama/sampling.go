@@ -110,6 +110,16 @@ var (
 	//               	const char * grammar_root);
 	samplerInitGrammarFunc ffi.Fun
 
+	// LLAMA_API struct llama_sampler * llama_sampler_init_grammar_lazy_patterns(
+	//   const struct llama_vocab * vocab,
+	//   const char * grammar_str,
+	//   const char * grammar_root,
+	//   const char ** trigger_patterns,
+	//   size_t num_trigger_patterns,
+	//   const llama_token * trigger_tokens,
+	//   size_t num_trigger_tokens);
+	samplerInitGrammarLazyPatternsFunc ffi.Fun
+
 	// LLAMA_API struct llama_sampler * llama_sampler_init_adaptive_p(
 	//                            float   target,
 	//                            float   decay,
@@ -218,6 +228,19 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 
 	if samplerInitGrammarFunc, err = lib.Prep("llama_sampler_init_grammar", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return loadError("llama_sampler_init_grammar", err)
+	}
+
+	if samplerInitGrammarLazyPatternsFunc, err = lib.Prep("llama_sampler_init_grammar_lazy_patterns",
+		&ffi.TypePointer, // return: struct llama_sampler *
+		&ffi.TypePointer, // vocab
+		&ffi.TypePointer, // grammar_str
+		&ffi.TypePointer, // grammar_root
+		&ffi.TypePointer, // trigger_patterns
+		&ffiTypeSize,     // num_trigger_patterns
+		&ffi.TypePointer, // trigger_tokens
+		&ffiTypeSize,     // num_trigger_tokens
+	); err != nil {
+		return loadError("llama_sampler_init_grammar_lazy_patterns", err)
 	}
 
 	if samplerInitAdaptivePFunc, err = lib.Prep("llama_sampler_init_adaptive_p", &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeFloat, &ffiTypeSize); err != nil {
@@ -443,6 +466,53 @@ func SamplerInitGrammar(vocab Vocab, grammar, root string) Sampler {
 
 	samplerInitGrammarFunc.Call(unsafe.Pointer(&s), unsafe.Pointer(&vocab), unsafe.Pointer(&grmr), unsafe.Pointer(&r))
 
+	return s
+}
+
+// SamplerInitGrammarLazyPatterns initializes a lazy grammar sampler with trigger patterns and tokens.
+func SamplerInitGrammarLazyPatterns(
+	vocab Vocab,
+	grammar, root string,
+	triggerPatterns []string,
+	triggerTokens []Token,
+) Sampler {
+	var s Sampler
+	if vocab == 0 {
+		return s
+	}
+	grmr, _ := utils.BytePtrFromString(grammar)
+	r, _ := utils.BytePtrFromString(root)
+
+	var tp unsafe.Pointer
+	numPatterns := uint64(len(triggerPatterns))
+	if numPatterns > 0 {
+		ptrs := make([]*byte, 0, numPatterns)
+		for _, pat := range triggerPatterns {
+			ptr, err := utils.BytePtrFromString(pat)
+			if err != nil {
+				return s
+			}
+			ptrs = append(ptrs, ptr)
+		}
+		tp = unsafe.Pointer(&ptrs[0])
+	}
+
+	var tt unsafe.Pointer
+	numTokens := uint64(len(triggerTokens))
+	if numTokens > 0 {
+		tt = unsafe.Pointer(&triggerTokens[0])
+	}
+
+	samplerInitGrammarLazyPatternsFunc.Call(
+		unsafe.Pointer(&s),
+		unsafe.Pointer(&vocab),
+		unsafe.Pointer(&grmr),
+		unsafe.Pointer(&r),
+		&tp,
+		&numPatterns,
+		&tt,
+		&numTokens,
+	)
 	return s
 }
 

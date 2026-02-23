@@ -335,6 +335,32 @@ func TestSamplerInitGrammar(t *testing.T) {
 	SamplerFree(sampler)
 }
 
+func TestSamplerInitGrammarLazyPatterns(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	modelFile := testModelFileName(t)
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	vocab := ModelGetVocab(model)
+
+	grammar := "root ::= \"hello\""
+	root := "root"
+	triggerPatterns := []string{"^hello", "^world"}
+	triggerTokens := []Token{1, 2}
+
+	sampler := SamplerInitGrammarLazyPatterns(vocab, grammar, root, triggerPatterns, triggerTokens)
+	if sampler == (Sampler(0)) {
+		t.Fatal("SamplerInitGrammarLazyPatterns failed to initialize a lazy grammar sampler")
+	}
+
+	SamplerFree(sampler)
+}
+
 func TestSamplerInitAdaptiveP(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)

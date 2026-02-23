@@ -138,6 +138,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_sampler_free`
 - [x] `llama_sampler_init_dist`
 - [x] `llama_sampler_init_dry`
+- [x] `llama_sampler_init_grammar_lazy_patterns`
 - [x] `llama_sampler_init_grammar`
 - [x] `llama_sampler_init_greedy`
 - [x] `llama_sampler_init_logit_bias`
@@ -243,7 +244,6 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `llama_opt_epoch`
 - [ ] `llama_opt_init`
 - [ ] `llama_opt_param_filter_all`
-- [ ] `llama_sampler_init_grammar_lazy_patterns`
 - [ ] `llama_sampler_init`
 - [ ] `llama_set_sampler`
 
