@@ -58,3 +58,25 @@ func HasCUDA() (bool, string) {
 	}
 	return true, ""
 }
+
+// HasROCm checks if ROCm is available and returns (available, rocmVersion).
+func HasROCm() (bool, string) {
+	if runtime.GOOS != "linux" {
+		return false, ""
+	}
+
+	cmd := execCommand("rocminfo")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	err := cmd.Run()
+	if err != nil {
+		return false, ""
+	}
+	re := regexp.MustCompile(`Runtime Version:\s*([0-9.]+)`)
+	matches := re.FindStringSubmatch(out.String())
+	if len(matches) >= 2 {
+		return true, matches[1]
+	}
+	return true, ""
+}

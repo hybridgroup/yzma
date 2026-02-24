@@ -29,7 +29,7 @@ var InstallCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:    "processor",
 			Aliases: []string{"p"},
-			Usage:   "processor to use (cpu, cuda, metal, vulkan)",
+			Usage:   "processor to use (cpu, cuda, metal, rocm, vulkan)",
 			Value:   "",
 		},
 		&cli.StringFlag{
@@ -96,6 +96,11 @@ func runInstall(c *cli.Context) error {
 				fmt.Printf("CUDA detected (version %s), using CUDA build\n", cudaVersion)
 			}
 			processor = "cuda"
+		} else if rocmInstalled, rocmVersion := download.HasROCm(); rocmInstalled {
+			if !quiet {
+				fmt.Printf("ROCm detected (version %s), using ROCm build\n", rocmVersion)
+			}
+			processor = "rocm"
 		}
 	}
 

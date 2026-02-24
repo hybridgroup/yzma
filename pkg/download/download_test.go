@@ -721,6 +721,76 @@ func TestGetDownloadLocationAndFilename_WindowsVulkan_ARM64(t *testing.T) {
 	}
 }
 
+func TestGetDownloadLocationAndFilename_LinuxROCm_AMD64(t *testing.T) {
+	version := "b7974"
+	dest := t.TempDir()
+
+	location, filename, err := getDownloadLocationAndFilename(AMD64, Linux, ROCm, version, dest)
+	if err != nil {
+		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
+	}
+
+	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-ubuntu-rocm-7.2-x64.tar.gz"
+
+	if location != expectedLocation {
+		t.Errorf("location = %q, want %q", location, expectedLocation)
+	}
+	if filename != expectedFilename {
+		t.Errorf("filename = %q, want %q", filename, expectedFilename)
+	}
+}
+
+func TestGetDownloadLocationAndFilename_LinuxROCm_ARM64(t *testing.T) {
+	version := "b7974"
+	dest := t.TempDir()
+
+	_, _, err := getDownloadLocationAndFilename(ARM64, Linux, ROCm, version, dest)
+	if err == nil {
+		t.Fatal("getDownloadLocationAndFilename() should have failed for Linux ARM64 ROCm")
+	}
+}
+
+func TestGetDownloadLocationAndFilename_WindowsROCm_AMD64(t *testing.T) {
+	version := "b7974"
+	dest := t.TempDir()
+
+	location, filename, err := getDownloadLocationAndFilename(AMD64, Windows, ROCm, version, dest)
+	if err != nil {
+		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
+	}
+
+	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7974"
+	expectedFilename := "llama-b7974-bin-win-hip-radeon-x64.zip"
+
+	if location != expectedLocation {
+		t.Errorf("location = %q, want %q", location, expectedLocation)
+	}
+	if filename != expectedFilename {
+		t.Errorf("filename = %q, want %q", filename, expectedFilename)
+	}
+}
+
+func TestGetDownloadLocationAndFilename_WindowsROCm_ARM64(t *testing.T) {
+	version := "b7974"
+	dest := t.TempDir()
+
+	_, _, err := getDownloadLocationAndFilename(ARM64, Windows, ROCm, version, dest)
+	if err == nil {
+		t.Fatal("getDownloadLocationAndFilename() should have failed for Windows ARM64 ROCm")
+	}
+}
+
+func TestGetDownloadLocationAndFilename_DarwinROCm(t *testing.T) {
+	version := "b7974"
+	dest := t.TempDir()
+
+	_, _, err := getDownloadLocationAndFilename(AMD64, Darwin, ROCm, version, dest)
+	if err == nil {
+		t.Fatal("getDownloadLocationAndFilename() should have failed for Darwin ROCm")
+	}
+}
+
 func TestGet404Error(t *testing.T) {
 	version := "b7974"
 
