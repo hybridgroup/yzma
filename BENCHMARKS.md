@@ -125,6 +125,21 @@ PASS
 ok  	github.com/hybridgroup/yzma/pkg/llama	60.887s
 ```
 
+However, for the same device but with the Vulkan backend:
+```
+go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="vulkan0"
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: AMD EPYC 7443P 24-Core Processor
+BenchmarkInference-48    	     328	  36234037 ns/op	       828.0 tokens/s
+BenchmarkInference-48    	     339	  35194859 ns/op	       852.4 tokens/s
+BenchmarkInference-48    	     333	  35395438 ns/op	       847.6 tokens/s
+BenchmarkInference-48    	     338	  35334138 ns/op	       849.0 tokens/s
+BenchmarkInference-48    	     339	  35255138 ns/op	       850.9 tokens/s
+PASS
+ok  	github.com/hybridgroup/yzma/pkg/llama	61.232s
+```
 
 ##### arm64
 
@@ -594,6 +609,22 @@ BenchmarkMultimodalInference-48    	      12	1241431410 ns/op	       961.5 token
 BenchmarkMultimodalInference-48    	       8	1715075982 ns/op	       755.4 tokens/s
 PASS
 ok  	github.com/hybridgroup/yzma/pkg/mtmd	63.492s
+```
+
+However, for the same device but with the Vulkan backend:
+```
+go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="vulkan0"
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/mtmd
+cpu: AMD EPYC 7443P 24-Core Processor
+BenchmarkMultimodalInference-48    	       9	1147394253 ns/op	      1053 tokens/s
+BenchmarkMultimodalInference-48    	      15	 941516811 ns/op	      1245 tokens/s
+BenchmarkMultimodalInference-48    	      13	 924097033 ns/op	      1265 tokens/s
+BenchmarkMultimodalInference-48    	      18	1018284301 ns/op	      1179 tokens/s
+BenchmarkMultimodalInference-48    	      15	1022548971 ns/op	      1172 tokens/s
+PASS
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	71.331s
 ```
 
 #### Vulkan
