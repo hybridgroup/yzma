@@ -69,3 +69,43 @@ func TestCUDA_NoCUDA(t *testing.T) {
 		t.Fatalf("expected empty version, got '%s'", version)
 	}
 }
+
+func TestHasROCm_ParseVersion(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("ROCm is not available on non-Linux, skipping test")
+	}
+
+	origExecCommand := execCommand
+	defer func() { execCommand = origExecCommand }()
+
+	// Use a shell command to echo fake rocminfo output
+	execCommand = func(name string, arg ...string) *exec.Cmd {
+		return exec.Command("sh", "-c", "echo 'Runtime Version:         1.1'")
+	}
+
+	ok, version := HasROCm()
+	if !ok {
+		t.Fatal("expected ROCm to return true")
+	}
+	if version != "1.1" {
+		t.Fatalf("expected version '1.1', got '%s'", version)
+	}
+}
+
+func TestHasROCm_NoROCm(t *testing.T) {
+	origExecCommand := execCommand
+	defer func() { execCommand = origExecCommand }()
+
+	// Simulate rocminfo not found or error
+	execCommand = func(name string, arg ...string) *exec.Cmd {
+		return exec.Command("false") // always fails
+	}
+
+	ok, version := HasROCm()
+	if ok {
+		t.Fatal("expected ROCm to return false")
+	}
+	if version != "" {
+		t.Fatalf("expected empty version, got '%s'", version)
+	}
+}

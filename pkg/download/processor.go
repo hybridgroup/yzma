@@ -7,6 +7,7 @@ var (
 	CPU    = newProcessor("cpu")
 	CUDA   = newProcessor("cuda")
 	Metal  = newProcessor("metal")
+	ROCm   = newProcessor("rocm")
 	Vulkan = newProcessor("vulkan")
 )
 

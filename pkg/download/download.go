@@ -113,6 +113,11 @@ func getDownloadLocationAndFilename(arch Arch, os OS, prcssr Processor, version 
 				break
 			}
 			filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-x64.tar.gz", version)
+		case ROCm:
+			if arch != AMD64 {
+				return "", "", errors.New("precompiled binaries for Linux ARM64 ROCm are not available")
+			}
+			filename = fmt.Sprintf("llama-%s-bin-ubuntu-rocm-7.2-x64.tar.gz", version)
 		default:
 			return "", "", ErrUnknownProcessor
 		}
@@ -220,6 +225,11 @@ func getDownloadLocationAndFilename(arch Arch, os OS, prcssr Processor, version 
 				return "", "", errors.New("precompiled binaries for Windows ARM64 Vulkan are not available")
 			}
 			filename = fmt.Sprintf("llama-%s-bin-win-vulkan-x64.zip", version)
+		case ROCm:
+			if arch != AMD64 {
+				return "", "", errors.New("precompiled binaries for Windows ARM64 ROCm are not available")
+			}
+			filename = fmt.Sprintf("llama-%s-bin-win-hip-radeon-x64.zip", version)
 		default:
 			return "", "", ErrUnknownProcessor
 		}
@@ -237,7 +247,7 @@ var getFunc = get
 // Get downloads the llama.cpp precompiled binaries for the desired arch/OS/processor.
 // arch can be one of the following values: "amd64", "arm64".
 // os can be one of the following values: "linux", "darwin", "windows", "bookworm", "trixie".
-// processor can be one of the following values: "cpu", "cuda", "vulkan", "metal".
+// processor can be one of the following values: "cpu", "cuda", "metal", "rocm", "vulkan".
 // version should be the desired `b1234` formatted llama.cpp version. You can use the
 // [LlamaLatestVersion] function to obtain the latest release.
 // dest in the destination directory for the downloaded binaries.
@@ -249,7 +259,7 @@ func Get(architecture string, operatingSystem string, processor string, version 
 // using the provided progress tracker.
 // arch can be one of the following values: "amd64", "arm64".
 // os can be one of the following values: "linux", "darwin", "windows", "bookworm", "trixie".
-// processor can be one of the following values: "cpu", "cuda", "vulkan", "metal".
+// processor can be one of the following values: "cpu", "cuda", "metal", "rocm", "vulkan".
 // version should be the desired `b1234` formatted llama.cpp version. You can use the
 // [LlamaLatestVersion] function to obtain the latest release.
 // dest in the destination directory for the downloaded binaries.
@@ -261,7 +271,7 @@ func GetWithProgress(architecture string, operatingSystem string, processor stri
 // using the provided context and progress tracker.
 // arch can be one of the following values: "amd64", "arm64".
 // os can be one of the following values: "linux", "darwin", "windows", "bookworm", "trixie".
-// processor can be one of the following values: "cpu", "cuda", "vulkan", "metal".
+// processor can be one of the following values: "cpu", "cuda", "metal", "rocm", "vulkan".
 // version should be the desired `b1234` formatted llama.cpp version. You can use the
 // [LlamaLatestVersion] function to obtain the latest release.
 // dest in the destination directory for the downloaded binaries.
