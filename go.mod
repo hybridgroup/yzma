@@ -1,14 +1,14 @@
 module github.com/hybridgroup/yzma
 
-go 1.24.4
+go 1.25.0
 
 require (
-	github.com/ebitengine/purego v0.9.1
+	github.com/ebitengine/purego v0.10.0
 	github.com/hashicorp/go-getter v1.8.3
-	github.com/jupiterrider/ffi v0.5.1
-	github.com/nikolalohinski/gonja/v2 v2.5.2
+	github.com/jupiterrider/ffi v0.6.0
+	github.com/nikolalohinski/gonja/v2 v2.6.0
 	github.com/urfave/cli/v2 v2.27.7
-	golang.org/x/sys v0.40.0
+	golang.org/x/sys v0.41.0
 )
 
 require (
@@ -57,10 +57,10 @@ require (
 	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	golang.org/x/exp v0.0.0-20260112195511-716be5621a96 // indirect
+	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.27.0 // indirect
-	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.114.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
