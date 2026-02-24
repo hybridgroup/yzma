@@ -86,6 +86,46 @@ PASS
 ok      github.com/hybridgroup/yzma/pkg/llama   67.491s
 ```
 
+#### ROCM
+
+##### amd64
+
+```
+amdgpu_top v0.11.2
+┌──────────────────────────────────────────────────────────────────────────────┐
+│GPU Name                                | PCI Bus        |    VRAM Usage    | │
+│SCLK    MCLK    VDDGFX  Power           | GFX% UMC%Media%|     GTT Usage    | │
+│GPU/MEM_T  Fan     Throttle_Status                                          | │
+│------------------------------------------------------------------------------│
+│#0  [AMD Radeon RX 7900 XTX   ](gfx1100)| 0000:86:00.0   |    26/ 24560 MiB | │
+│   0MHz   96MHz   49mV   14/303W        |   0%   0%   0% |    15/128884 MiB | │
+│ 40C/ 46C     0RPM []                                                       | │
+└──────────────────────────────────────────────────────────────────────────────┘
+┌┤ Processes ├─────────────────────────────────────────────────────────────────┐
+│┌┤ #0  AMD Radeon RX 7900 XTX ├──────────────────────────────────────────────┐│
+││ Name            |  PID  |KFD| VRAM | GTT  |CPU |GFX |COMP|DMA |VCNU|       ││
+││ kronk           | 411062|   |    0M|    2M|  1%|  0%|  0%|  0%|  0%|       ││
+││ amdgpu_top      | 589729|   |    0M|    2M|  1%|  0%|  0%|  0%|  0%|       ││
+│└────────────────────────────────────────────────────────────────────────────┘│
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+```
+go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="rocm0"
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: AMD EPYC 7443P 24-Core Processor
+BenchmarkInference-48    	     194	  60798061 ns/op	       493.4 tokens/s
+BenchmarkInference-48    	     196	  60271732 ns/op	       497.7 tokens/s
+BenchmarkInference-48    	     198	  60255594 ns/op	       497.9 tokens/s
+BenchmarkInference-48    	     195	  60948909 ns/op	       492.2 tokens/s
+BenchmarkInference-48    	     198	  60715718 ns/op	       494.1 tokens/s
+PASS
+ok  	github.com/hybridgroup/yzma/pkg/llama	60.887s
+```
+
+
 ##### arm64
 
 Jetson Orin Nano Developer Kit - 8GB
@@ -515,6 +555,45 @@ BenchmarkMultimodalInference-6                 1        12015033493 ns/op       
 BenchmarkMultimodalInference-6                 1        10055887615 ns/op              127.6 tokens/s
 PASS
 ok      github.com/hybridgroup/yzma/pkg/mtmd    69.733s
+```
+
+#### ROCM
+
+##### amd64
+
+```
+amdgpu_top v0.11.2
+┌──────────────────────────────────────────────────────────────────────────────┐
+│GPU Name                                | PCI Bus        |    VRAM Usage    | │
+│SCLK    MCLK    VDDGFX  Power           | GFX% UMC%Media%|     GTT Usage    | │
+│GPU/MEM_T  Fan     Throttle_Status                                          | │
+│------------------------------------------------------------------------------│
+│#0  [AMD Radeon RX 7900 XTX   ](gfx1100)| 0000:86:00.0   |    26/ 24560 MiB | │
+│   0MHz   96MHz   49mV   14/303W        |   0%   0%   0% |    15/128884 MiB | │
+│ 40C/ 46C     0RPM []                                                       | │
+└──────────────────────────────────────────────────────────────────────────────┘
+┌┤ Processes ├─────────────────────────────────────────────────────────────────┐
+│┌┤ #0  AMD Radeon RX 7900 XTX ├──────────────────────────────────────────────┐│
+││ Name            |  PID  |KFD| VRAM | GTT  |CPU |GFX |COMP|DMA |VCNU|       ││
+││ kronk           | 411062|   |    0M|    2M|  1%|  0%|  0%|  0%|  0%|       ││
+││ amdgpu_top      | 589729|   |    0M|    2M|  1%|  0%|  0%|  0%|  0%|       ││
+│└────────────────────────────────────────────────────────────────────────────┘│
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+```
+go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="rocm0"
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/mtmd
+cpu: AMD EPYC 7443P 24-Core Processor
+BenchmarkMultimodalInference-48    	       9	1182597512 ns/op	       987.1 tokens/s
+BenchmarkMultimodalInference-48    	      10	1241401135 ns/op	       961.6 tokens/s
+BenchmarkMultimodalInference-48    	       8	1323004757 ns/op	       912.9 tokens/s
+BenchmarkMultimodalInference-48    	      12	1241431410 ns/op	       961.5 tokens/s
+BenchmarkMultimodalInference-48    	       8	1715075982 ns/op	       755.4 tokens/s
+PASS
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	63.492s
 ```
 
 #### Vulkan
