@@ -19,6 +19,7 @@ Now, using the `yzma` command, you can install the `llama.cpp` libraries. Follow
 - [macOS](#macos)
 - [Linux - CPU](#linux-cpu)
 - [Linux - CUDA](#linux-cuda)
+- [Linux - ROCm](#linux-rocm)
 - [Linux - Vulkan](#linux-vulkan)
 - [Arduino UNO Q](#arduino-uno-q)
 - [NVIDIA Jetson Orin](#nvidia-jetson-orin)
@@ -63,6 +64,66 @@ Once that is complete, decide where you want put the files for your local instal
 
 ```
 yzma install --lib /path/to/lib --processor cuda
+```
+
+To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
+
+### Linux ROCm
+
+If you want to use an AMD GPU with ROCm on a Linux machine, you will need to install the ROCm 7.2 drivers and runtime.
+
+#### Prerequisites
+
+- An AMD GPU listed in AMD's [supported GPUs table](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/reference/system-requirements.html) (such as AMD Instinct or supported Radeon GPUs)
+- A ROCm 7.2 [supported Linux distribution](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/reference/system-requirements.html) (Ubuntu 24.04 and 22.04 are the most common choices)
+- A compatible AMDGPU kernel driver — see AMD's [driver installation instructions](https://instinct.docs.amd.com/projects/amdgpu-docs/en/latest/install/detailed-install/package-manager/package-manager-ubuntu.html) if your system does not already have one
+
+#### Install ROCm 7.2
+
+##### Ubuntu 24.04
+
+```shell
+wget https://repo.radeon.com/amdgpu-install/7.2/ubuntu/noble/amdgpu-install_7.2.70200-1_all.deb
+sudo apt install ./amdgpu-install_7.2.70200-1_all.deb
+sudo apt update
+sudo apt install python3-setuptools python3-wheel
+sudo usermod -a -G render,video $LOGNAME
+sudo apt install rocm
+```
+
+##### Ubuntu 22.04
+
+```shell
+wget https://repo.radeon.com/amdgpu-install/7.2/ubuntu/jammy/amdgpu-install_7.2.70200-1_all.deb
+sudo apt install ./amdgpu-install_7.2.70200-1_all.deb
+sudo apt update
+sudo apt install python3-setuptools python3-wheel
+sudo usermod -a -G render,video $LOGNAME
+sudo apt install rocm
+```
+
+Reboot your system after installing ROCm to apply all settings (the `render` and `video` group membership requires at least a log out/in to take effect).
+
+You can verify the installation by running:
+
+```shell
+rocminfo
+```
+
+For other supported Linux distributions, see the [ROCm installation guide](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/).
+
+#### Install yzma with ROCm
+
+Once ROCm is installed, decide where you want put the files for your local installation, then run the following command:
+
+```
+yzma install --lib /path/to/lib --processor rocm
+```
+
+Note: if ROCm is already installed, `yzma` can auto-detect it. You can simply run:
+
+```
+yzma install --lib /path/to/lib
 ```
 
 To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
@@ -159,8 +220,14 @@ yzma install --lib /path/to/lib --processor cpu --os trixie
 
 Decide where you want put the files for your local installation, then run the following command:
 
+If you have an Nvidia card, use:
 ```
 yzma install --lib /path/to/lib --processor cuda
+```
+
+If you have an AMD card, use:
+```
+yzma install --lib /path/to/lib --processor rocm
 ```
 
 To complete your installation, follow any specific instructions for your operating system displayed by the results of the `yzma install` command.
