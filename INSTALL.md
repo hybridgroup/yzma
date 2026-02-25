@@ -2,9 +2,15 @@
 
 Here is information on how to install `yzma`.
 
+First, install the `yzma` command line tool. Then use the `yzma` command to install the `llama.cpp` libraries on your machine.
+
+Once you have installed the `llama.cpp` libraries, you can run your Go programs that use `yzma`. See the [examples](./examples/) directory.
+
+You can also use the `yzma` command to download models on your machine. See the [MODELS.md](./MODELS.md) page for information.
+
 ## Install `yzma` command
 
-First install the `yzma` command line tool. You can then use it to install the `llama.cpp` libraries for your platform.
+The first step is to install the `yzma` command line tool. You can then use it to install the `llama.cpp` libraries for your platform.
 
 ```
 go install github.com/hybridgroup/yzma@latest
