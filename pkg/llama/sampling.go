@@ -126,6 +126,9 @@ var (
 	//                         uint32_t   seed);
 	samplerInitAdaptivePFunc ffi.Fun
 
+	// LLAMA_API struct llama_sampler * llama_sampler_init_infill(const struct llama_vocab * vocab);
+	samplerInitInfillFunc ffi.Fun
+
 	// LLAMA_API llama_token llama_sampler_sample(struct llama_sampler * smpl, struct llama_context * ctx, int32_t idx);
 	samplerSampleFunc ffi.Fun
 
@@ -245,6 +248,10 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 
 	if samplerInitAdaptivePFunc, err = lib.Prep("llama_sampler_init_adaptive_p", &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeFloat, &ffiTypeSize); err != nil {
 		return loadError("llama_sampler_init_adaptive_p", err)
+	}
+
+	if samplerInitInfillFunc, err = lib.Prep("llama_sampler_init_infill", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("llama_sampler_init_infill", err)
 	}
 
 	if samplerSampleFunc, err = lib.Prep("llama_sampler_sample", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
@@ -516,10 +523,19 @@ func SamplerInitGrammarLazyPatterns(
 	return s
 }
 
+// SamplerInitAdaptiveP initializes a new Adaptive-P sampler.
 func SamplerInitAdaptiveP(target float32, decay float32, seed uint32) Sampler {
 	var s Sampler
 	samplerInitAdaptivePFunc.Call(unsafe.Pointer(&s), &target, &decay, &seed)
 
+	return s
+}
+
+// SamplerInitInfill initializes a new infill sampler for fill-in-the-middle infilling.
+// Supposed to be used after top_k + top_p sampling.
+func SamplerInitInfill(vocab Vocab) Sampler {
+	var s Sampler
+	samplerInitInfillFunc.Call(unsafe.Pointer(&s), unsafe.Pointer(&vocab))
 	return s
 }
 

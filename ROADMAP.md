@@ -141,6 +141,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_sampler_init_grammar_lazy_patterns`
 - [x] `llama_sampler_init_grammar`
 - [x] `llama_sampler_init_greedy`
+- [x] `llama_sampler_init_infill`
 - [x] `llama_sampler_init_logit_bias`
 - [x] `llama_sampler_init_min_p`
 - [x] `llama_sampler_init_penalties`
