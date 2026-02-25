@@ -14,6 +14,16 @@ Kronk provides a high-level API that feels similar to using an OpenAI compatible
 
 https://github.com/ardanlabs/kronk
 
+### Fantasy
+
+<a href="https://github.com/charmbracelet/fantasy" target="_blank">
+<img src="https://github.com/user-attachments/assets/b22c5862-792a-44c1-bc98-55a2e46c8fb9" width="300" alt="Fantasy logo">
+</a>
+
+Fantasy lets you build AI agents with Go. Multi-provider, multi-model, one API. It supports [Kronk](https://github.com/ardanlabs/kronk), which in turn is built on yzma.
+
+https://github.com/charmbracelet/fantasy
+
 ## Applications
 
 ### wasmVision
@@ -35,16 +45,6 @@ https://github.com/wasmvision/wasmvision
 NornicDB is a high-performance graph database designed for AI agents and knowledge systems.
 
 https://github.com/orneryd/NornicDB
-
-### Fantasy
-
-<a href="https://github.com/charmbracelet/fantasy" target="_blank">
-<img src="https://github.com/user-attachments/assets/b22c5862-792a-44c1-bc98-55a2e46c8fb9" width="300" alt="Fantasy logo">
-</a>
-
-Fantasy lets you build AI agents with Go. Multi-provider, multi-model, one API. It supports [Kronk](https://github.com/ardanlabs/kronk), which in turn is built on yzma.
-
-https://github.com/charmbracelet/fantasy
 
 ### Crush
 

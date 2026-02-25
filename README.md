@@ -88,9 +88,11 @@ $ go run ./examples/hello/
 
 ## Installation
 
-You can use the convenient `yzma` command line tool to download the `llama.cpp` prebuilt libraries for your platform. You can also have your application self-download them automatically at installation time, including auto-detection for CUDA.
+You can use the convenient `yzma` command line tool to download the `llama.cpp` prebuilt libraries for your platform. You can also have your application self-download them automatically at installation time, including auto-detection for CUDA and ROCm.
 
-See [INSTALL.md](./INSTALL.md) for installation instructions for [macOS](./INSTALL.md#macos), [Linux](./INSTALL.md#linux), and [Windows](./INSTALL.md#windows). We also have specific information on running `yzma` on [Raspberry Pi](./INSTALL.md#raspberry-pi), [NVIDIA Jetson Orin](./INSTALL.md#nvidia-jetson-orin), or the [Arduino UNO Q](./INSTALL.md#arduino-uno-q).
+See [INSTALL.md](./INSTALL.md) for installation instructions for [macOS](./INSTALL.md#macos), [Linux](./INSTALL.md#linux), and [Windows](./INSTALL.md#windows).
+
+We also have specific information on running `yzma` on [Raspberry Pi](./INSTALL.md#raspberry-pi), [NVIDIA Jetson Orin](./INSTALL.md#nvidia-jetson-orin), and the [Arduino UNO Q](./INSTALL.md#arduino-uno-q).
 
 ## Examples
 
@@ -135,13 +137,13 @@ Sure! Let's go to the zoo and feed the llama. What kind of llama are you interes
 
 See the [examples](./examples/) directory for more examples of how to use `yzma`.
 
-## Projects
+## yzma in action
 
-Who is using `yzma`? Check out some of the [tools, applications, examples, and blog posts](./PROJECTS.md) here!
+Who is using `yzma`? Check out some of the [tools](./PROJECTS.md#tools-and-frameworks), [applications](./PROJECTS.md#applications), [examples](./PROJECTS.md#examples-and-tutorials), and [blog posts and videos](./PROJECTS.md#blog-postsvideo)!
 
 ## Models
 
-`yzma` uses models in the GGUF format supported by `llama.cpp`. There are many models in GGUF format on Hugging Face (over 161k at last count):
+`yzma` uses models in the GGUF format supported by `llama.cpp`. There are many models in GGUF format on Hugging Face (over 164k at last count):
 
 https://huggingface.co/models?library=gguf&sort=trending
 
