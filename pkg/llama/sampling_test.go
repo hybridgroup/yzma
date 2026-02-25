@@ -373,6 +373,27 @@ func TestSamplerInitAdaptiveP(t *testing.T) {
 	SamplerFree(sampler)
 }
 
+func TestSamplerInitInfill(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	modelFile := testModelFileName(t)
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	vocab := ModelGetVocab(model)
+
+	sampler := SamplerInitInfill(vocab)
+	if sampler == (Sampler(0)) {
+		t.Fatalf("SamplerInitInfill returned 0")
+	}
+
+	SamplerFree(sampler)
+}
+
 func TestSamplerSample(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
