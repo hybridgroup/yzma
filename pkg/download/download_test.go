@@ -580,7 +580,7 @@ func TestGetDownloadLocationAndFilename_DarwinMetal_ARM64(t *testing.T) {
 		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
 	}
 
-	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7974"
+	expectedLocation := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b7974"
 	expectedFilename := "llama-b7974-bin-macos-arm64.tar.gz"
 
 	if location != expectedLocation {
@@ -610,7 +610,7 @@ func TestGetDownloadLocationAndFilename_DarwinCPU_ARM64(t *testing.T) {
 		t.Fatalf("getDownloadLocationAndFilename() failed: %v", err)
 	}
 
-	expectedLocation := "https://github.com/ggml-org/llama.cpp/releases/download/b7974"
+	expectedLocation := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b7974"
 	expectedFilename := "llama-b7974-bin-macos-arm64.tar.gz"
 
 	if location != expectedLocation {

@@ -190,9 +190,11 @@ func getDownloadLocationAndFilename(arch Arch, os OS, prcssr Processor, version 
 			if arch != ARM64 {
 				return "", "", errors.New("precompiled binaries for macOS non-ARM64 CPU/Metal are not available")
 			}
+			location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
 			filename = fmt.Sprintf("llama-%s-bin-macos-arm64.tar.gz", version)
 		case CPU:
 			if arch == ARM64 {
+				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
 				filename = fmt.Sprintf("llama-%s-bin-macos-arm64.tar.gz", version)
 			} else {
 				filename = fmt.Sprintf("llama-%s-bin-macos-x64.tar.gz", version)
