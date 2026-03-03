@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
 )
@@ -38,20 +39,29 @@ func main() {
 	mParams := llama.ModelDefaultParams()
 
 	// handle Mixture of Experts (MoE) options
+	var tensorBuftBuf []llama.TensorBuftOverride
 	switch {
 	case *cmoe:
-		overrides := []llama.TensorBuftOverride{llama.NewTensorBuftAllFFNExprsOverride()}
-		mParams.SetTensorBufOverrides(overrides)
-	case *ncmoe > 0:
-		overrides := make([]llama.TensorBuftOverride, 0)
-		for i := 0; i < *ncmoe; i++ {
-			overrides = append(overrides, llama.NewTensorBuftBlockOverride(i))
+		tensorBuftBuf = []llama.TensorBuftOverride{llama.NewTensorBuftAllFFNExprsOverride(), {}} // sentinel-terminated
+		if err := mParams.SetTensorBufOverrides(tensorBuftBuf); err != nil {
+			fmt.Println("SetTensorBufOverrides failed:", err)
+			os.Exit(1)
 		}
-		mParams.SetTensorBufOverrides(overrides)
+	case *ncmoe > 0:
+		tensorBuftBuf = make([]llama.TensorBuftOverride, 0, *ncmoe+1)
+		for i := 0; i < *ncmoe; i++ {
+			tensorBuftBuf = append(tensorBuftBuf, llama.NewTensorBuftBlockOverride(i))
+		}
+		tensorBuftBuf = append(tensorBuftBuf, llama.TensorBuftOverride{}) // sentinel
+		if err := mParams.SetTensorBufOverrides(tensorBuftBuf); err != nil {
+			fmt.Println("SetTensorBufOverrides failed:", err)
+			os.Exit(1)
+		}
 	}
 
 	var err error
 	model, err = llama.ModelLoadFromFile(*modelFile, mParams)
+	runtime.KeepAlive(tensorBuftBuf)
 	if err != nil {
 		fmt.Println("unable to load model from file", err.Error())
 		os.Exit(1)

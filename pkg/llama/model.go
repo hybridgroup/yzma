@@ -789,13 +789,22 @@ func ModelMetaKeyStr(key ModelMetaKey) string {
 }
 
 // SetTensorBufOverrides sets tensor buffer overrides for Mixture of Experts (MoE) execution.
-func (p *ModelParams) SetTensorBufOverrides(overrides []TensorBuftOverride) {
+// The slice must be sentinel-terminated: the last element must have Pattern == nil.
+// The caller must keep the slice alive (e.g., via runtime.KeepAlive) until the
+// model load call using these params completes.
+func (p *ModelParams) SetTensorBufOverrides(overrides []TensorBuftOverride) error {
 	if len(overrides) == 0 {
 		p.TensorBuftOverrides = uintptr(0)
-		return
+		return nil
+	}
+
+	if overrides[len(overrides)-1].Pattern != nil {
+		return errors.New("SetTensorBufOverrides: slice must be sentinel-terminated (last element Pattern must be nil)")
 	}
 
 	p.TensorBuftOverrides = uintptr(unsafe.Pointer(&overrides[0]))
+
+	return nil
 }
 
 var progressCallback unsafe.Pointer
@@ -838,15 +847,22 @@ func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
 }
 
 // SetDevices sets the devices to be used for model execution.
-// An empty slice indicates that no specific devices are set, meaning
-// that the default device selection will be used.
-func (p *ModelParams) SetDevices(devices []GGMLBackendDevice) {
+// The slice must be NULL-terminated: the last element must be 0.
+// The caller must keep the slice alive (e.g., via runtime.KeepAlive) until
+// the model load call using these params completes.
+func (p *ModelParams) SetDevices(devices []GGMLBackendDevice) error {
 	if len(devices) == 0 {
 		p.Devices = uintptr(0)
-		return
+		return nil
+	}
+
+	if devices[len(devices)-1] != 0 {
+		return errors.New("SetDevices: slice must be NULL-terminated (last element must be 0)")
 	}
 
 	p.Devices = uintptr(unsafe.Pointer(&devices[0]))
+
+	return nil
 }
 
 // ModelQuantizeDefaultParams returns default parameters for model quantization.
