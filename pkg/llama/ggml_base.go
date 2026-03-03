@@ -42,6 +42,10 @@ func GGMLBackendCpuBufferType() GGMLBackendBufferType {
 
 const ffnExprsRegex = `\\.ffn_(up|down|gate)_(ch|)exps`
 
+// MoEExpertTensorPattern is the canonical regex matching routed expert tensors.
+// It matches ffn_(up|down|gate)_exps and ffn_(up|down|gate)_chexps tensor names.
+const MoEExpertTensorPattern = ffnExprsRegex
+
 func ffnExprBlockRegex(index int) string {
 	return fmt.Sprintf("blk\\.%d%s", index, ffnExprsRegex)
 }
