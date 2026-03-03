@@ -626,7 +626,7 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 
 	// add EOG logit bias to prevent generating EOG tokens
 	logitBiasEOG := make([]LogitBias, 0)
-	for i := int32(0); i < nTokens; i++ {
+	for i := range nTokens {
 		token := Token(i)
 		if VocabIsEOG(vocab, token) {
 			logitBiasEOG = append(logitBiasEOG, LogitBias{Token: token, Bias: math.SmallestNonzeroFloat32})
