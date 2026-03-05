@@ -17,6 +17,9 @@ var (
 
 	// GGML_API const char * ggml_backend_dev_name(ggml_backend_dev_t device);
 	ggmlBackendDevNameFunc ffi.Fun
+
+	// GGML_API void ggml_backend_dev_memory(ggml_backend_dev_t device, size_t * free, size_t * total);
+	ggmlBackendDevMemoryFunc ffi.Fun
 )
 
 func loadGGMLBase(lib ffi.Lib) error {
@@ -28,6 +31,10 @@ func loadGGMLBase(lib ffi.Lib) error {
 
 	if ggmlBackendDevNameFunc, err = lib.Prep("ggml_backend_dev_name", &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return loadError("ggml_backend_dev_name", err)
+	}
+
+	if ggmlBackendDevMemoryFunc, err = lib.Prep("ggml_backend_dev_memory", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("ggml_backend_dev_memory", err)
 	}
 
 	return nil

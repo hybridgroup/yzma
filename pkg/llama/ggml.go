@@ -127,9 +127,6 @@ var (
 	// GGML_API ggml_backend_dev_t ggml_backend_dev_by_type(enum ggml_backend_dev_type type);
 	ggmlBackendDevByTypeFunc ffi.Fun
 
-	// GGML_API void ggml_backend_dev_memory(ggml_backend_dev_t device, size_t * free, size_t * total);
-	ggmlBackendDevMemoryFunc ffi.Fun
-
 	// GGML_API size_t             ggml_backend_reg_count(void);
 	ggmlBackendRegCountFunc ffi.Fun
 
@@ -169,10 +166,6 @@ func loadGGML(lib ffi.Lib) error {
 
 	if ggmlBackendDevByTypeFunc, err = lib.Prep("ggml_backend_dev_by_type", &ffi.TypePointer, &ffi.TypeSint32); err != nil {
 		return loadError("ggml_backend_dev_by_type", err)
-	}
-
-	if ggmlBackendDevMemoryFunc, err = lib.Prep("ggml_backend_dev_memory", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer); err != nil {
-		return loadError("ggml_backend_dev_memory", err)
 	}
 
 	if ggmlBackendRegCountFunc, err = lib.Prep("ggml_backend_reg_count", &ffi.TypeUint64); err != nil {
