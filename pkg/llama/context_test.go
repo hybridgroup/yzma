@@ -864,11 +864,19 @@ func TestSetSamplerAttachRemove(t *testing.T) {
 	}
 	defer Free(ctx)
 
-	sampler := SamplerInitGreedy()
-	if sampler == 0 {
+	chain := SamplerChainInit(SamplerChainDefaultParams())
+	if chain == 0 {
+		t.Fatal("SamplerChainInit failed")
+	}
+	defer SamplerFree(chain)
+
+	greedy := SamplerInitGreedy()
+	if greedy == 0 {
 		t.Fatal("SamplerInitGreedy failed")
 	}
-	defer SamplerFree(sampler)
+	SamplerChainAdd(chain, greedy)
+
+	sampler := chain
 
 	if !SetSampler(ctx, 0, sampler) {
 		t.Fatal("SetSampler should return true when attaching a sampler")

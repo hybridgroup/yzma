@@ -169,12 +169,12 @@ func TestMoEExpertTensorPattern(t *testing.T) {
 	re := regexp.MustCompile(MoEExpertTensorPattern)
 
 	match := []string{
-		".ffn_up_exps",
-		".ffn_down_exps",
-		".ffn_gate_exps",
-		".ffn_up_chexps",
-		".ffn_down_chexps",
-		".ffn_gate_chexps",
+		`\.ffn_up_exps`,
+		`\.ffn_down_exps`,
+		`\.ffn_gate_exps`,
+		`\.ffn_up_chexps`,
+		`\.ffn_down_chexps`,
+		`\.ffn_gate_chexps`,
 	}
 	for _, s := range match {
 		if !re.MatchString(s) {
@@ -183,9 +183,9 @@ func TestMoEExpertTensorPattern(t *testing.T) {
 	}
 
 	noMatch := []string{
-		".ffn_up_exp",
+		`\.ffn_up_exp`,
 		".attn_q",
-		".ffn_down_chexp",
+		`\.ffn_down_chexp`,
 	}
 	for _, s := range noMatch {
 		if re.MatchString(s) {
