@@ -1,6 +1,9 @@
 package llama
 
-import "testing"
+import (
+	"regexp"
+	"testing"
+)
 
 func TestGGMLBackendDevCount(t *testing.T) {
 	testSetup(t)
@@ -133,4 +136,60 @@ func TestGGMLBackendUnload(t *testing.T) {
 	// Should not panic or error
 	GGMLBackendUnload(reg)
 	t.Logf("GGMLBackendUnload succeeded for reg: %v", reg)
+}
+
+func TestGGMLBackendDeviceMemoryNilDevice(t *testing.T) {
+	free, total := GGMLBackendDeviceMemory(0)
+	if free != 0 || total != 0 {
+		t.Fatalf("GGMLBackendDeviceMemory(0) = (%d, %d), want (0, 0)", free, total)
+	}
+}
+
+func TestGGMLBackendDeviceMemory(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	if GGMLBackendDeviceCount() == 0 {
+		t.Skip("No backend devices available")
+	}
+
+	dev := GGMLBackendDeviceGet(0)
+	if dev == 0 {
+		t.Fatal("GGMLBackendDeviceGet(0) returned 0")
+	}
+
+	free, total := GGMLBackendDeviceMemory(dev)
+	if total > 0 && free > total {
+		t.Fatalf("free (%d) > total (%d)", free, total)
+	}
+	t.Logf("Device memory: free=%d, total=%d", free, total)
+}
+
+func TestMoEExpertTensorPattern(t *testing.T) {
+	re := regexp.MustCompile(MoEExpertTensorPattern)
+
+	match := []string{
+		".ffn_up_exps",
+		".ffn_down_exps",
+		".ffn_gate_exps",
+		".ffn_up_chexps",
+		".ffn_down_chexps",
+		".ffn_gate_chexps",
+	}
+	for _, s := range match {
+		if !re.MatchString(s) {
+			t.Errorf("pattern should match %q", s)
+		}
+	}
+
+	noMatch := []string{
+		".ffn_up_exp",
+		".attn_q",
+		".ffn_down_chexp",
+	}
+	for _, s := range noMatch {
+		if re.MatchString(s) {
+			t.Errorf("pattern should not match %q", s)
+		}
+	}
 }

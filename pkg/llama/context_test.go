@@ -837,3 +837,57 @@ func TestSetAbortCallback(t *testing.T) {
 	SetAbortCallback(ctx, nil)
 	t.Log("SetAbortCallback with nil completed successfully")
 }
+
+func TestSetSamplerNilContext(t *testing.T) {
+	if SetSampler(0, 0, 0) {
+		t.Fatal("SetSampler should return false for nil context")
+	}
+	if SetSampler(0, SeqId(0), Sampler(1)) {
+		t.Fatal("SetSampler should return false for nil context with non-zero sampler")
+	}
+}
+
+func TestSetSamplerAttachRemove(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	modelFile := testModelFileName(t)
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
+	defer Free(ctx)
+
+	sampler := SamplerInitGreedy()
+	if sampler == 0 {
+		t.Fatal("SamplerInitGreedy failed")
+	}
+	defer SamplerFree(sampler)
+
+	if !SetSampler(ctx, 0, sampler) {
+		t.Fatal("SetSampler should return true when attaching a sampler")
+	}
+	defer SetSampler(ctx, 0, 0)
+
+	prompt := "Hello world"
+	vocab := ModelGetVocab(model)
+	tokens := Tokenize(vocab, prompt, true, true)
+	batch := BatchGetOne(tokens)
+	Decode(ctx, batch)
+
+	count, err := GetSampledCandidatesCountIth(ctx, -1)
+	if err != nil {
+		t.Fatalf("GetSampledCandidatesCountIth failed: %v", err)
+	}
+	t.Logf("sampled candidates count after SetSampler: %d", count)
+
+	if !SetSampler(ctx, 0, 0) {
+		t.Fatal("SetSampler should return true when removing a sampler")
+	}
+}
