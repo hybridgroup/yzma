@@ -807,7 +807,8 @@ func (p *ModelParams) SetTensorBufOverrides(overrides []TensorBuftOverride) erro
 	return nil
 }
 
-var progressCallback unsafe.Pointer
+var progressCallbackCode unsafe.Pointer
+var progressCallbackCif *ffi.Cif
 var sizeOfClosure = unsafe.Sizeof(ffi.Closure{})
 
 // SetProgressCallback sets a progress callback for model loading.
@@ -817,7 +818,7 @@ func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
 		return
 	}
 
-	closure := ffi.ClosureAlloc(sizeOfClosure, &progressCallback)
+	closure := ffi.ClosureAlloc(sizeOfClosure, &progressCallbackCode)
 
 	fn := ffi.NewCallback(func(cif *ffi.Cif, ret unsafe.Pointer, args *unsafe.Pointer, userData unsafe.Pointer) uintptr {
 		if args == nil || ret == nil {
@@ -832,18 +833,18 @@ func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
 		return 0
 	})
 
-	var cifCallback ffi.Cif
-	if status := ffi.PrepCif(&cifCallback, ffi.DefaultAbi, 2, &ffi.TypeUint8, &ffi.TypeFloat, &ffi.TypePointer); status != ffi.OK {
+	progressCallbackCif = new(ffi.Cif)
+	if status := ffi.PrepCif(progressCallbackCif, ffi.DefaultAbi, 2, &ffi.TypeUint8, &ffi.TypeFloat, &ffi.TypePointer); status != ffi.OK {
 		panic(status)
 	}
 
 	if closure != nil {
-		if status := ffi.PrepClosureLoc(closure, &cifCallback, fn, nil, progressCallback); status != ffi.OK {
+		if status := ffi.PrepClosureLoc(closure, progressCallbackCif, fn, nil, progressCallbackCode); status != ffi.OK {
 			panic(status)
 		}
 	}
 
-	p.ProgressCallback = uintptr(progressCallback)
+	p.ProgressCallback = uintptr(progressCallbackCode)
 }
 
 // SetDevices sets the devices to be used for model execution.
