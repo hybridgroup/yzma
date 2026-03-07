@@ -646,6 +646,32 @@ func SetAbortCallback(ctx Context, fn AbortFunc) {
 	setAbortCallbackFunc.Call(nil, unsafe.Pointer(&ctx), unsafe.Pointer(&callback), unsafe.Pointer(&nilPtr))
 }
 
+// SetSampler attaches a sampler to the context for the given sequence ID,
+// enabling backend (GPU-side) sampling during decode. When a sampler is
+// registered, llama_decode produces sampled tokens, probabilities, and
+// candidate lists as part of the compute graph, making them available via
+// GetSampledCandidatesIth / GetSampledProbsIth.
+//
+// Pass a zero Sampler to remove the sampler for the given sequence.
+// Returns true if the sampler was successfully attached (or removed).
+func SetSampler(ctx Context, seqID SeqId, smpl Sampler) bool {
+	if ctx == 0 {
+		return false
+	}
+
+	var result ffi.Arg
+	id := int32(seqID)
+
+	if smpl == 0 {
+		var nilPtr uintptr
+		setSamplerFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &id, unsafe.Pointer(&nilPtr))
+	} else {
+		setSamplerFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &id, unsafe.Pointer(&smpl))
+	}
+
+	return result.Bool()
+}
+
 // newAbortCallback creates a C-compatible callback from a Go AbortFunc.
 func newAbortCallback(fn AbortFunc) uintptr {
 	return purego.NewCallback(func(data uintptr) uintptr {
