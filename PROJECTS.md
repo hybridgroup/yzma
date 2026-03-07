@@ -66,6 +66,26 @@ floop provides persistent memory for AI coding agents.
 
 https://github.com/nvandessel/floop
 
+### ImmyGo
+
+<a href="https://immygo.app/" target="_blank">
+<img src="https://raw.githubusercontent.com/amken3d/Immygo/refs/heads/master/assets/immygo-logo-sq.svg" width="300" alt="ImmyGo logo">
+</a>
+
+AI-first Go UI framework. Describe what you want, and ImmyGo builds it. A high-level framework built on Gio with Fluent Design aesthetics and local AI capabilities via yzma, Ollama and Anthropic API.
+
+https://immygo.app/
+
+### Pingo
+
+<a href="hhttps://github.com/amken3d/Pingo" target="_blank">
+<img src="https://raw.githubusercontent.com/amken3d/Pingo/refs/heads/master/assets/Screenshot.png" width="300" alt="Pingo">
+</a>
+
+Raspberry Pi Pico / Pico 2 pin selector desktop application built with ImmyGo. Built-in chat for pin selection advice, powered by multiple LLM backends including yzma.
+
+https://github.com/amken3d/Pingo
+
 ## Examples and Tutorials
 
 ### Running local LLMs and VLMs on the Arduino UNO Q with yzma - Arduino Project Hub
