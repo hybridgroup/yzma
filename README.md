@@ -143,7 +143,7 @@ Who is using `yzma`? Check out some of the [tools](./PROJECTS.md#tools-and-frame
 
 ## Models
 
-`yzma` uses models in the GGUF format supported by `llama.cpp`. There are many models in GGUF format on Hugging Face (over 164k at last count):
+`yzma` uses models in the GGUF format supported by `llama.cpp`. There are many models in GGUF format on Hugging Face (over 166k at last count):
 
 https://huggingface.co/models?library=gguf&sort=trending
 
@@ -159,7 +159,7 @@ Check out the [Model Usage](./MODELS.md) page for more information.
 
 ## Support
 
-`yzma` currently has support for over 95% of `llama.cpp` functionality. See [ROADMAP.md](./ROADMAP.md) for the complete list.
+`yzma` currently has support for over 96% of `llama.cpp` functionality. See [ROADMAP.md](./ROADMAP.md) for the complete list.
 
 You can use multimodal models (image/audio) and text language models with full hardware acceleration on Linux, macOS, and Windows.
 
