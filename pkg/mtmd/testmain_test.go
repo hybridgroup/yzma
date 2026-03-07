@@ -59,8 +59,8 @@ func benchmarkSetupOnce(b *testing.B) {
 
 	if device != "" {
 		devs := []llama.GGMLBackendDevice{}
-		devices := strings.SplitSeq(device, ",")
-		for d := range devices {
+		devices := strings.Split(device, ",")
+		for _, d := range devices {
 			dev := llama.GGMLBackendDeviceByName(d)
 			if dev == 0 {
 				b.Fatalf("unknown device: %s", d)
