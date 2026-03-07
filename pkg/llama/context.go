@@ -149,6 +149,9 @@ var (
 
 	// LLAMA_API void llama_set_abort_callback(struct llama_context * ctx, ggml_abort_callback abort_callback, void * abort_callback_data);
 	setAbortCallbackFunc ffi.Fun
+
+	// LLAMA_API bool llama_set_sampler(struct llama_context * ctx, llama_seq_id seq_id, struct llama_sampler * smpl);
+	setSamplerFunc ffi.Fun
 )
 
 func loadContextFuncs(lib ffi.Lib) error {
@@ -272,6 +275,10 @@ func loadContextFuncs(lib ffi.Lib) error {
 
 	if setAbortCallbackFunc, err = lib.Prep("llama_set_abort_callback", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return loadError("llama_set_abort_callback", err)
+	}
+
+	if setSamplerFunc, err = lib.Prep("llama_set_sampler", &ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_set_sampler", err)
 	}
 
 	return nil

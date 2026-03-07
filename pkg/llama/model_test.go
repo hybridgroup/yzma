@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"unsafe"
 )
 
 func TestModelDefaultParams(t *testing.T) {
@@ -605,4 +606,80 @@ func TestModelParamsFitInvalidPath(t *testing.T) {
 	if status != ModelParamsFitStatusError {
 		t.Fatalf("ParamsFit should return error status for invalid path, got: %d", status)
 	}
+}
+
+func TestModelParamsSetTensorBufOverrides(t *testing.T) {
+	t.Run("empty_clears_pointer", func(t *testing.T) {
+		p := ModelDefaultParams()
+		p.TensorBuftOverrides = 0xDEAD
+		if err := p.SetTensorBufOverrides(nil); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if p.TensorBuftOverrides != 0 {
+			t.Fatalf("TensorBuftOverrides = %#x, want 0", p.TensorBuftOverrides)
+		}
+	})
+
+	t.Run("valid_sentinel_sets_pointer", func(t *testing.T) {
+		b := byte('x')
+		overrides := []TensorBuftOverride{{Pattern: &b}, {}}
+		p := ModelDefaultParams()
+		if err := p.SetTensorBufOverrides(overrides); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		want := uintptr(unsafe.Pointer(&overrides[0]))
+		if p.TensorBuftOverrides != want {
+			t.Fatalf("TensorBuftOverrides = %#x, want %#x", p.TensorBuftOverrides, want)
+		}
+	})
+
+	t.Run("missing_sentinel_returns_error", func(t *testing.T) {
+		b := byte('x')
+		overrides := []TensorBuftOverride{{Pattern: &b}}
+		p := ModelDefaultParams()
+		p.TensorBuftOverrides = 0xDEAD
+		if err := p.SetTensorBufOverrides(overrides); err == nil {
+			t.Fatal("expected error for missing sentinel")
+		}
+		if p.TensorBuftOverrides != 0xDEAD {
+			t.Fatal("TensorBuftOverrides was modified on error")
+		}
+	})
+}
+
+func TestModelParamsSetDevices(t *testing.T) {
+	t.Run("empty_clears_pointer", func(t *testing.T) {
+		p := ModelDefaultParams()
+		p.Devices = 0xDEAD
+		if err := p.SetDevices(nil); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if p.Devices != 0 {
+			t.Fatalf("Devices = %#x, want 0", p.Devices)
+		}
+	})
+
+	t.Run("valid_null_terminated_sets_pointer", func(t *testing.T) {
+		devices := []GGMLBackendDevice{GGMLBackendDevice(1), 0}
+		p := ModelDefaultParams()
+		if err := p.SetDevices(devices); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		want := uintptr(unsafe.Pointer(&devices[0]))
+		if p.Devices != want {
+			t.Fatalf("Devices = %#x, want %#x", p.Devices, want)
+		}
+	})
+
+	t.Run("missing_terminator_returns_error", func(t *testing.T) {
+		devices := []GGMLBackendDevice{GGMLBackendDevice(1)}
+		p := ModelDefaultParams()
+		p.Devices = 0xDEAD
+		if err := p.SetDevices(devices); err == nil {
+			t.Fatal("expected error for missing NULL terminator")
+		}
+		if p.Devices != 0xDEAD {
+			t.Fatal("Devices was modified on error")
+		}
+	})
 }

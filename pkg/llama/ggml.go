@@ -259,3 +259,15 @@ func GGMLBackendRegByName(name string) GGMLBackendReg {
 	ggmlBackendRegByNameFunc.Call(unsafe.Pointer(&ret), unsafe.Pointer(&namePtr))
 	return ret
 }
+
+// GGMLBackendDeviceMemory returns the free and total memory (in bytes) for the given device.
+func GGMLBackendDeviceMemory(device GGMLBackendDevice) (free uint64, total uint64) {
+	if device == 0 {
+		return 0, 0
+	}
+
+	freePtr := unsafe.Pointer(&free)
+	totalPtr := unsafe.Pointer(&total)
+	ggmlBackendDevMemoryFunc.Call(nil, unsafe.Pointer(&device), unsafe.Pointer(&freePtr), unsafe.Pointer(&totalPtr))
+	return free, total
+}

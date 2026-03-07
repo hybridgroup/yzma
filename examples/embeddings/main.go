@@ -60,7 +60,14 @@ func run() error {
 
 	// create batch and decode
 	batch := llama.BatchGetOne(tokens)
-	llama.Decode(lctx, batch)
+
+	ret, err := llama.Decode(lctx, batch)
+	if err != nil {
+		return fmt.Errorf("decode failed: %w", err)
+	}
+	if ret != 0 {
+		return fmt.Errorf("decode returned non-zero: %d", ret)
+	}
 
 	// get embeddings
 	nEmbd := llama.ModelNEmbd(model)

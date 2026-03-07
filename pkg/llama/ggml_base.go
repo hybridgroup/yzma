@@ -17,6 +17,9 @@ var (
 
 	// GGML_API const char * ggml_backend_dev_name(ggml_backend_dev_t device);
 	ggmlBackendDevNameFunc ffi.Fun
+
+	// GGML_API void ggml_backend_dev_memory(ggml_backend_dev_t device, size_t * free, size_t * total);
+	ggmlBackendDevMemoryFunc ffi.Fun
 )
 
 func loadGGMLBase(lib ffi.Lib) error {
@@ -30,6 +33,10 @@ func loadGGMLBase(lib ffi.Lib) error {
 		return loadError("ggml_backend_dev_name", err)
 	}
 
+	if ggmlBackendDevMemoryFunc, err = lib.Prep("ggml_backend_dev_memory", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("ggml_backend_dev_memory", err)
+	}
+
 	return nil
 }
 
@@ -41,6 +48,10 @@ func GGMLBackendCpuBufferType() GGMLBackendBufferType {
 }
 
 const ffnExprsRegex = `\\.ffn_(up|down|gate)_(ch|)exps`
+
+// MoEExpertTensorPattern is the canonical regex matching routed expert tensors.
+// It matches ffn_(up|down|gate)_exps and ffn_(up|down|gate)_chexps tensor names.
+const MoEExpertTensorPattern = ffnExprsRegex
 
 func ffnExprBlockRegex(index int) string {
 	return fmt.Sprintf("blk\\.%d%s", index, ffnExprsRegex)

@@ -789,16 +789,26 @@ func ModelMetaKeyStr(key ModelMetaKey) string {
 }
 
 // SetTensorBufOverrides sets tensor buffer overrides for Mixture of Experts (MoE) execution.
-func (p *ModelParams) SetTensorBufOverrides(overrides []TensorBuftOverride) {
+// The slice must be sentinel-terminated: the last element must have Pattern == nil.
+// The caller must keep the slice alive (e.g., via runtime.KeepAlive) until the
+// model load call using these params completes.
+func (p *ModelParams) SetTensorBufOverrides(overrides []TensorBuftOverride) error {
 	if len(overrides) == 0 {
 		p.TensorBuftOverrides = uintptr(0)
-		return
+		return nil
+	}
+
+	if overrides[len(overrides)-1].Pattern != nil {
+		return errors.New("SetTensorBufOverrides: slice must be sentinel-terminated (last element Pattern must be nil)")
 	}
 
 	p.TensorBuftOverrides = uintptr(unsafe.Pointer(&overrides[0]))
+
+	return nil
 }
 
-var progressCallback unsafe.Pointer
+var progressCallbackCode unsafe.Pointer
+var progressCallbackCif *ffi.Cif
 var sizeOfClosure = unsafe.Sizeof(ffi.Closure{})
 
 // SetProgressCallback sets a progress callback for model loading.
@@ -808,7 +818,7 @@ func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
 		return
 	}
 
-	closure := ffi.ClosureAlloc(sizeOfClosure, &progressCallback)
+	closure := ffi.ClosureAlloc(sizeOfClosure, &progressCallbackCode)
 
 	fn := ffi.NewCallback(func(cif *ffi.Cif, ret unsafe.Pointer, args *unsafe.Pointer, userData unsafe.Pointer) uintptr {
 		if args == nil || ret == nil {
@@ -823,30 +833,37 @@ func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
 		return 0
 	})
 
-	var cifCallback ffi.Cif
-	if status := ffi.PrepCif(&cifCallback, ffi.DefaultAbi, 2, &ffi.TypeUint8, &ffi.TypeFloat, &ffi.TypePointer); status != ffi.OK {
+	progressCallbackCif = new(ffi.Cif)
+	if status := ffi.PrepCif(progressCallbackCif, ffi.DefaultAbi, 2, &ffi.TypeUint8, &ffi.TypeFloat, &ffi.TypePointer); status != ffi.OK {
 		panic(status)
 	}
 
 	if closure != nil {
-		if status := ffi.PrepClosureLoc(closure, &cifCallback, fn, nil, progressCallback); status != ffi.OK {
+		if status := ffi.PrepClosureLoc(closure, progressCallbackCif, fn, nil, progressCallbackCode); status != ffi.OK {
 			panic(status)
 		}
 	}
 
-	p.ProgressCallback = uintptr(progressCallback)
+	p.ProgressCallback = uintptr(progressCallbackCode)
 }
 
 // SetDevices sets the devices to be used for model execution.
-// An empty slice indicates that no specific devices are set, meaning
-// that the default device selection will be used.
-func (p *ModelParams) SetDevices(devices []GGMLBackendDevice) {
+// The slice must be NULL-terminated: the last element must be 0.
+// The caller must keep the slice alive (e.g., via runtime.KeepAlive) until
+// the model load call using these params completes.
+func (p *ModelParams) SetDevices(devices []GGMLBackendDevice) error {
 	if len(devices) == 0 {
 		p.Devices = uintptr(0)
-		return
+		return nil
+	}
+
+	if devices[len(devices)-1] != 0 {
+		return errors.New("SetDevices: slice must be NULL-terminated (last element must be 0)")
 	}
 
 	p.Devices = uintptr(unsafe.Pointer(&devices[0]))
+
+	return nil
 }
 
 // ModelQuantizeDefaultParams returns default parameters for model quantization.

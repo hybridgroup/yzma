@@ -35,7 +35,7 @@ func handleFlags() error {
 	libPath = flag.String("lib", "", "path to llama.cpp compiled library files")
 	verbose = flag.Bool("v", false, "verbose logging")
 
-	contextSize = flag.Int("c", 4096, "context size for model")
+	contextSize = flag.Int("c", 0, "context size for model (0 = from model)")
 	predictSize = flag.Int("n", -1, "predict size for model")
 	batchSize = flag.Int("b", 2048, "max batch size for model")
 

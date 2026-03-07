@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 	"unsafe"
@@ -67,7 +68,11 @@ func benchmarkSetupOnce(b *testing.B) {
 			devs = append(devs, dev)
 		}
 
-		mparams.SetDevices(devs)
+		devs = append(devs, 0) // NULL terminator required by llama.cpp
+		if err := mparams.SetDevices(devs); err != nil {
+			b.Fatalf("SetDevices failed: %v", err)
+		}
+		defer runtime.KeepAlive(devs)
 	}
 
 	model, err := llama.ModelLoadFromFile(modelFile, mparams)
