@@ -1,6 +1,6 @@
 # Roadmap
 
-`yzma` currently has support for over 95% of `llama.cpp` functionality.
+`yzma` currently has support for over 96% of `llama.cpp` functionality.
 
 This is a list of all functions exposed by `llama.cpp` and the current state of the associated `yzma` wrapper.
 
@@ -154,6 +154,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_sampler_name`
 - [x] `llama_sampler_reset`
 - [x] `llama_sampler_sample`
+- [x] `llama_set_sampler`
 
 ### Logging Functions
 - [x] `llama_log_set`
@@ -246,7 +247,6 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `llama_opt_init`
 - [ ] `llama_opt_param_filter_all`
 - [ ] `llama_sampler_init`
-- [ ] `llama_set_sampler`
 
 ### `mtmd` Functions still needing wrappers
 
