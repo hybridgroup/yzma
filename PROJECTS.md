@@ -7,7 +7,7 @@ Hera are some projects that are using `yzma`. Also some tools/frameworks and blo
 ### Kronk
 
 <a href="https://github.com/ardanlabs/kronk" target="_blank">
-<img src="https://github.com/ardanlabs/kronk/blob/main/images/project/kronk_logo1.png?raw=true" width="300" alt="Kronk logo">
+<img src="https://github.com/ardanlabs/kronk/blob/main/images/project/kronk_logo1_color.png?raw=true" width="300" alt="Kronk logo">
 </a>
 
 Kronk provides a high-level API that feels similar to using an OpenAI compatible API.
