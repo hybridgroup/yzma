@@ -146,6 +146,23 @@ var (
 
 	// LLAMA_API struct llama_sampler * llama_sampler_clone(const struct llama_sampler * smpl);
 	samplerCloneFunc ffi.Fun
+
+	// LLAMA_API struct llama_sampler * llama_sampler_init_mirostat(
+	//                          int32_t   n_vocab,
+	//                         uint32_t   seed,
+	//                            float   tau,
+	//                            float   eta,
+	//                          int32_t   m);
+	samplerInitMirostatFunc ffi.Fun
+
+	// LLAMA_API struct llama_sampler * llama_sampler_init_mirostat_v2(
+	//                         uint32_t   seed,
+	//                            float   tau,
+	//                            float   eta);
+	samplerInitMirostatV2Func ffi.Fun
+
+	// LLAMA_API uint32_t llama_sampler_get_seed(const struct llama_sampler * smpl);
+	samplerGetSeedFunc ffi.Fun
 )
 
 func loadSamplingFuncs(lib ffi.Lib) error {
@@ -246,7 +263,7 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 		return loadError("llama_sampler_init_grammar_lazy_patterns", err)
 	}
 
-	if samplerInitAdaptivePFunc, err = lib.Prep("llama_sampler_init_adaptive_p", &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeFloat, &ffiTypeSize); err != nil {
+	if samplerInitAdaptivePFunc, err = lib.Prep("llama_sampler_init_adaptive_p", &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeUint32); err != nil {
 		return loadError("llama_sampler_init_adaptive_p", err)
 	}
 
@@ -276,6 +293,18 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 
 	if samplerCloneFunc, err = lib.Prep("llama_sampler_clone", &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return loadError("llama_sampler_clone", err)
+	}
+
+	if samplerInitMirostatFunc, err = lib.Prep("llama_sampler_init_mirostat", &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeUint32, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeSint32); err != nil {
+		return loadError("llama_sampler_init_mirostat", err)
+	}
+
+	if samplerInitMirostatV2Func, err = lib.Prep("llama_sampler_init_mirostat_v2", &ffi.TypePointer, &ffi.TypeUint32, &ffi.TypeFloat, &ffi.TypeFloat); err != nil {
+		return loadError("llama_sampler_init_mirostat_v2", err)
+	}
+
+	if samplerGetSeedFunc, err = lib.Prep("llama_sampler_get_seed", &ffi.TypeUint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_sampler_get_seed", err)
 	}
 
 	return nil
@@ -591,6 +620,33 @@ func SamplerClone(smpl Sampler) Sampler {
 	var clone Sampler
 	samplerCloneFunc.Call(unsafe.Pointer(&clone), unsafe.Pointer(&smpl))
 	return clone
+}
+
+// SamplerInitMirostat initializes a Mirostat sampler.
+// nVocab is the vocabulary size, seed is the random seed, tau is the target entropy,
+// eta is the learning rate, and m is the number of tokens considered in the estimation.
+func SamplerInitMirostat(nVocab int32, seed uint32, tau, eta float32, m int32) Sampler {
+	var s Sampler
+	samplerInitMirostatFunc.Call(unsafe.Pointer(&s), &nVocab, &seed, &tau, &eta, &m)
+	return s
+}
+
+// SamplerInitMirostatV2 initializes a Mirostat v2 sampler.
+// seed is the random seed, tau is the target entropy, and eta is the learning rate.
+func SamplerInitMirostatV2(seed uint32, tau, eta float32) Sampler {
+	var s Sampler
+	samplerInitMirostatV2Func.Call(unsafe.Pointer(&s), &seed, &tau, &eta)
+	return s
+}
+
+// SamplerGetSeed returns the seed used by the sampler if applicable, or DefaultSeed otherwise.
+func SamplerGetSeed(smpl Sampler) uint32 {
+	if smpl == 0 {
+		return DefaultSeed
+	}
+	var result ffi.Arg
+	samplerGetSeedFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&smpl))
+	return uint32(result)
 }
 
 var (

@@ -35,3 +35,11 @@ func TestLogNormal(t *testing.T) {
 
 	t.Log("Logs should be normal on this test")
 }
+
+func TestLogGet(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	cb, ud := LogGet()
+	t.Logf("LogGet returned callback=%v, userData=%v", cb, ud)
+}
