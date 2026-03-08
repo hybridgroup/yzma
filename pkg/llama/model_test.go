@@ -735,7 +735,7 @@ func TestSplitPath(t *testing.T) {
 	if length < 0 {
 		t.Fatal("SplitPath returned negative length")
 	}
-	expected := "/models/ggml-model-q4_0-00002-of-00004.gguf"
+	expected := "/models/ggml-model-q4_0-00003-of-00004.gguf"
 	if path != expected {
 		t.Fatalf("SplitPath = %q, want %q", path, expected)
 	}
@@ -746,7 +746,7 @@ func TestSplitPrefix(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	prefix, length := SplitPrefix("/models/ggml-model-q4_0-00002-of-00004.gguf", 2, 4)
+	prefix, length := SplitPrefix("/models/ggml-model-q4_0-00003-of-00004.gguf", 2, 4)
 	if length < 0 {
 		t.Fatal("SplitPrefix returned negative length")
 	}

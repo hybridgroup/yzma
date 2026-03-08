@@ -40,10 +40,14 @@ func LogSet(cb uintptr) {
 
 // LogGet retrieves the current log callback and user data.
 // Returns the callback function pointer and the user data pointer.
+// LogSet must be called before LogGet, otherwise the C function
+// may dereference a NULL internal pointer.
 func LogGet() (uintptr, uintptr) {
 	var cb uintptr
 	var ud uintptr
-	logGetFunc.Call(nil, unsafe.Pointer(&cb), unsafe.Pointer(&ud))
+	cbPtr := unsafe.Pointer(&cb)
+	udPtr := unsafe.Pointer(&ud)
+	logGetFunc.Call(nil, unsafe.Pointer(&cbPtr), unsafe.Pointer(&udPtr))
 	return cb, ud
 }
 
