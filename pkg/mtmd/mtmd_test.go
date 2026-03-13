@@ -315,7 +315,7 @@ func TestSupportAudio(t *testing.T) {
 	t.Logf("SupportAudio returned: %v", supportsAudio)
 }
 
-func TestGetAudioBitrate(t *testing.T) {
+func TestGetAudioSampleRate(t *testing.T) {
 	modelFile := testModelFileName(t)
 	mmprojFile := testMMProjFileName(t)
 
@@ -335,9 +335,9 @@ func TestGetAudioBitrate(t *testing.T) {
 	}
 	defer Free(ctx)
 
-	bitrate := GetAudioBitrate(ctx)
-	t.Logf("GetAudioBitrate returned: %d", bitrate)
-	if bitrate != -1 && bitrate <= 0 {
-		t.Fatal("GetAudioBitrate returned an invalid bitrate")
+	sampleRate := GetAudioSampleRate(ctx)
+	t.Logf("GetAudioSampleRate returned: %d", sampleRate)
+	if sampleRate != -1 && sampleRate <= 0 {
+		t.Fatal("GetAudioSampleRate returned an invalid sample rate")
 	}
 }

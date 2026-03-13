@@ -110,10 +110,10 @@ var (
 	// MTMD_API bool mtmd_support_audio(mtmd_context * ctx);
 	supportAudioFunc ffi.Fun
 
-	// get audio bitrate in Hz, for example 16000 for Whisper
+	// get audio sample rate in Hz, for example 16000 for Whisper.
 	// return -1 if audio is not supported
-	// MTMD_API int mtmd_get_audio_bitrate(mtmd_context * ctx);
-	getAudioBitrateFunc ffi.Fun
+	// MTMD_API int mtmd_get_audio_sample_rate(mtmd_context * ctx);
+	getAudioSampleRateFunc ffi.Fun
 
 	// Set callback for all future logging events.
 	// If this is not called, or NULL is supplied, everything is output on stderr.
@@ -174,8 +174,8 @@ func loadFuncs(lib ffi.Lib) error {
 		return loadError("mtmd_support_audio", err)
 	}
 
-	if getAudioBitrateFunc, err = lib.Prep("mtmd_get_audio_bitrate", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
-		return loadError("mtmd_get_audio_bitrate", err)
+	if getAudioSampleRateFunc, err = lib.Prep("mtmd_get_audio_sample_rate", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_get_audio_sample_rate", err)
 	}
 
 	if mtmdLogSetFunc, err = lib.Prep("mtmd_helper_log_set", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
@@ -364,13 +364,13 @@ func SupportAudio(ctx Context) bool {
 	return result.Bool()
 }
 
-// GetAudioBitrate returns the audio bitrate in Hz, or -1 if audio is not supported.
-func GetAudioBitrate(ctx Context) int {
+// GetAudioSampleRate returns the audio sample rate in Hz, or -1 if audio is not supported.
+func GetAudioSampleRate(ctx Context) int {
 	if ctx == 0 {
 		return -1
 	}
 	var result ffi.Arg
-	getAudioBitrateFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+	getAudioSampleRateFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 	return int(result)
 }
 
