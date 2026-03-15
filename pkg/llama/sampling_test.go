@@ -627,3 +627,55 @@ func TestSamplerName(t *testing.T) {
 	}
 	t.Logf("SamplerName: %s", name)
 }
+
+func TestSamplerInitMirostat(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	sampler := SamplerInitMirostat(32000, 12345, 5.0, 0.1, 100)
+	if sampler == 0 {
+		t.Fatal("SamplerInitMirostat failed to initialize")
+	}
+	defer SamplerFree(sampler)
+
+	name := SamplerName(sampler)
+	if name == "" {
+		t.Fatal("SamplerName returned empty string for mirostat sampler")
+	}
+	t.Logf("Mirostat sampler name: %s", name)
+}
+
+func TestSamplerInitMirostatV2(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	sampler := SamplerInitMirostatV2(12345, 5.0, 0.1)
+	if sampler == 0 {
+		t.Fatal("SamplerInitMirostatV2 failed to initialize")
+	}
+	defer SamplerFree(sampler)
+
+	name := SamplerName(sampler)
+	if name == "" {
+		t.Fatal("SamplerName returned empty string for mirostat v2 sampler")
+	}
+	t.Logf("Mirostat v2 sampler name: %s", name)
+}
+
+func TestSamplerGetSeed(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	seed := uint32(12345)
+	sampler := SamplerInitDist(seed)
+	if sampler == 0 {
+		t.Fatal("SamplerInitDist failed")
+	}
+	defer SamplerFree(sampler)
+
+	gotSeed := SamplerGetSeed(sampler)
+	if gotSeed != seed {
+		t.Errorf("SamplerGetSeed = %d, want %d", gotSeed, seed)
+	}
+	t.Logf("SamplerGetSeed returned: %d", gotSeed)
+}

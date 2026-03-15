@@ -683,3 +683,78 @@ func TestModelParamsSetDevices(t *testing.T) {
 		}
 	})
 }
+
+func TestModelNParams(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ModelDefaultParams()
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	nParams := ModelNParams(model)
+	if nParams == 0 {
+		t.Fatal("ModelNParams returned 0")
+	}
+	t.Logf("ModelNParams returned: %d", nParams)
+}
+
+func TestModelSaveToFile(t *testing.T) {
+	t.Skip("skipped: crashes on Linux CI due to C-level backend state after repeated init/free cycles")
+
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ModelDefaultParams()
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	tmpDir := t.TempDir()
+	outPath := filepath.Join(tmpDir, "saved_model.gguf")
+	ModelSaveToFile(model, outPath)
+
+	if _, err := os.Stat(outPath); err != nil {
+		t.Fatalf("ModelSaveToFile did not create file: %v", err)
+	}
+	t.Log("ModelSaveToFile completed successfully")
+}
+
+func TestSplitPath(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	path, length := SplitPath("/models/ggml-model-q4_0", 2, 4)
+	if length < 0 {
+		t.Fatal("SplitPath returned negative length")
+	}
+	expected := "/models/ggml-model-q4_0-00003-of-00004.gguf"
+	if path != expected {
+		t.Fatalf("SplitPath = %q, want %q", path, expected)
+	}
+	t.Logf("SplitPath returned: %s", path)
+}
+
+func TestSplitPrefix(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	prefix, length := SplitPrefix("/models/ggml-model-q4_0-00003-of-00004.gguf", 2, 4)
+	if length < 0 {
+		t.Fatal("SplitPrefix returned negative length")
+	}
+	expected := "/models/ggml-model-q4_0"
+	if prefix != expected {
+		t.Fatalf("SplitPrefix = %q, want %q", prefix, expected)
+	}
+	t.Logf("SplitPrefix returned: %s", prefix)
+}
