@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	llamaCppVersionDocURL = "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest"
+	llamaCppVersionDocURL = "https://api.github.com/repos/hybridgroup/llama-cpp-builder/releases/latest"
 	versionFile           = "version.json"
 )
 

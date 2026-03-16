@@ -31,7 +31,14 @@ var (
 	// RetryDelay is the delay between retries when obtaining the latest llama.cpp version.
 	RetryDelay = 3 * time.Second
 	// apiURL is the GitHub API URL for fetching the latest llama.cpp version.
-	apiURL = "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest"
+	// We use the llama-cpp-builder repo instead of the original llama.cpp repo because
+	// we need the precompiled binaries for certain platforms, and the build server might be
+	// up to 1 hour out of sync with the latest commits to the original llama.cpp repo.
+	//
+	// Actual downloads will be from the llama.cpp repo for any builds that are available there,
+	// and from the llama-cpp-builder repo for builds that are not available in the original repo
+	// (e.g. ARM64 CUDA builds). This is handled in the getDownloadLocationAndFilename function.
+	apiURL = "https://api.github.com/repos/hybridgroup/llama-cpp-builder/releases/latest"
 )
 
 // LlamaLatestVersion fetches the latest release tag of llama.cpp from the GitHub API.
