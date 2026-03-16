@@ -1,6 +1,6 @@
-We can # Roadmap
+# Roadmap
 
-`yzma` currently has support for over 96% of `llama.cpp` functionality.
+`yzma` currently has support for over 97% of `llama.cpp` functionality.
 
 This is a list of all functions exposed by `llama.cpp` and the current state of the associated `yzma` wrapper.
 
