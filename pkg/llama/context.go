@@ -152,6 +152,27 @@ var (
 
 	// LLAMA_API bool llama_set_sampler(struct llama_context * ctx, llama_seq_id seq_id, struct llama_sampler * smpl);
 	setSamplerFunc ffi.Fun
+
+	// LLAMA_API void llama_attach_threadpool(
+	//         struct llama_context * ctx,
+	//            ggml_threadpool_t   threadpool,
+	//            ggml_threadpool_t   threadpool_batch);
+	attachThreadpoolFunc ffi.Fun
+
+	// LLAMA_API void llama_detach_threadpool(struct llama_context * ctx);
+	detachThreadpoolFunc ffi.Fun
+
+	// LLAMA_API void llama_set_n_threads(struct llama_context * ctx, int32_t n_threads, int32_t n_threads_batch);
+	setNThreadsFunc ffi.Fun
+
+	// LLAMA_API int32_t llama_n_threads(struct llama_context * ctx);
+	nThreadsFunc ffi.Fun
+
+	// LLAMA_API int32_t llama_n_threads_batch(struct llama_context * ctx);
+	nThreadsBatchFunc ffi.Fun
+
+	// LLAMA_API uint32_t llama_n_ctx_seq(const struct llama_context * ctx);
+	nCtxSeqFunc ffi.Fun
 )
 
 func loadContextFuncs(lib ffi.Lib) error {
@@ -279,6 +300,30 @@ func loadContextFuncs(lib ffi.Lib) error {
 
 	if setSamplerFunc, err = lib.Prep("llama_set_sampler", &ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypePointer); err != nil {
 		return loadError("llama_set_sampler", err)
+	}
+
+	if attachThreadpoolFunc, err = lib.Prep("llama_attach_threadpool", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("llama_attach_threadpool", err)
+	}
+
+	if detachThreadpoolFunc, err = lib.Prep("llama_detach_threadpool", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
+		return loadError("llama_detach_threadpool", err)
+	}
+
+	if setNThreadsFunc, err = lib.Prep("llama_set_n_threads", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32); err != nil {
+		return loadError("llama_set_n_threads", err)
+	}
+
+	if nThreadsFunc, err = lib.Prep("llama_n_threads", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_n_threads", err)
+	}
+
+	if nThreadsBatchFunc, err = lib.Prep("llama_n_threads_batch", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_n_threads_batch", err)
+	}
+
+	if nCtxSeqFunc, err = lib.Prep("llama_n_ctx_seq", &ffi.TypeUint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_n_ctx_seq", err)
 	}
 
 	return nil
@@ -670,6 +715,63 @@ func SetSampler(ctx Context, seqID SeqId, smpl Sampler) bool {
 	}
 
 	return result.Bool()
+}
+
+// AttachThreadpool attaches a ggml threadpool to the context.
+// The threadpool and threadpoolBatch are opaque pointers (uintptr) to ggml_threadpool_t.
+func AttachThreadpool(ctx Context, threadpool, threadpoolBatch uintptr) {
+	if ctx == 0 {
+		return
+	}
+	attachThreadpoolFunc.Call(nil, unsafe.Pointer(&ctx), unsafe.Pointer(&threadpool), unsafe.Pointer(&threadpoolBatch))
+}
+
+// DetachThreadpool detaches the ggml threadpool from the context.
+func DetachThreadpool(ctx Context) {
+	if ctx == 0 {
+		return
+	}
+	detachThreadpoolFunc.Call(nil, unsafe.Pointer(&ctx))
+}
+
+// SetNThreads sets the number of threads used for decoding.
+// nThreads is the number of threads used for generation (single token).
+// nThreadsBatch is the number of threads used for prompt and batch processing (multiple tokens).
+func SetNThreads(ctx Context, nThreads, nThreadsBatch int32) {
+	if ctx == 0 {
+		return
+	}
+	setNThreadsFunc.Call(nil, unsafe.Pointer(&ctx), &nThreads, &nThreadsBatch)
+}
+
+// NThreads returns the number of threads used for generation of a single token.
+func NThreads(ctx Context) int32 {
+	if ctx == 0 {
+		return 0
+	}
+	var result ffi.Arg
+	nThreadsFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+	return int32(result)
+}
+
+// NThreadsBatch returns the number of threads used for prompt and batch processing.
+func NThreadsBatch(ctx Context) int32 {
+	if ctx == 0 {
+		return 0
+	}
+	var result ffi.Arg
+	nThreadsBatchFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+	return int32(result)
+}
+
+// NCtxSeq returns the context size per sequence.
+func NCtxSeq(ctx Context) uint32 {
+	if ctx == 0 {
+		return 0
+	}
+	var result ffi.Arg
+	nCtxSeqFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+	return uint32(result)
 }
 
 // newAbortCallback creates a C-compatible callback from a Go AbortFunc.

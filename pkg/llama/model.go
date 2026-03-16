@@ -152,6 +152,20 @@ var (
 	//                                uint32_t   n_ctx_min,
 	//                     enum ggml_log_level   log_level);
 	modelParamsFitFunc ffi.Fun
+
+	// LLAMA_API void llama_model_save_to_file(
+	//         const struct llama_model * model,
+	//                     const char * path_model);
+	modelSaveToFileFunc ffi.Fun
+
+	// LLAMA_API uint64_t llama_model_n_params(const struct llama_model * model);
+	modelNParamsFunc ffi.Fun
+
+	// LLAMA_API int32_t llama_split_path(char * split_path, size_t maxlen, const char * path_prefix, int32_t split_no, int32_t split_count);
+	splitPathFunc ffi.Fun
+
+	// LLAMA_API int32_t llama_split_prefix(char * split_prefix, size_t maxlen, const char * split_path, int32_t split_no, int32_t split_count);
+	splitPrefixFunc ffi.Fun
 )
 
 func loadModelFuncs(lib ffi.Lib) error {
@@ -291,6 +305,22 @@ func loadModelFuncs(lib ffi.Lib) error {
 
 	if modelParamsFitFunc, err = lib.Prep("llama_params_fit", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32, &ffi.TypeSint32); err != nil {
 		return loadError("llama_params_fit", err)
+	}
+
+	if modelSaveToFileFunc, err = lib.Prep("llama_model_save_to_file", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_save_to_file", err)
+	}
+
+	if modelNParamsFunc, err = lib.Prep("llama_model_n_params", &ffi.TypeUint64, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_n_params", err)
+	}
+
+	if splitPathFunc, err = lib.Prep("llama_split_path", &ffi.TypeSint32, &ffi.TypePointer, &ffiTypeSize, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32); err != nil {
+		return loadError("llama_split_path", err)
+	}
+
+	if splitPrefixFunc, err = lib.Prep("llama_split_prefix", &ffi.TypeSint32, &ffi.TypePointer, &ffiTypeSize, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32); err != nil {
+		return loadError("llama_split_prefix", err)
 	}
 
 	return nil
@@ -949,4 +979,94 @@ func ModelParamsFit(pathModel string, mparams *ModelParams, cparams *ContextPara
 	)
 
 	return ModelParamsFitStatus(int32(result))
+}
+
+// ModelSaveToFile saves the model to a file.
+func ModelSaveToFile(model Model, pathModel string) {
+	if model == 0 {
+		return
+	}
+	path, err := utils.BytePtrFromString(pathModel)
+	if err != nil {
+		return
+	}
+	modelSaveToFileFunc.Call(nil, unsafe.Pointer(&model), unsafe.Pointer(&path))
+}
+
+// ModelNParams returns the total number of parameters in the model.
+func ModelNParams(model Model) uint64 {
+	if model == 0 {
+		return 0
+	}
+	var result ffi.Arg
+	modelNParamsFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
+	return uint64(result)
+}
+
+// SplitPath builds a split GGUF final path for the given chunk.
+// For example: SplitPath("/models/ggml-model-q4_0", 2, 4) returns "/models/ggml-model-q4_0-00002-of-00004.gguf"
+// Returns the path string and the length, or empty string on failure.
+func SplitPath(pathPrefix string, splitNo, splitCount int32) (string, int32) {
+	buf := make([]byte, 1024)
+	b := unsafe.SliceData(buf)
+	bLen := uint64(len(buf))
+
+	prefix, err := utils.BytePtrFromString(pathPrefix)
+	if err != nil {
+		return "", -1
+	}
+
+	var result ffi.Arg
+	splitPathFunc.Call(
+		unsafe.Pointer(&result),
+		unsafe.Pointer(&b),
+		&bLen,
+		unsafe.Pointer(&prefix),
+		&splitNo,
+		&splitCount,
+	)
+
+	length := int32(result)
+	if length < 0 || int(length) >= len(buf) {
+		return "", length
+	}
+
+	value := make([]byte, length)
+	copy(value, buf[:length])
+
+	return string(value), length
+}
+
+// SplitPrefix extracts the path prefix from the split_path if the split_no and split_count match.
+// For example: SplitPrefix("/models/ggml-model-q4_0-00002-of-00004.gguf", 2, 4) returns "/models/ggml-model-q4_0"
+// Returns the prefix string and the length, or empty string on failure.
+func SplitPrefix(splitPath string, splitNo, splitCount int32) (string, int32) {
+	buf := make([]byte, 1024)
+	b := unsafe.SliceData(buf)
+	bLen := uint64(len(buf))
+
+	path, err := utils.BytePtrFromString(splitPath)
+	if err != nil {
+		return "", -1
+	}
+
+	var result ffi.Arg
+	splitPrefixFunc.Call(
+		unsafe.Pointer(&result),
+		unsafe.Pointer(&b),
+		&bLen,
+		unsafe.Pointer(&path),
+		&splitNo,
+		&splitCount,
+	)
+
+	length := int32(result)
+	if length < 0 || int(length) >= len(buf) {
+		return "", length
+	}
+
+	value := make([]byte, length)
+	copy(value, buf[:length])
+
+	return string(value), length
 }

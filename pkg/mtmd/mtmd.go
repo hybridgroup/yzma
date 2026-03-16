@@ -95,6 +95,10 @@ var (
 	//                               const mtmd_input_chunk * chunk);
 	encodeChunkFunc ffi.Fun
 
+	// MTMD_API int32_t mtmd_encode(mtmd_context * ctx,
+	//                              const mtmd_image_tokens * image_tokens);
+	encodeFunc ffi.Fun
+
 	// get output embeddings from the last encode pass
 	// the reading size (in bytes) is equal to:
 	// llama_model_n_embd_inp(model) * mtmd_input_chunk_get_n_tokens(chunk) * sizeof(float)
@@ -156,6 +160,10 @@ func loadFuncs(lib ffi.Lib) error {
 
 	if encodeChunkFunc, err = lib.Prep("mtmd_encode_chunk", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return loadError("mtmd_encode_chunk", err)
+	}
+
+	if encodeFunc, err = lib.Prep("mtmd_encode", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_encode", err)
 	}
 
 	if getOutputEmbdFunc, err = lib.Prep("mtmd_get_output_embd", &ffi.TypePointer, &ffi.TypePointer); err != nil {
@@ -311,6 +319,23 @@ func EncodeChunk(ctx Context, chunk InputChunk) error {
 	encodeChunkFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&chunk))
 	if int32(result) != 0 {
 		return fmt.Errorf("mtmd_encode_chunk failed: %d", result)
+	}
+
+	return nil
+}
+
+// Encode encodes image tokens.
+// This function is NOT thread-safe.
+// Note: this function is marked as deprecated upstream in favor of EncodeChunk.
+func Encode(ctx Context, imageTokens ImageTokens) error {
+	if ctx == 0 {
+		return errors.New("invalid mtmd context handle")
+	}
+
+	var result ffi.Arg
+	encodeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&imageTokens))
+	if int32(result) != 0 {
+		return fmt.Errorf("mtmd_encode failed: %d", result)
 	}
 
 	return nil

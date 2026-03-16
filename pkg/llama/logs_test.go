@@ -35,3 +35,18 @@ func TestLogNormal(t *testing.T) {
 
 	t.Log("Logs should be normal on this test")
 }
+
+func TestLogGet(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	// Set a known callback first so llama_log_get has valid internal state.
+	LogSet(LogSilent())
+
+	cb, ud := LogGet()
+	t.Logf("LogGet returned callback=%v, userData=%v", cb, ud)
+
+	if cb == 0 {
+		t.Error("expected non-zero callback after LogSet(LogSilent())")
+	}
+}

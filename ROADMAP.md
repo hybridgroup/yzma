@@ -1,4 +1,4 @@
-# Roadmap
+We can # Roadmap
 
 `yzma` currently has support for over 96% of `llama.cpp` functionality.
 
@@ -49,13 +49,17 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_model_n_head_kv`
 - [x] `llama_model_n_head`
 - [x] `llama_model_n_layer`
+- [x] `llama_model_n_params`
 - [x] `llama_model_n_swa`
 - [x] `llama_model_quantize_default_params`
 - [x] `llama_model_quantize`
 - [x] `llama_model_rope_freq_scale_train`
 - [x] `llama_model_rope_type`
+- [x] `llama_model_save_to_file`
 - [x] `llama_model_size`
 - [x] `llama_params_fit`
+- [x] `llama_split_path`
+- [x] `llama_split_prefix`
 
 ### Vocab Functions
 - [x] `llama_model_get_vocab`
@@ -86,8 +90,10 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_vocab_type`
 
 ### Context Functions
+- [x] `llama_attach_threadpool`
 - [x] `llama_context_default_params`
 - [x] `llama_decode`
+- [x] `llama_detach_threadpool`
 - [x] `llama_encode`
 - [x] `llama_free`
 - [x] `llama_get_embeddings_ith`
@@ -98,14 +104,18 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_get_memory`
 - [x] `llama_get_model`
 - [x] `llama_n_batch`
+- [x] `llama_n_ctx_seq`
 - [x] `llama_n_ctx`
 - [x] `llama_n_seq_max`
+- [x] `llama_n_threads_batch`
+- [x] `llama_n_threads`
 - [x] `llama_n_ubatch`
 - [x] `llama_perf_context_reset`
 - [x] `llama_pooling_type`
 - [x] `llama_set_adapter_cvec`
 - [x] `llama_set_causal_attn`
 - [x] `llama_set_embeddings`
+- [x] `llama_set_n_threads`
 - [x] `llama_set_warmup`
 - [x] `llama_synchronize`
 
@@ -136,6 +146,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_sampler_chain_remove`
 - [x] `llama_sampler_clone`
 - [x] `llama_sampler_free`
+- [x] `llama_sampler_get_seed`
 - [x] `llama_sampler_init_dist`
 - [x] `llama_sampler_init_dry`
 - [x] `llama_sampler_init_grammar_lazy_patterns`
@@ -144,6 +155,8 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_sampler_init_infill`
 - [x] `llama_sampler_init_logit_bias`
 - [x] `llama_sampler_init_min_p`
+- [x] `llama_sampler_init_mirostat_v2`
+- [x] `llama_sampler_init_mirostat`
 - [x] `llama_sampler_init_penalties`
 - [x] `llama_sampler_init_temp_ext`
 - [x] `llama_sampler_init_top_k`
@@ -157,6 +170,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_set_sampler`
 
 ### Logging Functions
+- [x] `llama_log_get`
 - [x] `llama_log_set`
 
 ### Chat Functions
@@ -207,6 +221,7 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [x] `mtmd_decode_use_non_causal`
 - [x] `mtmd_default_marker`
 - [x] `mtmd_encode_chunk`
+- [x] `mtmd_encode`
 - [x] `mtmd_free`
 - [x] `mtmd_get_audio_bitrate`
 - [x] `mtmd_get_output_embd`
@@ -240,16 +255,8 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 
 ## Functions in `llama.cpp` still needing wrappers
 
-- [ ] `llama_attach_threadpool`
-- [ ] `llama_detach_threadpool`
-- [ ] `llama_model_save_to_file`
+- [ ] `llama_model_init_from_user`
 - [ ] `llama_opt_epoch`
 - [ ] `llama_opt_init`
 - [ ] `llama_opt_param_filter_all`
 - [ ] `llama_sampler_init`
-
-### `mtmd` Functions still needing wrappers
-
-Note that these functions are considered by `llama.cpp` to be experimental, and are subject to change.
-
-- [ ] `mtmd_encode`

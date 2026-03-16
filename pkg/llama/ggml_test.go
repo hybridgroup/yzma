@@ -122,6 +122,8 @@ func TestGGMLBackendRegByName(t *testing.T) {
 }
 
 func TestGGMLBackendUnload(t *testing.T) {
+	t.Skip("skipped: unloading a backend invalidates function pointers for subsequent tests")
+
 	testSetup(t)
 	defer testCleanup(t)
 
