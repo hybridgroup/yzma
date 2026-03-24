@@ -25,7 +25,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION=$(gh api repos/ggml-org/llama.cpp/releases/latest --jq '.tag_name')
+          VERSION=$(gh api repos/hybridgroup/llama-cpp-builder/releases/latest --jq '.tag_name')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Latest llama.cpp version: $VERSION"
       - name: Install yzma command
