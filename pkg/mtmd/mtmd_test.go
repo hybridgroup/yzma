@@ -72,7 +72,9 @@ func TestSupportVision(t *testing.T) {
 	defer Free(ctx)
 
 	supportsVision := SupportVision(ctx)
-	t.Logf("SupportVision returned: %v", supportsVision)
+	if !supportsVision {
+		t.Fatal("SupportVision expected true for multimodal model")
+	}
 }
 
 func TestTokenize(t *testing.T) {
@@ -263,8 +265,31 @@ func TestDecodeUseNonCausal(t *testing.T) {
 	}
 	defer Free(ctx)
 
-	useNonCausal := DecodeUseNonCausal(ctx)
-	t.Logf("DecodeUseNonCausal returned: %v", useNonCausal)
+	// Test with nil chunk (default image chunk behavior)
+	useNonCausal := DecodeUseNonCausal(ctx, 0)
+	t.Logf("DecodeUseNonCausal with nil chunk returned: %v", useNonCausal)
+
+	// Test with zero context returns false
+	if DecodeUseNonCausal(0, 0) {
+		t.Fatal("DecodeUseNonCausal expected false for zero context")
+	}
+
+	// Test with an actual image chunk
+	chunks := InputChunksInit()
+	defer InputChunksFree(chunks)
+
+	testSetupChunks(t, ctx, chunks)
+	for i := uint64(0); i < InputChunksSize(chunks); i++ {
+		chunk := InputChunksGet(chunks, i)
+		result := DecodeUseNonCausal(ctx, chunk)
+		chunkType := InputChunkGetType(chunk)
+		t.Logf("DecodeUseNonCausal with chunk[%d] (type=%d) returned: %v", i, chunkType, result)
+
+		// For image chunks, the result should match the nil-chunk default
+		if chunkType == InputChunkTypeImage && result != useNonCausal {
+			t.Fatalf("DecodeUseNonCausal mismatch: nil chunk returned %v, image chunk returned %v", useNonCausal, result)
+		}
+	}
 }
 
 func TestDecodeUseMRope(t *testing.T) {
@@ -289,6 +314,11 @@ func TestDecodeUseMRope(t *testing.T) {
 
 	useMRope := DecodeUseMRope(ctx)
 	t.Logf("DecodeUseMRope returned: %v", useMRope)
+
+	// Test with zero context returns false
+	if DecodeUseMRope(0) {
+		t.Fatal("DecodeUseMRope expected false for zero context")
+	}
 }
 
 func TestSupportAudio(t *testing.T) {
@@ -313,6 +343,11 @@ func TestSupportAudio(t *testing.T) {
 
 	supportsAudio := SupportAudio(ctx)
 	t.Logf("SupportAudio returned: %v", supportsAudio)
+
+	// Test with zero context returns false
+	if SupportAudio(0) {
+		t.Fatal("SupportAudio expected false for zero context")
+	}
 }
 
 func TestGetAudioSampleRate(t *testing.T) {
@@ -338,6 +373,11 @@ func TestGetAudioSampleRate(t *testing.T) {
 	sampleRate := GetAudioSampleRate(ctx)
 	t.Logf("GetAudioSampleRate returned: %d", sampleRate)
 	if sampleRate != -1 && sampleRate <= 0 {
-		t.Fatal("GetAudioSampleRate returned an invalid sample rate")
+		t.Fatalf("GetAudioSampleRate returned an invalid sample rate: %d", sampleRate)
+	}
+
+	// Test with zero context returns -1
+	if GetAudioSampleRate(0) != -1 {
+		t.Fatal("GetAudioSampleRate expected -1 for zero context")
 	}
 }
