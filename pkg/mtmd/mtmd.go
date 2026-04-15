@@ -170,7 +170,7 @@ func loadFuncs(lib ffi.Lib) error {
 		return loadError("mtmd_get_output_embd", err)
 	}
 
-	if decodeUseNonCausalFunc, err = lib.Prep("mtmd_decode_use_non_causal", &ffi.TypeUint8, &ffi.TypePointer); err != nil {
+	if decodeUseNonCausalFunc, err = lib.Prep("mtmd_decode_use_non_causal", &ffi.TypeUint8, &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return loadError("mtmd_decode_use_non_causal", err)
 	}
 
@@ -360,12 +360,13 @@ func GetOutputEmbd(ctx Context, embedSize int32) ([]float32, error) {
 }
 
 // DecodeUseNonCausal checks if the non-causal mask needs to be set before llama_decode.
-func DecodeUseNonCausal(ctx Context) bool {
+// If chunk is 0 (nil), it assumes the default case where chunk is an image chunk.
+func DecodeUseNonCausal(ctx Context, chunk InputChunk) bool {
 	if ctx == 0 {
 		return false
 	}
 	var result ffi.Arg
-	decodeUseNonCausalFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+	decodeUseNonCausalFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&chunk))
 	return result.Bool()
 }
 
