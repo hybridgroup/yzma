@@ -1,6 +1,6 @@
 package main
 
-const currentVersion = "1.11.1"
+const currentVersion = "1.12.0"
 
 // Version returns the current version of the yzma package.
 func Version() string {
