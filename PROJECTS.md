@@ -112,6 +112,10 @@ https://codeberg.org/GenAI-On-Small-Devices/yzma-on-jetson
 
 ## Blog Posts/Video
 
+### "Building Gemma 4 Local-Powered LLM Apps with Go and Yzma" - Vladimir Vivien
+
+https://medium.com/@vladimirvivien/building-gemma-4-local-powered-llm-apps-with-go-and-yzma-6bc43d48ee4e
+
 ### "🤖 yzma 1.7: Perform Local Inference with llama.cpp" - Golang Weekly
 
 https://golangweekly.com/issues/588
