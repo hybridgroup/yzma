@@ -143,7 +143,7 @@ Who is using `yzma`? Check out some of the [tools](./PROJECTS.md#tools-and-frame
 
 ## Models
 
-`yzma` uses models in the GGUF format supported by `llama.cpp`. There are many models in GGUF format on Hugging Face (over 170k at last count):
+`yzma` uses models in the GGUF format supported by `llama.cpp`. There are many models in GGUF format on Hugging Face (over 171k at last count):
 
 https://huggingface.co/models?library=gguf&sort=trending
 
@@ -170,6 +170,15 @@ You can use multimodal models (image/audio) and text language models with full h
 | Windows | amd64        | CUDA, Vulkan, HIP, SYCL, OpenCL |
 
 Whenever there is a new release of `llama.cpp`, the tests for `yzma` are run automatically. This helps us stay up to date with the latest code and models.
+
+### Required versions of `llama.cpp`
+
+Sometimes there are breaking changes to `llama.cpp` that require an update to `yzma`. Here are some of the known compatible versions:
+
+| llama.cpp | yzma    |
+| ------- | --------- |
+| b8864   | v1.12.0   |
+| b8865+  | v1.13.0   |
 
 ## Benchmarks
 
