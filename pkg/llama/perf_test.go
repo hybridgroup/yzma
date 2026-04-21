@@ -63,5 +63,4 @@ func TestPerfFunctionsExist(t *testing.T) {
 
 	PerfSamplerPrint(chain)
 	PerfSamplerReset(chain)
-	MemoryBreakdownPrint(ctx)
 }
