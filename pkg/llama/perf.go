@@ -52,9 +52,6 @@ var (
 
 	// LLAMA_API void llama_perf_sampler_reset(struct llama_sampler * chain);
 	perfSamplerResetFunc ffi.Fun
-
-	// LLAMA_API void llama_memory_breakdown_print(const struct llama_context * ctx);
-	memoryBreakdownPrintFunc ffi.Fun
 )
 
 func loadPerfFuncs(lib ffi.Lib) error {
@@ -78,10 +75,6 @@ func loadPerfFuncs(lib ffi.Lib) error {
 
 	if perfSamplerResetFunc, err = lib.Prep("llama_perf_sampler_reset", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
 		return loadError("llama_perf_sampler_reset", err)
-	}
-
-	if memoryBreakdownPrintFunc, err = lib.Prep("llama_memory_breakdown_print", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
-		return loadError("llama_memory_breakdown_print", err)
 	}
 
 	return nil
@@ -135,12 +128,4 @@ func PerfSamplerPrint(chain Sampler) {
 		return
 	}
 	perfSamplerPrintFunc.Call(nil, unsafe.Pointer(&chain))
-}
-
-// MemoryBreakdownPrint prints a breakdown of per-device memory use.
-func MemoryBreakdownPrint(ctx Context) {
-	if ctx == 0 {
-		return
-	}
-	memoryBreakdownPrintFunc.Call(nil, unsafe.Pointer(&ctx))
 }

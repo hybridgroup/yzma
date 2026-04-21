@@ -57,7 +57,6 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_model_rope_type`
 - [x] `llama_model_save_to_file`
 - [x] `llama_model_size`
-- [x] `llama_params_fit`
 - [x] `llama_split_path`
 - [x] `llama_split_prefix`
 
