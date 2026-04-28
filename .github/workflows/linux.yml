@@ -22,10 +22,8 @@ jobs:
           go-version: 'stable'
       - name: Get latest llama.cpp version
         id: llama-version
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION=$(gh api repos/hybridgroup/llama-cpp-builder/releases/latest --jq '.tag_name')
+          VERSION=$(curl -s https://hybridgroup.github.io/llama-cpp-builder/version.json | jq -r '.tag_name')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Latest llama.cpp version: $VERSION"
       - name: Install yzma command

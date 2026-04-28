@@ -30,7 +30,7 @@ var (
 	RetryCount = 3
 	// RetryDelay is the delay between retries when obtaining the latest llama.cpp version.
 	RetryDelay = 3 * time.Second
-	// apiURL is the GitHub API URL for fetching the latest llama.cpp version.
+	// versionURL is the URL for fetching the latest llama.cpp version.
 	// We use the llama-cpp-builder repo instead of the original llama.cpp repo because
 	// we need the precompiled binaries for certain platforms, and the build server might be
 	// up to 1 hour out of sync with the latest commits to the original llama.cpp repo.
@@ -38,10 +38,10 @@ var (
 	// Actual downloads will be from the llama.cpp repo for any builds that are available there,
 	// and from the llama-cpp-builder repo for builds that are not available in the original repo
 	// (e.g. ARM64 CUDA builds). This is handled in the getDownloadLocationAndFilename function.
-	apiURL = "https://api.github.com/repos/hybridgroup/llama-cpp-builder/releases/latest"
+	versionURL = "https://hybridgroup.github.io/llama-cpp-builder/version.json"
 )
 
-// LlamaLatestVersion fetches the latest release tag of llama.cpp from the GitHub API.
+// LlamaLatestVersion fetches the latest release tag of llama.cpp from the version URL.
 func LlamaLatestVersion() (string, error) {
 	var version string
 	var err error
@@ -57,14 +57,10 @@ func LlamaLatestVersion() (string, error) {
 }
 
 func getLatestVersion() (string, error) {
-	req, err := http.NewRequest("GET", apiURL, nil)
+	req, err := http.NewRequest("GET", versionURL, nil)
 	if err != nil {
 		return "", err
 	}
-
-	// Set required headers for GitHub API
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 
 	client := &http.Client{
 		Timeout: 30 * time.Second,
@@ -77,7 +73,7 @@ func getLatestVersion() (string, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("received status code %d from GitHub API: %s", resp.StatusCode, string(body))
+		return "", fmt.Errorf("received status code %d from version URL: %s", resp.StatusCode, string(body))
 	}
 
 	var result struct {

@@ -20,7 +20,7 @@ func TestLlamaLatestVersion(t *testing.T) {
 	// Create a mock server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify the request
-		if r.URL.Path != "/repos/hybridgroup/llama-cpp-builder/releases/latest" {
+		if r.URL.Path != "/llama-cpp-builder/version.json" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -38,10 +38,10 @@ func TestLlamaLatestVersion(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// Override the API URL for testing
-	originalURL := apiURL
-	apiURL = server.URL + "/repos/hybridgroup/llama-cpp-builder/releases/latest"
-	defer func() { apiURL = originalURL }()
+	// Override the version URL for testing
+	originalURL := versionURL
+	versionURL = server.URL + "/llama-cpp-builder/version.json"
+	defer func() { versionURL = originalURL }()
 
 	version, err := LlamaLatestVersion()
 	if err != nil {
@@ -67,10 +67,10 @@ func TestLlamaLatestVersion_Error(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// Override the API URL for testing
-	originalURL := apiURL
-	apiURL = server.URL + "/repos/hybridgroup/llama-cpp-builder/releases/latest"
-	defer func() { apiURL = originalURL }()
+	// Override the version URL for testing
+	originalURL := versionURL
+	versionURL = server.URL + "/llama-cpp-builder/version.json"
+	defer func() { versionURL = originalURL }()
 
 	// Reduce retry count for faster test
 	originalRetryCount := RetryCount
