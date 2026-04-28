@@ -10,11 +10,6 @@ import (
 	"runtime"
 )
 
-var (
-	llamaCppVersionDocURL = "https://api.github.com/repos/hybridgroup/llama-cpp-builder/releases/latest"
-	versionFile           = "version.json"
-)
-
 type tag struct {
 	TagName string `json:"tag_name"`
 }
