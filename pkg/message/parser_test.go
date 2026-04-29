@@ -238,6 +238,24 @@ func TestParseToolCalls_FloatPrecision(t *testing.T) {
 	}
 }
 
+// ---- StripMarkup ----
+
+func TestStripMarkup_ToolCallBlock(t *testing.T) {
+	s := `<tool_call>{"name": "tool_movement", "arguments": {"command": "speak"}}</tool_call>Hello!`
+	got := StripMarkup(s)
+	if got != "Hello!" {
+		t.Errorf("got %q, want %q", got, "Hello!")
+	}
+}
+
+func TestStripMarkup_NoMarkup(t *testing.T) {
+	s := "Just a normal sentence."
+	got := StripMarkup(s)
+	if got != s {
+		t.Errorf("got %q, want %q", got, s)
+	}
+}
+
 func TestParseToolCalls_NegativeNumbers(t *testing.T) {
 	response := `<tool_call>
 {"name": "subtract", "arguments": {"a": -10, "b": -5.5}}
@@ -309,3 +327,4 @@ func TestParseToolCalls_BooleanArguments(t *testing.T) {
 		t.Errorf("expected argument 'verbose' to be 'false', got '%s'", calls[0].Function.Arguments["verbose"])
 	}
 }
+
