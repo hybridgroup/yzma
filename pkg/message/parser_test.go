@@ -455,3 +455,107 @@ func TestParseToolCalls_InlineJSON_EmptyArgsRejected(t *testing.T) {
 		t.Fatalf("expected 0 calls for empty args, got %d", len(calls))
 	}
 }
+
+// TestParseToolCalls_CorruptedQwenOpener covers the pattern where the model
+// emits `{"function=name>` instead of `<function=name>` inside a <tool_call>
+// block — i.e. the `<` is corrupted to `{"`.
+func TestParseToolCalls_CorruptedQwenOpener(t *testing.T) {
+	response := "<tool_call>\n{\"function=tool_movement>\n<parameter=command>\nspeak\n</parameter>\n<parameter=angle>\n100\n</parameter>\n</function>\n</tool_call>"
+
+	calls := ParseToolCalls(response)
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 call, got %d", len(calls))
+	}
+	if calls[0].Function.Name != "tool_movement" {
+		t.Errorf("name: got %q, want %q", calls[0].Function.Name, "tool_movement")
+	}
+	if calls[0].Function.Arguments["command"] != "speak" {
+		t.Errorf("command: got %q, want %q", calls[0].Function.Arguments["command"], "speak")
+	}
+	if calls[0].Function.Arguments["angle"] != "100" {
+		t.Errorf("angle: got %q, want %q", calls[0].Function.Arguments["angle"], "100")
+	}
+}
+
+// TestParseToolCalls_TruncatedJSON covers the pattern emitted by some Qwen
+// fine-tune models where the closing `}` of the outer JSON object is dropped,
+// causing a standard json.Unmarshal to fail. repairJSON should recover it.
+func TestParseToolCalls_TruncatedJSON(t *testing.T) {
+	// Missing outer closing brace — exactly what was observed in production logs.
+	response := "<tool_call>\n{\"name\": \"tool_movement\", \"arguments\": {\"command\": \"speak\"}}\n</tool_call>"
+	// Also test the truly truncated variant (outer `}` absent).
+	truncated := "<tool_call>\n{\"name\": \"tool_movement\", \"arguments\": {\"command\": \"speak\"}\n</tool_call>"
+
+	for _, tc := range []struct {
+		name  string
+		input string
+	}{
+		{"valid", response},
+		{"truncated", truncated},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			calls := ParseToolCalls(tc.input)
+			if len(calls) != 1 {
+				t.Fatalf("expected 1 call, got %d", len(calls))
+			}
+			if calls[0].Function.Name != "tool_movement" {
+				t.Errorf("name: got %q, want %q", calls[0].Function.Name, "tool_movement")
+			}
+			if calls[0].Function.Arguments["command"] != "speak" {
+				t.Errorf("command: got %q, want %q", calls[0].Function.Arguments["command"], "speak")
+			}
+		})
+	}
+}
+
+// TestParseToolCalls_NestedArguments covers the pattern where some Qwen
+// fine-tune models wrap the actual arguments inside an extra "arguments" or
+// "parameters" sub-object, e.g.:
+//
+//	{"name":"tool_movement","arguments":{"command":"look","arguments":{"angle":90}}}
+//
+// flattenNestedArguments should promote the nested values to the top level.
+func TestParseToolCalls_NestedArguments(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     string
+		wantCmd   string
+		wantAngle string
+	}{
+		{
+			name:      "nested_arguments_key",
+			input:     "<tool_call>\n{\"name\": \"tool_movement\", \"arguments\": {\"command\": \"look\", \"arguments\": {\"angle\": 90}}}\n</tool_call>",
+			wantCmd:   "look",
+			wantAngle: "90",
+		},
+		{
+			name:      "nested_parameters_key",
+			input:     "<tool_call>\n{\"name\": \"tool_movement\", \"arguments\": {\"command\": \"look\", \"parameters\": {\"angle\": 45}}}\n</tool_call>",
+			wantCmd:   "look",
+			wantAngle: "45",
+		},
+		{
+			name:    "truncated_nested",
+			input:   "<tool_call>\n{\"name\": \"tool_movement\", \"arguments\": {\"command\": \"speak\", \"arguments\": {\"angle\": 90}}\n</tool_call>",
+			wantCmd: "speak",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			calls := ParseToolCalls(tc.input)
+			if len(calls) != 1 {
+				t.Fatalf("expected 1 call, got %d", len(calls))
+			}
+			if calls[0].Function.Name != "tool_movement" {
+				t.Errorf("name: got %q, want %q", calls[0].Function.Name, "tool_movement")
+			}
+			if calls[0].Function.Arguments["command"] != tc.wantCmd {
+				t.Errorf("command: got %q, want %q", calls[0].Function.Arguments["command"], tc.wantCmd)
+			}
+			if tc.wantAngle != "" && calls[0].Function.Arguments["angle"] != tc.wantAngle {
+				t.Errorf("angle: got %q, want %q", calls[0].Function.Arguments["angle"], tc.wantAngle)
+			}
+		})
+	}
+}

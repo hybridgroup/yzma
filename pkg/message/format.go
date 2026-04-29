@@ -33,8 +33,10 @@ const (
 	FormatGPT
 )
 
-// DetectFormat inspects the content of a tool-call block and returns the
-// Format that matches it, or FormatAuto when no grammar is recognized.
+// DetectFormat inspects a tool-call content block and returns the Format that
+// matches it, or FormatAuto when no grammar is recognized. It only examines
+// structural markers in the content — it does NOT inspect model names. Use
+// DetectFormatFromPath to identify the format from a model file path.
 func DetectFormat(content string) Format {
 	switch {
 	case strings.HasPrefix(content, "{\"name\""):
@@ -49,6 +51,25 @@ func DetectFormat(content string) Format {
 		return FormatGemma
 	case strings.Contains(content, "<|message|>"):
 		return FormatGPT
+	default:
+		return FormatAuto
+	}
+}
+
+// DetectFormatFromPath inspects a model file path and returns the Format for
+// that model family based on well-known name substrings (case-insensitive).
+// Returns FormatAuto when the path does not match any known family.
+func DetectFormatFromPath(path string) Format {
+	lower := strings.ToLower(path)
+	switch {
+	case strings.Contains(lower, "qwen"):
+		return FormatQwen
+	case strings.Contains(lower, "gemma"):
+		return FormatGemma
+	case strings.Contains(lower, "mistral"), strings.Contains(lower, "devstral"):
+		return FormatMistral
+	case strings.Contains(lower, "glm"):
+		return FormatGLM
 	default:
 		return FormatAuto
 	}

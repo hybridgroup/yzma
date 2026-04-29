@@ -56,6 +56,86 @@ func parseToolCalls(content string) []ToolCall {
 	}
 }
 
+// repairJSON attempts to fix truncated JSON by appending missing closing braces
+// and brackets. It counts unmatched openers, skipping string contents, and
+// appends the corresponding closers. Returns the repaired string; if the input
+// is already valid JSON the original is returned unchanged.
+func repairJSON(s string) string {
+	var braces, brackets int
+	inStr := false
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if inStr {
+			if c == '\\' {
+				i++ // skip escaped character
+			} else if c == '"' {
+				inStr = false
+			}
+			continue
+		}
+		switch c {
+		case '"':
+			inStr = true
+		case '{':
+			braces++
+		case '}':
+			if braces > 0 {
+				braces--
+			}
+		case '[':
+			brackets++
+		case ']':
+			if brackets > 0 {
+				brackets--
+			}
+		}
+	}
+	if braces == 0 && brackets == 0 {
+		return s
+	}
+	var b strings.Builder
+	b.WriteString(s)
+	for i := 0; i < brackets; i++ {
+		b.WriteByte(']')
+	}
+	for i := 0; i < braces; i++ {
+		b.WriteByte('}')
+	}
+	return b.String()
+}
+
+// flattenNestedArguments checks whether argsMap contains a single nested map
+// under an "arguments" or "parameters" key alongside other scalar keys, which
+// is a pattern some Qwen fine-tune models emit (e.g.
+// {"command":"speak","arguments":{"angle":90}}). When detected, the nested
+// map's key/value pairs are promoted to the top level.
+func flattenNestedArguments(argsMap map[string]interface{}) map[string]interface{} {
+	for _, key := range []string{"arguments", "parameters"} {
+		nested, ok := argsMap[key]
+		if !ok {
+			continue
+		}
+		nestedMap, ok := nested.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		// Promote the nested values; delete the wrapper key.
+		result := make(map[string]interface{}, len(argsMap)+len(nestedMap)-1)
+		for k, v := range argsMap {
+			if k != key {
+				result[k] = v
+			}
+		}
+		for k, v := range nestedMap {
+			if _, exists := result[k]; !exists {
+				result[k] = v
+			}
+		}
+		return result
+	}
+	return argsMap
+}
+
 // parseStandardToolCalls parses <tool_call>{JSON}</tool_call> blocks.
 func parseStandardToolCalls(response string) []ToolCall {
 	var calls []ToolCall
@@ -72,11 +152,20 @@ func parseStandardToolCalls(response string) []ToolCall {
 			// Args is an alias used by some models (e.g. Gemma4) instead of Arguments.
 			Args map[string]interface{} `json:"args"`
 		}
-		if err := json.Unmarshal([]byte(content), &parsed); err == nil && parsed.Name != "" {
+		// Some models (e.g. Qwen fine-tunes) emit truncated JSON that is
+		// missing one or more closing braces. Attempt to repair it before
+		// giving up on the unmarshal.
+		if err := json.Unmarshal([]byte(content), &parsed); err != nil {
+			if repaired := repairJSON(content); repaired != content {
+				_ = json.Unmarshal([]byte(repaired), &parsed)
+			}
+		}
+		if parsed.Name != "" {
 			argsMap := parsed.Arguments
 			if argsMap == nil {
 				argsMap = parsed.Args
 			}
+			argsMap = flattenNestedArguments(argsMap)
 			args := make(map[string]string)
 			for k, v := range argsMap {
 				switch val := v.(type) {
@@ -101,12 +190,15 @@ func parseStandardToolCalls(response string) []ToolCall {
 					Arguments: args,
 				},
 			})
-		} else if err != nil {
+		} else {
 			// JSON parse failed — some models (e.g. Qwen fine-tunes) emit
 			// <function=name>…</function> format wrapped inside <tool_call> tags,
-			// sometimes with a spurious `{"` prefix. Try Qwen format as a fallback.
-			if idx := strings.Index(content, "<function="); idx >= 0 {
-				if qwenCalls := parseQwenToolCalls(content[idx:]); len(qwenCalls) > 0 {
+			// sometimes with a spurious `{"` prefix, or with `"function=` in
+			// place of `<function=` (the `<` is corrupted to `"`). Normalize
+			// that before trying the Qwen parser as a fallback.
+			normalized := strings.ReplaceAll(content, `"function=`, "<function=")
+			if idx := strings.Index(normalized, "<function="); idx >= 0 {
+				if qwenCalls := parseQwenToolCalls(normalized[idx:]); len(qwenCalls) > 0 {
 					calls = append(calls, qwenCalls...)
 				}
 			}
