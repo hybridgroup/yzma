@@ -31,8 +31,11 @@ type ToolFunctionDefinition struct {
 }
 
 // Tool represents a message that contains tool calls.
+// Content may optionally hold any spoken text that was generated alongside the
+// tool calls so that conversation history preserves both.
 type Tool struct {
 	Role      string
+	Content   string
 	ToolCalls []ToolCall
 }
 
@@ -69,9 +72,13 @@ func (tm Tool) GetContent() map[string]interface{} {
 			},
 		}
 	}
-	return map[string]interface{}{
+	m := map[string]interface{}{
 		"tool_calls": calls,
 	}
+	if tm.Content != "" {
+		m["content"] = tm.Content
+	}
+	return m
 }
 
 // ToolResponse represents a message that contains a tool response.

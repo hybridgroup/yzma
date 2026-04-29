@@ -203,7 +203,55 @@ func TestStripMarkup_Think_MixedWithToolCall(t *testing.T) {
 	}
 }
 
+func TestStripMarkup_Think_OrphanedCloseTag(t *testing.T) {
+	// Qwen3 thinking model: <think> is injected into the generation prompt so
+	// the generated text starts mid-thought and ends the block with </think>.
+	s := "Thinking Process:1.\nAnalyze the Request: User asked how I am.\n</think>\nI'm doing well today!"
+	got := StripMarkup(s)
+	if got != "I'm doing well today!" {
+		t.Errorf("got %q, want %q", got, "I'm doing well today!")
+	}
+}
+
+func TestStripMarkup_Think_OrphanedCloseTagWithToolCall(t *testing.T) {
+	// Qwen3 thinking model with tool calls: orphaned </think> then Qwen tool
+	// call then spoken text.
+	s := "Thinking Process:1.\nStep A.\n</think>\n<function=tool_movement>{\"command\":\"speak\",\"angle\":90}</function>\nHello there!"
+	got := StripMarkup(s)
+	if got != "Hello there!" {
+		t.Errorf("got %q, want %q", got, "Hello there!")
+	}
+}
+
+func TestStripMarkup_Think_OrphanedCloseTagOnly(t *testing.T) {
+	// Orphaned </think> with no text after — model only thought, no spoken response.
+	s := "Reasoning...\n</think>"
+	got := StripMarkup(s)
+	if got != "" {
+		t.Errorf("got %q, want %q", got, "")
+	}
+}
+
 // ---- StripMarkup: Gemma 4 sentence markers (<s>, </s>) ----
+
+func TestStripMarkup_ChatML_ImStartStripped(t *testing.T) {
+	// Qwen/ChatML: model starts simulating next turn with <|im_start|>.
+	// Everything from that token onwards should be discarded.
+	s := "I was merely responding with standard efficiency.\n<|im_start|>user\nhow are you"
+	got := StripMarkup(s)
+	if got != "I was merely responding with standard efficiency." {
+		t.Errorf("got %q, want %q", got, "I was merely responding with standard efficiency.")
+	}
+}
+
+func TestStripMarkup_ChatML_ImStartDecodedStripped(t *testing.T) {
+	// Decoded form (pipes stripped by TokenToPiece).
+	s := "Hello there!<im_start>T\nSome fabricated turn."
+	got := StripMarkup(s)
+	if got != "Hello there!" {
+		t.Errorf("got %q, want %q", got, "Hello there!")
+	}
+}
 
 func TestStripMarkup_Gemma4_SentenceMarkers(t *testing.T) {
 	s := "<s>Hello there!</s>"
