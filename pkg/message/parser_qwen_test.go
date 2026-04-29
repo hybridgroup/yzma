@@ -104,3 +104,27 @@ func TestParseQwenToolCalls_ViaParseTool(t *testing.T) {
 		t.Errorf("b: got %q, want %q", calls[0].Function.Arguments["b"], "27")
 	}
 }
+
+func TestParseQwenToolCalls_TextBeforeFunctionBlocks(t *testing.T) {
+	// Qwen models often emit spoken text first, then function blocks.
+	// ParseToolCalls must detect and parse the function blocks even when
+	// the response does not start with <function=.
+	response := "I'm doing wonderfully today!\n" +
+		"<function=tool_movement>\n<parameter=command>\nspeak\n</parameter>\n</function>\n" +
+		"<function=tool_movement>\n<parameter=command>\nwait\n</parameter>\n</function>\n"
+
+	calls := ParseToolCalls(response)
+
+	if len(calls) != 2 {
+		t.Fatalf("expected 2 calls, got %d", len(calls))
+	}
+	if calls[0].Function.Name != "tool_movement" {
+		t.Errorf("call[0] name: got %q, want %q", calls[0].Function.Name, "tool_movement")
+	}
+	if calls[0].Function.Arguments["command"] != "speak" {
+		t.Errorf("call[0] command: got %q, want %q", calls[0].Function.Arguments["command"], "speak")
+	}
+	if calls[1].Function.Arguments["command"] != "wait" {
+		t.Errorf("call[1] command: got %q, want %q", calls[1].Function.Arguments["command"], "wait")
+	}
+}

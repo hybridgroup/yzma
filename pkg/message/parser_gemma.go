@@ -53,10 +53,6 @@ var gemma4OrphanToolCallTagRE = regexp.MustCompile(`<\|?/?tool_?call\|?>`)
 // emit as a turn-boundary marker.
 var gemma4OrphanToolResultTagRE = regexp.MustCompile(`<\|?/?(toolresult|toolresponse|toolcode|turnend)\|?>|<\|?turn\|?>`)
 
-// gemma4EmbeddedPrefixRE matches patterns like "angle:90" or "angle:180" that
-// appear concatenated before a bare channel prefix (e.g. "angle:90wait:text").
-var gemma4EmbeddedPrefixRE = regexp.MustCompile(`^[a-z][a-z0-9_]*:[0-9]*`)
-
 // stripBareChannelPrefix removes one or more leading channel/command prefixes
 // from s (e.g. "angle:90wait:text" → "text"). Each prefix is either a bare
 // word: or word:number pattern. URL schemes (followed by //) are preserved.
