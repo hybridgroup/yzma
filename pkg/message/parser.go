@@ -15,6 +15,14 @@ func ParseToolCalls(response string) []ToolCall {
 	// content and will never see those tags, so standard-format responses
 	// would fall through undetected without this pre-check.
 	if calls := parseStandardToolCalls(response); len(calls) > 0 {
+		// Some Qwen fine-tunes wrap only the first function call in <tool_call>
+		// tags while emitting subsequent calls as bare <function=…> blocks
+		// outside any wrapper. Collect those extra bare blocks and append them
+		// so callers see the full set of requested tool calls.
+		if strings.Contains(response, "<function=") {
+			bare := parseBareQwenFunctionCalls(response)
+			calls = append(calls, bare...)
+		}
 		return calls
 	}
 	// parseInlineJSONToolCalls handles bare JSON tool call objects emitted by
@@ -26,6 +34,15 @@ func ParseToolCalls(response string) []ToolCall {
 	if !strings.Contains(response, "<tool_call>") && !strings.Contains(response, "</tool_call>") {
 		if calls := parseInlineJSONToolCalls(response); len(calls) > 0 {
 			return calls
+		}
+		// Detect Qwen <function=…> blocks that appear anywhere in the
+		// response, not just at the start. DetectFormat uses HasPrefix so
+		// it misses the common pattern where spoken text precedes the first
+		// tool call block.
+		if strings.Contains(response, "<function=") {
+			if calls := parseQwenToolCalls(response); len(calls) > 0 {
+				return calls
+			}
 		}
 	}
 	return parseToolCalls(response)
