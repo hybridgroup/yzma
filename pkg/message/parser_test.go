@@ -328,3 +328,84 @@ func TestParseToolCalls_BooleanArguments(t *testing.T) {
 	}
 }
 
+// ---- ParseToolCalls: inline JSON format ({"name":"...","args":{...}}) ----
+
+func TestParseToolCalls_InlineJSON_ArgsField(t *testing.T) {
+	// Model emits bare JSON with "args" instead of "arguments".
+	response := `{"name": "tool_movement", "args": {"command": "speak"}}`
+	calls := ParseToolCalls(response)
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 call, got %d", len(calls))
+	}
+	if calls[0].Function.Name != "tool_movement" {
+		t.Errorf("name: got %q, want %q", calls[0].Function.Name, "tool_movement")
+	}
+	if calls[0].Function.Arguments["command"] != "speak" {
+		t.Errorf("command: got %q, want %q", calls[0].Function.Arguments["command"], "speak")
+	}
+}
+
+func TestParseToolCalls_InlineJSON_WithNumericArg(t *testing.T) {
+	response := `{"name": "tool_movement", "args": {"command": "slowlook", "angle": 140}}`
+	calls := ParseToolCalls(response)
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 call, got %d", len(calls))
+	}
+	if calls[0].Function.Arguments["command"] != "slowlook" {
+		t.Errorf("command: got %q", calls[0].Function.Arguments["command"])
+	}
+	if calls[0].Function.Arguments["angle"] != "140" {
+		t.Errorf("angle: got %q, want %q", calls[0].Function.Arguments["angle"], "140")
+	}
+}
+
+func TestParseToolCalls_InlineJSON_EmbeddedInText(t *testing.T) {
+	// Model emits JSON tool call followed by toolresult and <turn> separator then speech.
+	response := `{"name": "tool_movement", "args": {"command": "speak"}}<toolresult>{"status": "success"}</toolresult><turn>Hello there!`
+	calls := ParseToolCalls(response)
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 call, got %d", len(calls))
+	}
+	if calls[0].Function.Arguments["command"] != "speak" {
+		t.Errorf("command: got %q", calls[0].Function.Arguments["command"])
+	}
+}
+
+func TestParseToolCalls_InlineJSON_ArgumentsField(t *testing.T) {
+	// Also handle "arguments" (standard field name) in inline JSON format.
+	response := `{"name": "tool_movement", "arguments": {"command": "wait"}}`
+	calls := ParseToolCalls(response)
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 call, got %d", len(calls))
+	}
+	if calls[0].Function.Arguments["command"] != "wait" {
+		t.Errorf("command: got %q", calls[0].Function.Arguments["command"])
+	}
+}
+
+func TestParseToolCalls_InlineJSON_NoToolCallField(t *testing.T) {
+	// JSON with "name" but no "args"/"arguments" must NOT be treated as tool call.
+	response := `{"name": "Alice", "age": 30}`
+	calls := ParseToolCalls(response)
+	if len(calls) != 0 {
+		t.Fatalf("expected 0 calls, got %d", len(calls))
+	}
+}
+
+func TestParseToolCalls_InlineJSON_SpacesInName(t *testing.T) {
+	// Names with spaces are natural text, not tool calls.
+	response := `{"name": "Alice Smith", "args": {"x": "y"}}`
+	calls := ParseToolCalls(response)
+	if len(calls) != 0 {
+		t.Fatalf("expected 0 calls, got %d", len(calls))
+	}
+}
+
+func TestParseToolCalls_InlineJSON_EmptyArgsRejected(t *testing.T) {
+	// {"args":{}} with no keys must NOT produce a tool call (missing required args).
+	response := `{"name": "tool_movement", "args": {}}`
+	calls := ParseToolCalls(response)
+	if len(calls) != 0 {
+		t.Fatalf("expected 0 calls for empty args, got %d", len(calls))
+	}
+}

@@ -15,20 +15,43 @@ const gemmaShortQuoteToken = "<\">"
 // so prefix checks prefer the longer form when both could match.
 var gemmaQuoteTokens = []string{gemmaQuoteToken, gemmaShortQuoteToken}
 
-// gemma4TurnTagRE matches opening and closing <turn> markers with an optional
-// known role name (model, user, assistant, system). Using a specific alternation
-// prevents the regexp from eating the first word of the actual response content.
-var gemma4TurnTagRE = regexp.MustCompile(`</?turn>(model|user|assistant|system)?`)
+// gemma4TurnTagRE matches Gemma 4 turn boundary tokens in all observed forms:
+//
+//	<|turn>role  – canonical opening token (pipe-delimited)
+//	<turn|>      – canonical closing token
+//	<turn>role   – decoded form when TokenToPiece strips the pipe characters
+//	</turn>      – alternate closing form
+var gemma4TurnTagRE = regexp.MustCompile(`<\|turn>(model|user|assistant|system)?|<turn\|>|</?turn>(model|user|assistant|system)?`)
 
 // gemma4ChannelTagRE matches Gemma 4 channel directives of the form
 // <channel>channelname: (e.g. <channel>speak:) that prefix channel content.
 var gemma4ChannelTagRE = regexp.MustCompile(`<channel>\w+:`)
+
+// gemma4PipeChannelTagRE matches the pipe-delimited channel token forms:
+//
+//	<|channel>name  – canonical opening token (e.g. <|channel>speak)
+//	<channel|>      – canonical closing token
+var gemma4PipeChannelTagRE = regexp.MustCompile(`<\|channel>\w*|<channel\|>`)
 
 // gemma4BareChannelRE matches a bare channel/command prefix at the very start
 // of the string (e.g. "speak:", "wait:", "look:") emitted by Gemma 4 models
 // that omit the <channel> wrapper. URL-scheme detection (http://) is handled
 // in stripBareChannelPrefix rather than via a lookahead (unsupported in Go).
 var gemma4BareChannelRE = regexp.MustCompile(`^[a-z][a-z0-9_]*:`)
+
+// gemma4OrphanToolCallTagRE matches any remaining <toolcall>/<tool_call> tag
+// variants (with or without pipe delimiters, with or without underscore, open
+// or close forms) that survive block-level stripping. These are emitted as
+// bare wrapper tokens by some Gemma 4 fine-tunes and must be cleaned up as a
+// last resort so they never reach spoken/MQTT output.
+var gemma4OrphanToolCallTagRE = regexp.MustCompile(`<\|?/?tool_?call\|?>`)
+
+// gemma4OrphanToolResultTagRE matches orphaned <toolresult>, <toolresponse>,
+// <toolcode>, <turnend>, and bare <turn> tags (with or without pipe delimiters,
+// open or close forms) that survive block-level stripping. Also matches bare
+// <turn> without a role suffix, and <turnend> which some Gemma 4 fine-tunes
+// emit as a turn-boundary marker.
+var gemma4OrphanToolResultTagRE = regexp.MustCompile(`<\|?/?(toolresult|toolresponse|toolcode|turnend)\|?>|<\|?turn\|?>`)
 
 // gemma4EmbeddedPrefixRE matches patterns like "angle:90" or "angle:180" that
 // appear concatenated before a bare channel prefix (e.g. "angle:90wait:text").
@@ -100,7 +123,10 @@ func parseGemmaToolCalls(response string) []ToolCall {
 		}
 
 		args := parseGemmaArgs(argsRaw)
-		if name != "" {
+		// Only create a tool call when the function has a name and at least
+		// one argument.  An empty brace block call:func{} is a model error —
+		// skip it rather than dispatching a call that will always fail.
+		if name != "" && len(args) > 0 {
 			calls = append(calls, ToolCall{
 				Type: "function",
 				Function: ToolFunction{
@@ -346,6 +372,28 @@ func parseGemmaArgs(raw string) map[string]string {
 		}
 
 		// Bare value (number, bool, etc.) — read to next comma or }.
+		// If the value begins with { it is a nested object: parse it
+		// recursively and merge its key-value pairs into the parent map
+		// rather than storing the raw brace text.
+		if strings.HasPrefix(remaining, "{") {
+			nestedEnd := findGemmaBraceEnd(remaining)
+			var nestedRaw string
+			if nestedEnd == -1 {
+				nestedRaw = remaining[1:]
+				remaining = ""
+			} else {
+				nestedRaw = remaining[1:nestedEnd]
+				remaining = remaining[nestedEnd+1:]
+			}
+			for k, v := range parseGemmaArgs(nestedRaw) {
+				args[k] = v
+			}
+			if remaining == "" {
+				break
+			}
+			continue
+		}
+
 		endIdx := strings.IndexAny(remaining, ",}")
 		var v string
 		if endIdx == -1 {
