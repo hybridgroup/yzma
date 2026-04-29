@@ -69,7 +69,7 @@ func main() {
 }
 
 // formatToolsForPrompt formats the tool definitions as a JSON string for the system prompt
-func formatToolsForPrompt(tools []Tool) string {
+func formatToolsForPrompt(tools []message.ToolDefinition) string {
 	toolsJSON, err := json.MarshalIndent(tools, "", "  ")
 	if err != nil {
 		return "[]"
@@ -77,7 +77,7 @@ func formatToolsForPrompt(tools []Tool) string {
 	return string(toolsJSON)
 }
 
-func runMultiStepToolConversation(ctx llama.Context, model llama.Model, vocab llama.Vocab, sampler llama.Sampler, chatTemplate string, tools []Tool) {
+func runMultiStepToolConversation(ctx llama.Context, model llama.Model, vocab llama.Vocab, sampler llama.Sampler, chatTemplate string, tools []message.ToolDefinition) {
 	fmt.Println("=== Multi-Step Tool Calling Example ===")
 	fmt.Println()
 	fmt.Printf("User: %s\n", *userQuestion)
@@ -141,7 +141,7 @@ Do not include tool calls in your final answer.`, toolsJSON)
 		tokens := llama.Tokenize(vocab, prompt, true, false)
 		response := generate(ctx, vocab, sampler, tokens)
 
-		fmt.Printf("Assistant: %s\n", response)
+		fmt.Printf("Assistant: %s\n", message.StripMarkup(response))
 		fmt.Println()
 
 		// Parse tool calls from response
@@ -150,7 +150,7 @@ Do not include tool calls in your final answer.`, toolsJSON)
 		// If no tool calls found, we have the final answer
 		if len(toolCalls) == 0 {
 			fmt.Println("=== Final Answer (no more tool calls) ===")
-			fmt.Printf("%s\n", response)
+			fmt.Printf("%s\n", message.StripMarkup(response))
 			break
 		}
 

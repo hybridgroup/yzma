@@ -69,7 +69,7 @@ func main() {
 }
 
 // formatToolsForPrompt formats the tool definitions as a JSON string for the system prompt
-func formatToolsForPrompt(tools []Tool) string {
+func formatToolsForPrompt(tools []message.ToolDefinition) string {
 	toolsJSON, err := json.MarshalIndent(tools, "", "  ")
 	if err != nil {
 		return "[]"
@@ -77,7 +77,7 @@ func formatToolsForPrompt(tools []Tool) string {
 	return string(toolsJSON)
 }
 
-func runToolConversation(ctx llama.Context, model llama.Model, vocab llama.Vocab, sampler llama.Sampler, chatTemplate string, tools []Tool) {
+func runToolConversation(ctx llama.Context, model llama.Model, vocab llama.Vocab, sampler llama.Sampler, chatTemplate string, tools []message.ToolDefinition) {
 	fmt.Println("=== Tool Calling Example ===")
 	fmt.Println()
 	fmt.Printf("User: %s\n", *userQuestion)
@@ -127,10 +127,10 @@ After receiving tool results, provide a final answer to the user.`, toolsJSON)
 	tokens := llama.Tokenize(vocab, prompt, true, false)
 	response := generate(ctx, vocab, sampler, tokens)
 
-	fmt.Printf("Assistant: %s\n", response)
+	fmt.Printf("Assistant: %s\n", message.StripMarkup(response))
 	fmt.Println()
 
-	// Step 2: Parse tool calls from response (simplified parsing)
+	// Step 2: Parse tool calls from response
 	toolCalls := message.ParseToolCalls(response)
 
 	if len(toolCalls) > 0 {
@@ -182,7 +182,7 @@ After receiving tool results, provide a final answer to the user.`, toolsJSON)
 		tokens = llama.Tokenize(vocab, prompt, true, false)
 		finalResponse := generate(ctx, vocab, sampler, tokens)
 
-		fmt.Printf("Assistant: %s\n", finalResponse)
+		fmt.Printf("Assistant: %s\n", message.StripMarkup(finalResponse))
 	}
 }
 

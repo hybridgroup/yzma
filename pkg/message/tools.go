@@ -1,21 +1,51 @@
 package message
 
-// ToolFunction represents a function within a tool call.
-type ToolFunction struct {
-	Name      string
-	Arguments map[string]string
+// ToolDefinition represents a single tool available to the model.
+type ToolDefinition struct {
+	Type     string                 `json:"type"`
+	Function ToolFunctionDefinition `json:"function"`
 }
 
-// ToolCall represents a call to a tool function within a tool message.
-type ToolCall struct {
-	Type     string
-	Function ToolFunction
+// GetRole returns the role of the tool definition message.
+func (td ToolDefinition) GetRole() string {
+	return "tool_definition"
+}
+
+// GetContent returns the tool definition as a map.
+func (td ToolDefinition) GetContent() map[string]interface{} {
+	return map[string]interface{}{
+		"type": td.Type,
+		"function": map[string]interface{}{
+			"name":        td.Function.Name,
+			"description": td.Function.Description,
+			"parameters":  td.Function.Parameters,
+		},
+	}
+}
+
+// ToolFunctionDefinition represents a function definition
+type ToolFunctionDefinition struct {
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	Parameters  map[string]interface{} `json:"parameters"`
 }
 
 // Tool represents a message that contains tool calls.
 type Tool struct {
 	Role      string
 	ToolCalls []ToolCall
+}
+
+// ToolCall represents a call to a tool function within a tool message.
+type ToolCall struct {
+	Type     string       `json:"type"`
+	Function ToolFunction `json:"function"`
+}
+
+// ToolFunction represents a function within a tool call.
+type ToolFunction struct {
+	Name      string            `json:"name"`
+	Arguments map[string]string `json:"arguments"`
 }
 
 // GetRole returns the role of the tool message.

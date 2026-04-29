@@ -5,6 +5,50 @@ import (
 	"testing"
 )
 
+func TestToolDefinition_GetRole(t *testing.T) {
+	td := ToolDefinition{
+		Type: "function",
+		Function: ToolFunctionDefinition{
+			Name:        "add",
+			Description: "Add two numbers",
+			Parameters:  map[string]interface{}{"type": "object"},
+		},
+	}
+	if got := td.GetRole(); got != "tool_definition" {
+		t.Errorf("GetRole() = %q, want %q", got, "tool_definition")
+	}
+}
+
+func TestToolDefinition_GetContent(t *testing.T) {
+	params := map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"a": map[string]interface{}{"type": "number"},
+		},
+		"required": []string{"a"},
+	}
+	td := ToolDefinition{
+		Type: "function",
+		Function: ToolFunctionDefinition{
+			Name:        "add",
+			Description: "Add two numbers",
+			Parameters:  params,
+		},
+	}
+	got := td.GetContent()
+	want := map[string]interface{}{
+		"type": "function",
+		"function": map[string]interface{}{
+			"name":        "add",
+			"description": "Add two numbers",
+			"parameters":  params,
+		},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("GetContent() = %v, want %v", got, want)
+	}
+}
+
 func TestToolMessage_GetRole(t *testing.T) {
 	msg := Tool{Role: "tool", ToolCalls: nil}
 	if got := msg.GetRole(); got != "tool" {
