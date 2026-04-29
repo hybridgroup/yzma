@@ -69,10 +69,16 @@ func parseStandardToolCalls(response string) []ToolCall {
 		var parsed struct {
 			Name      string                 `json:"name"`
 			Arguments map[string]interface{} `json:"arguments"`
+			// Args is an alias used by some models (e.g. Gemma4) instead of Arguments.
+			Args map[string]interface{} `json:"args"`
 		}
-		if err := json.Unmarshal([]byte(content), &parsed); err == nil {
+		if err := json.Unmarshal([]byte(content), &parsed); err == nil && parsed.Name != "" {
+			argsMap := parsed.Arguments
+			if argsMap == nil {
+				argsMap = parsed.Args
+			}
 			args := make(map[string]string)
-			for k, v := range parsed.Arguments {
+			for k, v := range argsMap {
 				switch val := v.(type) {
 				case string:
 					args[k] = val
@@ -95,6 +101,15 @@ func parseStandardToolCalls(response string) []ToolCall {
 					Arguments: args,
 				},
 			})
+		} else if err != nil {
+			// JSON parse failed — some models (e.g. Qwen fine-tunes) emit
+			// <function=name>…</function> format wrapped inside <tool_call> tags,
+			// sometimes with a spurious `{"` prefix. Try Qwen format as a fallback.
+			if idx := strings.Index(content, "<function="); idx >= 0 {
+				if qwenCalls := parseQwenToolCalls(content[idx:]); len(qwenCalls) > 0 {
+					calls = append(calls, qwenCalls...)
+				}
+			}
 		}
 
 		response = response[end+len("</tool_call>"):]
@@ -274,10 +289,68 @@ func isWordChar(c byte) bool {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_'
 }
 
-// StripMarkup removes all tool call blocks and model-specific markers from s,
-// returning only the plain text content. It handles all known formats:
-// Standard (<tool_call>), Qwen (<function=…>), GLM (<arg_key>), Mistral
-// ([TOOL_CALLS]), and Gemma 4 (call:), as well as Gemma 4 turn/channel markers
+// TextAfterToolCalls returns any plain-text content that follows ALL tool call
+// blocks in s. This is used to extract spoken text from model responses where
+// thinking or planning content precedes the tool calls: by taking only the
+// text after the last tool call end marker we avoid publishing thinking content.
+//
+// If no tool call end markers are found in s, the whole string is returned so
+// that models which don't use tool-call wrappers are not affected.
+func TextAfterToolCalls(s string) string {
+	// Known tool call end markers across all supported formats.
+	// Longest / most-specific forms are checked first.
+	endMarkers := []string{
+		"</tool_call>",  // Standard
+		"</function>",   // Qwen3-Coder
+		"</toolcall>",   // normalised Standard (no underscore)
+		"[/TOOL_CALLS]", // Mistral closing bracket (non-standard)
+	}
+
+	lastEnd := -1
+	lastLen := 0
+	for _, marker := range endMarkers {
+		if idx := strings.LastIndex(s, marker); idx >= 0 {
+			end := idx + len(marker)
+			if end > lastEnd+lastLen {
+				lastEnd = idx
+				lastLen = len(marker)
+			}
+		}
+	}
+
+	// Also handle Gemma4 call:func{...} blocks — find the closing "}" of the
+	// last call: block.
+	if idx := strings.LastIndex(s, "call:"); idx >= 0 {
+		// Scan forward from the "{" to find the matching closing "}"
+		braceStart := strings.Index(s[idx:], "{")
+		if braceStart >= 0 {
+			abs := idx + braceStart
+			depth := 0
+			for i := abs; i < len(s); i++ {
+				if s[i] == '{' {
+					depth++
+				} else if s[i] == '}' {
+					depth--
+					if depth == 0 {
+						end := i + 1
+						if end > lastEnd+lastLen {
+							lastEnd = i
+							lastLen = 1
+						}
+						break
+					}
+				}
+			}
+		}
+	}
+
+	if lastEnd < 0 {
+		// No tool call end markers found — return the whole string unchanged.
+		return s
+	}
+	return strings.TrimSpace(s[lastEnd+lastLen:])
+}
+
 // and thinking/reasoning <think>…</think> and <|channel>thought…<channel|> blocks.
 func StripMarkup(s string) string {
 	// Remove <think>…</think> reasoning blocks before any other processing.
@@ -311,6 +384,16 @@ func StripMarkup(s string) string {
 	// Remove Gemma 4 sentence boundary markers.
 	s = strings.ReplaceAll(s, "<s>", "")
 	s = strings.ReplaceAll(s, "</s>", " ")
+
+	// Strip ChatML / Qwen message-boundary tokens. If <|im_start|> (or its
+	// decoded form <im_start>) appears it means the model started simulating
+	// the next conversation turn — everything from that point onwards is
+	// fabricated context and must be discarded.
+	for _, marker := range []string{"<|im_start|>", "<|im_end|>", "<im_start>", "<im_end>"} {
+		if idx := strings.Index(s, marker); idx >= 0 {
+			s = strings.TrimSpace(s[:idx])
+		}
+	}
 
 	// Normalise <toolcall> (no underscore) to the canonical form so the
 	// Standard block-removal below handles both spellings.
@@ -414,7 +497,22 @@ func stripStandardToolCallBlocks(s string) string {
 // stripThinkBlocks removes <think>…</think> reasoning/thinking blocks.
 // If a <think> tag has no matching </think>, everything from that tag to the
 // end of the string is stripped (the block is treated as incomplete/trailing).
+//
+// It also handles the case where <think> was injected into the generation
+// prompt rather than generated as a token (common with Qwen3 models whose
+// chat template prepends <think> to the assistant turn). In that case the
+// generated text starts mid-thought and contains a </think> with no preceding
+// <think>; everything up to and including that orphaned </think> is stripped.
 func stripThinkBlocks(s string) string {
+	// Handle orphaned </think>: <think> was in the prompt, not in the
+	// generated text, so the text begins with raw thinking content and
+	// ends the block with </think> before the actual response.
+	if closeIdx := strings.Index(s, "</think>"); closeIdx >= 0 {
+		if !strings.Contains(s[:closeIdx], "<think>") {
+			s = strings.TrimSpace(s[closeIdx+len("</think>"):])
+		}
+	}
+
 	for {
 		start := strings.Index(s, "<think>")
 		if start < 0 {

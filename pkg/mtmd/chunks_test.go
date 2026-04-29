@@ -7,6 +7,7 @@ import (
 )
 
 func TestInputChunksInitAndFree(t *testing.T) {
+	testSetup(t)
 	chunks := InputChunksInit()
 	if chunks == InputChunks(0) {
 		t.Fatal("InputChunksInit returned an invalid InputChunks")
@@ -19,6 +20,7 @@ func TestInputChunksInitAndFree(t *testing.T) {
 }
 
 func TestInputChunksSize(t *testing.T) {
+	testSetup(t)
 	chunks := InputChunksInit()
 	defer InputChunksFree(chunks)
 

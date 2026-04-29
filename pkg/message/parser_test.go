@@ -256,6 +256,52 @@ func TestStripMarkup_NoMarkup(t *testing.T) {
 	}
 }
 
+// ---- TextAfterToolCalls ----
+
+func TestTextAfterToolCalls_Standard(t *testing.T) {
+	// Thinking content precedes the tool call; spoken text follows.
+	s := "Thinking Process:1.\nAnalyze the request.\n<tool_call>{\"name\":\"tool_movement\",\"arguments\":{\"command\":\"speak\"}}</tool_call>\nGreetings, human!"
+	got := TextAfterToolCalls(s)
+	if got != "Greetings, human!" {
+		t.Errorf("got %q, want %q", got, "Greetings, human!")
+	}
+}
+
+func TestTextAfterToolCalls_MultipleStandard(t *testing.T) {
+	// Two tool calls; text after the last one should be returned.
+	s := "<tool_call>{\"name\":\"tool_movement\",\"arguments\":{\"command\":\"speak\"}}</tool_call>Hello!<tool_call>{\"name\":\"tool_movement\",\"arguments\":{\"command\":\"wait\"}}</tool_call>Goodbye!"
+	got := TextAfterToolCalls(s)
+	if got != "Goodbye!" {
+		t.Errorf("got %q, want %q", got, "Goodbye!")
+	}
+}
+
+func TestTextAfterToolCalls_NoToolCalls(t *testing.T) {
+	// No tool calls — whole string returned.
+	s := "Just a normal sentence."
+	got := TextAfterToolCalls(s)
+	if got != s {
+		t.Errorf("got %q, want %q", got, s)
+	}
+}
+
+func TestTextAfterToolCalls_NoTextAfter(t *testing.T) {
+	// Tool call at end — result is empty.
+	s := "Thinking...\n<tool_call>{\"name\":\"tool_movement\",\"arguments\":{\"command\":\"speak\"}}</tool_call>"
+	got := TextAfterToolCalls(s)
+	if got != "" {
+		t.Errorf("got %q, want %q", got, "")
+	}
+}
+
+func TestTextAfterToolCalls_Qwen(t *testing.T) {
+	s := "Thinking...\n<function=tool_movement>{\"command\":\"speak\"}</function>\nHello there!"
+	got := TextAfterToolCalls(s)
+	if got != "Hello there!" {
+		t.Errorf("got %q, want %q", got, "Hello there!")
+	}
+}
+
 func TestParseToolCalls_NegativeNumbers(t *testing.T) {
 	response := `<tool_call>
 {"name": "subtract", "arguments": {"a": -10, "b": -5.5}}

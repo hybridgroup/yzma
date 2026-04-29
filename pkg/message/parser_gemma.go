@@ -334,6 +334,11 @@ func parseGemmaArgs(raw string) map[string]string {
 		key = strings.Trim(key, "\"")
 		remaining = remaining[colonIdx+1:]
 
+		// Strip leading whitespace between the colon and the value. Models that
+		// emit JSON-style key: "value" pairs (with a space after the colon) would
+		// otherwise fail the quote-prefix checks below.
+		remaining = strings.TrimSpace(remaining)
+
 		// Value wrapped in any recognised Gemma quote token.
 		var openToken string
 		for _, tok := range gemmaQuoteTokens {
