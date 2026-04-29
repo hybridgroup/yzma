@@ -203,3 +203,55 @@ func TestParseGemmaToolCalls_ShortTokenMultiple(t *testing.T) {
 		t.Errorf("call[1] angle: got %q", calls[1].Function.Arguments["angle"])
 	}
 }
+
+func TestParseGemmaToolCalls_NestedArgumentsObject(t *testing.T) {
+	// Model wraps extra params inside an arguments:{} object.
+	// call:tool_movement{command:<|"|>slowlook<|"|>,arguments:{angle:150}}
+	response := "call:tool_movement{command:<|\"|>slowlook<|\"|>,arguments:{angle:150}}"
+	calls := ParseToolCalls(response)
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 call, got %d", len(calls))
+	}
+	if calls[0].Function.Arguments["command"] != "slowlook" {
+		t.Errorf("command: got %q, want %q", calls[0].Function.Arguments["command"], "slowlook")
+	}
+	if calls[0].Function.Arguments["angle"] != "150" {
+		t.Errorf("angle: got %q, want %q", calls[0].Function.Arguments["angle"], "150")
+	}
+}
+
+func TestParseGemmaToolCalls_NestedArgumentsObjectBareValues(t *testing.T) {
+	// Same pattern without Gemma quote tokens (bare values).
+	response := "call:tool_movement{command:slowlook,arguments:{angle:150}}"
+	calls := ParseToolCalls(response)
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 call, got %d", len(calls))
+	}
+	if calls[0].Function.Arguments["command"] != "slowlook" {
+		t.Errorf("command: got %q, want %q", calls[0].Function.Arguments["command"], "slowlook")
+	}
+	if calls[0].Function.Arguments["angle"] != "150" {
+		t.Errorf("angle: got %q, want %q", calls[0].Function.Arguments["angle"], "150")
+	}
+}
+
+func TestParseGemmaToolCalls_EmptyArgsRejected(t *testing.T) {
+	// call:func{} with empty braces must not produce a tool call.
+	response := "call:tool_movement{}"
+	calls := ParseToolCalls(response)
+	if len(calls) != 0 {
+		t.Fatalf("expected 0 calls for empty Gemma args, got %d: %+v", len(calls), calls)
+	}
+}
+
+func TestParseGemmaToolCalls_EmptyArgsMixedWithValid(t *testing.T) {
+	// A bad call:func{} immediately before a valid call should be filtered out.
+	response := `call:tool_movement{}call:tool_movement{command:<|"|>speak<|"|>}`
+	calls := ParseToolCalls(response)
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 call, got %d: %+v", len(calls), calls)
+	}
+	if calls[0].Function.Arguments["command"] != "speak" {
+		t.Errorf("command: got %q, want %q", calls[0].Function.Arguments["command"], "speak")
+	}
+}
