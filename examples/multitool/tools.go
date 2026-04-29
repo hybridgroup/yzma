@@ -7,24 +7,11 @@ import (
 	"github.com/hybridgroup/yzma/pkg/message"
 )
 
-// Tool represents a tool definition for the LLM
-type Tool struct {
-	Type     string       `json:"type"`
-	Function ToolFunction `json:"function"`
-}
-
-// ToolFunction represents a function definition
-type ToolFunction struct {
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	Parameters  map[string]interface{} `json:"parameters"`
-}
-
-func getToolDefinitions() []Tool {
-	return []Tool{
+func getToolDefinitions() []message.ToolDefinition {
+	return []message.ToolDefinition{
 		{
 			Type: "function",
-			Function: ToolFunction{
+			Function: message.ToolFunctionDefinition{
 				Name:        "add",
 				Description: "Add two numbers together",
 				Parameters: map[string]interface{}{
@@ -45,7 +32,7 @@ func getToolDefinitions() []Tool {
 		},
 		{
 			Type: "function",
-			Function: ToolFunction{
+			Function: message.ToolFunctionDefinition{
 				Name:        "multiply",
 				Description: "Multiply two numbers together",
 				Parameters: map[string]interface{}{
@@ -66,7 +53,7 @@ func getToolDefinitions() []Tool {
 		},
 		{
 			Type: "function",
-			Function: ToolFunction{
+			Function: message.ToolFunctionDefinition{
 				Name:        "subtract",
 				Description: "Subtract the second number from the first",
 				Parameters: map[string]interface{}{
