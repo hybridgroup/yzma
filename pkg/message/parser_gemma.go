@@ -5,6 +5,12 @@ import (
 	"strings"
 )
 
+// gemmaKeyStartRE matches the start of a bare Gemma argument key: a word
+// immediately followed by a colon, with no preceding separator. Used to
+// detect when a closing quote token is immediately followed by the next
+// key in a comma-less argument list.
+var gemmaKeyStartRE = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*:`)
+
 // gemmaQuoteToken is the canonical Gemma 4 string delimiter.
 const gemmaQuoteToken = "<|\"|>"
 
@@ -271,6 +277,13 @@ func findClosingGemmaQuote(s, token string) int {
 		// model may mix Gemma format with standard JSON mid-output.
 		switch s[afterQuote] {
 		case ',', '}', ']', '"':
+			return pos
+		}
+
+		// Also accept when followed by a bare word+colon: Gemma sometimes omits
+		// the comma separator between arguments, e.g.
+		//   command:<|"|>slowlook<|"|>angle:135
+		if gemmaKeyStartRE.MatchString(s[afterQuote:]) {
 			return pos
 		}
 

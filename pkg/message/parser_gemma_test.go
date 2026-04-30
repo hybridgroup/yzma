@@ -255,3 +255,53 @@ func TestParseGemmaToolCalls_EmptyArgsMixedWithValid(t *testing.T) {
 		t.Errorf("command: got %q, want %q", calls[0].Function.Arguments["command"], "speak")
 	}
 }
+func TestParseGemmaToolCalls_NoCommaBetweenArgs_PipeToken(t *testing.T) {
+	// Gemma sometimes omits the comma between arguments, emitting:
+	//   command:<|"|>slowlook<|"|>angle:135
+	// instead of the canonical:
+	//   command:<|"|>slowlook<|"|>,angle:135
+	response := `call:tool_movement{command:<|"|>slowlook<|"|>angle:135}`
+	calls := ParseToolCalls(response)
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 call, got %d: %+v", len(calls), calls)
+	}
+	if calls[0].Function.Arguments["command"] != "slowlook" {
+		t.Errorf("command: got %q, want %q", calls[0].Function.Arguments["command"], "slowlook")
+	}
+	if calls[0].Function.Arguments["angle"] != "135" {
+		t.Errorf("angle: got %q, want %q", calls[0].Function.Arguments["angle"], "135")
+	}
+}
+
+func TestParseGemmaToolCalls_NoCommaBetweenArgs_ShortToken(t *testing.T) {
+	// Same as above but with the short <"> quote token variant.
+	response := `call:tool_movement{command:<">look<">angle:90}`
+	calls := ParseToolCalls(response)
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 call, got %d: %+v", len(calls), calls)
+	}
+	if calls[0].Function.Arguments["command"] != "look" {
+		t.Errorf("command: got %q, want %q", calls[0].Function.Arguments["command"], "look")
+	}
+	if calls[0].Function.Arguments["angle"] != "90" {
+		t.Errorf("angle: got %q, want %q", calls[0].Function.Arguments["angle"], "90")
+	}
+}
+
+func TestParseGemmaToolCalls_NoComma_MultipleCallsInGeneration(t *testing.T) {
+	// Real-world Gemma output: two tool calls, first with comma-less args.
+	response := "I'm superior in every way.\ncall:tool_movement{command:<|\"|>slowlook<|\"|>angle:135}\ncall:tool_movement{command:<|\"|>headshake<|\"|>}"
+	calls := ParseToolCalls(response)
+	if len(calls) != 2 {
+		t.Fatalf("expected 2 calls, got %d: %+v", len(calls), calls)
+	}
+	if calls[0].Function.Arguments["command"] != "slowlook" {
+		t.Errorf("call[0] command: got %q, want %q", calls[0].Function.Arguments["command"], "slowlook")
+	}
+	if calls[0].Function.Arguments["angle"] != "135" {
+		t.Errorf("call[0] angle: got %q, want %q", calls[0].Function.Arguments["angle"], "135")
+	}
+	if calls[1].Function.Arguments["command"] != "headshake" {
+		t.Errorf("call[1] command: got %q, want %q", calls[1].Function.Arguments["command"], "headshake")
+	}
+}
