@@ -31,6 +31,12 @@ const (
 	// FormatGPT expects GPT-model tool calls:
 	//   .FUNC_NAME <|message|>JSON_ARGS
 	FormatGPT
+
+	// FormatPhi is used for Phi-family models (phi-3, phi-4, etc.).
+	// They use standard JSON tool calls but have distinct turn-boundary tokens
+	// (<|end|>, <|user|>, <|assistant|>, <|system|>) that must be treated as
+	// generation stop markers.
+	FormatPhi
 )
 
 // DetectFormat inspects a tool-call content block and returns the Format that
@@ -70,6 +76,8 @@ func DetectFormatFromPath(path string) Format {
 		return FormatMistral
 	case strings.Contains(lower, "glm"):
 		return FormatGLM
+	case strings.Contains(lower, "phi"):
+		return FormatPhi
 	default:
 		return FormatAuto
 	}

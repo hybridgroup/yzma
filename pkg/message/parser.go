@@ -504,6 +504,15 @@ func StripMarkup(s string) string {
 		}
 	}
 
+	// Strip Phi-4 turn boundary tokens. <|end|> terminates the model's turn;
+	// <|user|>, <|assistant|>, and <|system|> indicate the model has started
+	// simulating the next conversation turn. Truncate at the first occurrence.
+	for _, marker := range []string{"<|end|>", "<|user|>", "<|assistant|>", "<|system|>"} {
+		if idx := strings.Index(s, marker); idx >= 0 {
+			s = strings.TrimSpace(s[:idx])
+		}
+	}
+
 	// Normalise <toolcall> (no underscore) to the canonical form so the
 	// Standard block-removal below handles both spellings.
 	// Also normalise the Gemma 4 pipe-delimited forms: <|toolcall> (opening)
