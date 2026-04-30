@@ -37,6 +37,10 @@ func StopMarkers(vocab llama.Vocab, format Format) []string {
 		)
 	case FormatPhi:
 		markers = append(markers,
+			// Phi-3/4 EOT token. Added explicitly because VocabEOT may return -1
+			// for some fine-tuned/abliterated variants that don't register a
+			// distinct EOT token — eotMarkers() would then contribute nothing.
+			"<|end|>",
 			// Phi-3/4 turn-boundary tokens.
 			"<|user|>", "<|assistant|>", "<|system|>",
 		)

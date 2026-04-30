@@ -9,6 +9,11 @@ import (
 // ParseToolCalls attempts to parse tool calls from a model response,
 // detecting the grammar in order and returning the first match.
 func ParseToolCalls(response string) []ToolCall {
+	// Normalise Phi-4's pipe-prefixed <|tool_call> opening tag to the
+	// canonical <tool_call> form so parseStandardToolCalls can find it.
+	// (The closing </tool_call> is already canonical in Phi-4 output.)
+	response = strings.ReplaceAll(response, "<|tool_call>", "<tool_call>")
+
 	// parseStandardToolCalls must be tried first against the full response,
 	// because it matches on the outer <tool_call>…</tool_call> envelope tags.
 	// DetectFormat (used by parseToolCalls) inspects the unwrapped inner
@@ -154,6 +159,10 @@ func flattenNestedArguments(argsMap map[string]interface{}) map[string]interface
 }
 
 // parseStandardToolCalls parses <tool_call>{JSON}</tool_call> blocks.
+// It also handles unclosed blocks (no </tool_call>) by treating everything
+// from the opening tag to end-of-string as the block content — Phi-4 and
+// some other models omit the closing tag when generation is halted by an
+// EOT/stop token immediately after the JSON object.
 func parseStandardToolCalls(response string) []ToolCall {
 	var calls []ToolCall
 
@@ -163,62 +172,8 @@ func parseStandardToolCalls(response string) []ToolCall {
 	for start != -1 && end != -1 && start < end {
 		content := strings.TrimSpace(response[start+len("<tool_call>") : end])
 
-		var parsed struct {
-			Name      string                 `json:"name"`
-			Arguments map[string]interface{} `json:"arguments"`
-			// Args is an alias used by some models (e.g. Gemma4) instead of Arguments.
-			Args map[string]interface{} `json:"args"`
-		}
-		// Some models (e.g. Qwen fine-tunes) emit truncated JSON that is
-		// missing one or more closing braces. Attempt to repair it before
-		// giving up on the unmarshal.
-		if err := json.Unmarshal([]byte(content), &parsed); err != nil {
-			if repaired := repairJSON(content); repaired != content {
-				_ = json.Unmarshal([]byte(repaired), &parsed)
-			}
-		}
-		if parsed.Name != "" {
-			argsMap := parsed.Arguments
-			if argsMap == nil {
-				argsMap = parsed.Args
-			}
-			argsMap = flattenNestedArguments(argsMap)
-			args := make(map[string]string)
-			for k, v := range argsMap {
-				switch val := v.(type) {
-				case string:
-					args[k] = val
-				case float64:
-					args[k] = strconv.FormatFloat(val, 'f', -1, 64)
-				case int:
-					args[k] = strconv.Itoa(val)
-				case json.Number:
-					args[k] = val.String()
-				default:
-					if b, err := json.Marshal(v); err == nil {
-						args[k] = string(b)
-					}
-				}
-			}
-			calls = append(calls, ToolCall{
-				Type: "function",
-				Function: ToolFunction{
-					Name:      parsed.Name,
-					Arguments: args,
-				},
-			})
-		} else {
-			// JSON parse failed — some models (e.g. Qwen fine-tunes) emit
-			// <function=name>…</function> format wrapped inside <tool_call> tags,
-			// sometimes with a spurious `{"` prefix, or with `"function=` in
-			// place of `<function=` (the `<` is corrupted to `"`). Normalize
-			// that before trying the Qwen parser as a fallback.
-			normalized := strings.ReplaceAll(content, `"function=`, "<function=")
-			if idx := strings.Index(normalized, "<function="); idx >= 0 {
-				if qwenCalls := parseQwenToolCalls(normalized[idx:]); len(qwenCalls) > 0 {
-					calls = append(calls, qwenCalls...)
-				}
-			}
+		if c := parseOneStandardToolCall(content); c != nil {
+			calls = append(calls, *c)
 		}
 
 		response = response[end+len("</tool_call>"):]
@@ -226,7 +181,78 @@ func parseStandardToolCalls(response string) []ToolCall {
 		end = strings.Index(response, "</tool_call>")
 	}
 
+	// Handle an unclosed <tool_call> block — no </tool_call> found.
+	// Treat everything after the opening tag as the JSON content.
+	if start != -1 && end == -1 {
+		content := strings.TrimSpace(response[start+len("<tool_call>"):])
+		if c := parseOneStandardToolCall(content); c != nil {
+			calls = append(calls, *c)
+		}
+	}
+
 	return calls
+}
+
+// parseOneStandardToolCall parses a single JSON tool call object from content
+// (the text between <tool_call> tags). Returns nil if parsing fails.
+func parseOneStandardToolCall(content string) *ToolCall {
+	var parsed struct {
+		Name      string                 `json:"name"`
+		Arguments map[string]interface{} `json:"arguments"`
+		// Args is an alias used by some models (e.g. Gemma4) instead of Arguments.
+		Args map[string]interface{} `json:"args"`
+	}
+	// Some models (e.g. Qwen fine-tunes) emit truncated JSON that is
+	// missing one or more closing braces. Attempt to repair it before
+	// giving up on the unmarshal.
+	if err := json.Unmarshal([]byte(content), &parsed); err != nil {
+		if repaired := repairJSON(content); repaired != content {
+			_ = json.Unmarshal([]byte(repaired), &parsed)
+		}
+	}
+	if parsed.Name != "" {
+		argsMap := parsed.Arguments
+		if argsMap == nil {
+			argsMap = parsed.Args
+		}
+		argsMap = flattenNestedArguments(argsMap)
+		args := make(map[string]string)
+		for k, v := range argsMap {
+			switch val := v.(type) {
+			case string:
+				args[k] = val
+			case float64:
+				args[k] = strconv.FormatFloat(val, 'f', -1, 64)
+			case int:
+				args[k] = strconv.Itoa(val)
+			case json.Number:
+				args[k] = val.String()
+			default:
+				if b, err := json.Marshal(v); err == nil {
+					args[k] = string(b)
+				}
+			}
+		}
+		return &ToolCall{
+			Type: "function",
+			Function: ToolFunction{
+				Name:      parsed.Name,
+				Arguments: args,
+			},
+		}
+	}
+	// JSON parse failed — some models (e.g. Qwen fine-tunes) emit
+	// <function=name>…</function> format wrapped inside <tool_call> tags,
+	// sometimes with a spurious `{"` prefix, or with `"function=` in
+	// place of `<function=` (the `<` is corrupted to `"`). Normalize
+	// that before trying the Qwen parser as a fallback.
+	normalized := strings.ReplaceAll(content, `"function=`, "<function=")
+	if idx := strings.Index(normalized, "<function="); idx >= 0 {
+		if qwenCalls := parseQwenToolCalls(normalized[idx:]); len(qwenCalls) > 0 {
+			return &qwenCalls[0]
+		}
+	}
+	return nil
 }
 
 // unmarshalJSONArgs parses a JSON object and returns all values as strings.
@@ -494,6 +520,21 @@ func StripMarkup(s string) string {
 	s = strings.ReplaceAll(s, "<s>", "")
 	s = strings.ReplaceAll(s, "</s>", " ")
 
+	// Normalise pipe-delimited tool-call opening tags BEFORE the Phi-4
+	// <|end|> truncation below, so that <|tool_call>…</tool_call> blocks are
+	// recognised and stripped even when <|end|> precedes them in the output.
+	// <|tool_call> is Phi-4's variant; <|toolcall> is Gemma 4's variant.
+	// Opening tags (pipe before name) → canonical <tool_call>.
+	s = strings.ReplaceAll(s, "<|tool_call>", "<tool_call>")
+	s = strings.ReplaceAll(s, "<|toolcall>", "<tool_call>")
+	s = strings.ReplaceAll(s, "<toolcall>", "<tool_call>")
+	// Closing tags (pipe after name) → canonical </tool_call>.
+	// <tool_call|> is Gemma 4's closing token (with underscore).
+	// <toolcall|>  is Gemma 4's closing token (without underscore).
+	s = strings.ReplaceAll(s, "<tool_call|>", "</tool_call>")
+	s = strings.ReplaceAll(s, "<toolcall|>", "</tool_call>")
+	s = strings.ReplaceAll(s, "</toolcall>", "</tool_call>")
+
 	// Strip ChatML / Qwen message-boundary tokens. If <|im_start|> (or its
 	// decoded form <im_start>) appears it means the model started simulating
 	// the next conversation turn — everything from that point onwards is
@@ -512,16 +553,6 @@ func StripMarkup(s string) string {
 			s = strings.TrimSpace(s[:idx])
 		}
 	}
-
-	// Normalise <toolcall> (no underscore) to the canonical form so the
-	// Standard block-removal below handles both spellings.
-	// Also normalise the Gemma 4 pipe-delimited forms: <|toolcall> (opening)
-	// and <toolcall|> (closing), mapping both to <tool_call> so the block
-	// stripper below removes the whole block including its call: content.
-	s = strings.ReplaceAll(s, "<|toolcall>", "<tool_call>")
-	s = strings.ReplaceAll(s, "<toolcall|>", "<tool_call>")
-	s = strings.ReplaceAll(s, "<toolcall>", "<tool_call>")
-	s = strings.ReplaceAll(s, "</toolcall>", "</tool_call>")
 
 	// Remove Standard <tool_call>…</tool_call> blocks.
 	s = stripStandardToolCallBlocks(s)
