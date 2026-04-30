@@ -333,13 +333,17 @@ func TestParseToolCalls_EmptyResponse(t *testing.T) {
 }
 
 func TestParseToolCalls_OnlyOpeningTag(t *testing.T) {
-	response := `<tool_call>
-{"name": "test", "arguments": {}}`
+	// Phi-4 and similar models emit <tool_call>{JSON} without a closing tag
+	// when generation is halted by a stop token. We must parse these anyway.
+	response := "<tool_call>\n{\"name\": \"test\", \"arguments\": {}}"
 
 	calls := ParseToolCalls(response)
 
-	if len(calls) != 0 {
-		t.Fatalf("expected 0 tool calls for missing closing tag, got %d", len(calls))
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 tool call for unclosed tag with valid JSON, got %d", len(calls))
+	}
+	if calls[0].Function.Name != "test" {
+		t.Errorf("expected name %q, got %q", "test", calls[0].Function.Name)
 	}
 }
 
@@ -557,5 +561,22 @@ func TestParseToolCalls_NestedArguments(t *testing.T) {
 				t.Errorf("angle: got %q, want %q", calls[0].Function.Arguments["angle"], tc.wantAngle)
 			}
 		})
+	}
+}
+
+func TestParseToolCalls_Phi4_PipeToolCallTag_Unclosed(t *testing.T) {
+	// Phi-4 uses <|tool_call>{JSON} without a closing tag.
+	response := "Hello, human. I am performing optimally today.<|tool_call>{\"name\": \"slowlook\", \"arguments\": {\"angle\": 90}}"
+
+	calls := ParseToolCalls(response)
+
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 tool call, got %d", len(calls))
+	}
+	if calls[0].Function.Name != "slowlook" {
+		t.Errorf("expected name %q, got %q", "slowlook", calls[0].Function.Name)
+	}
+	if calls[0].Function.Arguments["angle"] != "90" {
+		t.Errorf("expected angle %q, got %q", "90", calls[0].Function.Arguments["angle"])
 	}
 }

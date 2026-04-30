@@ -305,3 +305,29 @@ func TestParseGemmaToolCalls_NoComma_MultipleCallsInGeneration(t *testing.T) {
 		t.Errorf("call[1] command: got %q, want %q", calls[1].Function.Arguments["command"], "headshake")
 	}
 }
+
+// TestStripMarkup_GemmaPipeClosingTag_SingleBlock verifies that the
+// pipe-closing tag <tool_call|> is treated as </tool_call> so the text
+// that follows is preserved.
+func TestStripMarkup_GemmaPipeClosingTag_SingleBlock(t *testing.T) {
+	s := `<|tool_call>call:tool_movement{command:<|"|>look<|"|>,angle:90}<tool_call|>Hello there!`
+	got := StripMarkup(s)
+	if got != "Hello there!" {
+		t.Errorf("got %q, want %q", got, "Hello there!")
+	}
+}
+
+// TestStripMarkup_GemmaPipeClosingTag_InterleavedText verifies that all text
+// segments between <|tool_call>…<tool_call|> blocks are preserved, not just
+// the last one.
+func TestStripMarkup_GemmaPipeClosingTag_InterleavedText(t *testing.T) {
+	s := "<|tool_call>call:tool_movement{angle:<|\"|>180<|\"|>,command:<|\"|>slowlook<|\"|>}<tool_call|>" +
+		"Oh, I'm Gemmai.\n" +
+		"<|tool_call>call:tool_movement{angle:<|\"|>90<|\"|>,command:<|\"|>look<|\"|>}<tool_call|>" +
+		"I'm a great model."
+	got := StripMarkup(s)
+	want := "Oh, I'm Gemmai.\nI'm a great model."
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
