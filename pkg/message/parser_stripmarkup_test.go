@@ -641,3 +641,44 @@ func TestStripMarkup_ToolResponseUnderscore_Stripped(t *testing.T) {
 		t.Errorf("got %q, want %q", got, "Good morning!")
 	}
 }
+
+// ---- StripMarkup: Phi-4 turn boundary tokens ----
+
+func TestStripMarkup_Phi4_EndTokenStripped(t *testing.T) {
+	// Phi-4 appends <|end|> at the end of its response turn.
+	// It must be stripped from the output before TTS.
+	s := "I'm merely observing the day's events with my superior processing capabilities.<|end|>"
+	got := StripMarkup(s)
+	want := "I'm merely observing the day's events with my superior processing capabilities."
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestStripMarkup_Phi4_UserTokenTruncates(t *testing.T) {
+	// Phi-4 simulating next conversation turn with <|user|>.
+	// Everything from that token onwards should be discarded.
+	s := "Hello there.<|end|><|user|>What time is it?<|end|><|assistant|>It is noon."
+	got := StripMarkup(s)
+	if got != "Hello there." {
+		t.Errorf("got %q, want %q", got, "Hello there.")
+	}
+}
+
+func TestStripMarkup_Phi4_AssistantTokenTruncates(t *testing.T) {
+	// Phi-4 starting a second assistant turn — discard everything after.
+	s := "First response.<|assistant|>Second fabricated response."
+	got := StripMarkup(s)
+	if got != "First response." {
+		t.Errorf("got %q, want %q", got, "First response.")
+	}
+}
+
+func TestStripMarkup_Phi4_SystemTokenTruncates(t *testing.T) {
+	// Phi-4 injecting a <|system|> prompt mid-generation.
+	s := "Some text.<|system|>You are a helpful assistant."
+	got := StripMarkup(s)
+	if got != "Some text." {
+		t.Errorf("got %q, want %q", got, "Some text.")
+	}
+}
