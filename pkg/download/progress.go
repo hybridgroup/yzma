@@ -3,6 +3,7 @@ package download
 import (
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-getter"
@@ -17,7 +18,9 @@ var ProgressTracker = DefaultProgressTracker()
 // DefaultProgressTracker returns the default ProgressTracker that prints download progress to stdout.
 func DefaultProgressTracker() getter.ProgressTracker {
 	progFunc := func(src string, currentSize int64, totalSize int64, mibPerSec float64, complete bool) {
-		fmt.Printf("\r\x1b[Kdownloading %s... %d MiB of %d MiB (%.2f MiB/s)", src, currentSize/(1024*1024), totalSize/(1024*1024), mibPerSec)
+		pct := float64(currentSize) / float64(totalSize) * 100
+		bar := int(pct / 2)
+		fmt.Printf("\r[%-50s] %6.1f%% - %d/%d MiB (%.2f MiB/s)\033[K", strings.Repeat("#", bar)+strings.Repeat(".", 50-bar), pct, currentSize/(1024*1024), totalSize/(1024*1024), mibPerSec)
 		if complete {
 			fmt.Println()
 		}
