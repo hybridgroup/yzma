@@ -26,6 +26,8 @@ func TestDetectFormatFromPath_KnownFamilies(t *testing.T) {
 	}{
 		{"models/qwen3.5-4B-instruct.gguf", FormatQwen},
 		{"models/gemma-4-E4B-it-Q4_K_M.gguf", FormatGemma},
+		{"models/gemma-3-1b-it-Q4_K_M.gguf", FormatGemma3},
+		{"models/gemma3-4b-it-Q4_K_M.gguf", FormatGemma3},
 		{"models/mistral-7b-instruct-v0.2.Q4_K_M.gguf", FormatMistral},
 		{"models/devstral-small.gguf", FormatMistral},
 		{"models/glm-4-9b-chat-q4.gguf", FormatGLM},

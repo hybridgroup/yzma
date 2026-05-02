@@ -554,6 +554,15 @@ func StripMarkup(s string) string {
 		}
 	}
 
+	// Strip Gemma 3 turn boundary tokens. <end_of_turn> is the EOT separator;
+	// <start_of_turn>user and <start_of_turn>model indicate the model has
+	// started simulating the next conversation turn.
+	for _, marker := range []string{"<end_of_turn>", "<start_of_turn>user", "<start_of_turn>model"} {
+		if idx := strings.Index(s, marker); idx >= 0 {
+			s = strings.TrimSpace(s[:idx])
+		}
+	}
+
 	// Remove Standard <tool_call>…</tool_call> blocks.
 	s = stripStandardToolCallBlocks(s)
 
