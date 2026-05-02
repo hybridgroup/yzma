@@ -24,6 +24,12 @@ const (
 	//   [TOOL_CALLS]funcname[ARGS]{...}
 	FormatMistral
 
+	// FormatGemma3 expects Gemma 3's turn-based format:
+	//   <start_of_turn>user\n…<end_of_turn>\n
+	//   <start_of_turn>model\n…<end_of_turn>\n
+	// No system role: system instructions are prepended to the first user turn.
+	FormatGemma3
+
 	// FormatGemma expects Gemma 4's call: syntax:
 	//   call:funcname{key:<|"|>value<|"|>}
 	FormatGemma
@@ -70,6 +76,8 @@ func DetectFormatFromPath(path string) Format {
 	switch {
 	case strings.Contains(lower, "qwen"):
 		return FormatQwen
+	case strings.Contains(lower, "gemma-3"), strings.Contains(lower, "gemma3"):
+		return FormatGemma3
 	case strings.Contains(lower, "gemma"):
 		return FormatGemma
 	case strings.Contains(lower, "mistral"), strings.Contains(lower, "devstral"):

@@ -19,6 +19,12 @@ func StopMarkers(vocab llama.Vocab, format Format) []string {
 	markers := eotMarkers(vocab)
 
 	switch format {
+	case FormatGemma3:
+		markers = append(markers,
+			// Turn boundary tokens for Gemma 3. Stop if the model starts
+			// simulating the next conversation turn.
+			"<start_of_turn>user", "<start_of_turn>model",
+		)
 	case FormatGemma:
 		markers = append(markers,
 			// Turn boundary tokens used by Gemma 4.

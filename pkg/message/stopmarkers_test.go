@@ -79,12 +79,32 @@ func TestStopMarkers_AllFormats_ContainToolResultMarkers(t *testing.T) {
 		`tool{"status"`,
 		"<turnend>", "<|turnend>",
 	}
-	for _, format := range []Format{FormatGemma, FormatQwen, FormatPhi, FormatStandard, FormatAuto} {
+	for _, format := range []Format{FormatGemma, FormatGemma3, FormatQwen, FormatPhi, FormatStandard, FormatAuto} {
 		markers := StopMarkers(llama.Vocab(0), format)
 		for _, want := range toolMarkers {
 			if !slices.Contains(markers, want) {
 				t.Errorf("StopMarkers(format=%v) missing tool marker %q", format, want)
 			}
+		}
+	}
+}
+
+func TestStopMarkers_Gemma3_ContainsTurnTokens(t *testing.T) {
+	markers := StopMarkers(llama.Vocab(0), FormatGemma3)
+	for _, want := range []string{
+		"<start_of_turn>user", "<start_of_turn>model",
+	} {
+		if !slices.Contains(markers, want) {
+			t.Errorf("StopMarkers(FormatGemma3) missing %q", want)
+		}
+	}
+}
+
+func TestStopMarkers_Gemma3_DoesNotContainGemma4Tokens(t *testing.T) {
+	markers := StopMarkers(llama.Vocab(0), FormatGemma3)
+	for _, unwanted := range []string{"<|turn>user", "<|turn>model", "<|channel>thought"} {
+		if slices.Contains(markers, unwanted) {
+			t.Errorf("StopMarkers(FormatGemma3) unexpectedly contains %q", unwanted)
 		}
 	}
 }
