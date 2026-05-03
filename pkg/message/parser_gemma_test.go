@@ -331,3 +331,50 @@ func TestStripMarkup_GemmaPipeClosingTag_InterleavedText(t *testing.T) {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
+
+// TestParseGemmaToolCalls_BarePipeToken tests the <|> minimal pipe-delimited
+// quote form emitted by Gemma 3 models (no embedded " character).
+func TestParseGemmaToolCalls_BarePipeToken(t *testing.T) {
+	// Exact format observed in real Gemma 3 model output.
+	response := `call:tool_movement{command:<|>look<|>angle:45}`
+	calls := ParseToolCalls(response)
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 call, got %d", len(calls))
+	}
+	if calls[0].Function.Name != "tool_movement" {
+		t.Errorf("name: got %q, want %q", calls[0].Function.Name, "tool_movement")
+	}
+	if calls[0].Function.Arguments["command"] != "look" {
+		t.Errorf("command: got %q, want %q", calls[0].Function.Arguments["command"], "look")
+	}
+	if calls[0].Function.Arguments["angle"] != "45" {
+		t.Errorf("angle: got %q, want %q", calls[0].Function.Arguments["angle"], "45")
+	}
+}
+
+// TestParseGemmaToolCalls_BarePipeToken_WithComma tests the <|> form with an
+// explicit comma separator between arguments.
+func TestParseGemmaToolCalls_BarePipeToken_WithComma(t *testing.T) {
+	response := `call:tool_movement{command:<|>look<|>,angle:90}`
+	calls := ParseToolCalls(response)
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 call, got %d", len(calls))
+	}
+	if calls[0].Function.Arguments["command"] != "look" {
+		t.Errorf("command: got %q, want %q", calls[0].Function.Arguments["command"], "look")
+	}
+	if calls[0].Function.Arguments["angle"] != "90" {
+		t.Errorf("angle: got %q, want %q", calls[0].Function.Arguments["angle"], "90")
+	}
+}
+
+// TestStripMarkup_BarePipeTokenCallBlock verifies that call:func{} blocks
+// using the <|> quote token are stripped from spoken output.
+func TestStripMarkup_BarePipeTokenCallBlock(t *testing.T) {
+	s := "Hello there!\ncall:tool_movement{command:<|>look<|>angle:45}\nI looked right."
+	got := StripMarkup(s)
+	want := "Hello there!\n\nI looked right."
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}

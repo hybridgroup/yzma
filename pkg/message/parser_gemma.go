@@ -17,9 +17,13 @@ const gemmaQuoteToken = "<|\"|>"
 // gemmaShortQuoteToken is an alternate form emitted by some Gemma 4 variants.
 const gemmaShortQuoteToken = "<\">"
 
-// gemmaQuoteTokens lists all recognised Gemma 4 string delimiters, longest first
+// gemmaBarePipeToken is the minimal pipe-delimited form emitted by Gemma 3
+// models: <|> (pipe between angle brackets, no embedded quote character).
+const gemmaBarePipeToken = "<|>"
+
+// gemmaQuoteTokens lists all recognised Gemma string delimiters, longest first
 // so prefix checks prefer the longer form when both could match.
-var gemmaQuoteTokens = []string{gemmaQuoteToken, gemmaShortQuoteToken}
+var gemmaQuoteTokens = []string{gemmaQuoteToken, gemmaShortQuoteToken, gemmaBarePipeToken}
 
 // gemma4TurnTagRE matches Gemma 4 turn boundary tokens in all observed forms:
 //

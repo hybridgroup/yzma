@@ -1,9 +1,26 @@
 package template
 
 import (
+	"embed"
+	"strings"
+
 	"github.com/ardanlabs/jinja"
 	"github.com/hybridgroup/yzma/pkg/message"
 )
+
+//go:embed prompts/*.jinja
+var builtinTemplates embed.FS
+
+// BuiltinTemplate returns the raw Jinja template string for a named built-in
+// template (e.g. "gemma3", "chatml", "qwen2.5-instruct"). The second return
+// value is false when no built-in with that name exists.
+func BuiltinTemplate(name string) (string, bool) {
+	data, err := builtinTemplates.ReadFile("prompts/" + strings.TrimSuffix(name, ".jinja") + ".jinja")
+	if err != nil {
+		return "", false
+	}
+	return string(data), true
+}
 
 // Options controls optional template rendering behaviour.
 type Options struct {
