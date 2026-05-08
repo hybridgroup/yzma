@@ -48,9 +48,27 @@ type ContextParamsType struct {
 var (
 	ffiTypeSize = ffi.TypeUint64
 
-	// ffiTypeContextParams represents the C struct mtmd_context_params
-	ffiTypeContextParams = ffi.NewType(&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer,
-		&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize)
+	// ffiTypeContextParams represents the C struct mtmd_context_params:
+	//   bool use_gpu, bool print_timings, int n_threads,
+	//   const char * image_marker, const char * media_marker,
+	//   enum llama_flash_attn_type flash_attn_type (int-sized, NOT uint8),
+	//   bool warmup, int image_min_tokens, int image_max_tokens,
+	//   ggml_backend_sched_eval_callback cb_eval, void * cb_eval_user_data
+	// The struct has no size_t field — the trailing ffiTypeSize was wrong and
+	// caused libffi to write 64 bytes into a 56-byte Go variable (heap overrun).
+	ffiTypeContextParams = ffi.NewType(
+		&ffi.TypeUint8,   // use_gpu bool
+		&ffi.TypeUint8,   // print_timings bool
+		&ffi.TypeSint32,  // n_threads int
+		&ffi.TypePointer, // image_marker *char
+		&ffi.TypePointer, // media_marker *char
+		&ffi.TypeSint32,  // flash_attn_type enum llama_flash_attn_type (int-sized)
+		&ffi.TypeUint8,   // warmup bool
+		&ffi.TypeSint32,  // image_min_tokens int
+		&ffi.TypeSint32,  // image_max_tokens int
+		&ffi.TypePointer, // cb_eval callback
+		&ffi.TypePointer, // cb_eval_user_data void*
+	)
 
 	// ffiTypeInputText represents the C struct mtmd_input_text
 	ffiTypeInputText = ffi.NewType(&ffi.TypePointer, &ffi.TypeUint8, &ffi.TypeUint8)
