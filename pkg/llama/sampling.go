@@ -28,7 +28,9 @@ const (
 
 var (
 	// ffiSamplerChainParams represents the C struct llama_sampler_chain_params
-	ffiSamplerChainParams = ffi.NewType(&ffi.TypePointer)
+	// { bool no_perf; } — exactly 1 byte; must NOT be TypePointer (8 bytes)
+	// or libffi will overrun the return-value buffer by 7 bytes.
+	ffiSamplerChainParams = ffi.NewType(&ffi.TypeUint8)
 )
 
 var (
