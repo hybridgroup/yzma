@@ -1,6 +1,6 @@
 # Roadmap
 
-`yzma` currently has support for over 97% of `llama.cpp` functionality.
+`yzma` currently has support for over 96% of `llama.cpp` functionality.
 
 This is a list of all functions exposed by `llama.cpp` and the current state of the associated `yzma` wrapper.
 
@@ -61,6 +61,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_split_prefix`
 
 ### Vocab Functions
+- [x] `llama_detokenize`
 - [x] `llama_model_get_vocab`
 - [x] `llama_token_to_piece`
 - [x] `llama_tokenize`
@@ -109,14 +110,23 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_n_threads_batch`
 - [x] `llama_n_threads`
 - [x] `llama_n_ubatch`
-- [x] `llama_perf_context_reset`
 - [x] `llama_pooling_type`
+- [x] `llama_set_abort_callback`
 - [x] `llama_set_adapter_cvec`
 - [x] `llama_set_causal_attn`
 - [x] `llama_set_embeddings`
 - [x] `llama_set_n_threads`
 - [x] `llama_set_warmup`
 - [x] `llama_synchronize`
+
+### Backend Sampling Functions (Experimental)
+- [x] `llama_get_sampled_candidates_count_ith`
+- [x] `llama_get_sampled_candidates_ith`
+- [x] `llama_get_sampled_logits_count_ith`
+- [x] `llama_get_sampled_logits_ith`
+- [x] `llama_get_sampled_probs_count_ith`
+- [x] `llama_get_sampled_probs_ith`
+- [x] `llama_get_sampled_token_ith`
 
 ### Memory Functions
 - [x] `llama_memory_can_shift`
@@ -146,6 +156,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_sampler_clone`
 - [x] `llama_sampler_free`
 - [x] `llama_sampler_get_seed`
+- [x] `llama_sampler_init_adaptive_p`
 - [x] `llama_sampler_init_dist`
 - [x] `llama_sampler_init_dry`
 - [x] `llama_sampler_init_grammar_lazy_patterns`
@@ -172,8 +183,17 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_log_get`
 - [x] `llama_log_set`
 
+### Performance Functions
+- [x] `llama_perf_context`
+- [x] `llama_perf_context_print`
+- [x] `llama_perf_context_reset`
+- [x] `llama_perf_sampler`
+- [x] `llama_perf_sampler_print`
+- [x] `llama_perf_sampler_reset`
+
 ### Chat Functions
 - [x] `llama_chat_apply_template`
+- [x] `llama_chat_builtin_templates`
 
 ### State Functions
 - [x] `llama_state_get_data`
@@ -222,7 +242,7 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [x] `mtmd_encode_chunk`
 - [x] `mtmd_encode`
 - [x] `mtmd_free`
-- [x] `mtmd_get_audio_bitrate`
+- [x] `mtmd_get_audio_sample_rate`
 - [x] `mtmd_get_output_embd`
 - [x] `mtmd_helper_bitmap_init_from_buf`
 - [x] `mtmd_helper_bitmap_init_from_file`
@@ -239,13 +259,13 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [x] `mtmd_input_chunk_get_n_pos`
 - [x] `mtmd_input_chunk_get_n_tokens`
 - [x] `mtmd_input_chunk_get_tokens_image`
-- [x] `mtmd_input_chunk_get_tokens_image`
 - [x] `mtmd_input_chunk_get_tokens_text`
 - [x] `mtmd_input_chunk_get_type`
 - [x] `mtmd_input_chunks_free`
 - [x] `mtmd_input_chunks_get`
 - [x] `mtmd_input_chunks_init`
 - [x] `mtmd_input_chunks_size`
+- [x] `mtmd_log_set`
 - [x] `mtmd_support_audio`
 - [x] `mtmd_support_vision`
 - [x] `mtmd_tokenize`
@@ -254,8 +274,18 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 
 ## Functions in `llama.cpp` still needing wrappers
 
+### `llama` Functions
+
 - [ ] `llama_model_init_from_user`
+- [ ] `llama_model_load_from_file_ptr`
+- [ ] `llama_n_rs_seq`
 - [ ] `llama_opt_epoch`
 - [ ] `llama_opt_init`
 - [ ] `llama_opt_param_filter_all`
 - [ ] `llama_sampler_init`
+- [ ] `llama_sampler_init_temp`
+
+### `mtmd` Functions
+
+- [ ] `mtmd_get_cap_from_file`
+- [ ] `mtmd_image_tokens_get_decoder_pos`

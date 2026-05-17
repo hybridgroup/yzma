@@ -86,6 +86,17 @@ Raspberry Pi Pico / Pico 2 pin selector desktop application built with ImmyGo. B
 
 https://github.com/amken3d/Pingo
 
+
+### unch
+
+<a href="https://github.com/uchebnick/unch" target="_blank">
+<img src="https://raw.githubusercontent.com/uchebnick/unch/refs/heads/main/docs/assets/unch-logo.svg" width="300" alt="ImmyGo logo">
+</a>
+
+Semantic code search for code symbols and docs.
+
+https://github.com/uchebnick/unch
+
 ## Examples and Tutorials
 
 ### Running local LLMs and VLMs on the Arduino UNO Q with yzma - Arduino Project Hub
