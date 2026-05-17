@@ -315,13 +315,22 @@ type ModelParams struct {
 }
 
 // ContextParams controls the parameters available for the model context
+type ContextType int32
+
+const (
+	ContextTypeDefault ContextType = 0 // default context type
+	ContextTypeMTP     ContextType = 1 // Multi Token Prediction context type [EXPERIMENTAL]
+)
+
 type ContextParams struct {
 	NCtx               uint32             // text context, 0 = from model
 	NBatch             uint32             // logical maximum batch size
 	NUbatch            uint32             // physical maximum batch size
 	NSeqMax            uint32             // max number of sequences
+	NRsSeq             uint32             // number of recurrent-state snapshots per seq for rollback (0 = no rollback) [EXPERIMENTAL]
 	NThreads           int32              // number of threads to use for generation
 	NThreadsBatch      int32              // number of threads to use for batch processing
+	CtxType            ContextType        // context type (e.g. MTP)
 	RopeScalingType    RopeScalingType    // RoPE scaling type
 	PoolingType        PoolingType        // pooling type for embeddings
 	AttentionType      AttentionType      // attention type
