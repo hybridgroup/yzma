@@ -110,6 +110,9 @@ var (
 	// LLAMA_API uint32_t llama_n_seq_max(const struct llama_context * ctx);
 	nSeqMaxFunc ffi.Fun
 
+	// LLAMA_API uint32_t llama_n_rs_seq(const struct llama_context * ctx);
+	nRsSeqFunc ffi.Fun
+
 	// LLAMA_API const struct llama_model * llama_get_model(const struct llama_context * ctx);
 	getModelFunc ffi.Fun
 
@@ -250,6 +253,10 @@ func loadContextFuncs(lib ffi.Lib) error {
 
 	if nSeqMaxFunc, err = lib.Prep("llama_n_seq_max", &ffi.TypeUint32, &ffi.TypePointer); err != nil {
 		return loadError("llama_n_seq_max", err)
+	}
+
+	if nRsSeqFunc, err = lib.Prep("llama_n_rs_seq", &ffi.TypeUint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_n_rs_seq", err)
 	}
 
 	if getModelFunc, err = lib.Prep("llama_get_model", &ffi.TypePointer, &ffi.TypePointer); err != nil {
@@ -534,6 +541,17 @@ func NSeqMax(ctx Context) uint32 {
 	}
 	var result ffi.Arg
 	nSeqMaxFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+	return uint32(result)
+}
+
+// NRsSeq returns the number of recurrent-state snapshots per sequence
+// that the context was created with (0 = no rollback).
+func NRsSeq(ctx Context) uint32 {
+	if ctx == 0 {
+		return 0
+	}
+	var result ffi.Arg
+	nRsSeqFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
 	return uint32(result)
 }
 

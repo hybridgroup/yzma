@@ -106,6 +106,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_n_batch`
 - [x] `llama_n_ctx_seq`
 - [x] `llama_n_ctx`
+- [x] `llama_n_rs_seq`
 - [x] `llama_n_seq_max`
 - [x] `llama_n_threads_batch`
 - [x] `llama_n_threads`
@@ -278,7 +279,6 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 
 - [ ] `llama_model_init_from_user`
 - [ ] `llama_model_load_from_file_ptr`
-- [ ] `llama_n_rs_seq`
 - [ ] `llama_opt_epoch`
 - [ ] `llama_opt_init`
 - [ ] `llama_opt_param_filter_all`
