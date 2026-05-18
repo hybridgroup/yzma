@@ -164,6 +164,28 @@ func TestNSeqMax(t *testing.T) {
 	t.Logf("NSeqMax returned: %d", nSeqMax)
 }
 
+func TestNRsSeq(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
+	defer Free(ctx)
+
+	nRsSeq := NRsSeq(ctx)
+	t.Logf("NRsSeq returned: %d", nRsSeq)
+}
+
 func TestGetModel(t *testing.T) {
 	modelFile := testModelFileName(t)
 
