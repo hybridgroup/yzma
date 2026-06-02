@@ -328,6 +328,7 @@ type ContextParams struct {
 	NUbatch            uint32             // physical maximum batch size
 	NSeqMax            uint32             // max number of sequences
 	NRsSeq             uint32             // number of recurrent-state snapshots per seq for rollback (0 = no rollback) [EXPERIMENTAL]
+	NOutputsMax        uint32             // max outputs in a ubatch (0 = n_batch)
 	NThreads           int32              // number of threads to use for generation
 	NThreadsBatch      int32              // number of threads to use for batch processing
 	CtxType            ContextType        // context type (e.g. MTP)
