@@ -21,15 +21,6 @@ func main() {
 		}
 	}
 
-	if *version == "" {
-		var err error
-		*version, err = download.LlamaLatestVersion()
-		if err != nil {
-			fmt.Println("could not obtain latest version:", err.Error())
-			return
-		}
-	}
-
 	if *processor == "" {
 		*processor = "cpu"
 		if cudaInstalled, cudaVersion := download.HasCUDA(); cudaInstalled {
@@ -38,7 +29,11 @@ func main() {
 		}
 	}
 
-	fmt.Println("installing llama.cpp version", *version, "to", *libPath)
+	if *version == "" || *version == "latest" {
+		fmt.Println("installing latest llama.cpp version to", *libPath)
+	} else {
+		fmt.Println("installing llama.cpp version", *version, "to", *libPath)
+	}
 	if err := download.Get(runtime.GOARCH, runtime.GOOS, *processor, *version, *libPath); err != nil {
 		fmt.Println("failed to download llama.cpp:", err.Error())
 		return

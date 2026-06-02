@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -39,9 +40,9 @@ func TestLlamaLatestVersion(t *testing.T) {
 	defer server.Close()
 
 	// Override the version URL for testing
-	originalURL := versionURL
-	versionURL = server.URL + "/llama-cpp-builder/version.json"
-	defer func() { versionURL = originalURL }()
+	originalURL := currentVersionURL
+	currentVersionURL = server.URL + "/llama-cpp-builder/version.json"
+	defer func() { currentVersionURL = originalURL }()
 
 	version, err := LlamaLatestVersion()
 	if err != nil {
@@ -68,9 +69,9 @@ func TestLlamaLatestVersion_Error(t *testing.T) {
 	defer server.Close()
 
 	// Override the version URL for testing
-	originalURL := versionURL
-	versionURL = server.URL + "/llama-cpp-builder/version.json"
-	defer func() { versionURL = originalURL }()
+	originalURL := currentVersionURL
+	currentVersionURL = server.URL + "/llama-cpp-builder/version.json"
+	defer func() { currentVersionURL = originalURL }()
 
 	// Reduce retry count for faster test
 	originalRetryCount := RetryCount
@@ -824,4 +825,70 @@ func TestGet404Error(t *testing.T) {
 	}
 
 	t.Logf("Got expected error: %v", err)
+}
+
+func TestGetWithContext_FallbackToPreviousVersion(t *testing.T) {
+	// Create a mock server to serve versions and mock files
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/llama-cpp-builder/version.json":
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"tag_name": "b9000"}`))
+		case "/llama-cpp-builder/previous.json":
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"tag_name": "b8999"}`))
+		case "/b9000/llama-b9000-bin-ubuntu-x64.tar.gz":
+			// Simulate a 404 for the latest version
+			w.WriteHeader(http.StatusNotFound)
+		case "/b8999/llama-b8999-bin-ubuntu-x64.tar.gz":
+			// Successfully return the previous version
+			w.Header().Set("Content-Type", "application/gzip")
+			w.Write(createMockTarGz(t, "b8999"))
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	// Override URLs
+	originalCurrent := currentVersionURL
+	originalPrev := previousVersionURL
+	currentVersionURL = server.URL + "/llama-cpp-builder/version.json"
+	previousVersionURL = server.URL + "/llama-cpp-builder/previous.json"
+	defer func() {
+		currentVersionURL = originalCurrent
+		previousVersionURL = originalPrev
+	}()
+
+	// Override getFunc to use our test server
+	originalGet := getFunc
+	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+		// Mock url rewriting to point to our test server
+		parts := strings.Split(url, "/")
+		filename := parts[len(parts)-1]
+		versionPart := parts[len(parts)-2]
+
+		mockURL := server.URL + "/" + versionPart + "/" + filename
+		err := downloadAndExtractTarGz(mockURL, dest, nil)
+		if err != nil && strings.Contains(err.Error(), "404") {
+			return fmt.Errorf("%w: %s", ErrFileNotFound, url)
+		}
+		return err
+	}
+	defer func() { getFunc = originalGet }()
+
+	dest := t.TempDir()
+
+	// Call GetWithContext with auto version resolve
+	err := GetWithContext(context.Background(), "amd64", "linux", "cpu", "", dest, nil)
+	if err != nil {
+		t.Fatalf("GetWithContext() failed: %v", err)
+	}
+
+	// Verify the downloaded file exist
+	expectedFile := filepath.Join(dest, "libllama.so")
+	if _, err := os.Stat(expectedFile); os.IsNotExist(err) {
+		t.Fatalf("Downloaded file not found: %s", expectedFile)
+	}
 }

@@ -38,7 +38,13 @@ var (
 	// Actual downloads will be from the llama.cpp repo for any builds that are available there,
 	// and from the llama-cpp-builder repo for builds that are not available in the original repo
 	// (e.g. ARM64 CUDA builds). This is handled in the getDownloadLocationAndFilename function.
-	versionURL = "https://hybridgroup.github.io/llama-cpp-builder/version.json"
+	currentVersionURL = "https://hybridgroup.github.io/llama-cpp-builder/version.json"
+
+	// previousVersionURL is the URL for fetching the previous llama.cpp version. This is used as a fallback
+	// if the current version URL is not available or does not contain a valid version.
+	// This is necessary because the build server for the current version might be building the latest version
+	// and might not have it available yet, while the previous version is likely to be available and can be used as a fallback.
+	previousVersionURL = "https://hybridgroup.github.io/llama-cpp-builder/previous.json"
 )
 
 // LlamaLatestVersion fetches the latest release tag of llama.cpp from the version URL.
@@ -57,7 +63,53 @@ func LlamaLatestVersion() (string, error) {
 }
 
 func getLatestVersion() (string, error) {
-	req, err := http.NewRequest("GET", versionURL, nil)
+	req, err := http.NewRequest("GET", currentVersionURL, nil)
+	if err != nil {
+		return "", err
+	}
+
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("received status code %d from version URL: %s", resp.StatusCode, string(body))
+	}
+
+	var result struct {
+		TagName string `json:"tag_name"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", err
+	}
+
+	return result.TagName, nil
+}
+
+// LlamaPreviousVersion fetches the previous release tag of llama.cpp from the version URL.
+func LlamaPreviousVersion() (string, error) {
+	var version string
+	var err error
+	for range RetryCount {
+		version, err = getPreviousVersion()
+		if err == nil {
+			return version, nil
+		}
+		time.Sleep(RetryDelay)
+	}
+
+	return "", errors.New("unable to fetch previous version")
+}
+
+func getPreviousVersion() (string, error) {
+	req, err := http.NewRequest("GET", previousVersionURL, nil)
 	if err != nil {
 		return "", err
 	}
@@ -251,8 +303,9 @@ var getFunc = get
 // arch can be one of the following values: "amd64", "arm64".
 // os can be one of the following values: "linux", "darwin", "windows", "bookworm", "trixie".
 // processor can be one of the following values: "cpu", "cuda", "metal", "rocm", "vulkan".
-// version should be the desired `b1234` formatted llama.cpp version. You can use the
-// [LlamaLatestVersion] function to obtain the latest release.
+// version should be the desired `b1234` formatted llama.cpp version. If an empty
+// string ("") or "latest" is provided, the latest release will be downloaded,
+// with an automatic fallback to the previous version if the latest is still building.
 // dest in the destination directory for the downloaded binaries.
 func Get(architecture string, operatingSystem string, processor string, version string, dest string) error {
 	return GetWithProgress(architecture, operatingSystem, processor, version, dest, ProgressTracker)
@@ -263,8 +316,9 @@ func Get(architecture string, operatingSystem string, processor string, version 
 // arch can be one of the following values: "amd64", "arm64".
 // os can be one of the following values: "linux", "darwin", "windows", "bookworm", "trixie".
 // processor can be one of the following values: "cpu", "cuda", "metal", "rocm", "vulkan".
-// version should be the desired `b1234` formatted llama.cpp version. You can use the
-// [LlamaLatestVersion] function to obtain the latest release.
+// version should be the desired `b1234` formatted llama.cpp version. If an empty
+// string ("") or "latest" is provided, the latest release will be downloaded,
+// with an automatic fallback to the previous version if the latest is still building.
 // dest in the destination directory for the downloaded binaries.
 func GetWithProgress(architecture string, operatingSystem string, processor string, version string, dest string, progress getter.ProgressTracker) error {
 	return GetWithContext(context.Background(), architecture, operatingSystem, processor, version, dest, progress)
@@ -275,10 +329,21 @@ func GetWithProgress(architecture string, operatingSystem string, processor stri
 // arch can be one of the following values: "amd64", "arm64".
 // os can be one of the following values: "linux", "darwin", "windows", "bookworm", "trixie".
 // processor can be one of the following values: "cpu", "cuda", "metal", "rocm", "vulkan".
-// version should be the desired `b1234` formatted llama.cpp version. You can use the
-// [LlamaLatestVersion] function to obtain the latest release.
+// version should be the desired `b1234` formatted llama.cpp version. If an empty
+// string ("") or "latest" is provided, the latest release will be downloaded,
+// with an automatic fallback to the previous version if the latest is still building.
 // dest in the destination directory for the downloaded binaries.
 func GetWithContext(ctx context.Context, architecture string, operatingSystem string, processor string, version string, dest string, progress getter.ProgressTracker) error {
+	autoVersion := false
+	if version == "" || version == "latest" {
+		autoVersion = true
+		var err error
+		version, err = LlamaLatestVersion()
+		if err != nil {
+			return err
+		}
+	}
+
 	arch, err := ParseArch(architecture)
 	if err != nil {
 		return ErrUnknownArch
@@ -304,7 +369,24 @@ func GetWithContext(ctx context.Context, architecture string, operatingSystem st
 	}
 
 	url := fmt.Sprintf("%s/%s", location, filename)
-	return getFunc(ctx, url, dest, progress)
+	err = getFunc(ctx, url, dest, progress)
+
+	if err != nil && autoVersion && errors.Is(err, ErrFileNotFound) {
+		prevVersion, prevErr := LlamaPreviousVersion()
+		if prevErr != nil {
+			return err
+		}
+
+		location, filename, prevErr = getDownloadLocationAndFilename(arch, os, prcssr, prevVersion, dest)
+		if prevErr != nil {
+			return err
+		}
+
+		url = fmt.Sprintf("%s/%s", location, filename)
+		return getFunc(ctx, url, dest, progress)
+	}
+
+	return err
 }
 
 func get(ctx context.Context, url, dest string, progress getter.ProgressTracker) error {

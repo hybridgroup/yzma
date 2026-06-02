@@ -73,17 +73,13 @@ func runInstall(c *cli.Context) error {
 		}
 	}
 
-	if version == "" {
-		var err error
-		version, err = download.LlamaLatestVersion()
-		if err != nil {
-			return fmt.Errorf("could not obtain latest version: %w", err)
-		}
-	}
-
 	quiet := c.Bool("quiet")
 	if !quiet {
-		fmt.Println("installing llama.cpp version", version, "to", libPath)
+		if version == "" || version == "latest" {
+			fmt.Println("installing latest llama.cpp version to", libPath)
+		} else {
+			fmt.Println("installing llama.cpp version", version, "to", libPath)
+		}
 	} else {
 		download.ProgressTracker = nil
 	}
