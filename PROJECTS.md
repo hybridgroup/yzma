@@ -97,6 +97,17 @@ Semantic code search for code symbols and docs.
 
 https://github.com/uchebnick/unch
 
+
+### Talking Heads From The Year 2053
+
+<a href="https://github.com/talkingheads2053/talkingheads" target="_blank">
+<img src="https://raw.githubusercontent.com/talkingheads2053/talkingheads/refs/heads/main/images/th2053-logo-red.png" width="300" alt="Talking Heads From The Year 2053 logo">
+</a>
+
+Physical AI running locally on the Arduino UNO Q like you have never seen before (and still won't until 2053).
+
+https://github.com/talkingheads2053/talkingheads
+
 ## Examples and Tutorials
 
 ### Running local LLMs and VLMs on the Arduino UNO Q with yzma - Arduino Project Hub
