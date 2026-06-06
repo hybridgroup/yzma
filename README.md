@@ -180,7 +180,8 @@ Sometimes there are breaking changes to `llama.cpp` that require an update to `y
 | b8864   | v1.12.0   |
 | b8865 - b9179  | v1.13.0   |
 | b9180 - b9459  | v1.14.1   |
-| b9460+  | v1.15.0   |
+| b9460 - b9540  | v1.15.0   |
+| b9541+  | v1.16.0   |
 
 ## Benchmarks
 

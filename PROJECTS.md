@@ -97,6 +97,11 @@ Semantic code search for code symbols and docs.
 
 https://github.com/uchebnick/unch
 
+### Terminal agent
+
+An LLM Agent to help you from and within the terminal.
+
+https://github.com/laszukdawid/terminal-agent
 
 ### Talking Heads From The Year 2053
 
@@ -133,6 +138,10 @@ https://github.com/hybridgroup/captions-with-attitude
 https://codeberg.org/GenAI-On-Small-Devices/yzma-on-jetson
 
 ## Blog Posts/Video
+
+### "Free Yourself From The Copilot Tax" - Bill Kennedy
+
+https://www.kronkai.com/blog/free-yourself-from-the-copilot-tax
 
 ### "Building Gemma 4 Local-Powered LLM Apps with Go and Yzma" - Vladimir Vivien
 
