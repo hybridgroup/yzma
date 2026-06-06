@@ -67,11 +67,11 @@ func loadBitmapFuncs(lib ffi.Lib) error {
 		return loadError("mtmd_bitmap_get_n_bytes", err)
 	}
 
-	if bitmapInitFromFileFunc, err = lib.Prep("mtmd_helper_bitmap_init_from_file", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+	if bitmapInitFromFileFunc, err = lib.Prep("mtmd_helper_bitmap_init_from_file", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint8); err != nil {
 		return loadError("mtmd_helper_bitmap_init_from_file", err)
 	}
 
-	if bitmapInitFromBufFunc, err = lib.Prep("mtmd_helper_bitmap_init_from_buf", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize); err != nil {
+	if bitmapInitFromBufFunc, err = lib.Prep("mtmd_helper_bitmap_init_from_buf", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize, &ffi.TypeUint8); err != nil {
 		return loadError("mtmd_helper_bitmap_init_from_buf", err)
 	}
 
@@ -134,7 +134,8 @@ func BitmapGetNBytes(bitmap Bitmap) uint64 {
 }
 
 // BitmapInitFromFile initializes a Bitmap from a file.
-func BitmapInitFromFile(ctx Context, fname string) Bitmap {
+// If placeholder is true, the bitmap will have dimensions but no pixel data, suitable for counting tokens without preprocessing.
+func BitmapInitFromFile(ctx Context, fname string, placeholder bool) Bitmap {
 	var bitmap Bitmap
 	if ctx == 0 {
 		return bitmap
@@ -144,19 +145,28 @@ func BitmapInitFromFile(ctx Context, fname string) Bitmap {
 		return bitmap
 	}
 
+	var ph uint8
+	if placeholder {
+		ph = 1
+	}
 	file := &[]byte(fname + "\x00")[0]
-	bitmapInitFromFileFunc.Call(unsafe.Pointer(&bitmap), unsafe.Pointer(&ctx), unsafe.Pointer(&file))
+	bitmapInitFromFileFunc.Call(unsafe.Pointer(&bitmap), unsafe.Pointer(&ctx), unsafe.Pointer(&file), unsafe.Pointer(&ph))
 
 	return bitmap
 }
 
 // BitmapInitFromBuf initializes a Bitmap from a buffer of bytes.
-func BitmapInitFromBuf(ctx Context, buf *byte, len uint64) Bitmap {
+// If placeholder is true, the bitmap will have dimensions but no pixel data, suitable for counting tokens without preprocessing.
+func BitmapInitFromBuf(ctx Context, buf *byte, len uint64, placeholder bool) Bitmap {
 	var bitmap Bitmap
 	if ctx == 0 {
 		return bitmap
 	}
-	bitmapInitFromBufFunc.Call(unsafe.Pointer(&bitmap), unsafe.Pointer(&ctx), unsafe.Pointer(&buf), &len)
+	var ph uint8
+	if placeholder {
+		ph = 1
+	}
+	bitmapInitFromBufFunc.Call(unsafe.Pointer(&bitmap), unsafe.Pointer(&ctx), unsafe.Pointer(&buf), &len, unsafe.Pointer(&ph))
 
 	return bitmap
 }
@@ -234,11 +244,22 @@ func BitmapSetId(bitmap Bitmap, id string) {
 }
 
 // BitmapInitFromAudio initializes a Bitmap from audio data (PCM F32).
+// If data is nil, the bitmap is a placeholder with the given sample count but no audio data,
+// suitable for counting tokens without preprocessing.
 func BitmapInitFromAudio(nSamples uint64, data *float32) Bitmap {
 	var bitmap Bitmap
-	if data == nil {
+	if nSamples == 0 {
 		return bitmap
 	}
 	bitmapInitFromAudioFunc.Call(unsafe.Pointer(&bitmap), &nSamples, unsafe.Pointer(&data))
 	return bitmap
+}
+
+// BitmapIsPlaceholder returns true if the bitmap was created without pixel/audio data.
+// Placeholder bitmaps can be tokenized to count tokens but cannot be encoded for inference.
+func BitmapIsPlaceholder(bitmap Bitmap) bool {
+	if bitmap == 0 {
+		return false
+	}
+	return BitmapGetNBytes(bitmap) == 0
 }
