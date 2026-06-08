@@ -2,6 +2,7 @@ package mtmd
 
 import (
 	"os"
+	"path/filepath"
 	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/utils"
@@ -145,12 +146,20 @@ func BitmapInitFromFile(ctx Context, fname string, placeholder bool) Bitmap {
 		return bitmap
 	}
 
+	// Resolve to an absolute, OS-native path so the C library can open it
+	// regardless of path separator style or working-directory assumptions
+	// (critical on Windows where fopen may not handle forward-slash relative paths).
+	absPath, err := filepath.Abs(fname)
+	if err != nil {
+		absPath = fname
+	}
+
 	var ph uint8
 	if placeholder {
 		ph = 1
 	}
-	file := &[]byte(fname + "\x00")[0]
-	bitmapInitFromFileFunc.Call(unsafe.Pointer(&bitmap), unsafe.Pointer(&ctx), unsafe.Pointer(&file), unsafe.Pointer(&ph))
+	filePtr, _ := utils.BytePtrFromString(absPath)
+	bitmapInitFromFileFunc.Call(unsafe.Pointer(&bitmap), unsafe.Pointer(&ctx), unsafe.Pointer(&filePtr), unsafe.Pointer(&ph))
 
 	return bitmap
 }
