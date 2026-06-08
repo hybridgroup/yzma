@@ -361,6 +361,10 @@ type ContextParams struct {
 	// note: the samplers must be sampler chains (i.e. use llama_sampler_chain_init)
 	Samplers  uintptr // llama_sampler_seq_config *
 	NSamplers uint64  // number of sampler chains (size_t)
+	// a source/target/parent context
+	// can be utilized in various ways, for example by sharing results or llama_memory between 2 contexts
+	// required for GEMMA4_ASSISTANT (MTP draft model), where ctx_other must be the target context
+	CtxOther Context // llama_context *
 }
 
 // ModelQuantizeParams defines the parameters for model quantize parameters
