@@ -97,9 +97,9 @@ func main() {
 	output := mtmd.InputChunksInit()
 	input := mtmd.NewInputText(chatTemplate(true), true, true)
 	bitmap := mtmd.BitmapInitFromFile(mtmdCtx, *imageFile, false)
-	defer mtmd.BitmapFree(bitmap)
+	defer mtmd.BitmapFree(bitmap.Bitmap)
 
-	mtmd.Tokenize(mtmdCtx, output, input, []mtmd.Bitmap{bitmap})
+	mtmd.Tokenize(mtmdCtx, output, input, []mtmd.Bitmap{bitmap.Bitmap})
 
 	var n llama.Pos
 	mtmd.HelperEvalChunks(mtmdCtx, lctx, output, 0, 0, int32(ctxParams.NBatch), true, &n)

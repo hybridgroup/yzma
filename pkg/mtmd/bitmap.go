@@ -10,6 +10,22 @@ import (
 
 // Opaque types (represented as pointers)
 type Bitmap uintptr
+type VideoContext uintptr
+
+//	struct mtmd_helper_bitmap_wrapper {
+//	    mtmd_bitmap * bitmap;
+//	    mtmd_helper_video * video_ctx;
+//	};
+
+type BitmapWrapper struct {
+	Bitmap       Bitmap
+	VideoContext VideoContext
+}
+
+var (
+	// ffiTypeBitmapWrapper represents the C struct mtmd_helper_bitmap_wrapper as an FFI type.
+	ffiTypeBitmapWrapper = ffi.NewType(&ffi.TypePointer, &ffi.TypePointer)
+)
 
 var (
 	// MTMD_API mtmd_bitmap *         mtmd_bitmap_init           (uint32_t nx, uint32_t ny, const unsigned char * data);
@@ -21,10 +37,10 @@ var (
 	// MTMD_API size_t                mtmd_bitmap_get_n_bytes(const mtmd_bitmap * bitmap);
 	bitmapGetNBytesFunc ffi.Fun
 
-	// MTMD_API mtmd_bitmap * mtmd_helper_bitmap_init_from_file(mtmd_context * ctx, const char * fname);
+	// MTMD_API mtmd_helper_bitmap_wrapper mtmd_helper_bitmap_init_from_file(mtmd_context * ctx, const char * fname);
 	bitmapInitFromFileFunc ffi.Fun
 
-	// MTMD_API mtmd_bitmap * mtmd_helper_bitmap_init_from_buf(mtmd_context * ctx, const unsigned char * buf, size_t len);
+	// MTMD_API mtmd_helper_bitmap_wrapper mtmd_helper_bitmap_init_from_buf(mtmd_context * ctx, const unsigned char * buf, size_t len);
 	bitmapInitFromBufFunc ffi.Fun
 
 	// MTMD_API uint32_t mtmd_bitmap_get_nx(const mtmd_bitmap * bitmap);
@@ -67,11 +83,11 @@ func loadBitmapFuncs(lib ffi.Lib) error {
 		return loadError("mtmd_bitmap_get_n_bytes", err)
 	}
 
-	if bitmapInitFromFileFunc, err = lib.Prep("mtmd_helper_bitmap_init_from_file", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint8); err != nil {
+	if bitmapInitFromFileFunc, err = lib.Prep("mtmd_helper_bitmap_init_from_file", &ffiTypeBitmapWrapper, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint8); err != nil {
 		return loadError("mtmd_helper_bitmap_init_from_file", err)
 	}
 
-	if bitmapInitFromBufFunc, err = lib.Prep("mtmd_helper_bitmap_init_from_buf", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize, &ffi.TypeUint8); err != nil {
+	if bitmapInitFromBufFunc, err = lib.Prep("mtmd_helper_bitmap_init_from_buf", &ffiTypeBitmapWrapper, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize, &ffi.TypeUint8); err != nil {
 		return loadError("mtmd_helper_bitmap_init_from_buf", err)
 	}
 
@@ -133,10 +149,10 @@ func BitmapGetNBytes(bitmap Bitmap) uint64 {
 	return uint64(result)
 }
 
-// BitmapInitFromFile initializes a Bitmap from a file.
+// BitmapInitFromFile initializes a BitmapWrapper from a file.
 // If placeholder is true, the bitmap will have dimensions but no pixel data, suitable for counting tokens without preprocessing.
-func BitmapInitFromFile(ctx Context, fname string, placeholder bool) Bitmap {
-	var bitmap Bitmap
+func BitmapInitFromFile(ctx Context, fname string, placeholder bool) BitmapWrapper {
+	var bitmap BitmapWrapper
 	if ctx == 0 {
 		return bitmap
 	}
@@ -155,10 +171,10 @@ func BitmapInitFromFile(ctx Context, fname string, placeholder bool) Bitmap {
 	return bitmap
 }
 
-// BitmapInitFromBuf initializes a Bitmap from a buffer of bytes.
+// BitmapInitFromBuf initializes a BitmapWrapper from a buffer of bytes.
 // If placeholder is true, the bitmap will have dimensions but no pixel data, suitable for counting tokens without preprocessing.
-func BitmapInitFromBuf(ctx Context, buf *byte, len uint64, placeholder bool) Bitmap {
-	var bitmap Bitmap
+func BitmapInitFromBuf(ctx Context, buf *byte, len uint64, placeholder bool) BitmapWrapper {
+	var bitmap BitmapWrapper
 	if ctx == 0 {
 		return bitmap
 	}
