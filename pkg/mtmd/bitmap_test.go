@@ -269,17 +269,17 @@ func TestBitmapInitFromFile(t *testing.T) {
 	defer Free(ctx)
 
 	bitmap := BitmapInitFromFile(ctx, "../../images/domestic_llama.jpg", false)
-	defer BitmapFree(bitmap)
+	defer BitmapFree(bitmap.Bitmap)
 
-	if bitmap == Bitmap(0) {
+	if bitmap.Bitmap == Bitmap(0) {
 		t.Fatal("BitmapInitFromFile returned an invalid bitmap")
 	}
 
-	if BitmapGetNBytes(bitmap) == 0 {
+	if BitmapGetNBytes(bitmap.Bitmap) == 0 {
 		t.Fatal("BitmapInitFromFile returned a bitmap with zero bytes")
 	}
 
-	t.Logf("BitmapInitFromFile created bitmap with %d bytes", BitmapGetNBytes(bitmap))
+	t.Logf("BitmapInitFromFile created bitmap with %d bytes", BitmapGetNBytes(bitmap.Bitmap))
 }
 
 func TestBitmapInitFromFilePlaceholder(t *testing.T) {
@@ -291,27 +291,27 @@ func TestBitmapInitFromFilePlaceholder(t *testing.T) {
 	defer Free(ctx)
 
 	bitmap := BitmapInitFromFile(ctx, "../../images/domestic_llama.jpg", true)
-	defer BitmapFree(bitmap)
+	defer BitmapFree(bitmap.Bitmap)
 
-	if bitmap == Bitmap(0) {
+	if bitmap.Bitmap == Bitmap(0) {
 		t.Fatal("BitmapInitFromFile (placeholder) returned an invalid bitmap")
 	}
 
-	if !BitmapIsPlaceholder(bitmap) {
+	if !BitmapIsPlaceholder(bitmap.Bitmap) {
 		t.Fatal("BitmapIsPlaceholder returned false for a file-loaded placeholder bitmap")
 	}
 
-	if BitmapGetNx(bitmap) == 0 || BitmapGetNy(bitmap) == 0 {
+	if BitmapGetNx(bitmap.Bitmap) == 0 || BitmapGetNy(bitmap.Bitmap) == 0 {
 		t.Fatal("BitmapInitFromFile placeholder has zero dimensions")
 	}
 
-	t.Logf("BitmapInitFromFile placeholder: nx=%d, ny=%d", BitmapGetNx(bitmap), BitmapGetNy(bitmap))
+	t.Logf("BitmapInitFromFile placeholder: nx=%d, ny=%d", BitmapGetNx(bitmap.Bitmap), BitmapGetNy(bitmap.Bitmap))
 }
 
 func TestBitmapInitFromFileZeroCtx(t *testing.T) {
 	// BitmapInitFromFile should return a zero Bitmap when ctx is 0.
 	bitmap := BitmapInitFromFile(Context(0), "../../images/domestic_llama.jpg", false)
-	if bitmap != Bitmap(0) {
+	if bitmap.Bitmap != Bitmap(0) {
 		t.Fatal("BitmapInitFromFile should return zero Bitmap for zero context")
 	}
 }
@@ -325,8 +325,8 @@ func TestBitmapInitFromFileNonExistent(t *testing.T) {
 	defer Free(ctx)
 
 	bitmap := BitmapInitFromFile(ctx, "/nonexistent/path/image.jpg", false)
-	if bitmap != Bitmap(0) {
-		BitmapFree(bitmap)
+	if bitmap.Bitmap != Bitmap(0) {
+		BitmapFree(bitmap.Bitmap)
 		t.Fatal("BitmapInitFromFile should return zero Bitmap for non-existent file")
 	}
 }
@@ -345,17 +345,17 @@ func TestBitmapInitFromBuf(t *testing.T) {
 	}
 
 	bitmap := BitmapInitFromBuf(ctx, &fileBytes[0], uint64(len(fileBytes)), false)
-	defer BitmapFree(bitmap)
+	defer BitmapFree(bitmap.Bitmap)
 
-	if bitmap == Bitmap(0) {
+	if bitmap.Bitmap == Bitmap(0) {
 		t.Fatal("BitmapInitFromBuf returned an invalid bitmap")
 	}
 
-	if BitmapGetNBytes(bitmap) == 0 {
+	if BitmapGetNBytes(bitmap.Bitmap) == 0 {
 		t.Fatal("BitmapInitFromBuf returned a bitmap with zero bytes")
 	}
 
-	t.Logf("BitmapInitFromBuf created bitmap with %d bytes", BitmapGetNBytes(bitmap))
+	t.Logf("BitmapInitFromBuf created bitmap with %d bytes", BitmapGetNBytes(bitmap.Bitmap))
 }
 
 func TestBitmapInitFromBufPlaceholder(t *testing.T) {
@@ -372,27 +372,27 @@ func TestBitmapInitFromBufPlaceholder(t *testing.T) {
 	}
 
 	bitmap := BitmapInitFromBuf(ctx, &fileBytes[0], uint64(len(fileBytes)), true)
-	defer BitmapFree(bitmap)
+	defer BitmapFree(bitmap.Bitmap)
 
-	if bitmap == Bitmap(0) {
+	if bitmap.Bitmap == Bitmap(0) {
 		t.Fatal("BitmapInitFromBuf (placeholder) returned an invalid bitmap")
 	}
 
-	if !BitmapIsPlaceholder(bitmap) {
+	if !BitmapIsPlaceholder(bitmap.Bitmap) {
 		t.Fatal("BitmapIsPlaceholder returned false for a buf-loaded placeholder bitmap")
 	}
 
-	if BitmapGetNx(bitmap) == 0 || BitmapGetNy(bitmap) == 0 {
+	if BitmapGetNx(bitmap.Bitmap) == 0 || BitmapGetNy(bitmap.Bitmap) == 0 {
 		t.Fatal("BitmapInitFromBuf placeholder has zero dimensions")
 	}
 
-	t.Logf("BitmapInitFromBuf placeholder: nx=%d, ny=%d", BitmapGetNx(bitmap), BitmapGetNy(bitmap))
+	t.Logf("BitmapInitFromBuf placeholder: nx=%d, ny=%d", BitmapGetNx(bitmap.Bitmap), BitmapGetNy(bitmap.Bitmap))
 }
 
 func TestBitmapInitFromBufZeroCtx(t *testing.T) {
 	fileBytes := []byte{0xFF, 0xD8, 0xFF} // minimal JPEG header bytes
 	bitmap := BitmapInitFromBuf(Context(0), &fileBytes[0], uint64(len(fileBytes)), false)
-	if bitmap != Bitmap(0) {
+	if bitmap.Bitmap != Bitmap(0) {
 		t.Fatal("BitmapInitFromBuf should return zero Bitmap for zero context")
 	}
 }
