@@ -183,7 +183,8 @@ Sometimes there are breaking changes to `llama.cpp` that require an update to `y
 | b9460 - b9540  | v1.15.0   |
 | b9541 - b9548  | v1.16.0   |
 | b9549 - b9561  | v1.16.1   |
-| b9562+  | v1.17.0   |
+| b9562 - b9611  | v1.17.0   |
+| b9616+  | v1.17.1   |
 
 ## Benchmarks
 
