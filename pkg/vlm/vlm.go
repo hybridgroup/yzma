@@ -121,7 +121,7 @@ func (m *VLM) Results(chunks mtmd.InputChunks) (string, error) {
 	var n llama.Pos
 	nBatch := llama.NBatch(m.ModelContext)
 
-	if res := mtmd.HelperEvalChunks(m.ProjectorContext, m.ModelContext, chunks, 1, 0, int32(nBatch), true, &n); res != 0 {
+	if res := mtmd.HelperEvalChunks(m.ProjectorContext, m.ModelContext, chunks, 0, 0, int32(nBatch), true, &n); res != 0 {
 		return "", errors.New("unable to evaluate chunks")
 	}
 
