@@ -72,7 +72,7 @@ func TestInputChunksGetType(t *testing.T) {
 	t.Logf("InputChunksGet successfully retrieved chunk at index %d", idx)
 
 	chunkType := InputChunkGetType(chunk)
-	if chunkType != InputChunkTypeText {
+	if chunkType != InputChunkTypeText && chunkType != InputChunkTypeImage {
 		t.Fatalf("InputChunkGetType returned an unexpected type: %d", chunkType)
 	}
 }
@@ -108,13 +108,25 @@ func TestInputChunkGetTokensText(t *testing.T) {
 		t.Fatalf("invalid chunk size: %d", size)
 	}
 
-	idx := uint64(size - 1) // Use the last chunk index to ensure we are testing a valid chunk
-	chunk := InputChunksGet(chunks, idx)
-	if chunk == InputChunk(0) {
-		t.Fatalf("InputChunksGet returned an invalid chunk for index %d", idx)
+	// find text chunk
+	var textChunk InputChunk
+	for i := uint64(0); i < size; i++ {
+		chunk := InputChunksGet(chunks, i)
+		if chunk == InputChunk(0) {
+			t.Fatalf("InputChunksGet returned an invalid chunk for index %d", i)
+		}
+
+		chunkType := InputChunkGetType(chunk)
+		if chunkType == InputChunkTypeText {
+			textChunk = chunk
+			break
+		}
 	}
 
-	tokens := InputChunkGetTokensText(chunk)
+	if textChunk == InputChunk(0) {
+		t.Fatal("No text chunk found in InputChunks")
+	}
+	tokens := InputChunkGetTokensText(textChunk)
 	if tokens == nil {
 		t.Fatal("InputChunkGetTokensText returned nil")
 	}
