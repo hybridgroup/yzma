@@ -45,6 +45,9 @@ type ContextParamsType struct {
 	CBEvalUserData uintptr
 	// batching params
 	BatchMaxTokens int32
+	// progress callback fired during model load (added in llama.cpp b9750)
+	ProgressCallback         uintptr // mtmd_progress_callback
+	ProgressCallbackUserData uintptr // void *
 }
 
 var (
@@ -64,6 +67,8 @@ var (
 		&ffi.TypePointer, // cb_eval callback
 		&ffi.TypePointer, // cb_eval_user_data void*
 		&ffi.TypeSint32,  // batch_max_tokens int
+		&ffi.TypePointer, // progress_callback (added in llama.cpp b9750)
+		&ffi.TypePointer, // progress_callback_user_data (added in llama.cpp b9750)
 	)
 
 	// ffiTypeInputText represents the C struct mtmd_input_text

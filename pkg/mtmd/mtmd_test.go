@@ -20,6 +20,12 @@ func TestContextParamsDefault(t *testing.T) {
 	if params.Threads <= 0 {
 		t.Fatal("ContextParamsDefault returned invalid thread count")
 	}
+	if params.ProgressCallback != 0 {
+		t.Fatal("ContextParamsDefault returned non-nil ProgressCallback")
+	}
+	if params.ProgressCallbackUserData != 0 {
+		t.Fatal("ContextParamsDefault returned non-nil ProgressCallbackUserData")
+	}
 	t.Logf("ContextParamsDefault returned: %+v", params)
 }
 
