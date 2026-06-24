@@ -1,6 +1,6 @@
 # Model Usage
 
-`yzma` uses models in the GGUF format supported by `llama.cpp`. You can find many models in GGUF format on Hugging Face (over 181k at last count):
+`yzma` uses models in the GGUF format supported by `llama.cpp`. You can find many models in GGUF format on Hugging Face (over 186k at last count):
 
 https://huggingface.co/models?library=gguf&sort=trending
 
