@@ -1,6 +1,6 @@
 # Roadmap
 
-`yzma` currently has support for over 91% of `llama.cpp` functionality.
+`yzma` currently has support for over 96% of `llama.cpp` functionality.
 
 This is a list of all functions exposed by `llama.cpp` and the current state of the associated `yzma` wrapper.
 
@@ -227,6 +227,11 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 
 Note that these functions are considered by `llama.cpp` to be experimental, and are subject to change.
 
+- [x] `mtmd_batch_add_chunk`
+- [x] `mtmd_batch_encode`
+- [x] `mtmd_batch_free`
+- [x] `mtmd_batch_get_output_embd`
+- [x] `mtmd_batch_init`
 - [x] `mtmd_bitmap_free`
 - [x] `mtmd_bitmap_get_data`
 - [x] `mtmd_bitmap_get_id`
@@ -295,11 +300,6 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 
 ### `mtmd` Functions
 
-- [ ] `mtmd_batch_add_chunk`
-- [ ] `mtmd_batch_encode`
-- [ ] `mtmd_batch_free`
-- [ ] `mtmd_batch_get_output_embd`
-- [ ] `mtmd_batch_init`
 - [ ] `mtmd_bitmap_init_lazy`
 - [ ] `mtmd_get_cap_from_file`
 - [ ] `mtmd_helper_video_read_next`
