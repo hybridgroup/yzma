@@ -29,6 +29,24 @@ func TestContextParamsDefault(t *testing.T) {
 	t.Logf("ContextParamsDefault returned: %+v", params)
 }
 
+func TestSetProgressCallback(t *testing.T) {
+	var params ContextParamsType
+
+	// nil callback should clear the pointer
+	params.SetProgressCallback(nil)
+	if params.ProgressCallback != 0 {
+		t.Fatal("SetProgressCallback(nil) did not clear ProgressCallback")
+	}
+
+	// non-nil callback should set a non-zero pointer
+	params.SetProgressCallback(func(progress float32, userData uintptr) bool {
+		return true
+	})
+	if params.ProgressCallback == 0 {
+		t.Fatal("SetProgressCallback did not set ProgressCallback")
+	}
+}
+
 func TestInitFromFileAndFree(t *testing.T) {
 	modelFile := testModelFileName(t)
 	mmprojFile := testMMProjFileName(t)
