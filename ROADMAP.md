@@ -49,6 +49,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_model_n_head_kv`
 - [x] `llama_model_n_head`
 - [x] `llama_model_n_layer`
+- [x] `llama_model_n_layer_nextn`
 - [x] `llama_model_n_params`
 - [x] `llama_model_n_swa`
 - [x] `llama_model_quantize_default_params`
