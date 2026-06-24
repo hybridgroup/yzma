@@ -11,6 +11,11 @@ import (
 	"github.com/jupiterrider/ffi"
 )
 
+// ProgressCallback is an optional callback for multimodal projector loading progress.
+// It is called with a progress value between 0.0 and 1.0.
+// Return false from the callback to abort model loading, or true to continue.
+type ProgressCallback func(progress float32, userData uintptr) bool
+
 //	struct mtmd_input_text {
 //	    const char * text;
 //	    bool add_special;
@@ -224,6 +229,52 @@ func ContextParamsDefault() ContextParamsType {
 	var ctx ContextParamsType
 	contextParamsDefaultFunc.Call(unsafe.Pointer(&ctx))
 	return ctx
+}
+
+var progressCallbackCode unsafe.Pointer
+var progressCallbackCif *ffi.Cif
+var sizeOfClosure = unsafe.Sizeof(ffi.Closure{})
+
+// SetProgressCallback sets a callback that fires during mmproj model loading.
+// The callback receives a progress value in [0.0, 1.0]. Return false to cancel loading.
+// Pass nil to clear a previously set callback.
+func (p *ContextParamsType) SetProgressCallback(cb ProgressCallback) {
+	if cb == nil {
+		p.ProgressCallback = uintptr(0)
+		return
+	}
+
+	closure := ffi.ClosureAlloc(sizeOfClosure, &progressCallbackCode)
+
+	fn := ffi.NewCallback(func(cif *ffi.Cif, ret unsafe.Pointer, args *unsafe.Pointer, userData unsafe.Pointer) uintptr {
+		if args == nil || ret == nil {
+			return 1 // error
+		}
+
+		arg := unsafe.Slice(args, cif.NArgs)
+		progress := *(*float32)(arg[0])
+		userDataPtr := *(*uintptr)(arg[1])
+		result := cb(progress, userDataPtr)
+		if result {
+			*(*uint8)(ret) = 1
+		} else {
+			*(*uint8)(ret) = 0
+		}
+		return 0
+	})
+
+	progressCallbackCif = new(ffi.Cif)
+	if status := ffi.PrepCif(progressCallbackCif, ffi.DefaultAbi, 2, &ffi.TypeUint8, &ffi.TypeFloat, &ffi.TypePointer); status != ffi.OK {
+		panic(status)
+	}
+
+	if closure != nil {
+		if status := ffi.PrepClosureLoc(closure, progressCallbackCif, fn, nil, progressCallbackCode); status != ffi.OK {
+			panic(status)
+		}
+	}
+
+	p.ProgressCallback = uintptr(progressCallbackCode)
 }
 
 // InitFromFile initializes the mtmd context. mmprojFname is a projector file. model is a model that has already been opened.
