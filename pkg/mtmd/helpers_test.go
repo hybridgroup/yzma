@@ -25,6 +25,14 @@ func testMMProjFileName(t *testing.T) string {
 	return os.Getenv("YZMA_TEST_MMPROJ")
 }
 
+func testVideoFileName(t *testing.T) string {
+	if os.Getenv("YZMA_TEST_VIDEO") == "" {
+		t.Skip("no YZMA_TEST_VIDEO skipping test")
+	}
+
+	return os.Getenv("YZMA_TEST_VIDEO")
+}
+
 func testSetup(t *testing.T) {
 	if os.Getenv("YZMA_LIB") == "" {
 		t.Fatal("no YZMA_LIB set for tests")

@@ -1,6 +1,8 @@
 package mtmd
 
 import (
+	"os"
+	"runtime"
 	"testing"
 	"unsafe"
 
@@ -403,5 +405,197 @@ func TestGetAudioSampleRate(t *testing.T) {
 	// Test with zero context returns -1
 	if GetAudioSampleRate(0) != -1 {
 		t.Fatal("GetAudioSampleRate expected -1 for zero context")
+	}
+}
+
+func TestGetMarker(t *testing.T) {
+	modelFile := testModelFileName(t)
+	mmprojFile := testMMProjFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer llama.ModelFree(model)
+
+	params := ContextParamsDefault()
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("InitFromFile failed: %v", err)
+	}
+	defer Free(ctx)
+
+	marker := GetMarker(ctx)
+	if marker == "" {
+		t.Fatal("GetMarker returned an empty string")
+	}
+	if marker != DefaultMarker() {
+		t.Fatalf("GetMarker returned %q, want %q", marker, DefaultMarker())
+	}
+	t.Logf("GetMarker returned: %s", marker)
+
+	// Test with zero context returns empty string
+	if GetMarker(0) != "" {
+		t.Fatal("GetMarker expected empty string for zero context")
+	}
+}
+
+func TestSupportVideo(t *testing.T) {
+	modelFile := testModelFileName(t)
+	mmprojFile := testMMProjFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer llama.ModelFree(model)
+
+	params := ContextParamsDefault()
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("InitFromFile failed: %v", err)
+	}
+	defer Free(ctx)
+
+	// Simply log the result; video support depends on the build-time MTMD_VIDEO flag.
+	supportsVideo := SupportVideo(ctx)
+	t.Logf("SupportVideo returned: %v", supportsVideo)
+
+	// Test with zero context returns false
+	if SupportVideo(0) {
+		t.Fatal("SupportVideo expected false for zero context")
+	}
+}
+
+func TestVideoInitParamsDefault(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := VideoInitParamsDefault()
+	if params.FPSTarget <= 0 {
+		t.Fatalf("VideoInitParamsDefault returned non-positive FPSTarget: %v", params.FPSTarget)
+	}
+	if params.TimestampIntervalMs <= 0 {
+		t.Fatalf("VideoInitParamsDefault returned non-positive TimestampIntervalMs: %v", params.TimestampIntervalMs)
+	}
+	t.Logf("VideoInitParamsDefault: fps_target=%.2f timestamp_interval_ms=%d", params.FPSTarget, params.TimestampIntervalMs)
+}
+
+func TestVideoInitAndFree(t *testing.T) {
+	modelFile := testModelFileName(t)
+	mmprojFile := testMMProjFileName(t)
+	videoFile := testVideoFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer llama.ModelFree(model)
+
+	params := ContextParamsDefault()
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("InitFromFile failed: %v", err)
+	}
+	defer Free(ctx)
+
+	if !SupportVideo(ctx) {
+		t.Skip("video support not available in this build")
+	}
+
+	videoParams := VideoInitParamsDefault()
+	videoCtx := VideoInit(ctx, videoFile, videoParams)
+	if videoCtx == 0 {
+		t.Fatal("VideoInit returned an invalid VideoContext (is ffprobe installed?)")
+	}
+	defer VideoFree(videoCtx)
+
+	info := VideoGetInfo(videoCtx)
+	if info.Width == 0 || info.Height == 0 {
+		t.Fatalf("VideoGetInfo returned zero dimensions: %+v", info)
+	}
+	if info.FPS <= 0 {
+		t.Fatalf("VideoGetInfo returned non-positive FPS: %v", info.FPS)
+	}
+	t.Logf("VideoGetInfo: %dx%d @ %.2f fps, ~%d frames", info.Width, info.Height, info.FPS, info.NFrames)
+}
+
+func TestVideoInitFromBuf(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		// Pipe-based video probing deadlocks on Windows when ffprobe exits early
+		// after reading enough data; the C++ feeder thread blocks indefinitely
+		// instead of receiving a broken-pipe error. See llama.cpp issue #24429.
+		t.Skip("VideoInitFromBuf pipe mode is not reliable on Windows")
+	}
+	modelFile := testModelFileName(t)
+	mmprojFile := testMMProjFileName(t)
+	videoFile := testVideoFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer llama.ModelFree(model)
+
+	params := ContextParamsDefault()
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("InitFromFile failed: %v", err)
+	}
+	defer Free(ctx)
+
+	if !SupportVideo(ctx) {
+		t.Skip("video support not available in this build")
+	}
+
+	buf, err := os.ReadFile(videoFile)
+	if err != nil {
+		t.Fatalf("could not read video file: %v", err)
+	}
+
+	videoParams := VideoInitParamsDefault()
+	videoCtx := VideoInitFromBuf(ctx, buf, videoParams)
+	if videoCtx == 0 {
+		t.Fatal("VideoInitFromBuf returned an invalid VideoContext (is ffprobe installed?)")
+	}
+	defer VideoFree(videoCtx)
+
+	info := VideoGetInfo(videoCtx)
+	if info.Width == 0 || info.Height == 0 {
+		t.Fatalf("VideoGetInfo returned zero dimensions after VideoInitFromBuf: %+v", info)
+	}
+	t.Logf("VideoGetInfo (from buf): %dx%d @ %.2f fps, ~%d frames", info.Width, info.Height, info.FPS, info.NFrames)
+}
+
+func TestVideoFreeNilIsNoop(t *testing.T) {
+	// VideoFree(0) must not panic or crash.
+	VideoFree(0)
+}
+
+func TestVideoGetInfoZeroContext(t *testing.T) {
+	// VideoGetInfo(0) must return a zero-value struct without crashing.
+	info := VideoGetInfo(0)
+	if info.Width != 0 || info.Height != 0 {
+		t.Fatalf("VideoGetInfo(0) returned non-zero info: %+v", info)
+	}
+}
+
+func TestVideoInitZeroContext(t *testing.T) {
+	// VideoInit with a zero context must return 0 without crashing.
+	videoCtx := VideoInit(0, "nonexistent.mp4", VideoInitParams{})
+	if videoCtx != 0 {
+		t.Fatal("VideoInit with zero context should return 0")
 	}
 }

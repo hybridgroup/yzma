@@ -147,6 +147,9 @@ var (
 	// If this is not called, or NULL is supplied, everything is output on stderr.
 	// MTMD_API void mtmd_helper_log_set(ggml_log_callback log_callback, void * user_data);
 	mtmdLogSetFunc ffi.Fun
+
+	// MTMD_API const char * mtmd_get_marker(const mtmd_context * ctx);
+	getMarkerFunc ffi.Fun
 )
 
 func loadFuncs(lib ffi.Lib) error {
@@ -212,6 +215,10 @@ func loadFuncs(lib ffi.Lib) error {
 
 	if mtmdLogSetFunc, err = lib.Prep("mtmd_helper_log_set", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return loadError("mtmd_helper_log_set", err)
+	}
+
+	if getMarkerFunc, err = lib.Prep("mtmd_get_marker", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("mtmd_get_marker", err)
 	}
 
 	return nil
@@ -474,4 +481,18 @@ func GetAudioSampleRate(ctx Context) int {
 func LogSet(cb uintptr) {
 	nada := uintptr(0)
 	mtmdLogSetFunc.Call(nil, unsafe.Pointer(&cb), unsafe.Pointer(&nada))
+}
+
+// GetMarker returns the media marker string used by the given context.
+// This is the per-context equivalent of DefaultMarker.
+func GetMarker(ctx Context) string {
+	if ctx == 0 {
+		return ""
+	}
+	var markerPtr *byte
+	getMarkerFunc.Call(unsafe.Pointer(&markerPtr), unsafe.Pointer(&ctx))
+	if markerPtr == nil {
+		return ""
+	}
+	return utils.BytePtrToString(markerPtr)
 }

@@ -245,10 +245,17 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [x] `mtmd_encode`
 - [x] `mtmd_free`
 - [x] `mtmd_get_audio_sample_rate`
+- [x] `mtmd_get_marker`
 - [x] `mtmd_get_output_embd`
 - [x] `mtmd_helper_bitmap_init_from_buf`
 - [x] `mtmd_helper_bitmap_init_from_file`
 - [x] `mtmd_helper_eval_chunks`
+- [x] `mtmd_helper_support_video`
+- [x] `mtmd_helper_video_free`
+- [x] `mtmd_helper_video_get_info`
+- [x] `mtmd_helper_video_init_from_buf`
+- [x] `mtmd_helper_video_init_params_default`
+- [x] `mtmd_helper_video_init`
 - [x] `mtmd_image_tokens_get_id`
 - [x] `mtmd_image_tokens_get_n_pos`
 - [x] `mtmd_image_tokens_get_n_tokens`
@@ -295,12 +302,5 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 - [ ] `mtmd_batch_init`
 - [ ] `mtmd_bitmap_init_lazy`
 - [ ] `mtmd_get_cap_from_file`
-- [ ] `mtmd_get_marker`
-- [ ] `mtmd_helper_support_video`
-- [ ] `mtmd_helper_video_free`
-- [ ] `mtmd_helper_video_get_info`
-- [ ] `mtmd_helper_video_init_from_buf`
-- [ ] `mtmd_helper_video_init_params_default`
-- [ ] `mtmd_helper_video_init`
 - [ ] `mtmd_helper_video_read_next`
 - [ ] `mtmd_image_tokens_get_decoder_pos`

@@ -4,8 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 	"unsafe"
 
@@ -34,6 +36,12 @@ func init() {
 
 func TestMain(m *testing.M) {
 	flag.Parse() // Parse flags before running tests
+
+	// Suppress SIGPIPE for the whole process. Without this, when VideoInitFromBuf
+	// pipes a video buffer into ffprobe, the C++ feeder thread receives SIGPIPE
+	// (because ffprobe exits after probing) and kills the test process.
+	// With SIG_IGN the feeder thread gets EPIPE instead, which the library handles.
+	signal.Ignore(syscall.SIGPIPE)
 
 	code := m.Run()
 

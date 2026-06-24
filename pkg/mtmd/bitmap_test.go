@@ -3,6 +3,7 @@ package mtmd
 import (
 	_ "image/jpeg"
 	"os"
+	"runtime"
 	"testing"
 	"unsafe"
 
@@ -283,6 +284,9 @@ func TestBitmapInitFromFile(t *testing.T) {
 }
 
 func TestBitmapInitFromFilePlaceholder(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("TestBitmapInitFromFilePlaceholder hangs on Windows due to ffprobe pipe deadlock in mtmd_helper_bitmap_init_from_file")
+	}
 	testSetup(t)
 	defer testCleanup(t)
 
