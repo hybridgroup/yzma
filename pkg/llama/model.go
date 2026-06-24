@@ -77,6 +77,9 @@ var (
 	// LLAMA_API int32_t llama_model_n_layer    (const struct llama_model * model);
 	modelNLayerFunc ffi.Fun
 
+	// LLAMA_API int32_t llama_model_n_layer_nextn(const struct llama_model * model);
+	modelNLayerNextNFunc ffi.Fun
+
 	// LLAMA_API int32_t llama_model_n_head     (const struct llama_model * model);
 	modelNHeadFunc ffi.Fun
 
@@ -214,6 +217,10 @@ func loadModelFuncs(lib ffi.Lib) error {
 
 	if modelNLayerFunc, err = lib.Prep("llama_model_n_layer", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
 		return loadError("llama_model_n_layer", err)
+	}
+
+	if modelNLayerNextNFunc, err = lib.Prep("llama_model_n_layer_nextn", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_n_layer_nextn", err)
 	}
 
 	if modelNHeadFunc, err = lib.Prep("llama_model_n_head", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
@@ -480,6 +487,17 @@ func ModelNLayer(model Model) int32 {
 	}
 	var result ffi.Arg
 	modelNLayerFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
+
+	return int32(result)
+}
+
+// ModelNLayerNextN returns the number of layers in the next-n model.
+func ModelNLayerNextN(model Model) int32 {
+	if model == 0 {
+		return 0
+	}
+	var result ffi.Arg
+	modelNLayerNextNFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 
 	return int32(result)
 }
