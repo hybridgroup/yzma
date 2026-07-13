@@ -10,6 +10,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_backend_free`
 - [x] `llama_backend_init`
 - [x] `llama_flash_attn_type_name`
+- [x] `llama_ftype_name`
 - [x] `llama_max_devices`
 - [x] `llama_max_parallel_sequences`
 - [x] `llama_max_tensor_buft_overrides`
@@ -29,6 +30,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_model_default_params`
 - [x] `llama_model_desc`
 - [x] `llama_model_free`
+- [x] `llama_model_ftype`
 - [x] `llama_model_has_decoder`
 - [x] `llama_model_has_encoder`
 - [x] `llama_model_is_diffusion`
@@ -48,8 +50,8 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_model_n_embd`
 - [x] `llama_model_n_head_kv`
 - [x] `llama_model_n_head`
-- [x] `llama_model_n_layer`
 - [x] `llama_model_n_layer_nextn`
+- [x] `llama_model_n_layer`
 - [x] `llama_model_n_params`
 - [x] `llama_model_n_swa`
 - [x] `llama_model_quantize_default_params`
