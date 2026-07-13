@@ -240,7 +240,29 @@ func TestModelDesc(t *testing.T) {
 	defer ModelFree(model)
 
 	desc := ModelDesc(model)
+	if len(desc) == 0 {
+		t.Fatal("ModelDesc returned an empty string")
+	}
 	t.Logf("ModelDesc returned: %s", desc)
+}
+
+func TestModelFtype(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	ftype := ModelFtype(model)
+	if ftype == FtypeGUESSED {
+		t.Fatal("ModelFtype returned FtypeGUESSED, which is invalid")
+	}
+	t.Logf("ModelFtype returned: %d", ftype)
 }
 
 func TestModelSize(t *testing.T) {
@@ -256,6 +278,9 @@ func TestModelSize(t *testing.T) {
 	defer ModelFree(model)
 
 	size := ModelSize(model)
+	if size == 0 {
+		t.Fatal("ModelSize returned 0, which is invalid")
+	}
 	t.Logf("ModelSize returned: %d bytes", size)
 }
 

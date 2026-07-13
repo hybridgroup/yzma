@@ -98,6 +98,9 @@ var (
 	// LLAMA_API int32_t llama_model_desc(const struct llama_model * model, char * buf, size_t buf_size);
 	modelDescFunc ffi.Fun
 
+	// LLAMA_API enum llama_ftype llama_model_ftype(const struct llama_model * model);
+	modelFtypeFunc ffi.Fun
+
 	// LLAMA_API uint64_t llama_model_size(const struct llama_model * model);
 	modelSizeFunc ffi.Fun
 
@@ -245,6 +248,10 @@ func loadModelFuncs(lib ffi.Lib) error {
 
 	if modelDescFunc, err = lib.Prep("llama_model_desc", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint64); err != nil {
 		return loadError("llama_model_desc", err)
+	}
+
+	if modelFtypeFunc, err = lib.Prep("llama_model_ftype", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_ftype", err)
 	}
 
 	if modelSizeFunc, err = lib.Prep("llama_model_size", &ffi.TypeUint64, &ffi.TypePointer); err != nil {
@@ -577,6 +584,16 @@ func ModelDesc(model Model) string {
 	}
 
 	return string(buf[:int32(result)])
+}
+
+// ModelFtype retrieves the model's ftype (quantization type).
+func ModelFtype(model Model) Ftype {
+	if model == 0 {
+		return FtypeGUESSED
+	}
+	var ftype ffi.Arg
+	modelFtypeFunc.Call(unsafe.Pointer(&ftype), unsafe.Pointer(&model))
+	return Ftype(int32(ftype))
 }
 
 // ModelSize returns the total size of all tensors in the model in bytes.

@@ -91,6 +91,17 @@ func TestFlashAttnTypeName(t *testing.T) {
 	t.Logf("FlashAttnTypeName returned: %s", name)
 }
 
+func TestFtypeName(t *testing.T) {
+	testSetup(t)
+	var ftype Ftype = FtypeMostlyQ1_0
+
+	name := FtypeName(ftype)
+	if name == "" {
+		t.Fatal("FtypeName returned empty string")
+	}
+	t.Logf("FtypeName returned: %s", name)
+}
+
 func TestNumaInit(t *testing.T) {
 	testSetup(t)
 	var strategy NumaStrategy = NumaStrategyDisabled

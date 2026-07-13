@@ -42,6 +42,9 @@ var (
 	// LLAMA_API const char * llama_flash_attn_type_name(enum llama_flash_attn_type flash_attn_type);
 	flashAttnTypeNameFunc ffi.Fun
 
+	// LLAMA_API const char * llama_ftype_name(enum llama_ftype ftype);
+	ftypeNameFunc ffi.Fun
+
 	// LLAMA_API const char * llama_print_system_info(void);
 	printSystemInfoFunc ffi.Fun
 )
@@ -94,6 +97,10 @@ func loadBackendFuncs(lib ffi.Lib) error {
 
 	if flashAttnTypeNameFunc, err = lib.Prep("llama_flash_attn_type_name", &ffi.TypePointer, &ffi.TypeSint32); err != nil {
 		return loadError("llama_flash_attn_type_name", err)
+	}
+
+	if ftypeNameFunc, err = lib.Prep("llama_ftype_name", &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_ftype_name", err)
 	}
 
 	if printSystemInfoFunc, err = lib.Prep("llama_print_system_info", &ffi.TypePointer); err != nil {
@@ -178,6 +185,18 @@ func TimeUs() int64 {
 func FlashAttnTypeName(flashAttnType FlashAttentionType) string {
 	var result *byte
 	flashAttnTypeNameFunc.Call(unsafe.Pointer(&result), &flashAttnType)
+
+	if result == nil {
+		return ""
+	}
+
+	return utils.BytePtrToString(result)
+}
+
+// FtypeName returns the name for a given ftype.
+func FtypeName(ftype Ftype) string {
+	var result *byte
+	ftypeNameFunc.Call(unsafe.Pointer(&result), &ftype)
 
 	if result == nil {
 		return ""

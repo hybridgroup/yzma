@@ -122,6 +122,8 @@ const (
 	FtypeMostlyTQ2_0     Ftype = 37
 	FtypeMostlyMXFP4_MOE Ftype = 38
 	FtypeMostlyNVFP4     Ftype = 39
+	FtypeMostlyQ1_0      Ftype = 40
+	FtypeMostlyQ2_0      Ftype = 41
 	FtypeGUESSED         Ftype = 1024
 )
 
