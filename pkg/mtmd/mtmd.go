@@ -18,11 +18,13 @@ type ProgressCallback func(progress float32, userData uintptr) bool
 
 //	struct mtmd_input_text {
 //	    const char * text;
+//		size_t text_len;
 //	    bool add_special;
 //	    bool parse_special;
 //	};
 type InputText struct {
 	Text         *byte
+	TextLen      uint64
 	AddSpecial   bool
 	ParseSpecial bool
 }
@@ -77,7 +79,7 @@ var (
 	)
 
 	// ffiTypeInputText represents the C struct mtmd_input_text
-	ffiTypeInputText = ffi.NewType(&ffi.TypePointer, &ffi.TypeUint8, &ffi.TypeUint8)
+	ffiTypeInputText = ffi.NewType(&ffi.TypePointer, &ffiTypeSize, &ffi.TypeUint8, &ffi.TypeUint8)
 )
 
 var (
@@ -360,6 +362,7 @@ func NewInputText(text string, addSpecial, parseSpecial bool) *InputText {
 	p := unsafe.StringData(text)
 	return &InputText{
 		Text:         p,
+		TextLen:      uint64(len(text) - 1), // exclude null terminator
 		AddSpecial:   addSpecial,
 		ParseSpecial: parseSpecial,
 	}
