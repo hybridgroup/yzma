@@ -269,12 +269,12 @@ func getDownloadLocationAndFilename(arch Arch, os OS, prcssr Processor, version 
 				return "", "", errors.New("precompiled binaries for Windows ARM64 CUDA are not available")
 			}
 			// also requires the CUDA RT files
-			cudart := "cudart-llama-bin-win-cuda-13.1-x64.zip"
+			cudart := "cudart-llama-bin-win-cuda-13.3-x64.zip"
 			url := fmt.Sprintf("%s/%s", location, cudart)
 			if err := get(context.Background(), url, dest, ProgressTracker); err != nil {
 				return "", "", err
 			}
-			filename = fmt.Sprintf("llama-%s-bin-win-cuda-13.1-x64.zip", version)
+			filename = fmt.Sprintf("llama-%s-bin-win-cuda-13.3-x64.zip", version)
 		case Vulkan:
 			if arch == ARM64 {
 				return "", "", errors.New("precompiled binaries for Windows ARM64 Vulkan are not available")
