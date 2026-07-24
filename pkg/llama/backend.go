@@ -47,6 +47,12 @@ var (
 
 	// LLAMA_API const char * llama_print_system_info(void);
 	printSystemInfoFunc ffi.Fun
+
+	// LLAMA_API const char * llama_load_mode_name(enum llama_load_mode load_mode);
+	loadModeNameFunc ffi.Fun
+
+	// LLAMA_API enum llama_load_mode llama_load_mode_from_str(const char * str);
+	loadModeFromStrFunc ffi.Fun
 )
 
 func loadBackendFuncs(lib ffi.Lib) error {
@@ -105,6 +111,14 @@ func loadBackendFuncs(lib ffi.Lib) error {
 
 	if printSystemInfoFunc, err = lib.Prep("llama_print_system_info", &ffi.TypePointer); err != nil {
 		return loadError("llama_print_system_info", err)
+	}
+
+	if loadModeNameFunc, err = lib.Prep("llama_load_mode_name", &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("llama_load_mode_name", err)
+	}
+
+	if loadModeFromStrFunc, err = lib.Prep("llama_load_mode_from_str", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_load_mode_from_str", err)
 	}
 
 	return nil
@@ -179,6 +193,26 @@ func TimeUs() int64 {
 	var result ffi.Arg
 	timeUsFunc.Call(unsafe.Pointer(&result))
 	return int64(result)
+}
+
+// LoadModeName returns the name for a given load mode.
+func LoadModeName(loadMode LoadMode) string {
+	var result *byte
+	loadModeNameFunc.Call(unsafe.Pointer(&result), &loadMode)
+
+	if result == nil {
+		return ""
+	}
+
+	return utils.BytePtrToString(result)
+}
+
+// LoadModeFromStr returns the load mode for a given string.
+func LoadModeFromStr(str string) LoadMode {
+	var result LoadMode
+	s, _ := utils.BytePtrFromString(str)
+	loadModeFromStrFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&s))
+	return result
 }
 
 // FlashAttnTypeName returns the name for a given flash attention type.
