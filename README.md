@@ -143,7 +143,7 @@ Who is using `yzma`? Check out some of the [tools](./PROJECTS.md#tools-and-frame
 
 ## Models
 
-`yzma` uses models in the GGUF format supported by `llama.cpp`. There are many models in GGUF format on Hugging Face (over 190k at last count):
+`yzma` uses models in the GGUF format supported by `llama.cpp`. There are many models in GGUF format on Hugging Face (over 192k at last count):
 
 https://huggingface.co/models?library=gguf&sort=trending
 
@@ -186,7 +186,8 @@ Sometimes there are breaking changes to `llama.cpp` that require an update to `y
 | b9562 - b9611  | v1.17.0   |
 | b9616 - b9749  | v1.17.1   |
 | b9650 - b9978  | v1.18.0   |
-| b9979+  | v1.19.0   |
+| b9979 - b10103  | v1.19.0   |
+| b10105+  | v1.20.0   |
 
 ## Benchmarks
 
