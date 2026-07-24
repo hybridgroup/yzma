@@ -11,6 +11,8 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_backend_init`
 - [x] `llama_flash_attn_type_name`
 - [x] `llama_ftype_name`
+- [x] `llama_load_mode_from_str`
+- [x] `llama_load_mode_name`
 - [x] `llama_max_devices`
 - [x] `llama_max_parallel_sequences`
 - [x] `llama_max_tensor_buft_overrides`
