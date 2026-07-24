@@ -173,6 +173,15 @@ const (
 	SplitModeRow   SplitMode = 2 // split layers and KV across GPUs, use tensor parallelism if supported
 )
 
+type LoadMode int32
+
+const (
+	LoadModeNone     LoadMode = 0 // no special loading mode
+	LoadModeMmap     LoadMode = 1 // memory map the model
+	LoadModeMlock    LoadMode = 2 // mmap + force system to keep model in RAM rather than swapping or compressing
+	LoadModeDirectIO LoadMode = 3 // use direct I/O if available
+)
+
 type GpuBackend int32
 
 const (
@@ -301,15 +310,13 @@ type ModelParams struct {
 	TensorBuftOverrides      uintptr   // const struct llama_model_tensor_buft_override *
 	NGpuLayers               int32     // number of layers to store in VRAM
 	SplitMode                SplitMode // how to split the model across multiple GPUs
+	LoadMode                 LoadMode  // how to load the model
 	MainGpu                  int32     // the GPU that is used for the entire model
 	TensorSplit              *float32  // proportion of the model to offload to each GPU
 	ProgressCallback         uintptr   // llama_progress_callback function pointer
 	ProgressCallbackUserData uintptr   // context pointer passed to the progress callback
 	KvOverrides              uintptr   // const struct llama_model_kv_override *
 	VocabOnly                uint8     // only load the vocabulary, no weights (bool as uint8)
-	UseMmap                  uint8     // use mmap if possible (bool as uint8)
-	UseDirectIO              uint8     // use direct I/O, takes precedence over use_mmap (bool as uint8)
-	UseMlock                 uint8     // force system to keep model in RAM (bool as uint8)
 	CheckTensors             uint8     // validate model tensor data (bool as uint8)
 	UseExtraBufts            uint8     // use extra buffer types (bool as uint8)
 	NoHost                   uint8     // bypass host buffer allowing extra buffers to be used (bool as uint8)

@@ -47,7 +47,7 @@ func benchmarkSetupOnce(b *testing.B) {
 	benchmarkSetup(b)
 
 	mparams := ModelDefaultParams()
-	mparams.UseMmap = 0
+	mparams.LoadMode = LoadModeNone
 
 	if device != "" {
 		devs := []GGMLBackendDevice{}

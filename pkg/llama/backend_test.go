@@ -91,6 +91,48 @@ func TestFlashAttnTypeName(t *testing.T) {
 	t.Logf("FlashAttnTypeName returned: %s", name)
 }
 
+func TestLoadModeName(t *testing.T) {
+	testSetup(t)
+
+	tests := []struct {
+		mode LoadMode
+		want string
+	}{
+		{LoadModeNone, "none"},
+		{LoadModeMmap, "mmap"},
+		{LoadModeMlock, "mlock"},
+		{LoadModeDirectIO, "dio"},
+	}
+
+	for _, tc := range tests {
+		name := LoadModeName(tc.mode)
+		if name != tc.want {
+			t.Errorf("LoadModeName(%d) = %q, want %q", tc.mode, name, tc.want)
+		}
+	}
+}
+
+func TestLoadModeFromStr(t *testing.T) {
+	testSetup(t)
+
+	tests := []struct {
+		str  string
+		want LoadMode
+	}{
+		{"none", LoadModeNone},
+		{"mmap", LoadModeMmap},
+		{"mlock", LoadModeMlock},
+		{"dio", LoadModeDirectIO},
+	}
+
+	for _, tc := range tests {
+		mode := LoadModeFromStr(tc.str)
+		if mode != tc.want {
+			t.Errorf("LoadModeFromStr(%q) = %d, want %d", tc.str, mode, tc.want)
+		}
+	}
+}
+
 func TestFtypeName(t *testing.T) {
 	testSetup(t)
 	var ftype Ftype = FtypeMostlyQ1_0

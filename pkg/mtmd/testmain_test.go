@@ -63,7 +63,7 @@ func benchmarkSetupOnce(b *testing.B) {
 	benchmarkSetup(b)
 
 	mparams := llama.ModelDefaultParams()
-	mparams.UseMmap = 0
+	mparams.LoadMode = llama.LoadModeNone
 
 	if device != "" {
 		devs := []llama.GGMLBackendDevice{}
