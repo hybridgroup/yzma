@@ -139,161 +139,24 @@ func getPreviousVersion() (string, error) {
 	return result.TagName, nil
 }
 
-// getDownloadLocationAndFilename returns the download location and filename for the given parameters.
+// getDownloadLocationAndFilename returns the download location and filename for the
+// given parameters.
+//
+// Deprecated: use [DefaultResolver] or [Install]. Unlike the resolver, it downloads
+// auxiliary assets (the Windows CUDA runtime) itself.
 func getDownloadLocationAndFilename(arch Arch, os OS, prcssr Processor, version string, dest string) (location, filename string, err error) {
-	location = fmt.Sprintf("https://github.com/ggml-org/llama.cpp/releases/download/%s", version)
-
-	switch os {
-	case Linux:
-		switch prcssr {
-		case CPU:
-			if arch == ARM64 {
-				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cpu-arm64.tar.gz", version)
-				break
-			}
-			filename = fmt.Sprintf("llama-%s-bin-ubuntu-x64.tar.gz", version)
-		case CUDA:
-			location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
-			if arch == ARM64 {
-				// defaults to CUDA 12 assuming that is running Jetson Orin.
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-arm64.tar.gz", version)
-			} else {
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-13-x64.tar.gz", version)
-			}
-		case Vulkan:
-			if arch == ARM64 {
-				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-arm64.tar.gz", version)
-				break
-			}
-			filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-x64.tar.gz", version)
-		case ROCm:
-			if arch != AMD64 {
-				return "", "", errors.New("precompiled binaries for Linux ARM64 ROCm are not available")
-			}
-			filename = fmt.Sprintf("llama-%s-bin-ubuntu-rocm-7.2-x64.tar.gz", version)
-		default:
-			return "", "", ErrUnknownProcessor
-		}
-
-	case Bookworm:
-		switch prcssr {
-		case CPU:
-			if arch == ARM64 {
-				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cpu-arm64.tar.gz", version)
-				break
-			}
-
-			// no AMD64 for bookworm
-			return "", "", ErrUnknownProcessor
-		case CUDA:
-			location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
-			if arch == ARM64 {
-				// Jetson Orin.
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-arm64.tar.gz", version)
-				break
-			}
-
-			// no AMD64 for bookworm
-			return "", "", ErrUnknownProcessor
-		case Vulkan:
-			if arch == ARM64 {
-				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-arm64.tar.gz", version)
-				break
-			}
-
-			// no AMD64 for bookworm
-			return "", "", ErrUnknownProcessor
-		default:
-			return "", "", ErrUnknownProcessor
-		}
-
-	case Trixie:
-		switch prcssr {
-		case CPU:
-			if arch == ARM64 {
-				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-trixie-cpu-arm64.tar.gz", version)
-				break
-			}
-			filename = fmt.Sprintf("llama-%s-bin-ubuntu-x64.tar.gz", version)
-		case CUDA:
-			location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
-			if arch == ARM64 {
-				// not yet
-				return "", "", ErrUnknownProcessor
-			} else {
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-13-x64.tar.gz", version)
-			}
-		case Vulkan:
-			if arch == ARM64 {
-				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-trixie-vulkan-arm64.tar.gz", version)
-				break
-			}
-			filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-x64.tar.gz", version)
-		default:
-			return "", "", ErrUnknownProcessor
-		}
-
-	case Darwin:
-		switch prcssr {
-		case Metal:
-			if arch != ARM64 {
-				return "", "", errors.New("precompiled binaries for macOS non-ARM64 CPU/Metal are not available")
-			}
-			filename = fmt.Sprintf("llama-%s-bin-macos-arm64.tar.gz", version)
-		case CPU:
-			if arch == ARM64 {
-				filename = fmt.Sprintf("llama-%s-bin-macos-arm64.tar.gz", version)
-			} else {
-				filename = fmt.Sprintf("llama-%s-bin-macos-x64.tar.gz", version)
-			}
-		default:
-			return "", "", ErrUnknownProcessor
-		}
-
-	case Windows:
-		switch prcssr {
-		case CPU:
-			if arch == ARM64 {
-				filename = fmt.Sprintf("llama-%s-bin-win-cpu-arm64.zip", version)
-			} else {
-				filename = fmt.Sprintf("llama-%s-bin-win-cpu-x64.zip", version)
-			}
-		case CUDA:
-			if arch == ARM64 {
-				return "", "", errors.New("precompiled binaries for Windows ARM64 CUDA are not available")
-			}
-			// also requires the CUDA RT files
-			cudart := "cudart-llama-bin-win-cuda-13.3-x64.zip"
-			url := fmt.Sprintf("%s/%s", location, cudart)
-			if err := get(context.Background(), url, dest, ProgressTracker); err != nil {
-				return "", "", err
-			}
-			filename = fmt.Sprintf("llama-%s-bin-win-cuda-13.3-x64.zip", version)
-		case Vulkan:
-			if arch == ARM64 {
-				return "", "", errors.New("precompiled binaries for Windows ARM64 Vulkan are not available")
-			}
-			filename = fmt.Sprintf("llama-%s-bin-win-vulkan-x64.zip", version)
-		case ROCm:
-			if arch != AMD64 {
-				return "", "", errors.New("precompiled binaries for Windows ARM64 ROCm are not available")
-			}
-			filename = fmt.Sprintf("llama-%s-bin-win-hip-radeon-x64.zip", version)
-		default:
-			return "", "", ErrUnknownProcessor
-		}
-
-	default:
-		return "", "", ErrUnknownOS
+	urls, err := defaultResolve(Target{Arch: arch, OS: os, Processor: prcssr, Version: version})
+	if err != nil {
+		return "", "", err
 	}
-
-	return location, filename, nil
+	for _, url := range urls[:len(urls)-1] {
+		if err := get(context.Background(), url, dest, ProgressTracker); err != nil {
+			return "", "", err
+		}
+	}
+	last := urls[len(urls)-1]
+	i := strings.LastIndex(last, "/")
+	return last[:i], last[i+1:], nil
 }
 
 // getFunc is the function used to download files. It can be overridden for testing.
