@@ -101,6 +101,7 @@ func TestLoadModeName(t *testing.T) {
 		{LoadModeNone, "none"},
 		{LoadModeMmap, "mmap"},
 		{LoadModeMlock, "mlock"},
+		{LoadModeMmapMlock, "mmap+mlock"},
 		{LoadModeDirectIO, "dio"},
 	}
 
@@ -122,6 +123,7 @@ func TestLoadModeFromStr(t *testing.T) {
 		{"none", LoadModeNone},
 		{"mmap", LoadModeMmap},
 		{"mlock", LoadModeMlock},
+		{"mmap+mlock", LoadModeMmapMlock},
 		{"dio", LoadModeDirectIO},
 	}
 

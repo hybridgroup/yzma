@@ -176,10 +176,11 @@ const (
 type LoadMode int32
 
 const (
-	LoadModeNone     LoadMode = 0 // no special loading mode
-	LoadModeMmap     LoadMode = 1 // memory map the model
-	LoadModeMlock    LoadMode = 2 // mmap + force system to keep model in RAM rather than swapping or compressing
-	LoadModeDirectIO LoadMode = 3 // use direct I/O if available
+	LoadModeNone      LoadMode = 0 // no special loading mode
+	LoadModeMmap      LoadMode = 1 // memory map the model
+	LoadModeMlock     LoadMode = 2 // force system to keep model in RAM rather than swapping or compressing
+	LoadModeMmapMlock LoadMode = 3 // mmap + mlock
+	LoadModeDirectIO  LoadMode = 4 // use direct I/O if available
 )
 
 type GpuBackend int32
