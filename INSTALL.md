@@ -323,3 +323,49 @@ set YZMA_LIB=C:\yzma\lib
 Want to use Go code to install the `llama.cpp` precompiled binaries from within your own application? We have the `download` package for that!
 
 Check out the [installer example code](./examples/installer/).
+
+### Choosing which build to install
+
+`download.Install` takes a `Target` and an optional `Resolver`. Passing `nil` uses the
+built-in table, which is what `Get` does:
+
+```go
+target := download.Target{
+	Arch:      download.MustParseArch(runtime.GOARCH),
+	OS:        download.MustParseOS(runtime.GOOS),
+	Processor: download.CUDA,
+	Version:   "latest",
+}
+
+err := download.Install(context.Background(), target, libPath, download.ProgressTracker, nil)
+```
+
+A `Resolver` reports the assets to install for a target, as URLs downloaded in the order
+returned. Implement one to install a build the table doesn't name — from an internal
+mirror or artifact server, from a `file://` path on an air-gapped machine, from your own
+llama.cpp build, or a different CUDA major version than the default:
+
+```go
+resolver := download.ResolverFunc(func(t download.Target) ([]string, error) {
+	if t.OS == download.Linux && t.Arch == download.AMD64 && t.Processor == download.CUDA {
+		return []string{"https://mirror.example.com/llama/" + t.Version + "-cuda12-x64.tar.gz"}, nil
+	}
+	// Anything you don't care about falls through to the built-in table.
+	return download.DefaultResolver.Resolve(t)
+})
+
+err := download.Install(context.Background(), target, libPath, download.ProgressTracker, resolver)
+```
+
+Notes:
+
+- Return several URLs when a build needs more than one archive; they install in order, so
+  put a dependency (such as a CUDA runtime archive) before the libraries that need it.
+- Resolvers must not download anything themselves — return URLs and let `Install` fetch
+  them, so `.tar.gz` and `.zip` archives are unpacked the same way as the built-in builds.
+- `Version` may be `""` or `"latest"`; `Install` resolves it to a release tag before
+  calling the resolver, so `t.Version` is always concrete.
+- Anything [go-getter](https://github.com/hashicorp/go-getter) supports works as a URL,
+  including `file://` and S3/GCS.
+
+See the [resolver example code](./examples/resolver/).
