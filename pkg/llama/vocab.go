@@ -106,6 +106,9 @@ var (
 	// LLAMA_API const char * llama_vocab_get_text(const struct llama_vocab * vocab, llama_token token);
 	vocabGetTextFunc ffi.Fun
 
+	// LLAMA_API const llama_token * llama_vocab_get_suppress_tokens(const struct llama_vocab * vocab, int32_t * n_suppress_tokens);
+	vocabGetSuppressTokensFunc ffi.Fun
+
 	// LLAMA_API enum llama_vocab_type llama_vocab_type(const struct llama_vocab * vocab);
 	vocabTypeFunc ffi.Fun
 )
@@ -218,6 +221,10 @@ func loadVocabFuncs(lib ffi.Lib) error {
 
 	if vocabGetTextFunc, err = lib.Prep("llama_vocab_get_text", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
 		return loadError("llama_vocab_get_text", err)
+	}
+
+	if vocabGetSuppressTokensFunc, err = lib.Prep("llama_vocab_get_suppress_tokens", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("llama_vocab_get_suppress_tokens", err)
 	}
 
 	if vocabTypeFunc, err = lib.Prep("llama_vocab_type", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
@@ -568,6 +575,30 @@ func VocabGetText(vocab Vocab, token Token) string {
 	}
 
 	return utils.BytePtrToString(textPtr)
+}
+
+// VocabGetSuppressTokens retrieves the tokens that the model specifies should be
+// suppressed during sampling, or nil if the vocabulary has none.
+//
+// The returned slice aliases memory owned by the vocabulary, so it is only valid
+// for as long as the model that owns the vocabulary has not been freed.
+func VocabGetSuppressTokens(vocab Vocab) []Token {
+	if vocab == 0 {
+		return nil
+	}
+
+	var (
+		tokensPtr *Token
+		nTokens   int32
+	)
+	n := &nTokens
+	vocabGetSuppressTokensFunc.Call(unsafe.Pointer(&tokensPtr), unsafe.Pointer(&vocab), unsafe.Pointer(&n))
+
+	if tokensPtr == nil || nTokens <= 0 {
+		return nil
+	}
+
+	return unsafe.Slice(tokensPtr, nTokens)
 }
 
 // GetVocabType retrieves the type of the vocabulary.

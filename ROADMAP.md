@@ -84,6 +84,7 @@ This is a list of all functions exposed by `llama.cpp` and the current state of 
 - [x] `llama_vocab_get_add_sep`
 - [x] `llama_vocab_get_attr`
 - [x] `llama_vocab_get_score`
+- [x] `llama_vocab_get_suppress_tokens`
 - [x] `llama_vocab_get_text`
 - [x] `llama_vocab_is_control`
 - [x] `llama_vocab_is_eog`
