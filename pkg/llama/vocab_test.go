@@ -483,6 +483,26 @@ func TestVocabGetText(t *testing.T) {
 	t.Logf("VocabGetText returned text: %s for token: %d", text, token)
 }
 
+func TestVocabGetSuppressTokens(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ModelDefaultParams()
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	vocab := ModelGetVocab(model)
+
+	// Most models do not specify any tokens to suppress, so an empty result is valid.
+	tokens := VocabGetSuppressTokens(vocab)
+	t.Logf("VocabGetSuppressTokens returned %d tokens: %v", len(tokens), tokens)
+}
+
 func TestGetVocabType(t *testing.T) {
 	modelFile := testModelFileName(t)
 
