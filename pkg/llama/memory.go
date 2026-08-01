@@ -145,7 +145,10 @@ func MemorySeqDiv(mem Memory, seqID SeqId, p0, p1 Pos, d int) error {
 	if mem == 0 {
 		return errInvalidMemory
 	}
-	memorySeqDivFunc.Call(nil, unsafe.Pointer(&mem), &seqID, &p0, &p1, &d)
+	// The C parameter is an int; pass a 4-byte value so libffi does not read
+	// half of an 8-byte Go int.
+	div := int32(d)
+	memorySeqDivFunc.Call(nil, unsafe.Pointer(&mem), &seqID, &p0, &p1, &div)
 	return nil
 }
 

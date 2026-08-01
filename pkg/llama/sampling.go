@@ -456,7 +456,10 @@ func SamplerInitTopK(k int32) Sampler {
 // SamplerInitTypical initializes a new Typical-P sampler.
 func SamplerInitTypical(p float32, keep uint32) Sampler {
 	var s Sampler
-	samplerInitTypicalFunc.Call(unsafe.Pointer(&s), &p, &keep)
+	// min_keep is a size_t: the value passed must be 8 bytes wide to match
+	// the cif, otherwise libffi reads adjacent Go memory as the high word.
+	minKeep := uint64(keep)
+	samplerInitTypicalFunc.Call(unsafe.Pointer(&s), &p, &minKeep)
 
 	return s
 }
@@ -464,7 +467,8 @@ func SamplerInitTypical(p float32, keep uint32) Sampler {
 // SamplerInitTopP initializes a new Top-P sampler.
 func SamplerInitTopP(p float32, keep uint32) Sampler {
 	var s Sampler
-	samplerInitTopPFunc.Call(unsafe.Pointer(&s), &p, &keep)
+	minKeep := uint64(keep)
+	samplerInitTopPFunc.Call(unsafe.Pointer(&s), &p, &minKeep)
 
 	return s
 }
@@ -472,7 +476,8 @@ func SamplerInitTopP(p float32, keep uint32) Sampler {
 // SamplerInitMinP initializes a new Min-P sampler.
 func SamplerInitMinP(p float32, keep uint32) Sampler {
 	var s Sampler
-	samplerInitMinPFunc.Call(unsafe.Pointer(&s), &p, &keep)
+	minKeep := uint64(keep)
+	samplerInitMinPFunc.Call(unsafe.Pointer(&s), &p, &minKeep)
 
 	return s
 }
@@ -480,7 +485,8 @@ func SamplerInitMinP(p float32, keep uint32) Sampler {
 // SamplerInitXTC initializes a new XTC sampler.
 func SamplerInitXTC(p float32, t float32, minKeep uint32, seed uint32) Sampler {
 	var s Sampler
-	samplerInitXTCFunc.Call(unsafe.Pointer(&s), &p, &t, &minKeep, &seed)
+	keep := uint64(minKeep)
+	samplerInitXTCFunc.Call(unsafe.Pointer(&s), &p, &t, &keep, &seed)
 
 	return s
 }

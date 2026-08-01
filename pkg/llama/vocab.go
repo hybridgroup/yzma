@@ -557,9 +557,9 @@ func VocabGetScore(vocab Vocab, token Token) float32 {
 	if vocab == 0 {
 		return 0.0
 	}
-	var score ffi.Arg
+	var score float32
 	vocabGetScoreFunc.Call(unsafe.Pointer(&score), unsafe.Pointer(&vocab), unsafe.Pointer(&token))
-	return float32(score)
+	return score
 }
 
 // VocabGetText retrieves the text representation of a given token in the vocabulary.

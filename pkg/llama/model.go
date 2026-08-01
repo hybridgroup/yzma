@@ -574,7 +574,7 @@ func ModelDesc(model Model) string {
 	}
 	buf := make([]byte, 128)
 	b := unsafe.SliceData(buf)
-	bLen := int32(len(buf))
+	bLen := uint64(len(buf))
 
 	var result ffi.Arg
 	modelDescFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model), unsafe.Pointer(&b), &bLen)
@@ -642,9 +642,12 @@ func ModelRopeFreqScaleTrain(model Model) float32 {
 		return 0.0
 	}
 
-	var freqScale ffi.Arg
+	// A float return must use a float32 buffer: libffi writes only the low
+	// 4 bytes and leaves the high word untouched, and float32(ffi.Arg) would
+	// be a numeric conversion rather than a bit reinterpretation.
+	var freqScale float32
 	modelRopeFreqScaleTrainFunc.Call(unsafe.Pointer(&freqScale), unsafe.Pointer(&model))
-	return float32(freqScale)
+	return freqScale
 }
 
 // ModelRopeType retrieves the RoPE type of the model.
@@ -739,7 +742,7 @@ func ModelMetaValStr(model Model, key string) (string, bool) {
 	}
 	buf := make([]byte, 32768)
 	b := unsafe.SliceData(buf)
-	bLen := int32(len(buf))
+	bLen := uint64(len(buf))
 
 	keyPtr, _ := utils.BytePtrFromString(key)
 	var result ffi.Arg
@@ -779,7 +782,7 @@ func ModelMetaKeyByIndex(model Model, i int32) (string, bool) {
 	}
 	buf := make([]byte, 128)
 	b := unsafe.SliceData(buf)
-	bLen := int32(len(buf))
+	bLen := uint64(len(buf))
 
 	var result ffi.Arg
 	modelMetaKeyByIndexFunc.Call(
@@ -807,7 +810,7 @@ func ModelMetaValStrByIndex(model Model, i int32) (string, bool) {
 	}
 	buf := make([]byte, 32768)
 	b := unsafe.SliceData(buf)
-	bLen := int32(len(buf))
+	bLen := uint64(len(buf))
 
 	var result ffi.Arg
 	modelMetaValStrByIndexFunc.Call(

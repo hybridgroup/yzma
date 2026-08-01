@@ -5,6 +5,24 @@ import (
 	"testing"
 )
 
+func TestGGMLBackendCpuBufferType(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	// Binding this pointer-returning function with a void return type makes
+	// libffi write nothing, so the result is always NULL and every
+	// TensorBuftOverride built from it aborts llama.cpp during model load.
+	buft := GGMLBackendCpuBufferType()
+	if buft == 0 {
+		t.Fatal("GGMLBackendCpuBufferType returned NULL")
+	}
+	t.Logf("GGMLBackendCpuBufferType returned: %#x", uintptr(buft))
+
+	if o := NewTensorBuftAllFFNExprsOverride(); o.Type == 0 {
+		t.Fatal("NewTensorBuftAllFFNExprsOverride produced a NULL buffer type")
+	}
+}
+
 func TestGGMLBackendDevCount(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
