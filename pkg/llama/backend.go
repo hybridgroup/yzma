@@ -209,10 +209,12 @@ func LoadModeName(loadMode LoadMode) string {
 
 // LoadModeFromStr returns the load mode for a given string.
 func LoadModeFromStr(str string) LoadMode {
-	var result LoadMode
+	// libffi always stores a full 8-byte ffi_arg for an integer return, so
+	// the return buffer must be ffi.Arg-wide, not LoadMode-wide (int32).
+	var result ffi.Arg
 	s, _ := utils.BytePtrFromString(str)
 	loadModeFromStrFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&s))
-	return result
+	return LoadMode(int32(result))
 }
 
 // FlashAttnTypeName returns the name for a given flash attention type.

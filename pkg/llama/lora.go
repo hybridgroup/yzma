@@ -128,7 +128,7 @@ func AdapterMetaValStr(adapter AdapterLora, key string) (string, bool) {
 	}
 	buf := make([]byte, 32768)
 	b := unsafe.SliceData(buf)
-	bLen := int32(len(buf))
+	bLen := uint64(len(buf))
 
 	keyPtr, _ := utils.BytePtrFromString(key)
 	var result ffi.Arg
@@ -167,7 +167,7 @@ func AdapterMetaKeyByIndex(adapter AdapterLora, i int32) (string, bool) {
 	}
 	buf := make([]byte, 128)
 	b := unsafe.SliceData(buf)
-	bLen := int32(len(buf))
+	bLen := uint64(len(buf))
 
 	var result ffi.Arg
 	adapterMetaKeyByIndexFunc.Call(
@@ -194,7 +194,7 @@ func AdapterMetaValStrByIndex(adapter AdapterLora, i int32) (string, bool) {
 	}
 	buf := make([]byte, 32768)
 	b := unsafe.SliceData(buf)
-	bLen := int32(len(buf))
+	bLen := uint64(len(buf))
 
 	var result ffi.Arg
 	adapterMetaValStrByIndexFunc.Call(

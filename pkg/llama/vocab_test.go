@@ -451,6 +451,12 @@ func TestVocabGetScore(t *testing.T) {
 		t.Fatalf("VocabGetScore returned an invalid score: %f for token: %d", score, token)
 	}
 
+	// A float return read through an ffi.Arg yields ~1.2e19, which is
+	// non-negative and so passes the check above.
+	if score > 1e6 {
+		t.Fatalf("VocabGetScore returned %g for token %d, want a plausible score", score, token)
+	}
+
 	t.Logf("VocabGetScore returned score: %f for token: %d", score, token)
 }
 

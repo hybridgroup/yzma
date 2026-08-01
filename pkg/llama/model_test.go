@@ -434,6 +434,12 @@ func TestModelRopeFreqScaleTrain(t *testing.T) {
 
 	freqScale := ModelRopeFreqScaleTrain(model)
 	t.Logf("ModelRopeFreqScaleTrain returned: %f", freqScale)
+
+	// A float return read through an ffi.Arg yields ~1.2e19 rather than a
+	// scaling factor, so pin the magnitude and not just the call.
+	if freqScale <= 0 || freqScale > 1 {
+		t.Fatalf("ModelRopeFreqScaleTrain returned %g, want a factor in (0, 1]", freqScale)
+	}
 }
 
 func TestModelRopeType(t *testing.T) {
