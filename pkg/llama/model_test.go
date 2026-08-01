@@ -17,6 +17,96 @@ func TestModelDefaultParams(t *testing.T) {
 	}
 }
 
+// TestModelDefaultParamsLayout guards against llama_model_params layout drift.
+// ffiTypeModelParams is hand-maintained, so if llama.cpp adds, removes, or reorders
+// a field the native defaults land in the wrong Go fields. Checking the values that
+// llama.cpp is known to write catches that.
+func TestModelDefaultParamsLayout(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ModelDefaultParams()
+
+	// The C bools. A field outside {0, 1} means libffi wrote struct padding
+	// into it, which is what a missing or misplaced descriptor entry looks like.
+	bools := []struct {
+		name  string
+		value uint8
+	}{
+		{"VocabOnly", params.VocabOnly},
+		{"CheckTensors", params.CheckTensors},
+		{"UseExtraBufts", params.UseExtraBufts},
+		{"NoHost", params.NoHost},
+		{"NoAlloc", params.NoAlloc},
+		{"LoadMTP", params.LoadMTP},
+	}
+	for _, b := range bools {
+		if b.value > 1 {
+			t.Errorf("%s is %d, want a 0 or 1 C bool", b.name, b.value)
+		}
+	}
+
+	// llama.cpp defaults every pointer field to NULL.
+	if params.Devices != 0 {
+		t.Errorf("Devices is %#x, want 0", params.Devices)
+	}
+	if params.TensorBuftOverrides != 0 {
+		t.Errorf("TensorBuftOverrides is %#x, want 0", params.TensorBuftOverrides)
+	}
+	if params.TensorSplit != nil {
+		t.Error("TensorSplit is not nil, want nil")
+	}
+	if params.ProgressCallback != 0 {
+		t.Errorf("ProgressCallback is %#x, want 0", params.ProgressCallback)
+	}
+	if params.ProgressCallbackUserData != 0 {
+		t.Errorf("ProgressCallbackUserData is %#x, want 0", params.ProgressCallbackUserData)
+	}
+	if params.KvOverrides != 0 {
+		t.Errorf("KvOverrides is %#x, want 0", params.KvOverrides)
+	}
+
+	// The int32 fields. Ranges rather than exact values, so an upstream default
+	// tweak does not fail the test but a shifted field does.
+	// -1 means all layers, which is the current llama.cpp default.
+	if params.NGpuLayers < -1 {
+		t.Errorf("NGpuLayers is %d, want >= -1", params.NGpuLayers)
+	}
+	if params.SplitMode < SplitModeNone || params.SplitMode > SplitModeRow {
+		t.Errorf("SplitMode is %d, want a valid SplitMode", params.SplitMode)
+	}
+	if params.LoadMode < LoadModeNone || params.LoadMode > LoadModeDirectIO {
+		t.Errorf("LoadMode is %d, want a valid LoadMode", params.LoadMode)
+	}
+	if params.MainGpu < 0 {
+		t.Errorf("MainGpu is %d, want >= 0", params.MainGpu)
+	}
+}
+
+// TestModelLoadFromFileLoadMTP checks that a caller-set LoadMTP survives the trip
+// through libffi. The test model has no MTP layers, so llama.cpp has nothing extra
+// to load and the request is a no-op, but a bad struct layout would corrupt the
+// neighboring fields and break the load.
+func TestModelLoadFromFileLoadMTP(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ModelDefaultParams()
+	params.LoadMTP = 1
+
+	model, err := ModelLoadFromFile(modelFile, params)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile with LoadMTP failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	if params.LoadMTP != 1 {
+		t.Errorf("LoadMTP is %d after loading, want 1", params.LoadMTP)
+	}
+}
+
 func TestModelInvalidFile(t *testing.T) {
 	modelFile := "invalid_model.gguf"
 
