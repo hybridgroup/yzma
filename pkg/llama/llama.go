@@ -322,6 +322,7 @@ type ModelParams struct {
 	UseExtraBufts            uint8     // use extra buffer types (bool as uint8)
 	NoHost                   uint8     // bypass host buffer allowing extra buffers to be used (bool as uint8)
 	NoAlloc                  uint8     // only load metadata and simulate memory allocations (bool as uint8)
+	LoadMTP                  uint8     // whether to load MTP layers (bool as uint8)
 }
 
 // ContextParams controls the parameters available for the model context
