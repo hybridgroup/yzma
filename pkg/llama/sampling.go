@@ -697,6 +697,14 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 		}
 	}
 
+	// Samplers keep at least this many candidates. The C parameter is an
+	// unsigned size_t where 0 means no floor, so treat any non-positive
+	// MinKeep as 0.
+	minKeep := uint32(0)
+	if params.MinKeep > 0 {
+		minKeep = uint32(params.MinKeep)
+	}
+
 	// add other samplers
 	for _, samplerType := range samplers {
 		switch samplerType {
@@ -713,15 +721,15 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 			SamplerChainAdd(sampler, topK)
 
 		case SamplerTypeTopP:
-			topP := SamplerInitTopP(params.TopP, 0)
+			topP := SamplerInitTopP(params.TopP, minKeep)
 			SamplerChainAdd(sampler, topP)
 
 		case SamplerTypeMinP:
-			minP := SamplerInitMinP(params.MinP, 0)
+			minP := SamplerInitMinP(params.MinP, minKeep)
 			SamplerChainAdd(sampler, minP)
 
 		case SamplerTypeTypicalP:
-			typical := SamplerInitTypical(params.TypP, 0)
+			typical := SamplerInitTypical(params.TypP, minKeep)
 			SamplerChainAdd(sampler, typical)
 
 		case SamplerTypeTemperature:
@@ -729,7 +737,7 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 			SamplerChainAdd(sampler, temp)
 
 		case SamplerTypeXTC:
-			xtc := SamplerInitXTC(params.XTCProbability, params.XTCThreshold, 0, params.Seed)
+			xtc := SamplerInitXTC(params.XTCProbability, params.XTCThreshold, minKeep, params.Seed)
 			SamplerChainAdd(sampler, xtc)
 
 		case SamplerTypeInfill:

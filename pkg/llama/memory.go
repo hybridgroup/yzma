@@ -85,7 +85,8 @@ func loadMemoryFuncs(lib ffi.Lib) error {
 }
 
 var (
-	errInvalidMemory = errors.New("invalid memory handle")
+	errInvalidMemory  = errors.New("invalid memory handle")
+	errInvalidDivisor = errors.New("invalid divisor")
 )
 
 // MemoryClear clears the memory contents.
@@ -141,9 +142,16 @@ func MemorySeqAdd(mem Memory, seqID SeqId, p0, p1, delta Pos) error {
 }
 
 // MemorySeqDiv divides the positions of tokens in the specified sequence and range by a factor.
+// The divisor must be positive.
 func MemorySeqDiv(mem Memory, seqID SeqId, p0, p1 Pos, d int) error {
 	if mem == 0 {
 		return errInvalidMemory
+	}
+	// llama_memory_seq_div only short-circuits on d == 1, so d == 0 would
+	// divide by zero inside the library. A negative divisor has no meaning
+	// for positions and would produce a negative one.
+	if d <= 0 {
+		return errInvalidDivisor
 	}
 	// The C parameter is an int; pass a 4-byte value so libffi does not read
 	// half of an 8-byte Go int.

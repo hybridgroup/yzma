@@ -568,22 +568,19 @@ func ModelClsLabel(model Model, index uint32) string {
 }
 
 // ModelDesc retrieves a string describing the model type.
+// Returns an empty string on failure.
 func ModelDesc(model Model) string {
 	if model == 0 {
 		return ""
 	}
-	buf := make([]byte, 128)
-	b := unsafe.SliceData(buf)
-	bLen := uint64(len(buf))
 
-	var result ffi.Arg
-	modelDescFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model), unsafe.Pointer(&b), &bLen)
+	desc, _ := metaStr(128, func(b *byte, bLen uint64) int32 {
+		var result ffi.Arg
+		modelDescFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model), unsafe.Pointer(&b), &bLen)
+		return int32(result)
+	})
 
-	if int32(result) < 0 {
-		return ""
-	}
-
-	return string(buf[:int32(result)])
+	return desc
 }
 
 // ModelFtype retrieves the model's ftype (quantization type).
@@ -734,34 +731,53 @@ func Warmup(lctx Context, model Model) error {
 	return nil
 }
 
+// metaStr reads a string out of one of the llama.cpp metadata accessors.
+//
+// Those accessors write through snprintf and so return the would-be length
+// rather than what they actually wrote: a result that reaches the buffer size
+// means the value did not fit and the buffer holds a truncated, NUL-terminated
+// prefix. The reported length is exact, so grow the buffer to it and ask
+// again. size is the initial buffer size, chosen to make that second call
+// unnecessary for all but the largest values.
+func metaStr(size int, call func(b *byte, bLen uint64) int32) (string, bool) {
+	buf := make([]byte, size)
+	n := call(unsafe.SliceData(buf), uint64(len(buf)))
+	if n < 0 {
+		return "", false
+	}
+
+	if int(n) >= len(buf) {
+		buf = make([]byte, int(n)+1)
+		if n = call(unsafe.SliceData(buf), uint64(len(buf))); n < 0 || int(n) >= len(buf) {
+			return "", false
+		}
+	}
+
+	// string() copies, so the buffer itself is not retained
+	return string(buf[:n]), true
+}
+
 // ModelMetaValStr gets metadata value as a string by key name.
 // Returns the string and true on success, or "" and false on failure.
+// The buffer grows as needed, so values of any length are returned in full.
 func ModelMetaValStr(model Model, key string) (string, bool) {
 	if model == 0 {
 		return "", false
 	}
-	buf := make([]byte, 32768)
-	b := unsafe.SliceData(buf)
-	bLen := uint64(len(buf))
 
 	keyPtr, _ := utils.BytePtrFromString(key)
-	var result ffi.Arg
-	modelMetaValStrFunc.Call(
-		unsafe.Pointer(&result),
-		unsafe.Pointer(&model),
-		unsafe.Pointer(&keyPtr),
-		unsafe.Pointer(&b),
-		&bLen,
-	)
-	if int32(result) < 0 {
-		return "", false
-	}
 
-	// copy to a new slice to avoid retaining the entire buffer
-	value := make([]byte, int32(result))
-	copy(value, buf[:int32(result)])
-
-	return string(value), true
+	return metaStr(32768, func(b *byte, bLen uint64) int32 {
+		var result ffi.Arg
+		modelMetaValStrFunc.Call(
+			unsafe.Pointer(&result),
+			unsafe.Pointer(&model),
+			unsafe.Pointer(&keyPtr),
+			unsafe.Pointer(&b),
+			&bLen,
+		)
+		return int32(result)
+	})
 }
 
 // ModelMetaCount gets the number of metadata key/value pairs.
@@ -776,58 +792,42 @@ func ModelMetaCount(model Model) int32 {
 
 // ModelMetaKeyByIndex gets metadata key name by index.
 // Returns the string and true on success, or "" and false on failure.
+// The buffer grows as needed, so keys of any length are returned in full.
 func ModelMetaKeyByIndex(model Model, i int32) (string, bool) {
 	if model == 0 {
 		return "", false
 	}
-	buf := make([]byte, 128)
-	b := unsafe.SliceData(buf)
-	bLen := uint64(len(buf))
 
-	var result ffi.Arg
-	modelMetaKeyByIndexFunc.Call(
-		unsafe.Pointer(&result),
-		unsafe.Pointer(&model),
-		&i,
-		unsafe.Pointer(&b),
-		&bLen)
-	if int32(result) < 0 {
-		return "", false
-	}
-
-	// copy to a new slice to avoid retaining the entire buffer
-	value := make([]byte, int32(result))
-	copy(value, buf[:int32(result)])
-
-	return string(value), true
+	return metaStr(128, func(b *byte, bLen uint64) int32 {
+		var result ffi.Arg
+		modelMetaKeyByIndexFunc.Call(
+			unsafe.Pointer(&result),
+			unsafe.Pointer(&model),
+			&i,
+			unsafe.Pointer(&b),
+			&bLen)
+		return int32(result)
+	})
 }
 
 // ModelMetaValStrByIndex gets metadata value as a string by index.
 // Returns the string and true on success, or "" and false on failure.
+// The buffer grows as needed, so values of any length are returned in full.
 func ModelMetaValStrByIndex(model Model, i int32) (string, bool) {
 	if model == 0 {
 		return "", false
 	}
-	buf := make([]byte, 32768)
-	b := unsafe.SliceData(buf)
-	bLen := uint64(len(buf))
 
-	var result ffi.Arg
-	modelMetaValStrByIndexFunc.Call(
-		unsafe.Pointer(&result),
-		unsafe.Pointer(&model),
-		&i,
-		unsafe.Pointer(&b),
-		&bLen)
-	if int32(result) < 0 {
-		return "", false
-	}
-
-	// copy to a new slice to avoid retaining the entire buffer
-	value := make([]byte, int32(result))
-	copy(value, buf[:int32(result)])
-
-	return string(value), true
+	return metaStr(32768, func(b *byte, bLen uint64) int32 {
+		var result ffi.Arg
+		modelMetaValStrByIndexFunc.Call(
+			unsafe.Pointer(&result),
+			unsafe.Pointer(&model),
+			&i,
+			unsafe.Pointer(&b),
+			&bLen)
+		return int32(result)
+	})
 }
 
 // ModelMetaKeyStr returns the metadata key name for a given enum key.
