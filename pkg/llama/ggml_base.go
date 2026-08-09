@@ -25,7 +25,7 @@ var (
 func loadGGMLBase(lib ffi.Lib) error {
 	var err error
 
-	if ggmlBackendCpuBufferType, err = lib.Prep("ggml_backend_cpu_buffer_type", &ffi.TypeVoid); err != nil {
+	if ggmlBackendCpuBufferType, err = lib.Prep("ggml_backend_cpu_buffer_type", &ffi.TypePointer); err != nil {
 		return loadError("ggml_backend_cpu_buffer_type", err)
 	}
 
