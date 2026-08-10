@@ -291,6 +291,12 @@ type Batch struct {
 	NSeqId  *int32   // number of sequence IDs per token
 	SeqId   **SeqId  // sequence IDs
 	Logits  *int8    // whether to compute logits for each token
+
+	// capTokens and capSeq record the capacities passed to BatchInit so
+	// Add/SetLogit can bounds-check writes into the C arrays. They are not
+	// part of the C llama_batch struct and are appended after the FFI fields.
+	capTokens int32 // max tokens (n_tokens from BatchInit)
+	capSeq    int32 // max sequence IDs per token (n_seq_max from BatchInit)
 }
 
 // TensorBuftOverride represents a tensor buffer type override.

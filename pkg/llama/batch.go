@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"fmt"
 	"unsafe"
 
 	"github.com/jupiterrider/ffi"
@@ -56,6 +57,8 @@ func loadBatchFuncs(lib ffi.Lib) error {
 func BatchInit(nTokens int32, embd int32, nSeqMax int32) Batch {
 	var batch Batch
 	batchInitFunc.Call(unsafe.Pointer(&batch), &nTokens, &embd, &nSeqMax)
+	batch.capTokens = nTokens
+	batch.capSeq = nSeqMax
 
 	return batch
 }
@@ -91,28 +94,45 @@ func (b *Batch) Clear() error {
 }
 
 // SetLogit sets whether to compute logits for the token at index idx in the batch.
-func (b *Batch) SetLogit(idx int32, logits bool) {
-	logitPtr := &unsafe.Slice((*int8)(b.Logits), int(b.NTokens))[idx]
+// It returns an error if idx is outside the batch capacity to avoid writing past
+// the C-allocated array.
+func (b *Batch) SetLogit(idx int32, logits bool) error {
+	if idx < 0 || idx >= b.capTokens {
+		return fmt.Errorf("llama: SetLogit index %d out of range [0,%d)", idx, b.capTokens)
+	}
+
+	logitPtr := &unsafe.Slice((*int8)(b.Logits), int(b.capTokens))[idx]
 	if logits {
 		*logitPtr = 1
 	} else {
 		*logitPtr = 0
 	}
+
+	return nil
 }
 
 // Add adds a token to the batch with the given position, sequence IDs, and logits flag.
-func (b *Batch) Add(token Token, pos Pos, seqIDs []SeqId, logits bool) {
+// It returns an error (without writing) if the batch is already full or if seqIDs is
+// longer than the n_seq_max the batch was allocated with, to avoid heap corruption.
+func (b *Batch) Add(token Token, pos Pos, seqIDs []SeqId, logits bool) error {
 	i := b.NTokens
 
+	if i < 0 || i >= b.capTokens {
+		return fmt.Errorf("llama: batch full: cannot add token at index %d (capacity %d)", i, b.capTokens)
+	}
+	if int32(len(seqIDs)) > b.capSeq {
+		return fmt.Errorf("llama: too many sequence IDs %d for token (n_seq_max %d)", len(seqIDs), b.capSeq)
+	}
+
 	// Set token and position
-	unsafe.Slice((*Token)(b.Token), int(b.NTokens+1))[i] = token
-	unsafe.Slice((*Pos)(b.Pos), int(b.NTokens+1))[i] = pos
+	unsafe.Slice((*Token)(b.Token), int(b.capTokens))[i] = token
+	unsafe.Slice((*Pos)(b.Pos), int(b.capTokens))[i] = pos
 
 	// Set number of sequence IDs
-	unsafe.Slice((*int32)(b.NSeqId), int(b.NTokens+1))[i] = int32(len(seqIDs))
+	unsafe.Slice((*int32)(b.NSeqId), int(b.capTokens))[i] = int32(len(seqIDs))
 
 	// Set sequence IDs if present
-	seqIDPtrs := unsafe.Slice((**SeqId)(b.SeqId), int(b.NTokens+1))
+	seqIDPtrs := unsafe.Slice((**SeqId)(b.SeqId), int(b.capTokens))
 	if seqIDPtrs[i] != nil && len(seqIDs) > 0 {
 		seqSlice := unsafe.Slice((*SeqId)(seqIDPtrs[i]), len(seqIDs))
 		for j, sid := range seqIDs {
@@ -121,5 +141,6 @@ func (b *Batch) Add(token Token, pos Pos, seqIDs []SeqId, logits bool) {
 	}
 
 	b.NTokens++
-	b.SetLogit(i, logits)
+
+	return b.SetLogit(i, logits)
 }

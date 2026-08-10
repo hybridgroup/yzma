@@ -67,7 +67,9 @@ func DraftGenerate(
 	for range nDraft {
 		// Clear and add single token to batch.
 		batch.NTokens = 0
-		batch.Add(lastToken, nPast, seqIDs, true)
+		if err := batch.Add(lastToken, nPast, seqIDs, true); err != nil {
+			break
+		}
 
 		// Decode single token.
 		decodeFunc.Call(unsafe.Pointer(&decodeResult), unsafe.Pointer(&ctx), unsafe.Pointer(batch))
