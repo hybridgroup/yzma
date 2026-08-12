@@ -76,7 +76,7 @@ func TestModelDefaultParamsLayout(t *testing.T) {
 	if params.SplitMode < SplitModeNone || params.SplitMode > SplitModeRow {
 		t.Errorf("SplitMode is %d, want a valid SplitMode", params.SplitMode)
 	}
-	if params.LoadMode < LoadModeNone || params.LoadMode > LoadModeDirectIO {
+	if params.LoadMode < LoadModeAuto || params.LoadMode > LoadModeDirectIO {
 		t.Errorf("LoadMode is %d, want a valid LoadMode", params.LoadMode)
 	}
 	if params.MainGpu < 0 {
