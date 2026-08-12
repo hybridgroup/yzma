@@ -32,6 +32,7 @@ func resetCTypes() {
 	clear(typedefs)
 	clear(enumNames)
 	resetCConsts()
+	resetCCallbacks()
 }
 
 // collectStructs parses "struct NAME { ... };" definitions out of a header.

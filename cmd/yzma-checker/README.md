@@ -13,8 +13,9 @@ between
 3. the Go variable whose address is passed to `ffi.Fun.Call`
 
 is completely silent at build time and only shows up at runtime as a corrupted
-value or corrupted memory. 265 bindings and 169 mirrored constants are far too
-many to eyeball credibly, which is why this exists.
+value or corrupted memory. The same is true in the other direction, where C
+calls a Go closure back. 265 bindings, 169 mirrored constants and 4 callbacks
+are far too many to eyeball credibly, which is why this exists.
 
 ## Running it
 
@@ -63,12 +64,13 @@ auditing it describes code that does not run.
                 ggml-backend.h, ggml-cpu.h, mtmd.h and mtmd-helper.h
 -pkgs   <list>  comma-separated package patterns to audit
 -v              dump every binding: cif types, C signature, and every call site,
-                plus every constant and the C constant it was matched to
+                plus every constant and the C constant it was matched to, and
+                every callback with the C typedef it was linked to
 ```
 
 `-llama` and `-hdrs` are the offline paths.
 
-## The four rules
+## The five rules
 
 **RULE 1 — the cif must match the C prototype.** Parameter for parameter, in
 width and in class. On arm64: `size_t`/`uint64_t`/any pointer = 8 bytes,
@@ -149,6 +151,61 @@ enumeration, the `SamplerType` dispatch tags, `MaxToken` — there is
 `memberAliases` is: a rule loose enough to guess a name is loose enough to
 validate a constant against the wrong one, and a new divergence should cost one
 reviewed line rather than pass silently.
+
+**RULE 5 — a callback must match the function-pointer typedef C will call it
+through.** Rules 1-3 check calls yzma makes *into* C. A callback is the reverse:
+C puts the arguments on the stack and libffi — or purego — hands them to a Go
+closure. Nothing in that direction goes through `lib.Prep`, so the first three
+rules never see it, and the failure mode is worse rather than milder. A wrong
+parameter width does not corrupt one argument of one call: it makes the closure
+read *C stack memory* instead of the value C passed, on every single invocation
+for the life of the process, and a return that is narrower than what C reads
+back makes C use a partly-uninitialised register.
+
+There are four such sites, in two forms:
+
+```go
+// the descriptor form: llama_progress_callback / mtmd_progress_callback
+ffi.PrepCif(progressCallbackCif, ffi.DefaultAbi, 2, &ffi.TypeUint8, &ffi.TypeFloat, &ffi.TypePointer)
+ffi.PrepClosureLoc(closure, progressCallbackCif, fn, nil, progressCallbackCode)
+
+// the purego form: ggml_log_callback / ggml_abort_callback
+purego.NewCallback(func(level int32, text, data uintptr) uintptr { ... })
+```
+
+For the descriptor form the cif is compared against the typedef exactly as RULE
+1 compares a binding's cif against a prototype, plus the `nfixed` argument
+against the typedef's parameter count — `nfixed` is what libffi *believes* about
+the argument count, so it is checked separately from the list it indexes into.
+`&ffi.TypeSint32` where the typedef says `float` is the shape of the bug: the
+width is right, so libffi reads the correct four bytes, and the closure then
+reads a float's bit pattern as an integer.
+
+For the purego form the Go func literal's own signature *is* the descriptor, so
+it is read out of `go/types` and compared parameter by parameter in width and
+ABI class. purego carries every argument in a register, so a Go parameter it
+cannot put in one is a finding too. A parameter *count* mismatch is reported as
+loudly as a width mismatch, because a missing parameter shifts every later one:
+a two-parameter closure behind `ggml_log_callback` receives the text pointer
+where the level belongs. Returns are asymmetric here. A Go result wider than C
+reads is harmless — C reads the low bytes of the register the closure filled,
+which is why `func(data uintptr) uintptr` is right for a `bool`-returning
+`ggml_abort_callback` — and so is a result C ignores entirely, which is how the
+`void`-returning log callback is written. A result *narrower* than C reads, or of
+the wrong ABI class, is not.
+
+Which typedef a site belongs to is the part that can go wrong, so it is never
+guessed. `callbackTags` names it outright where yzma's identifier does not say
+(`LogSilent` is named for what it does, not for what it implements); otherwise
+the identifier is normalised, dropping the affixes yzma adds around the C name —
+`progressCallbackCif` → `progress_callback`, `newAbortCallback` →
+`abort_callback` — and matched against every function-pointer typedef with its
+`llama_`/`ggml_`/`mtmd_` prefix removed. Exactly one match is a link; two
+candidates are broken by the prefix belonging to the Go package, which is what
+separates `mtmd_progress_callback` in `pkg/mtmd` from `llama_progress_callback`
+in `pkg/llama`. Anything still unresolved, and any typedef the parser could not
+take apart, is a **skip** naming the reason — never a silent pass, because a
+callback that looks checked and is not is worse than one that was never claimed.
 
 ### Struct layouts
 
@@ -256,6 +313,19 @@ measurement rather than an assertion:
   was matched to and the header line it came from, so the mapping is auditable
   rather than trusted.
 
+  The RULE 5 line carries the same kind of coverage limit:
+
+  ```
+  Rule5 callbacks checked:   4 / 4 clean (C function-pointer typedefs parsed: 27, unparseable: 0)
+  ```
+
+  *unparseable* counts function-pointer typedefs whose signature this parser
+  could not take apart. Most of the 27 belong to ggml internals yzma never
+  implements, so the number being non-zero is not by itself a hole — but a
+  callback site linking to one of them is a skip, so the hole can never be
+  silent. `-v` adds a `CALLBACK` line per site, naming the typedef it was linked
+  to and how the link was made.
+
 Argument types come from `go/types`, not regex, so a named type like
 `llama.SeqId` or an alias like `ffiTypeSize` resolves to a real width instead of
 being guessed at.
@@ -285,7 +355,15 @@ For RULE 4 the fixture header grows an enum whose second member is the one
 pre-insertion value; the other three members of that enum, a second enum
 covering each initialiser form the C evaluator has to handle (a negative
 sentinel, a shift, a hex literal) and three `#define`s are the controls, matched
-by comment and by normalisation respectively. The gate asserts
+by comment and by normalisation respectively.
+
+For RULE 5 the fixture header grows four function-pointer typedefs and the
+fixture package four callback sites, one plant and one clean control per form: a
+descriptor declaring `&ffi.TypeSint32` where the typedef says `float`, a purego
+closure one parameter short of its typedef, and — the half that matters as much
+— a descriptor that models its typedef exactly and a closure whose parameters and
+word-sized result match, both written the way all four real yzma sites are, so a
+rule that reported them would report every one of those too. The gate asserts
 that every plant is found *and* that the clean binding is never reported, along
 with the accounting counters and run-to-run repeatability.
 
@@ -299,19 +377,26 @@ failure mode the fixture avoids.
 
 | file | role |
 |---|---|
-| `main.go` | the four rules, the report, and the CLI |
+| `main.go` | the five rules, the report, and the CLI |
 | `sources.go` | resolving the yzma tree, the llama.cpp ref, and the headers |
 | `cheader.go` | C declaration parser: comment blanking that preserves byte offsets, `DEPRECATED(...)` unwrapping, typedef/enum resolution, top-level comma splitting |
 | `cstruct.go` | C struct layout for struct-by-value slots; iterates to a fixpoint because `llama.h` structs reference typedefs declared in `ggml-backend.h` |
 | `cenum.go` | RULE 4: C enum members and integer `#define`s with a small C constant-expression evaluator, the Go constants from `go/types`, and the name matching between them |
+| `ccallback.go` | RULE 5: C function-pointer typedefs, the link from a Go callback site to the typedef it implements, and the comparison for both callback forms |
 | `layout.go` | flattens a C struct, a cif descriptor and a Go struct to a common member list, diffs them, and matches members by name to find transpositions |
-| `goside.go` | `go/packages` type-checked walk: `lib.Prep`/`PrepVar` → binding spec, `<var>.Call(...)` → the Go type libffi will actually read bytes from |
+| `goside.go` | `go/packages` type-checked walk: `lib.Prep`/`PrepVar` → binding spec, `<var>.Call(...)` → the Go type libffi will actually read bytes from, `ffi.PrepCif`/`purego.NewCallback` → callback site |
 | `main_test.go` | the correctness gate |
 
 ## What it does not cover
 
-- **Callback descriptors.** Four bindings use `ffi.PrepCif` / `PrepClosureLoc` /
-  `purego.NewCallback` rather than `lib.Prep`, so they fall outside the 265.
+- **What a callback does with its arguments.** RULE 5 covers the four callback
+  sites now, but only their signatures: that the closure is handed the values C
+  passed, in the widths C passed them. It cannot say the body then reads `arg[0]`
+  as the type the descriptor declares — `*(*float32)(arg[0])` behind an
+  `&ffi.TypeFloat` slot is right and `*(*int32)(arg[0])` is not, and both
+  type-check. Nor does it cover the closure's lifetime: a `PrepClosureLoc` code
+  pointer handed to C outlives the Go call that made it, and keeping it alive is
+  the pointer-lifetime problem below.
 - **Members yzma renames past the alias table.** A transposition is found by
   matching member names, so a Go field whose name resolves to no C member is
   reported as `NOT VERIFIED` for that check rather than compared. Today the

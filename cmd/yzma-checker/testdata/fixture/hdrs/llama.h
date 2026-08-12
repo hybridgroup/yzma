@@ -102,6 +102,27 @@ enum llama_fx_flag {
     LLAMA_FX_FLAG_B    = 0x10,
 };
 
+// RULE 5, the direction where C calls Go. Nothing below is bound with
+// lib.Prep: a closure is described either by an ffi.PrepCif descriptor or by
+// the Go signature purego.NewCallback is handed, and libffi unpacks the C stack
+// through it on every invocation.
+//
+// llama_fx_progress_callback is the clean control for the descriptor form and
+// llama_fx_report_callback the plant: same signature, but the descriptor for it
+// declares its float parameter as a 4-byte int, so the closure reinterprets the
+// progress value's bit pattern as an integer.
+typedef bool (*llama_fx_progress_callback)(float progress, void * user_data);
+typedef bool (*llama_fx_report_callback)(float progress, void * user_data);
+
+// llama_fx_log_callback is the plant for the purego form: the Go closure for it
+// is one parameter short, so text arrives in level's place and the string
+// pointer is read out of a register C never set.
+typedef void (*llama_fx_log_callback)(enum llama_fx_level level, const char * text, void * user_data);
+
+// llama_fx_abort_callback is the clean control for that form. C reads one byte
+// of the register the closure returns, so a word-sized Go result is right.
+typedef bool (*llama_fx_abort_callback)(void * data);
+
 // Integer #defines, including one initialised from another and one carrying the
 // unsigned literal suffix llama.h uses on its file magics.
 #define LLAMA_FX_MAGIC   0x66780001u

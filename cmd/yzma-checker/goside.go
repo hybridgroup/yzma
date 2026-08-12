@@ -108,11 +108,12 @@ func goKindOf(t types.Type) (Kind, int) {
 }
 
 type analyzer struct {
-	pkg      *packages.Package
-	fset     *token.FileSet
-	ffiAlias map[string]FfiType // package-level Go vars that alias an ffi.Type
-	bindings map[string]*Binding
-	order    []string
+	pkg       *packages.Package
+	fset      *token.FileSet
+	ffiAlias  map[string]FfiType // package-level Go vars that alias an ffi.Type
+	bindings  map[string]*Binding
+	order     []string
+	callbacks []*Callback // RULE 5: the sites where C calls back into Go
 }
 
 func loadPkgs(dir string, patterns ...string) ([]*packages.Package, error) {
@@ -473,6 +474,90 @@ func (a *analyzer) run() {
 				cs.Args = append(cs.Args, CallArg{Expr: exprStr(ae), Pointee: pt, Size: sz, Kind: k, Note: note})
 			}
 			b.Calls = append(b.Calls, cs)
+			return true
+		})
+	}
+
+	a.collectCallbacks()
+}
+
+// collectCallbacks finds the sites where C calls back into Go (RULE 5).
+//
+// Neither form goes through lib.Prep, so neither is one of the bindings above:
+// ffi.PrepCif builds a descriptor libffi will use to unpack the C stack for a
+// closure, and purego.NewCallback uses the Go func literal's own signature as
+// the descriptor.
+func (a *analyzer) collectCallbacks() {
+	for _, f := range a.pkg.Syntax {
+		var curFn string
+
+		ast.Inspect(f, func(n ast.Node) bool {
+			if fd, ok := n.(*ast.FuncDecl); ok {
+				curFn = fd.Name.Name
+			}
+
+			ce, ok := n.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+
+			sel, ok := ce.Fun.(*ast.SelectorExpr)
+			if !ok {
+				return true
+			}
+
+			id, ok := sel.X.(*ast.Ident)
+			if !ok {
+				return true
+			}
+
+			switch {
+			case id.Name == "ffi" && sel.Sel.Name == "PrepCif":
+				// PrepCif(cif, abi, nfixed, ret, args...)
+				if len(ce.Args) < 4 {
+					return true
+				}
+
+				cb := &Callback{
+					Form:   "ffi.PrepCif",
+					GoID:   exprStr(ce.Args[0]),
+					Fn:     curFn,
+					Pkg:    a.pkg.PkgPath,
+					Pos:    a.fset.Position(ce.Lparen),
+					NFixed: -1,
+					Ret:    a.resolveTypeExpr(ce.Args[3]),
+				}
+
+				if bl, ok := ce.Args[2].(*ast.BasicLit); ok {
+					cb.NFixed, _ = strconv.Atoi(bl.Value)
+				}
+
+				for _, ta := range ce.Args[4:] {
+					cb.Args = append(cb.Args, a.resolveTypeExpr(ta))
+				}
+
+				a.callbacks = append(a.callbacks, cb)
+
+			case id.Name == "purego" && sel.Sel.Name == "NewCallback":
+				if len(ce.Args) != 1 {
+					return true
+				}
+
+				cb := &Callback{
+					Form: "purego.NewCallback",
+					GoID: curFn,
+					Fn:   curFn,
+					Pkg:  a.pkg.PkgPath,
+					Pos:  a.fset.Position(ce.Lparen),
+				}
+
+				if sig, ok := a.pkg.TypesInfo.TypeOf(ce.Args[0]).(*types.Signature); ok {
+					cb.Sig = sig
+				}
+
+				a.callbacks = append(a.callbacks, cb)
+			}
+
 			return true
 		})
 	}

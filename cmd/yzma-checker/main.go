@@ -107,17 +107,24 @@ func main() {
 type report struct {
 	Viols      []violation
 	Bindings   []*Binding
+	Callbacks  []*Callback
 	CFuncs     map[string]CFunc
 	NoC        []string
 	Unresolved []string
 	Skips      []string
 	StructCmp  []string
 
-	TotalDecls, Unparsed                       int
-	Matched, NCalls                            int
-	CheckedR1, CheckedR2, CheckedR3, CheckedR4 int
-	CleanR1, CleanR2, CleanR3, CleanR4         int
-	CheckedLayout, CleanLayout                 int
+	TotalDecls, Unparsed                                  int
+	Matched, NCalls                                       int
+	CheckedR1, CheckedR2, CheckedR3, CheckedR4, CheckedR5 int
+	CleanR1, CleanR2, CleanR3, CleanR4, CleanR5           int
+	CheckedLayout, CleanLayout                            int
+
+	// CFnPtrs counts the function-pointer typedefs RULE 5 has a signature for,
+	// CFnPtrBad the ones this parser could not take apart. As with CConstBad the
+	// second number is the rule's coverage limit: a callback linking to one is a
+	// skip, never a pass.
+	CFnPtrs, CFnPtrBad int
 
 	// CConsts counts the C constants whose value this run pinned down, CConstBad
 	// the ones it could not. The second number is the coverage limit of RULE 4:
@@ -150,6 +157,7 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		}
 		src := unwrapDeprecated(stripComments(string(raw)))
 		collectTypedefs(src)
+		collectFnPtrTypedefs(path, src)
 		collectStructs(src)
 		hdrSrcs = append(hdrSrcs, struct{ path, src string }{path, src})
 		var fns []CFunc
@@ -200,6 +208,13 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		}
 	}
 	// re-classify now that all typedefs/structs are known
+	for n, f := range cfnptrs {
+		f.RetKind, f.RetSize = classify(f.RetRaw)
+		for i := range f.Params {
+			f.Params[i].Kind, f.Params[i].Size = classify(f.Params[i].Norm)
+		}
+		cfnptrs[n] = f
+	}
 	for n, f := range cfuncs {
 		f.RetKind, f.RetSize = classify(f.RetRaw)
 		for i := range f.Params {
@@ -214,6 +229,7 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		return nil, fmt.Errorf("load %s: %w", strings.Join(patterns, ", "), err)
 	}
 	var all []*Binding
+	var callbacks []*Callback
 	for _, p := range loaded {
 		if len(p.Errors) > 0 {
 			for _, e := range p.Errors {
@@ -228,7 +244,14 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		for _, k := range a.order {
 			all = append(all, a.bindings[k])
 		}
+		callbacks = append(callbacks, a.callbacks...)
 	}
+	sort.Slice(callbacks, func(i, j int) bool {
+		if callbacks[i].Pos.Filename != callbacks[j].Pos.Filename {
+			return callbacks[i].Pos.Filename < callbacks[j].Pos.Filename
+		}
+		return callbacks[i].Pos.Line < callbacks[j].Pos.Line
+	})
 	sort.Slice(all, func(i, j int) bool {
 		if all[i].PrepPos.Filename != all[j].PrepPos.Filename {
 			return all[i].PrepPos.Filename < all[j].PrepPos.Filename
@@ -374,6 +397,36 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		}
 	}
 
+	// ---------- Rule 5: callback descriptors and closure signatures ----------
+	checkedR5, cleanR5 := 0, 0
+	for _, cb := range callbacks {
+		linkCallback(cb)
+
+		probs, checked := checkCallback(cb)
+		if !checked {
+			continue
+		}
+
+		checkedR5++
+		if len(probs) == 0 {
+			cleanR5++
+		} else {
+			where := cb.Form + " " + cb.GoID
+			if cb.Fn != cb.GoID {
+				where += " in " + cb.Fn
+			}
+
+			viols = append(viols, violation{5, cb.CTypedef, shortPos(cb.Pos),
+				strings.Join(probs, "; ") + " [" + where + "]", sev(probs)})
+		}
+
+		if *verbose {
+			fmt.Printf("CALLBACK %-32s %s\n  %s %s (linked by %s)\n  C   %s:%d %s\n",
+				cb.GoID, shortPos(cb.Pos), cb.Form, cb.CTypedef, cb.Link,
+				filepath.Base(cfnptrs[cb.CTypedef].File), cfnptrs[cb.CTypedef].Line, cfnptrs[cb.CTypedef].Sig())
+		}
+	}
+
 	// ---------- Rule 4: mirrored constant values ----------
 	constViols, checkedR4, cleanR4, localConsts := checkConsts(loaded)
 	viols = append(viols, constViols...)
@@ -383,6 +436,7 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 	return &report{
 		Viols:      viols,
 		Bindings:   all,
+		Callbacks:  callbacks,
 		CFuncs:     cfuncs,
 		NoC:        noCList,
 		Unresolved: unresolvedList,
@@ -396,10 +450,15 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		CheckedR2:  checkedR2,
 		CheckedR3:  checkedR3,
 		CheckedR4:  checkedR4,
+		CheckedR5:  checkedR5,
 		CleanR1:    cleanR1,
 		CleanR2:    cleanR2,
 		CleanR3:    cleanR3,
 		CleanR4:    cleanR4,
+		CleanR5:    cleanR5,
+
+		CFnPtrs:   len(cfnptrs),
+		CFnPtrBad: len(cfnptrBad),
 
 		CheckedLayout: layoutChecked,
 		CleanLayout:   layoutClean,
@@ -440,17 +499,20 @@ func printReport(r *report) {
 	fmt.Printf("  matched to a C decl:     %d\n", r.Matched)
 	fmt.Printf("  no C decl in headers:    %d\n", len(r.NoC))
 	fmt.Printf("Call sites analysed:       %d\n", r.NCalls)
+	fmt.Printf("callback sites (C->Go):    %d\n", len(r.Callbacks))
 	fmt.Printf("Rule1 checked/clean:       %d / %d\n", r.CheckedR1, r.CleanR1)
 	fmt.Printf("Rule2 arg slots checked:   %d / %d clean (unresolvable exprs: %d)\n", r.CheckedR2, r.CleanR2, len(r.Unresolved))
 	fmt.Printf("Rule3 return bufs checked: %d / %d clean\n", r.CheckedR3, r.CleanR3)
 	fmt.Printf("Rule4 constants checked:   %d / %d clean (C constants parsed: %d, unevaluable: %d; yzma-local: %d)\n",
 		r.CheckedR4, r.CleanR4, r.CConsts, r.CConstBad, r.LocalConsts)
+	fmt.Printf("Rule5 callbacks checked:   %d / %d clean (C function-pointer typedefs parsed: %d, unparseable: %d)\n",
+		r.CheckedR5, r.CleanR5, r.CFnPtrs, r.CFnPtrBad)
 	fmt.Printf("struct layouts compared:   %d / %d clean\n", r.CheckedLayout, r.CleanLayout)
 	nr := map[int]int{}
 	for _, v := range r.Viols {
 		nr[v.Rule]++
 	}
-	fmt.Printf("violations: rule1=%d rule2=%d rule3=%d rule4=%d\n", nr[1], nr[2], nr[3], nr[4])
+	fmt.Printf("violations: rule1=%d rule2=%d rule3=%d rule4=%d rule5=%d\n", nr[1], nr[2], nr[3], nr[4], nr[5])
 }
 
 func argSummary(as []CallArg) string {
@@ -467,7 +529,11 @@ func argSummary(as []CallArg) string {
 
 func sev(p []string) string {
 	for _, s := range p {
-		if strings.Contains(s, "arity") {
+		// A wrong argument count breaks the ABI in either direction: on a call
+		// libffi reads the wrong number of avalues, and on a callback every
+		// parameter after the missing one arrives shifted.
+		if strings.Contains(s, "arity") || strings.Contains(s, "nfixed") ||
+			strings.Contains(s, "parameter(s)") || strings.Contains(s, "arg type(s)") {
 			return "ABI-BREAK"
 		}
 	}

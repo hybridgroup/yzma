@@ -4,14 +4,17 @@
 //
 // Eight of the twelve bindings below are wrong, one per rule per direction plus
 // one per struct-layout direction plus one transposition, and the other four
-// are clean. The mirrored constants at the end carry the ninth plant, for RULE
-// 4, among ten clean controls. testdata is invisible to the go tool, so nothing
-// here is ever built as part of the checker.
+// are clean. The mirrored constants in the middle carry the ninth plant, for
+// RULE 4, among ten clean controls, and the four callback sites at the end carry
+// the tenth and eleventh, for RULE 5, with one clean control per form. testdata
+// is invisible to the go tool, so nothing here is ever built as part of the
+// checker.
 package bindings
 
 import (
 	"unsafe"
 
+	"github.com/ebitengine/purego"
 	"github.com/jupiterrider/ffi"
 )
 
@@ -306,3 +309,83 @@ func Clean(thing uintptr, a int32, n uint64) int32 {
 }
 
 var _ = load
+
+// The RULE 5 sites: C calling back into Go. None of them goes through lib.Prep,
+// so none of them is one of the twelve bindings above.
+
+var (
+	fxProgressCallbackCode unsafe.Pointer
+	fxProgressCallbackCif  *ffi.Cif
+	fxReportCallbackCode   unsafe.Pointer
+	fxReportCallbackCif    *ffi.Cif
+	sizeOfClosure          = unsafe.Sizeof(ffi.Closure{})
+)
+
+// setFxProgressCallback is the clean control for the descriptor form: uint8
+// return for bool, float for float, pointer for void *, and nfixed matching the
+// two parameters llama_fx_progress_callback declares.
+func setFxProgressCallback() uintptr {
+	closure := ffi.ClosureAlloc(sizeOfClosure, &fxProgressCallbackCode)
+
+	fn := ffi.NewCallback(func(cif *ffi.Cif, ret unsafe.Pointer, args *unsafe.Pointer, userData unsafe.Pointer) uintptr {
+		arg := unsafe.Slice(args, cif.NArgs)
+		*(*uint8)(ret) = uint8(*(*float32)(arg[0]))
+
+		return 0
+	})
+
+	fxProgressCallbackCif = new(ffi.Cif)
+	if status := ffi.PrepCif(fxProgressCallbackCif, ffi.DefaultAbi, 2, &ffi.TypeUint8, &ffi.TypeFloat, &ffi.TypePointer); status != ffi.OK {
+		panic(status)
+	}
+
+	if status := ffi.PrepClosureLoc(closure, fxProgressCallbackCif, fn, nil, fxProgressCallbackCode); status != ffi.OK {
+		panic(status)
+	}
+
+	return uintptr(fxProgressCallbackCode)
+}
+
+// setFxReportCallback is the descriptor plant: llama_fx_report_callback passes a
+// float, and the descriptor claims a 4-byte int. The width matches, so libffi
+// reads the right bytes and the closure then reads a float's bit pattern as an
+// integer on every invocation.
+func setFxReportCallback() uintptr {
+	closure := ffi.ClosureAlloc(sizeOfClosure, &fxReportCallbackCode)
+
+	fn := ffi.NewCallback(func(cif *ffi.Cif, ret unsafe.Pointer, args *unsafe.Pointer, userData unsafe.Pointer) uintptr {
+		arg := unsafe.Slice(args, cif.NArgs)
+		*(*uint8)(ret) = uint8(*(*int32)(arg[0]))
+
+		return 0
+	})
+
+	fxReportCallbackCif = new(ffi.Cif)
+	if status := ffi.PrepCif(fxReportCallbackCif, ffi.DefaultAbi, 2, &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypePointer); status != ffi.OK {
+		panic(status)
+	}
+
+	if status := ffi.PrepClosureLoc(closure, fxReportCallbackCif, fn, nil, fxReportCallbackCode); status != ffi.OK {
+		panic(status)
+	}
+
+	return uintptr(fxReportCallbackCode)
+}
+
+// newFxLogCallback is the purego plant: llama_fx_log_callback passes three
+// arguments and this closure declares two, so text arrives where level belongs
+// and data is never read at all.
+func newFxLogCallback() uintptr {
+	return purego.NewCallback(func(level int32, text uintptr) uintptr {
+		return 0
+	})
+}
+
+// newFxAbortCallback is the clean control for that form: one pointer parameter
+// for llama_fx_abort_callback's void *, and a word-sized result C reads the low
+// byte of as a bool.
+func newFxAbortCallback() uintptr {
+	return purego.NewCallback(func(data uintptr) uintptr {
+		return 1
+	})
+}

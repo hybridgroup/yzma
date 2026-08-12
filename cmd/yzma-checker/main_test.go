@@ -11,7 +11,8 @@ import (
 // stopped working the moment the defects were fixed: a tool that reports
 // nothing is indistinguishable from a tool that checks nothing. Instead the
 // gate now runs the full pipeline over testdata/fixture, a miniature binding
-// package carrying one planted defect per rule per direction plus clean
+// package carrying one planted defect per rule per direction and per callback
+// form, plus clean
 // controls. Both halves matter — every plant must be found, and the clean
 // bindings and constants must never be reported.
 
@@ -91,6 +92,22 @@ func TestFixtureFindsEveryPlantedDefect(t *testing.T) {
 			rule: 4, fn: "LLAMA_FX_LEVEL_HIGH",
 			match: "FxLevelHigh = 1 but C LLAMA_FX_LEVEL_HIGH = 2",
 		},
+		{
+			// The callback plants, in the direction where C calls Go. The width
+			// is right here and the class is not, so libffi reads the correct
+			// four bytes and the closure then reads a float's bit pattern as an
+			// integer - on every invocation, for the life of the process.
+			name: "rule5 closure descriptor declares a float parameter as an int",
+			rule: 5, fn: "llama_fx_report_callback",
+			match: "llama_fx_report_callback arg0: C float is float but cif TypeSint32 is sint",
+		},
+		{
+			// A missing parameter shifts every later one, so this is reported as
+			// loudly as a width error: text arrives where level belongs.
+			name: "rule5 purego closure one parameter short of the C typedef",
+			rule: 5, fn: "llama_fx_log_callback",
+			match: "closure takes 2 parameter(s) but C llama_fx_log_callback passes 3",
+		},
 	}
 
 	for _, tt := range tests {
@@ -121,12 +138,17 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 	// members of the same enum, every initialiser form of llama_fx_flag, and the
 	// three #defines. A rule that reported those would be worse than useless,
 	// because every mirrored constant in yzma looks like them.
+	// The RULE 5 controls are one per callback form: a descriptor that models its
+	// typedef exactly, and a purego closure whose parameters and word-sized
+	// result match. Both are written the way the four real yzma sites are, so a
+	// rule that reported them would report all of those too.
 	clean := map[string]bool{
 		"fx_clean": true, "fx_use_geom": true, "fx_use_geom_tail": true, "fx_use_named": true,
 		"LLAMA_FX_LEVEL_OFF": true, "LLAMA_FX_LEVEL_LOW": true, "LLAMA_FX_LEVEL_MAX": true,
 		"LLAMA_FX_FLAG_AUTO": true, "LLAMA_FX_FLAG_NONE": true,
 		"LLAMA_FX_FLAG_A": true, "LLAMA_FX_FLAG_B": true,
 		"LLAMA_FX_MAGIC": true, "LLAMA_FX_VERSION": true, "LLAMA_FX_MAGIC_ALIAS": true,
+		"llama_fx_progress_callback": true, "llama_fx_abort_callback": true,
 	}
 
 	for _, v := range rep.Viols {
@@ -135,11 +157,11 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 		}
 	}
 
-	// Exactly the nine plants, with fx_get_thing counted twice: a void return
+	// Exactly the eleven plants, with fx_get_thing counted twice: a void return
 	// descriptor is both a wrong cif (rule 1) and a return buffer libffi never
 	// writes (rule 3), which is how the real ggml_backend_cpu_buffer_type
 	// defect presented.
-	if got, want := len(rep.Viols), 11; got != want {
+	if got, want := len(rep.Viols), 13; got != want {
 		t.Errorf("fixture produced %d violations, want %d:\n%s", got, want, dumpViolations(rep))
 	}
 }
@@ -174,9 +196,33 @@ func TestFixtureAccounting(t *testing.T) {
 		t.Errorf("fixture produced %d skip(s), so its coverage is not total: %v", len(rep.Skips), rep.Skips)
 	}
 
-	if rep.CheckedR1 == 0 || rep.CheckedR2 == 0 || rep.CheckedR3 == 0 || rep.CheckedR4 == 0 {
-		t.Errorf("a rule checked nothing: r1=%d r2=%d r3=%d r4=%d",
-			rep.CheckedR1, rep.CheckedR2, rep.CheckedR3, rep.CheckedR4)
+	if rep.CheckedR1 == 0 || rep.CheckedR2 == 0 || rep.CheckedR3 == 0 || rep.CheckedR4 == 0 || rep.CheckedR5 == 0 {
+		t.Errorf("a rule checked nothing: r1=%d r2=%d r3=%d r4=%d r5=%d",
+			rep.CheckedR1, rep.CheckedR2, rep.CheckedR3, rep.CheckedR4, rep.CheckedR5)
+	}
+
+	// The four callback sites: two plants and one clean control per form. An
+	// unresolved link to a C typedef is a skip rather than a pass, so a
+	// normalisation that stopped working would drop the checked count here long
+	// before it dropped a violation.
+	if got, want := rep.CheckedR5, 4; got != want {
+		t.Errorf("callbacks checked = %d, want %d (skips: %v)", got, want, rep.Skips)
+	}
+
+	if got, want := rep.CleanR5, 2; got != want {
+		t.Errorf("clean callbacks = %d, want %d", got, want)
+	}
+
+	if got, want := len(rep.Callbacks), 4; got != want {
+		t.Errorf("callback sites found = %d, want %d", got, want)
+	}
+
+	if got, want := rep.CFnPtrs, 4; got != want {
+		t.Errorf("C function-pointer typedefs parsed = %d, want %d", got, want)
+	}
+
+	if rep.CFnPtrBad != 0 {
+		t.Errorf("C function-pointer typedefs that could not be parsed = %d, want 0", rep.CFnPtrBad)
 	}
 
 	// Every constant in the fixture bindings is mirrored from the header, so all
