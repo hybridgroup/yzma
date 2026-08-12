@@ -66,7 +66,7 @@ auditing it describes code that does not run.
 -v              dump every binding: cif types, C signature, and every call site,
                 plus every constant and the C constant it was matched to, and
                 every callback with the C typedef it was linked to, and every
-                unbound C declaration
+                unbound C declaration and unmirrored C enum member
 ```
 
 `-llama` and `-hdrs` are the offline paths.
@@ -301,7 +301,7 @@ is the actual finding. `-v` adds the full member list of both sides to the
 
 ## Output
 
-Only mismatches are printed, plus four accounting sections that matter as much
+Only mismatches are printed, plus five accounting sections that matter as much
 as the findings, because they are what makes *"these are the only ones"* a
 measurement rather than an assertion:
 
@@ -333,6 +333,35 @@ measurement rather than an assertion:
   changing, is invisible unless the unbound set is written down where a diff can
   see it. It makes the coverage claim measurable; it does not claim the coverage
   is right.
+
+- `PARTIALLY MIRRORED C ENUMS` — the same idea one layer down, and equally not a
+  check. RULE 4 walks the **Go** side, so a C enum member yzma never transcribed
+  is invisible to it: nothing compares `LLAMA_SPLIT_MODE_TENSOR` against
+  anything, because there is no `SplitModeTensor`. Mirroring a subset is
+  deliberate, exactly as binding a subset is, so this never produces a violation
+  and never affects the exit code. What it is, is the signal for the one event
+  RULE 4 exists to catch: an enum gaining a member upstream is *both* a new
+  unmirrored name here *and* a value shift in every mirrored member declared
+  after it, and the first of those is visible before anybody's numbering is
+  wrong. `GGML_TYPE_COUNT` is the same event caught after the fact — the three
+  types that moved it from 40 to 43 appear in this section as the members yzma
+  has not caught up with, and as a RULE 4 violation on `GGMLTypeCOUNT`.
+
+  Only enums with **at least one** mirrored member are listed. An enum with none
+  is not a partial mirror, it is simply unused, and the several hundred members
+  of the ggml enums yzma never touches would drown the report:
+
+  ```
+  ggml_backend_dev_type:               4 of   5 members mirrored (1 not mirrored)
+  ggml_type:                          33 of  36 members mirrored (3 not mirrored)
+  llama_load_mode:                     5 of   6 members mirrored (1 not mirrored)
+  llama_split_mode:                    3 of   4 members mirrored (1 not mirrored)
+  mtmd_input_chunk_type:               3 of   4 members mirrored (1 not mirrored)
+  ```
+
+  As with the unbound declarations the counts are always printed and `-v` adds
+  every member with its value and header line, and the totals are on the
+  `SUMMARY`.
 
 - `SUMMARY` — declarations parsed, bindings matched, and checked/clean counts
   per rule, plus struct layouts compared. The layout count is separate because a
@@ -407,10 +436,12 @@ fixture is the only place this check is exercised at all, which makes the contro
 half of it the part that matters: a rule that reported a correct `PrepVar` would
 be worse than no rule.
 
-The coverage inventory has one fixture declaration nothing binds. The assertion
-that it appears in the inventory is the small half; the assertion that it is
-**not** a violation, and does not move the violation count, is the one that
-pins the framing.
+The coverage inventory has one fixture declaration nothing binds, and the enum
+inventory a fixture enum with one member mirrored and two not — next to two enums
+mirrored in full, which must therefore *not* appear. The assertion that the
+partial one appears is the small half; the assertion that its unmirrored members
+are **not** violations, and do not move the violation count, is the one that pins
+the framing.
 
 For RULE 5 the fixture header grows four function-pointer typedefs and the
 fixture package four callback sites, one plant and one clean control per form: a
@@ -436,11 +467,75 @@ failure mode the fixture avoids.
 | `sources.go` | resolving the yzma tree, the llama.cpp ref, and the headers |
 | `cheader.go` | C declaration parser: comment blanking that preserves byte offsets, `DEPRECATED(...)` unwrapping, typedef/enum resolution, top-level comma splitting |
 | `cstruct.go` | C struct layout for struct-by-value slots; iterates to a fixpoint because `llama.h` structs reference typedefs declared in `ggml-backend.h` |
-| `cenum.go` | RULE 4: C enum members and integer `#define`s with a small C constant-expression evaluator, the Go constants from `go/types`, and the name matching between them |
+| `cenum.go` | RULE 4: C enum members and integer `#define`s with a small C constant-expression evaluator, the Go constants from `go/types`, the name matching between them, and the partially-mirrored-enum inventory |
 | `ccallback.go` | RULE 5: C function-pointer typedefs, the link from a Go callback site to the typedef it implements, and the comparison for both callback forms |
 | `layout.go` | flattens a C struct, a cif descriptor and a Go struct to a common member list, diffs them, and matches members by name to find transpositions |
 | `goside.go` | `go/packages` type-checked walk: `lib.Prep`/`PrepVar` → binding spec, `<var>.Call(...)` → the Go type libffi will actually read bytes from, `ffi.PrepCif`/`purego.NewCallback` → callback site |
 | `main_test.go` | the correctness gate |
+
+## Assumptions
+
+Four things this tool takes as given rather than verifies. None of them is
+currently false, but each one is load-bearing, and a reader deciding how much a
+green run is worth cannot see them from the output.
+
+**Sizes are computed for arm64 only.** `goside.go` lays out every Go type with
+`types.SizesFor("gc", "arm64")`, so every width in this report — 8-byte pointer,
+8-byte `size_t`, 8-byte `ffi.Arg`, and every struct offset derived from them — is
+that target's. For the types that actually cross this boundary amd64 agrees
+member for member, so the audit is valid there too, but nothing in the tool
+checks that: it prints arm64 numbers whatever `GOARCH` it runs on. A 32-bit
+target is where it would break rather than merely mislead, because a 4-byte
+pointer changes every interior offset in `llama_context_params` and makes RULE
+3's "integer returns need 8 bytes" the wrong number. yzma has no 32-bit target to
+break on: `pkg/download/arch.go` declares exactly two architectures, `amd64` and
+`arm64`, and `MustParseArch` panics on anything else, so an unsupported `GOARCH`
+cannot get as far as loading a library. `jupiterrider/ffi` narrows it further —
+its build tag is `((freebsd || linux || windows || darwin) && (amd64 || arm64))
+|| (linux && riscv64)`, all 64-bit — and CI builds on `ubuntu-latest`,
+`macos-latest` and `windows-2025`. So this is an assumption about a platform yzma
+does not support, and the thing to watch is a 32-bit architecture being added to
+that table, not the audit being wrong today.
+
+**Every C enum is assumed to be 4 bytes.** `classify()` in `cheader.go` maps
+`enum X` to `KindSint, 4`, which is what every ABI here picks for an enum whose
+values fit in `int` — and it is why `llama_pooling_type` in a parameter slot
+compares equal to `&ffi.TypeSint32`. A C enum's width is implementation-defined,
+though: one whose values exceed `int32`, or one declared with a fixed underlying
+type (`enum e : uint64_t`), would be wider, and the tool would then call an
+8-byte C slot 4 bytes and report a correct binding as broken — or pass a broken
+one. Neither shape exists in these headers. No enum in b10219 declares an
+underlying type, and the values RULE 4 parses run from `-1` to `512`
+(`LLAMA_TOKEN_ATTR_SINGLE_WORD`, `GGML_SCALE_FLAG_ANTIALIAS`), so every one of
+them fits `int` with five orders of magnitude to spare. The risk is real in C and
+theoretical here, and RULE 4 is where it would first become visible, since it is
+already reading the values.
+
+**Struct returns are exempt from RULE 3's 8-byte rule on the strength of a doc
+comment.** RULE 3 requires an integer return buffer to be 8 bytes because libffi
+always stores a full `ffi_arg`, and deliberately does *not* require it of a
+struct return: it only requires the buffer to be at least as large as the
+descriptor. That exemption rests entirely on `jupiterrider/ffi`'s `Fun.Call` doc
+comment (`fun.go`), which says of the return pointer:
+
+> You cannot use integer types smaller than 8 bytes here (float32 and structs are
+> not affected). Use [Arg] instead and typecast afterwards.
+
+yzma has a **1-byte** struct return — `ffiSamplerChainParams`, a single `bool`,
+in `pkg/llama/sampling.go` — so this is not a hypothetical exemption. If libffi
+in fact wrote 8 bytes there, it would clobber 7 bytes of adjacent Go memory on
+every call, and this tool would report the site as clean. It is a claim the tool
+depends on and does not test: nothing here executes a call or examines what
+libffi writes, and the same sentence is the sole authority for the float32 half
+of the rule.
+
+**Struct-by-value calling conventions are libffi's problem, not this tool's.**
+What is compared is the *layout* of the three representations — offset, width and
+ABI class per member. How arm64 then passes such a struct (in registers up to 16
+bytes, indirectly through memory beyond that, `HFA` rules for all-float structs)
+is not modelled at all, because libffi derives it from the descriptor. A correct
+descriptor is therefore the whole of what these rules can ask for; a libffi bug
+in that derivation would be invisible here.
 
 ## What it does not cover
 
@@ -477,6 +572,11 @@ failure mode the fixture avoids.
   counts them and names them; it cannot say which of them yzma is missing. That
   judgement is the maintainer's, and the inventory exists so it can be made
   against a number that moves rather than against a guess.
+- **Whether an unmirrored enum member *should* be mirrored.** Same limit as the
+  unbound declarations, and the same answer: the enum inventory says which
+  members have no Go constant, not which of them yzma is missing. `GGML_TYPE_Q2_0`
+  and `LLAMA_SPLIT_MODE_TENSOR` are both in that list, and only a maintainer can
+  say the first matters and the second does not.
 - **Pointer lifetime.** Go pointers stored in C-visible memory, missing
   `runtime.KeepAlive`, and slices retained over C-owned memory are a separate
   class of hazard entirely.

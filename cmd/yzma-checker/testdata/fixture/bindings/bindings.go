@@ -139,6 +139,17 @@ const (
 	FxFlagB    FxFlag = 0x10
 )
 
+// FxSplitMode mirrors one member of enum llama_fx_split_mode and leaves LAYER
+// and TENSOR alone, the way pkg/llama mirrors llama_split_mode. The mirrored
+// member is a clean RULE 4 comparison; the two it omits are the inventory's
+// control, and must stay an inventory entry rather than a finding.
+type FxSplitMode int32
+
+const (
+	// LLAMA_FX_SPLIT_MODE_NONE
+	FxSplitModeNone FxSplitMode = 0
+)
+
 // The #define controls, all clean. FxMagicAlias is defined from FxMagic on both
 // sides.
 const (

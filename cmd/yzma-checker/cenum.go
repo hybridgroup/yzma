@@ -23,7 +23,9 @@ import (
 	"go/constant"
 	"go/token"
 	"go/types"
+	"maps"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -70,6 +72,11 @@ var (
 	// constant that mirrors one is told why it could not be checked instead of
 	// being told nothing matched.
 	cconstBadByNorm = map[string][]string{}
+
+	// cconstMirrored records every C constant a Go constant was matched to in
+	// this run. It is what the partially-mirrored enum inventory subtracts from:
+	// RULE 4 walks the Go side, so a C member nothing mirrors is invisible to it.
+	cconstMirrored = map[string]bool{}
 )
 
 func resetCConsts() {
@@ -77,6 +84,7 @@ func resetCConsts() {
 	clear(cconstBad)
 	clear(cconstByNorm)
 	clear(cconstBadByNorm)
+	clear(cconstMirrored)
 }
 
 func markCConstBad(name, why string) {
@@ -690,6 +698,7 @@ func checkConsts(loaded []*packages.Package) (viols []violation, checked, clean,
 			}
 
 			checked++
+			cconstMirrored[c.Name] = true
 
 			if *verbose {
 				fmt.Printf("CONST %-34s = %-12d %s (%s)\n", g.Name, g.Val, c.Name, c.where())
@@ -708,6 +717,65 @@ func checkConsts(loaded []*packages.Package) (viols []violation, checked, clean,
 	}
 
 	return viols, checked, clean, local
+}
+
+// EnumCoverage is how much of one C enum yzma mirrors: an inventory line, never
+// a finding, in the same spirit as hdrCoverage.
+type EnumCoverage struct {
+	Enum     string
+	Members  int
+	Mirrored int
+	Missing  []string // member name, value and header line, in declaration order
+}
+
+// partialEnums inventories the members of every partially mirrored C enum: the
+// ones with no Go constant at all.
+//
+// RULE 4 walks the Go side, so a C member yzma never transcribed cannot be
+// compared and is invisible to the rule. Usually that is deliberate - yzma
+// mirrors a chosen subset of llama.cpp, exactly as it binds a chosen subset of
+// its functions - so this never becomes a violation and never affects the exit
+// code. What it is, is the signal for the one event RULE 4 exists to catch: an
+// enum gaining a member upstream is both a new unmirrored name here and a value
+// shift in every mirrored member after it, and only the first of those two is
+// visible before someone renumbers.
+//
+// Only enums with at least one mirrored member are listed. An enum with none is
+// not a partial mirror, it is simply unused, and the several hundred members of
+// the ggml enums yzma never touches would drown the report.
+func partialEnums() []EnumCoverage {
+	byEnum := map[string][]CConst{}
+	for _, c := range cconsts {
+		if c.Enum == "" {
+			continue
+		}
+
+		byEnum[c.Enum] = append(byEnum[c.Enum], c)
+	}
+
+	var out []EnumCoverage
+	for _, tag := range slices.Sorted(maps.Keys(byEnum)) {
+		ms := byEnum[tag]
+		slices.SortFunc(ms, func(a, b CConst) int { return a.Line - b.Line })
+
+		ec := EnumCoverage{Enum: tag, Members: len(ms)}
+		for _, m := range ms {
+			if cconstMirrored[m.Name] {
+				ec.Mirrored++
+				continue
+			}
+
+			ec.Missing = append(ec.Missing, fmt.Sprintf("%s = %d (%s:%d)", m.Name, m.Val, filepath.Base(m.File), m.Line))
+		}
+
+		if ec.Mirrored == 0 || len(ec.Missing) == 0 {
+			continue
+		}
+
+		out = append(out, ec)
+	}
+
+	return out
 }
 
 // matchCConst resolves the C constant a Go constant mirrors, preferring the

@@ -130,6 +130,11 @@ type report struct {
 	Unbound  []string
 	Coverage []hdrCoverage
 
+	// PartialEnums is the same kind of inventory one layer down: the members of
+	// each partially mirrored C enum that have no Go constant. Not defects
+	// either - see partialEnums in cenum.go.
+	PartialEnums []EnumCoverage
+
 	TotalDecls, Unparsed                                  int
 	Matched, NCalls, NVariadic                            int
 	CheckedR1, CheckedR2, CheckedR3, CheckedR4, CheckedR5 int
@@ -147,6 +152,10 @@ type report struct {
 	// none of those can be compared against, and a Go constant mirroring one
 	// becomes a skip.
 	CConsts, CConstBad, LocalConsts int
+
+	// The totals over PartialEnums: members declared, members mirrored, and
+	// members with no Go constant.
+	EnumMembers, EnumMirrored, EnumMissing int
 }
 
 // analyse runs the three rules over the packages named by patterns in the
@@ -529,6 +538,17 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 	constViols, checkedR4, cleanR4, localConsts := checkConsts(loaded)
 	viols = append(viols, constViols...)
 
+	// The enum-member inventory reads the mirror set checkConsts just filled, so
+	// it has to run after it.
+	partial := partialEnums()
+
+	enumMembers, enumMirrored, enumMissing := 0, 0, 0
+	for _, ec := range partial {
+		enumMembers += ec.Members
+		enumMirrored += ec.Mirrored
+		enumMissing += len(ec.Missing)
+	}
+
 	sort.SliceStable(viols, func(i, j int) bool { return viols[i].Rule < viols[j].Rule })
 
 	return &report{
@@ -567,6 +587,11 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		CConsts:     len(cconsts),
 		CConstBad:   len(cconstBad),
 		LocalConsts: localConsts,
+
+		PartialEnums: partial,
+		EnumMembers:  enumMembers,
+		EnumMirrored: enumMirrored,
+		EnumMissing:  enumMissing,
 	}, nil
 }
 
@@ -597,6 +622,22 @@ func printReport(r *report) {
 		hint = "; -v lists them"
 	}
 	fmt.Printf("(%d unbound C declarations%s)\n", len(r.Unbound), hint)
+	fmt.Println("================ PARTIALLY MIRRORED C ENUMS (inventory, not defects) ================")
+	for _, ec := range r.PartialEnums {
+		fmt.Printf("   %-34s %3d of %3d members mirrored (%d not mirrored)\n",
+			ec.Enum+":", ec.Mirrored, ec.Members, len(ec.Missing))
+
+		if *verbose {
+			for _, m := range ec.Missing {
+				fmt.Println("     ", m)
+			}
+		}
+	}
+	hint = ""
+	if !*verbose && r.EnumMissing > 0 {
+		hint = "; -v lists them"
+	}
+	fmt.Printf("(%d unmirrored members in %d partially mirrored enum(s)%s)\n", r.EnumMissing, len(r.PartialEnums), hint)
 	fmt.Println("================ NOT VERIFIED (skips) ================")
 	for _, k := range r.Skips {
 		fmt.Println("  ", k)
@@ -623,6 +664,8 @@ func printReport(r *report) {
 	fmt.Printf("Rule3 return bufs checked: %d / %d clean\n", r.CheckedR3, r.CleanR3)
 	fmt.Printf("Rule4 constants checked:   %d / %d clean (C constants parsed: %d, unevaluable: %d; yzma-local: %d)\n",
 		r.CheckedR4, r.CleanR4, r.CConsts, r.CConstBad, r.LocalConsts)
+	fmt.Printf("partially mirrored enums:  %d (%d of %d members mirrored, %d not mirrored; inventory, not a defect)\n",
+		len(r.PartialEnums), r.EnumMirrored, r.EnumMembers, r.EnumMissing)
 	fmt.Printf("Rule5 callbacks checked:   %d / %d clean (C function-pointer typedefs parsed: %d, unparseable: %d)\n",
 		r.CheckedR5, r.CleanR5, r.CFnPtrs, r.CFnPtrBad)
 	fmt.Printf("struct layouts compared:   %d / %d clean\n", r.CheckedLayout, r.CleanLayout)

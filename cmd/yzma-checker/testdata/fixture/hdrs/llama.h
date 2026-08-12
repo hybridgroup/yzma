@@ -114,6 +114,18 @@ enum llama_fx_flag {
     LLAMA_FX_FLAG_B    = 0x10,
 };
 
+// The partially-mirrored-enum control for the inventory. Only NONE has a Go
+// constant, so LAYER and TENSOR are members RULE 4 can never compare - it walks
+// the Go side. That is not a defect, exactly as an unbound declaration is not:
+// it is the signal that this enum has members yzma has not caught up with, which
+// is the same event as an insertion shifting the values of the ones it mirrors.
+// The assertion that matters is that these two never become violations.
+enum llama_fx_split_mode {
+    LLAMA_FX_SPLIT_MODE_NONE,
+    LLAMA_FX_SPLIT_MODE_LAYER,
+    LLAMA_FX_SPLIT_MODE_TENSOR,
+};
+
 // RULE 5, the direction where C calls Go. Nothing below is bound with
 // lib.Prep: a closure is described either by an ffi.PrepCif descriptor or by
 // the Go signature purego.NewCallback is handed, and libffi unpacks the C stack

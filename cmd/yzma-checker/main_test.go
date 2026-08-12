@@ -164,6 +164,13 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 		"LLAMA_FX_FLAG_A": true, "LLAMA_FX_FLAG_B": true,
 		"LLAMA_FX_MAGIC": true, "LLAMA_FX_VERSION": true, "LLAMA_FX_MAGIC_ALIAS": true,
 		"llama_fx_progress_callback": true, "llama_fx_abort_callback": true,
+		// The partially-mirrored enum: the member yzma mirrors is a clean
+		// comparison, and the two it does not mirror are an inventory entry. This
+		// is the load-bearing half of that inventory - a C member with no Go
+		// constant must never be reported as a defect, because mirroring a subset
+		// is deliberate.
+		"LLAMA_FX_SPLIT_MODE_NONE": true, "LLAMA_FX_SPLIT_MODE_LAYER": true,
+		"LLAMA_FX_SPLIT_MODE_TENSOR": true,
 	}
 
 	for _, v := range rep.Viols {
@@ -273,12 +280,33 @@ func TestFixtureAccounting(t *testing.T) {
 	// eleven are compared and only the plant differs. An exact count is what
 	// pins the mapping: a normalisation that stopped matching would show up here
 	// as a lower checked count long before it showed up as a missing violation.
-	if got, want := rep.CheckedR4, 11; got != want {
+	if got, want := rep.CheckedR4, 12; got != want {
 		t.Errorf("constants checked = %d, want %d (skips: %v)", got, want, rep.Skips)
 	}
 
-	if got, want := rep.CleanR4, 10; got != want {
+	if got, want := rep.CleanR4, 11; got != want {
 		t.Errorf("clean constants = %d, want %d", got, want)
+	}
+
+	// The partially-mirrored enum inventory. llama_fx_split_mode is the only enum
+	// in the fixture header with some members mirrored and some not:
+	// llama_fx_level and llama_fx_flag are mirrored in full, so listing them
+	// would be noise. The two unmirrored members are inventory entries, which
+	// TestFixtureDoesNotReportTheCleanBinding pins as never being violations.
+	if got, want := len(rep.PartialEnums), 1; got != want {
+		t.Fatalf("partially mirrored enums = %d, want %d: %+v", got, want, rep.PartialEnums)
+	}
+
+	if ec := rep.PartialEnums[0]; ec.Enum != "llama_fx_split_mode" || ec.Members != 3 || ec.Mirrored != 1 || len(ec.Missing) != 2 {
+		t.Errorf("partial enum line = %+v, want llama_fx_split_mode 1 of 3 mirrored", ec)
+	}
+
+	if got, want := rep.EnumMissing, 2; got != want {
+		t.Errorf("unmirrored enum members = %d, want %d", got, want)
+	}
+
+	if !strings.HasPrefix(rep.PartialEnums[0].Missing[0], "LLAMA_FX_SPLIT_MODE_LAYER = 1 (llama.h:") {
+		t.Errorf("first unmirrored member = %q, want LLAMA_FX_SPLIT_MODE_LAYER from llama.h", rep.PartialEnums[0].Missing[0])
 	}
 
 	if rep.CConstBad != 0 {
