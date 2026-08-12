@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"sync"
 	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/utils"
@@ -407,13 +408,43 @@ func VocabFIMSep(vocab Vocab) Token {
 	return Token(token)
 }
 
+// vocabSizes memoises llama_vocab_n_tokens per vocabulary handle.
+//
+// The size is fixed for the life of the model, while validToken sits on the
+// per-token path of every decode loop through TokenToPiece and VocabIsEOG.
+// Calling across libffi for it each time would double the boundary crossings of
+// token streaming to re-derive a constant. Entries are dropped by [ModelFree].
+var vocabSizes sync.Map // Vocab -> int32
+
+// vocabSize returns the number of tokens in the vocabulary, from cache when it
+// has been seen before. A non-positive result is not cached, so a handle that
+// was not ready yet is retried rather than pinned at zero.
+func vocabSize(vocab Vocab) int32 {
+	if n, ok := vocabSizes.Load(vocab); ok {
+		return n.(int32)
+	}
+
+	n := VocabNTokens(vocab)
+	if n > 0 {
+		vocabSizes.Store(vocab, n)
+	}
+
+	return n
+}
+
+// forgetVocabSize drops the memoised size for a vocabulary, so that a handle
+// reused by a later model cannot inherit the previous model's bound.
+func forgetVocabSize(vocab Vocab) {
+	vocabSizes.Delete(vocab)
+}
+
 // validToken reports whether the token can be looked up in the vocabulary.
 // The llama_vocab_get_* accessors resolve tokens through id_to_token.at(id),
 // which throws std::out_of_range for an unknown id. That exception cannot
 // unwind through the Go stack across libffi, so an out of range token aborts
 // the process instead of returning an error.
 func validToken(vocab Vocab, token Token) bool {
-	return vocab != 0 && token >= 0 && token < Token(VocabNTokens(vocab))
+	return vocab != 0 && token >= 0 && token < Token(vocabSize(vocab))
 }
 
 // VocabIsEOG checks if a token is an end-of-generation token in the vocabulary.

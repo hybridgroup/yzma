@@ -564,10 +564,13 @@ func TestModelMetaValStrByIndex(t *testing.T) {
 	}
 	t.Logf("ModelMetaValStrByIndex returned: %s", val)
 
-	// Enumerate every entry. The C side returns the would-be length, so an
-	// oversized value must be reported as a failure rather than panic on the
-	// copy or come back carrying its NUL terminator. Chat templates are the
-	// keys long enough to reach that path.
+	// Enumerate every entry, checking that each round trip is well formed and
+	// that no value comes back carrying its NUL terminator.
+	//
+	// This does not exercise the grow-and-retry path: reaching it needs a value
+	// over 32 KiB, which the small test model has none of, so these assertions
+	// hold against a truncating implementation too. TestMetaStr drives that path
+	// directly and is what pins it.
 	for i := range count {
 		key, ok := ModelMetaKeyByIndex(model, i)
 		if !ok {

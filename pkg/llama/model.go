@@ -378,6 +378,9 @@ func ModelFree(model Model) error {
 	if model == 0 {
 		return errors.New("invalid model")
 	}
+	// Drop the cached vocabulary size before the handle goes away, so a
+	// later model allocated at the same address starts from a fresh bound.
+	forgetVocabSize(ModelGetVocab(model))
 	modelFreeFunc.Call(nil, unsafe.Pointer(&model))
 	return nil
 }
@@ -760,12 +763,19 @@ func metaStr(size int, call func(b *byte, bLen uint64) int32) (string, bool) {
 // ModelMetaValStr gets metadata value as a string by key name.
 // Returns the string and true on success, or "" and false on failure.
 // The buffer grows as needed, so values of any length are returned in full.
+//
+// A key holding an interior NUL is rejected: it cannot be represented as a C
+// string, and passing the resulting nil pointer through to llama.cpp would be
+// dereferenced there rather than reported back.
 func ModelMetaValStr(model Model, key string) (string, bool) {
 	if model == 0 {
 		return "", false
 	}
 
-	keyPtr, _ := utils.BytePtrFromString(key)
+	keyPtr, err := utils.BytePtrFromString(key)
+	if err != nil {
+		return "", false
+	}
 
 	return metaStr(32768, func(b *byte, bLen uint64) int32 {
 		var result ffi.Arg
