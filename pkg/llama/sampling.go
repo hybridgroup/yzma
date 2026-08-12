@@ -409,8 +409,11 @@ func SamplerInitLogitBias(nVocab int32, nLogitBias int32, logitBias *LogitBias) 
 }
 
 // SamplerInitPenalties initializes a new penalties sampler.
-// lastN is the number of last tokens to penalize, and must not be negative:
-// llama.cpp clamps negative values to 0, so resolve -1 to the context size first.
+//
+// lastN is the number of last tokens to penalize. 0 disables the penalty, and
+// so does any negative value: llama_sampler_init_penalties clamps a negative
+// penalty_last_n to 0. It is passed through unchanged rather than resolved to
+// the context size, which is what the C API means by it.
 func SamplerInitPenalties(nVocab int32, lastN int32, repeat float32, freq float32, present float32) Sampler {
 	var p Sampler
 	samplerInitPenaltiesFunc.Call(unsafe.Pointer(&p), &nVocab, &lastN, &repeat, &freq, &present)
@@ -679,9 +682,15 @@ var (
 	}
 )
 
-// resolvePenaltyLastN maps the documented -1 ("context size") value to nCtx, since
-// llama.cpp clamps any negative penalty_last_n to 0 (= penalty disabled) instead.
-func resolvePenaltyLastN(lastN, nCtx int32) int32 {
+// resolveDryPenaltyLastN maps the documented -1 ("context size") value to nCtx
+// for the DRY sampler, which is what llama.cpp's own callers do before the call.
+//
+// It deliberately does not apply to the penalties sampler. There, -1 has always
+// meant "disabled": llama_sampler_init_penalties clamps a negative
+// penalty_last_n to 0, and the header documents only "0 = disable penalty".
+// Resolving it to the context size instead would turn repetition penalties on
+// for anyone who had them off, and size a ring buffer from n_ctx_train besides.
+func resolveDryPenaltyLastN(lastN, nCtx int32) int32 {
 	if lastN < 0 {
 		return max(nCtx, 0)
 	}
@@ -731,7 +740,7 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 
 		case SamplerTypeDry:
 			dry := SamplerInitDry(vocab, params.DryMultiplier, params.DryBase, params.DryAllowedLength,
-				resolvePenaltyLastN(params.DryPenaltyLastN, nCtxTrain), params.DrySequenceBreakers)
+				resolveDryPenaltyLastN(params.DryPenaltyLastN, nCtxTrain), params.DrySequenceBreakers)
 			SamplerChainAdd(sampler, dry)
 
 		case SamplerTypeTopK:
@@ -762,7 +771,7 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 			// TODO: add implementation
 
 		case SamplerTypePenalties:
-			penalties := SamplerInitPenalties(nTokens, resolvePenaltyLastN(params.PenaltyLastN, nCtxTrain),
+			penalties := SamplerInitPenalties(nTokens, params.PenaltyLastN,
 				params.PenaltyRepeat, params.PenaltyFreq, params.PenaltyPresent)
 			SamplerChainAdd(sampler, penalties)
 
@@ -840,7 +849,7 @@ func DefaultSamplerParams() *SamplerParams {
 		DynatempRange: 0.0,
 		// controls how entropy maps to temperature in dynamic temperature sampler
 		DynatempExponent: 1.0,
-		// last n tokens to penalize (0 = disable penalty, -1 = trained context size)
+		// last n tokens to penalize (0 or negative = disable penalty)
 		PenaltyLastN: 64,
 		// 1.0 = disabled
 		PenaltyRepeat: 1.0,

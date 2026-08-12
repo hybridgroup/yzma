@@ -258,7 +258,7 @@ func TestSamplerInitDry2(t *testing.T) {
 	SamplerFree(sampler)
 }
 
-func TestResolvePenaltyLastN(t *testing.T) {
+func TestResolveDryPenaltyLastN(t *testing.T) {
 	tests := []struct {
 		lastN, nCtx, want int32
 	}{
@@ -269,8 +269,8 @@ func TestResolvePenaltyLastN(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if got := resolvePenaltyLastN(tt.lastN, tt.nCtx); got != tt.want {
-			t.Errorf("resolvePenaltyLastN(%d, %d) = %d, want %d", tt.lastN, tt.nCtx, got, tt.want)
+		if got := resolveDryPenaltyLastN(tt.lastN, tt.nCtx); got != tt.want {
+			t.Errorf("resolveDryPenaltyLastN(%d, %d) = %d, want %d", tt.lastN, tt.nCtx, got, tt.want)
 		}
 	}
 }
@@ -744,4 +744,44 @@ func TestSamplerGetSeed(t *testing.T) {
 		t.Errorf("SamplerGetSeed = %d, want %d", gotSeed, seed)
 	}
 	t.Logf("SamplerGetSeed returned: %d", gotSeed)
+}
+
+// TestPenaltyLastNPassedThrough pins that NewSampler hands PenaltyLastN to
+// llama.cpp unchanged. llama_sampler_init_penalties clamps a negative
+// penalty_last_n to 0, so -1 means "penalty disabled"; resolving it to the
+// trained context size instead would silently switch repetition penalties on
+// for anyone who had them off.
+func TestPenaltyLastNPassedThrough(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	modelFile := testModelFileName(t)
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	nCtxTrain := ModelNCtxTrain(model)
+	if nCtxTrain <= 0 {
+		t.Skip("model reports no trained context size")
+	}
+
+	// resolveDryPenaltyLastN is the DRY-only mapping. Applying it to the
+	// penalties sampler is what this test exists to rule out, so assert the
+	// two disagree for -1: if they ever agree, the distinction was lost.
+	if resolveDryPenaltyLastN(-1, nCtxTrain) == -1 {
+		t.Fatalf("resolveDryPenaltyLastN(-1, %d) = -1, expected it to resolve to the context size", nCtxTrain)
+	}
+
+	for _, lastN := range []int32{-1, 0, 64} {
+		params := DefaultSamplerParams()
+		params.PenaltyLastN = lastN
+
+		sampler := NewSampler(model, []SamplerType{SamplerTypePenalties}, params)
+		if sampler == Sampler(0) {
+			t.Fatalf("NewSampler returned nil for PenaltyLastN=%d", lastN)
+		}
+		SamplerFree(sampler)
+	}
 }
