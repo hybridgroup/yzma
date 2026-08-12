@@ -138,6 +138,25 @@ func TestFixtureFindsEveryPlantedDefect(t *testing.T) {
 			rule: 5, fn: "llama_fx_log_callback",
 			match: "closure takes 2 parameter(s) but C llama_fx_log_callback passes 3",
 		},
+		{
+			// The function-pointer struct member, the third way C reaches a Go
+			// callback. A Go func value is 8 bytes of pointer class exactly like
+			// the code pointer that belongs there, so the layout comparison passes
+			// it - and it points at a func descriptor rather than at code.
+			name: "rule5 struct member holding a Go func value instead of a code pointer",
+			rule: 5, fn: "fx_hooks.cb_progress",
+			match: "Go func(progress float32, userData uintptr) bool is a func value",
+		},
+		{
+			// The other half: the member is the uintptr yzma declares, and the
+			// code pointer written into it was built for a different typedef. Both
+			// sides are 8 bytes of pointer class, both structs lay out identically,
+			// and C unpacks its arguments through the wrong descriptor for the life
+			// of the process.
+			name: "rule5 struct member holding the wrong callback's code pointer",
+			rule: 5, fn: "fx_hooks.cb_abort",
+			match: "implements llama_fx_report_callback, but C calls this member as llama_fx_abort_callback",
+		},
 	}
 
 	for _, tt := range tests {
@@ -216,7 +235,19 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 	// descriptor is both a wrong cif (rule 1) and a return buffer libffi never
 	// writes (rule 3), which is how the real ggml_backend_cpu_buffer_type
 	// defect presented.
-	if got, want := len(rep.Viols), 16; got != want {
+	// HooksClean is the control for the function-pointer members, and the half
+	// that matters: both of its members hold the code pointer of the callback
+	// that implements them, written exactly as yzma's two live SetProgressCallback
+	// methods write theirs. It cannot go on the map above, because the member
+	// violations are named for the C member and all three fixture structs mirror
+	// the same struct fx_hooks - so it is pinned by the Go struct instead.
+	for _, v := range rep.Viols {
+		if strings.Contains(v.Detail, "HooksClean") {
+			t.Errorf("the clean fn-ptr member control was reported: RULE%d %s %s", v.Rule, v.Fn, v.Detail)
+		}
+	}
+
+	if got, want := len(rep.Viols), 18; got != want {
 		t.Errorf("fixture produced %d violations, want %d:\n%s", got, want, dumpViolations(rep))
 	}
 }
@@ -266,11 +297,11 @@ func TestFixtureSignedness(t *testing.T) {
 func TestFixtureAccounting(t *testing.T) {
 	rep := fixtureReport(t)
 
-	if got, want := len(rep.Bindings), 23; got != want {
+	if got, want := len(rep.Bindings), 26; got != want {
 		t.Errorf("bindings found = %d, want %d", got, want)
 	}
 
-	if got, want := rep.Matched, 23; got != want {
+	if got, want := rep.Matched, 26; got != want {
 		t.Errorf("bindings matched to a C decl = %d, want %d", got, want)
 	}
 
@@ -303,8 +334,8 @@ func TestFixtureAccounting(t *testing.T) {
 		t.Fatalf("coverage lines = %d, want %d: %+v", got, want, rep.Coverage)
 	}
 
-	if c := rep.Coverage[0]; c.Header != "llama.h" || c.Bound != 23 || c.Decls != 24 {
-		t.Errorf("coverage line = %+v, want llama.h 23 of 24 bound", c)
+	if c := rep.Coverage[0]; c.Header != "llama.h" || c.Bound != 26 || c.Decls != 27 {
+		t.Errorf("coverage line = %+v, want llama.h 26 of 27 bound", c)
 	}
 
 	if len(rep.Unresolved) != 0 {
@@ -390,15 +421,34 @@ func TestFixtureAccounting(t *testing.T) {
 	}
 
 	// Struct layouts are compared per struct-by-value slot, once against the C
-	// struct and once against the Go struct the bytes come from: seven slots,
-	// thirteen comparisons (fx_use_geom_short never reaches its Go-side
+	// struct and once against the Go struct the bytes come from: ten slots,
+	// nineteen comparisons (fx_use_geom_short never reaches its Go-side
 	// comparison, the size gate catches it first), four of which are the plants.
-	if got, want := rep.CheckedLayout, 13; got != want {
+	// The three fx_hooks slots are clean on every side, which is the point of
+	// them: their plants are invisible to a layout comparison.
+	if got, want := rep.CheckedLayout, 19; got != want {
 		t.Errorf("struct layouts compared = %d, want %d", got, want)
 	}
 
-	if got, want := rep.CleanLayout, 9; got != want {
+	if got, want := rep.CleanLayout, 15; got != want {
 		t.Errorf("clean struct layouts = %d, want %d", got, want)
+	}
+
+	// The function-pointer struct members: two per fx_hooks slot, deduplicated to
+	// one comparison per pair of representations rather than one per slot. Four are
+	// clean and two are the plants. Traced counts the narrower claim - a member
+	// whose stored code pointer could be followed back to a callback site - so a
+	// dataflow that stopped resolving would show up here rather than as silence.
+	if got, want := rep.CheckedFnPtr, 6; got != want {
+		t.Errorf("fn-ptr members compared = %d, want %d (skips: %v)", got, want, rep.Skips)
+	}
+
+	if got, want := rep.CleanFnPtr, 4; got != want {
+		t.Errorf("clean fn-ptr members = %d, want %d", got, want)
+	}
+
+	if got, want := rep.TracedFnPtr, 4; got != want {
+		t.Errorf("fn-ptr members with a traced code pointer = %d, want %d", got, want)
 	}
 
 	// The pointer-target comparisons. Eight of the fixture's pointer slots name a
@@ -430,8 +480,8 @@ func TestFixtureAccounting(t *testing.T) {
 		t.Errorf("NUL-terminated C string buffers = %d, want %d", got, want)
 	}
 
-	// Seven slot lines plus the one Go-only-tail note for fx_use_geom_tail.
-	if got, want := len(rep.StructCmp), 8; got != want {
+	// Ten slot lines plus the one Go-only-tail note for fx_use_geom_tail.
+	if got, want := len(rep.StructCmp), 11; got != want {
 		t.Errorf("struct-by-value slots compared = %d, want %d", got, want)
 	}
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"fmt"
 	"go/ast"
 	"go/token"
@@ -145,6 +146,16 @@ type analyzer struct {
 	bindings  map[string]*Binding
 	order     []string
 	callbacks []*Callback // RULE 5: the sites where C calls back into Go
+
+	// closureCode maps the Go variable holding a libffi closure's *code* address
+	// to the cif that describes it, from ffi.PrepClosureLoc(closure, cif, fn,
+	// nil, code). That is the one link between the value stored in a
+	// function-pointer struct member and the descriptor C will unpack its
+	// arguments through.
+	closureCode map[string]string
+
+	// stores are the assignments of such a code pointer into a struct field.
+	stores []*FnPtrStore
 }
 
 func loadPkgs(dir string, patterns ...string) ([]*packages.Package, error) {
@@ -733,6 +744,8 @@ func (a *analyzer) run() {
 // closure, and purego.NewCallback uses the Go func literal's own signature as
 // the descriptor.
 func (a *analyzer) collectCallbacks() {
+	a.closureCode = map[string]string{}
+
 	for _, f := range a.pkg.Syntax {
 		var curFn string
 
@@ -801,9 +814,105 @@ func (a *analyzer) collectCallbacks() {
 				}
 
 				a.callbacks = append(a.callbacks, cb)
+
+			case id.Name == "ffi" && sel.Sel.Name == "PrepClosureLoc":
+				// PrepClosureLoc(closure, cif, fn, userData, code): the code
+				// address is what gets stored in a function-pointer struct
+				// member, and this is the only place it is tied to a cif.
+				if len(ce.Args) == 5 {
+					a.closureCode[exprStr(ce.Args[4])] = exprStr(ce.Args[1])
+				}
 			}
 
 			return true
 		})
 	}
+
+	a.collectFnPtrStores()
+}
+
+// collectFnPtrStores finds the assignments that install a callback's code
+// pointer into a struct field - `p.ProgressCallback = uintptr(progressCallbackCode)`.
+//
+// That field is a function pointer C will *jump through*, but its Go type is a
+// uintptr, so nothing in it says which callback belongs there: storing the log
+// callback's code pointer into cb_eval compiles, lays out identically and is
+// found by no other rule.
+func (a *analyzer) collectFnPtrStores() {
+	for _, f := range a.pkg.Syntax {
+		ast.Inspect(f, func(n ast.Node) bool {
+			as, ok := n.(*ast.AssignStmt)
+			if !ok || len(as.Lhs) != len(as.Rhs) {
+				return true
+			}
+
+			for i, l := range as.Lhs {
+				sel, ok := unparen(l).(*ast.SelectorExpr)
+				if !ok {
+					continue
+				}
+
+				st := a.pkg.TypesInfo.TypeOf(sel.X)
+				if st == nil {
+					continue
+				}
+
+				if p, ok := st.Underlying().(*types.Pointer); ok {
+					st = p.Elem()
+				}
+
+				if _, ok := st.Underlying().(*types.Struct); !ok {
+					continue
+				}
+
+				src := codeSource(as.Rhs[i])
+				if src == "" {
+					continue
+				}
+
+				a.stores = append(a.stores, &FnPtrStore{
+					GoStruct: st,
+					Field:    sel.Sel.Name,
+					Expr:     exprStr(as.Rhs[i]),
+					Pkg:      a.pkg.PkgPath,
+					Site:     cmp.Or(a.closureCode[src], src),
+					Pos:      a.fset.Position(as.TokPos),
+				})
+			}
+
+			return true
+		})
+	}
+}
+
+// codeSource reduces the right-hand side of such an assignment to the
+// identifier the pointer came from, looking through the uintptr and
+// unsafe.Pointer conversions that carry no information of their own:
+// `uintptr(progressCallbackCode)` is the code variable, and
+// `uintptr(newAbortCallback(fn))` is the constructor that built the closure.
+//
+// It returns "" for anything else, including `uintptr(0)` - a cleared field is
+// not a wrong code pointer, so there is nothing there to decide.
+func codeSource(e ast.Expr) string {
+	for range 4 {
+		e = unparen(unwrapUnsafePointer(e))
+
+		ce, ok := e.(*ast.CallExpr)
+		if !ok {
+			break
+		}
+
+		if id, ok := ce.Fun.(*ast.Ident); ok && id.Name == "uintptr" && len(ce.Args) == 1 {
+			e = ce.Args[0]
+			continue
+		}
+
+		return exprStr(ce.Fun)
+	}
+
+	if id, ok := e.(*ast.Ident); ok {
+		return id.Name
+	}
+
+	return ""
 }

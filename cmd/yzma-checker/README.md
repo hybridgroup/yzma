@@ -14,8 +14,9 @@ between
 
 is completely silent at build time and only shows up at runtime as a corrupted
 value or corrupted memory. The same is true in the other direction, where C
-calls a Go closure back. 265 bindings, 169 mirrored constants and 4 callbacks
-are far too many to eyeball credibly, which is why this exists.
+calls a Go closure back. 265 bindings, 169 mirrored constants, 4 callbacks and
+the 5 function-pointer struct members C reaches them through are far too many to
+eyeball credibly, which is why this exists.
 
 ## Running it
 
@@ -191,7 +192,8 @@ read *C stack memory* instead of the value C passed, on every single invocation
 for the life of the process, and a return that is narrower than what C reads
 back makes C use a partly-uninitialised register.
 
-There are four such sites, in two forms:
+There are four such sites, in two forms — plus the struct members C reaches a
+callback through, below:
 
 ```go
 // the descriptor form: llama_progress_callback / mtmd_progress_callback
@@ -235,6 +237,56 @@ separates `mtmd_progress_callback` in `pkg/mtmd` from `llama_progress_callback`
 in `pkg/llama`. Anything still unresolved, and any typedef the parser could not
 take apart, is a **skip** naming the reason — never a silent pass, because a
 callback that looks checked and is not is worse than one that was never claimed.
+
+#### Function-pointer struct members
+
+Those two forms are where a callback is *built*. A C struct member of
+function-pointer type is where one is **installed**, and it used to be the form
+nothing looked at:
+
+```c
+struct llama_context_params {
+    ggml_backend_sched_eval_callback cb_eval;      // C jumps through this
+    ggml_abort_callback              abort_callback;
+    void *                           abort_callback_data;   // C reads this
+};
+```
+
+`cb_eval` and `abort_callback_data` are indistinguishable to `Leaf`: both are 8
+bytes of pointer class at some offset. So the signature C will call the member
+*with* was compared against nothing, and neither was what gets stored in it.
+There are five such members in the structs yzma binds by value —
+`llama_model_params.progress_callback`, `llama_context_params.cb_eval` and
+`.abort_callback`, and `mtmd_context_params`' two.
+
+Two things were therefore silent. A Go `func` field is also 8 bytes of pointer
+class, and it is a pointer to a func **descriptor** rather than to code, so C
+jumping through it lands on whatever the descriptor's first word happens to be —
+and every offset, width and class comparison passes it. And where the field is
+the `uintptr` yzma actually declares, nothing in the Go types says *which*
+callback belongs in it: storing the log callback's code pointer into `cb_eval`
+type-checks, lays out identically, and makes C unpack a
+`ggml_backend_sched_eval_callback`'s arguments through a `ggml_log_callback`
+descriptor on every graph node.
+
+So the offset correspondence comes from the same flattening the layout diff uses
+— the C member's offset is `CStruct.Offs`, and the Go leaf sitting there is the
+field libffi copies the bytes of, so there is one struct walker rather than two —
+and the code pointer stored in that field is traced back to the site that
+produced it: `p.ProgressCallback = uintptr(progressCallbackCode)` through
+`ffi.PrepClosureLoc(closure, progressCallbackCif, ...)` to the cif, and from the
+cif to the typedef the link above resolved. That typedef must be the member's
+own. Combined with the descriptor comparison, that is what makes the signature C
+calls through the member *checked* rather than assumed.
+
+The scope is deliberately narrower than the member count, and narrowed rather
+than filled with skips. A member left at zero, or never assigned at all — which
+is the case for `cb_eval` and `abort_callback`, since yzma has no setter for
+either — has no code pointer to identify, exactly as a `void *` has no pointer
+target: outside the claim rather than a skip. Both numbers are on the `SUMMARY`
+as `fn-ptr members compared` and `code pointers traced`, so a narrowing of either
+is visible rather than silent. A member whose typedef the parser could not take
+apart *is* a skip, because that one looks checked and is not.
 
 ### Struct layouts
 
@@ -524,6 +576,12 @@ measurement rather than an assertion:
   Rule5 callbacks checked:   4 / 4 clean (C function-pointer typedefs parsed: 27, unparseable: 0)
   ```
 
+  and one for the members:
+
+  ```
+  fn-ptr members compared:   5 / 5 clean (code pointers traced: 2)
+  ```
+
   *unparseable* counts function-pointer typedefs whose signature this parser
   could not take apart. Most of the 27 belong to ggml internals yzma never
   implements, so the number being non-zero is not by itself a hole — but a
@@ -613,6 +671,23 @@ rule that reported them would report every one of those too. The gate asserts
 that every plant is found *and* that the clean binding is never reported, along
 with the accounting counters and run-to-run repeatability.
 
+For the function-pointer members the fixture header grows `struct fx_hooks`, two
+of whose four members are function pointers, and three by-value declarations that
+take it. Three Go structs mirror it, all three byte-for-byte identical to it and
+to a single correct cif descriptor, so every layout comparison passes all three
+and the plants are only in what the members *hold*: `HooksFunc` declares
+`cb_progress` as a Go `func` value, and `Hooks.SetHooks` writes the closure built
+for `llama_fx_report_callback` into the `cb_abort` C calls as
+`llama_fx_abort_callback`. `HooksClean` is the control, and the half that matters
+— one member per callback form, each holding the code pointer of the callback
+that actually implements it, written exactly as yzma's two live
+`SetProgressCallback` methods write theirs. It cannot be pinned by name, because
+all three mirror the same C struct and a member finding is named for the C member,
+so the gate pins it by asserting no violation mentions that Go struct at all. The
+counters pin the scope at six members compared with four code pointers traced, so
+the two members with nothing stored in them stay out of both the traced count and
+the skips.
+
 **Treat a failing `go test` as "do not trust anything this run reports."**
 
 The previous gate was "a run must re-derive these two live defects in yzma."
@@ -628,9 +703,9 @@ failure mode the fixture avoids.
 | `cheader.go` | C declaration parser: comment blanking that preserves byte offsets, `DEPRECATED(...)` unwrapping, typedef/enum resolution, top-level comma splitting |
 | `cstruct.go` | C struct layout for struct-by-value slots; iterates to a fixpoint because `llama.h` structs reference typedefs declared in `ggml-backend.h` |
 | `cenum.go` | RULE 4: C enum members and integer `#define`s with a small C constant-expression evaluator, the Go constants from `go/types`, the name matching between them, and the partially-mirrored-enum inventory |
-| `ccallback.go` | RULE 5: C function-pointer typedefs, the link from a Go callback site to the typedef it implements, and the comparison for both callback forms |
+| `ccallback.go` | RULE 5: C function-pointer typedefs, the link from a Go callback site to the typedef it implements, the comparison for both callback forms, and the function-pointer struct members C reaches a callback through |
 | `layout.go` | flattens a C struct, a cif descriptor and a Go struct to a common member list, diffs them, and matches members by name to find transpositions |
-| `goside.go` | `go/packages` type-checked walk: `lib.Prep`/`PrepVar` → binding spec, `<var>.Call(...)` → the Go type libffi will actually read bytes from and, for a C string, the buffer it was built from, `ffi.PrepCif`/`purego.NewCallback` → callback site |
+| `goside.go` | `go/packages` type-checked walk: `lib.Prep`/`PrepVar` → binding spec, `<var>.Call(...)` → the Go type libffi will actually read bytes from and, for a C string, the buffer it was built from, `ffi.PrepCif`/`purego.NewCallback` → callback site, `ffi.PrepClosureLoc` and the assignments that install a code pointer in a struct field |
 | `main_test.go` | the correctness gate |
 
 ## Assumptions
@@ -700,7 +775,8 @@ in that derivation would be invisible here.
 ## What it does not cover
 
 - **What a callback does with its arguments.** RULE 5 covers the four callback
-  sites now, but only their signatures: that the closure is handed the values C
+  sites and the five function-pointer struct members now, but only their
+  signatures: that the closure is handed the values C
   passed, in the widths C passed them. It cannot say the body then reads `arg[0]`
   as the type the descriptor declares — `*(*float32)(arg[0])` behind an
   `&ffi.TypeFloat` slot is right and `*(*int32)(arg[0])` is not, and both
@@ -737,11 +813,23 @@ in that derivation would be invisible here.
   members have no Go constant, not which of them yzma is missing. `GGML_TYPE_Q2_0`
   and `LLAMA_SPLIT_MODE_TENSOR` are both in that list, and only a maintainer can
   say the first matters and the second does not.
-- **What a pointer inside a by-value struct points at.** The comparison in
+- **What a *data* pointer inside a by-value struct points at.** The comparison in
   *Pointer targets* runs on parameter and return slots only. A `float *` member
   of a struct is one 8-byte leaf on all three sides, and the cif descriptor
   carries no target information for it at all, so the drift is invisible there.
-  Deliberately left out rather than half-done.
+  Deliberately left out rather than half-done. A **function**-pointer member is
+  the exception, and is covered: what it points at is a signature the header
+  names, so there is something to compare.
+- **Which callback a struct member holds, where nothing stores one.** The member
+  check follows a code pointer from the field it is assigned to back to the
+  callback site that built it, inside the package that does the assigning. A
+  member yzma never writes — `cb_eval` and `abort_callback` today — carries no
+  code pointer to identify, and neither does one whose value arrives from a
+  caller or through a helper this does not trace. Those are outside the claim
+  rather than skips, and `code pointers traced` on the `SUMMARY` is what makes
+  the difference between the two scopes a number. Nor does it cover the member's
+  *lifetime*: `progressCallbackCode` is a package-level variable that a second
+  `SetProgressCallback` overwrites, which is the pointer-lifetime problem below.
 - **What a caller converts a return buffer to.** RULE 3 requires an integer
   return to be read into an `ffi.Arg`, which is unsigned by construction, so the
   signedness check cannot say anything about the `int32(result)` on the next line.

@@ -2,14 +2,17 @@
 // deliberately miniature imitation of yzma's binding style: package-level
 // ffi.Fun vars filled in by lib.Prep, called with unsafe.Pointer avalues.
 //
-// Eleven of the twenty-three bindings below are wrong, one per rule per
+// Thirteen of the twenty-six bindings below are wrong, one per rule per
 // direction plus one per struct-layout direction plus one transposition plus one
 // variadic nfixed plus one pointer aimed at the wrong target plus one C string
-// with no terminator, and ten are clean. Two
+// with no terminator plus two function-pointer struct members, and eleven are
+// clean. Two
 // more carry the signedness plants, which are deliberately not violations: same
 // width, same register, other meaning. The mirrored constants in the middle
 // carry the RULE 4 plant among ten clean controls, and the four callback sites
-// at the end carry the two RULE 5 plants, with one clean control per form.
+// at the end carry the two RULE 5 plants, with one clean control per form. The
+// three struct fx_hooks mirrors carry the other two RULE 5 plants, in what a
+// function-pointer member *holds* rather than in a signature.
 // testdata is invisible to the go tool, so nothing here is ever built as part of
 // the checker.
 package bindings
@@ -104,6 +107,66 @@ type NamedOK struct {
 	ContextSize    uint32
 }
 
+// ffiTypeHooks matches struct fx_hooks exactly, and so do all three Go structs
+// below: every plant here is in what the function-pointer members *hold*, which
+// no offset, width or ABI class comparison can see.
+var ffiTypeHooks = ffi.NewType(
+	&ffi.TypeUint32,
+	&ffi.TypePointer,
+	&ffi.TypePointer,
+	&ffi.TypePointer)
+
+// HooksFunc is the func-value plant: cb_progress is a function pointer C jumps
+// through, and a Go func value is a pointer to a func *descriptor*. It is 8
+// bytes of pointer class, so the layout comparison passes it and C jumps into
+// the descriptor's first word.
+type HooksFunc struct {
+	NSlots     uint32
+	CbProgress func(progress float32, userData uintptr) bool
+	CbAbort    uintptr
+	UserData   uintptr
+}
+
+// Hooks is the wrong-code-pointer plant, in the shape yzma declares these
+// members: uintptr on both, so nothing in the Go types says which callback
+// belongs where. SetHooks fills them in.
+type Hooks struct {
+	NSlots     uint32
+	CbProgress uintptr
+	CbAbort    uintptr
+	UserData   uintptr
+}
+
+// HooksClean is the control, and the half that matters: both members hold the
+// code pointer of the callback that actually implements them, written exactly as
+// yzma's ModelParams.SetProgressCallback writes its own. A rule that reported
+// this would report that too.
+type HooksClean struct {
+	NSlots     uint32
+	CbProgress uintptr
+	CbAbort    uintptr
+	UserData   uintptr
+}
+
+// SetHooks carries one store of each kind. CbProgress gets the closure built for
+// llama_fx_progress_callback, which is what C calls that member as. CbAbort gets
+// the one built for llama_fx_report_callback, so C unpacks a
+// llama_fx_abort_callback's single pointer argument through a descriptor
+// declaring a float and a pointer - and every width, offset and class still
+// matches.
+func (h *Hooks) SetHooks() {
+	h.CbProgress = uintptr(fxProgressCallbackCode)
+	h.CbAbort = uintptr(fxReportCallbackCode)
+}
+
+// SetHooksClean is the control for both callback forms at once: a descriptor
+// closure's code address for the descriptor-form member, and the purego
+// constructor's result for the purego-form one.
+func (h *HooksClean) SetHooksClean() {
+	h.CbProgress = uintptr(fxProgressCallbackCode)
+	h.CbAbort = newFxAbortCallback()
+}
+
 // GeomShort is the other side of that tolerance: 12 bytes behind a 24-byte
 // descriptor, so libffi reads 12 bytes of whatever follows it.
 type GeomShort struct {
@@ -174,6 +237,9 @@ var (
 	useShortFunc   ffi.Fun
 	usePairFunc    ffi.Fun
 	useNamedFunc   ffi.Fun
+	useHooksFunc   ffi.Fun
+	useHooksOKFunc ffi.Fun
+	useHooksCleanF ffi.Fun
 	logfFunc       ffi.Fun
 	printfFunc     ffi.Fun
 	getScoresFunc  ffi.Fun
@@ -232,6 +298,18 @@ func load(lib ffi.Lib) error {
 	}
 
 	if useNamedFunc, err = lib.Prep("fx_use_named", &ffi.TypeVoid, &ffiTypePair); err != nil {
+		return err
+	}
+
+	if useHooksFunc, err = lib.Prep("fx_use_hooks", &ffi.TypeVoid, &ffiTypeHooks); err != nil {
+		return err
+	}
+
+	if useHooksOKFunc, err = lib.Prep("fx_use_hooks_ok", &ffi.TypeVoid, &ffiTypeHooks); err != nil {
+		return err
+	}
+
+	if useHooksCleanF, err = lib.Prep("fx_use_hooks_clean", &ffi.TypeVoid, &ffiTypeHooks); err != nil {
 		return err
 	}
 
@@ -359,6 +437,22 @@ func GeomDefault() Geom {
 // UseGeom is the clean struct-by-value control and must never be reported.
 func UseGeom(g GeomOK) {
 	useGeomFunc.Call(nil, unsafe.Pointer(&g))
+}
+
+// UseHooksFunc hands over the struct whose cb_progress is a Go func value.
+func UseHooksFunc(h HooksFunc) {
+	useHooksFunc.Call(nil, unsafe.Pointer(&h))
+}
+
+// UseHooks hands over the struct SetHooks filled in, one member of it with the
+// wrong closure's code pointer.
+func UseHooks(h Hooks) {
+	useHooksOKFunc.Call(nil, unsafe.Pointer(&h))
+}
+
+// UseHooksClean is the control and must never be reported.
+func UseHooksClean(h HooksClean) {
+	useHooksCleanF.Call(nil, unsafe.Pointer(&h))
 }
 
 // UseGeomTail passes a struct with a Go-only tail and must never be reported.

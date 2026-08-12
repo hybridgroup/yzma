@@ -41,6 +41,12 @@ type Leaf struct {
 	Size int
 	Kind Kind
 	Path string // dotted field path, for a diff a human can act on
+
+	// GoType is the member's Go type, set on the Go side only. Offset, width and
+	// ABI class are all a layout diff needs, and they are also exactly what a Go
+	// `func` field and a `uintptr` field have in common - which is why a member C
+	// will *call* through needs the type itself. See checkFnPtrMembers.
+	GoType types.Type
 }
 
 func (l Leaf) String() string { return fmt.Sprintf("+%d %s/%dB %s", l.Off, l.Kind, l.Size, l.Path) }
@@ -231,7 +237,7 @@ func appendGoLeaf(out *[]Leaf, t types.Type, off int, name string, depth int) bo
 		return false
 	}
 
-	*out = append(*out, Leaf{Off: off, Size: sz, Kind: k, Path: name})
+	*out = append(*out, Leaf{Off: off, Size: sz, Kind: k, Path: name, GoType: t})
 
 	return true
 }

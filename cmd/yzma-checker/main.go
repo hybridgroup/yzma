@@ -183,6 +183,13 @@ type report struct {
 	CheckedPtr, CleanPtr                                  int
 	CheckedNUL, CleanNUL                                  int
 
+	// Function-pointer struct members compared, and how many of those had a
+	// stored code pointer that could be traced back to a callback site. Counted
+	// separately from CheckedR5 because they are a different kind of evidence: a
+	// member is checked against the typedef it declares, not against a descriptor
+	// written next to it.
+	CheckedFnPtr, CleanFnPtr, TracedFnPtr int
+
 	// CFnPtrs counts the function-pointer typedefs RULE 5 has a signature for,
 	// CFnPtrBad the ones this parser could not take apart. As with CConstBad the
 	// second number is the rule's coverage limit: a callback linking to one is a
@@ -314,6 +321,18 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 			all = append(all, a.bindings[k])
 		}
 		callbacks = append(callbacks, a.callbacks...)
+		fnPtrStores = append(fnPtrStores, a.stores...)
+	}
+
+	// Linking runs here rather than in the RULE 5 loop below, because the
+	// function-pointer struct members are checked against the typedef a stored
+	// code pointer's site was linked to, and the struct slots are walked while
+	// RULE 2 runs.
+	for _, cb := range callbacks {
+		linkCallback(cb)
+		if id := callbackID(cb.Pkg, cb.GoID); callbacksByID[id] == nil {
+			callbacksByID[id] = cb
+		}
 	}
 	sort.Slice(callbacks, func(i, j int) bool {
 		if callbacks[i].Pos.Filename != callbacks[j].Pos.Filename {
@@ -495,7 +514,7 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 				if p := cmpStringTerm(ca, cArg, fmt.Sprintf("arg%d", i)); p != "" {
 					probs = append(probs, p)
 				}
-				if p := cmpStructLayout(ct, ca.Pointee, fmt.Sprintf("arg%d", i), ca.Expr, cArg); p != "" {
+				if p := cmpStructLayout(ct, ca.Pointee, fmt.Sprintf("arg%d", i), ca.Expr, cArg, csp); p != "" {
 					probs = append(probs, p)
 				}
 				if len(probs) == before {
@@ -565,8 +584,6 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 	// ---------- Rule 5: callback descriptors and closure signatures ----------
 	checkedR5, cleanR5 := 0, 0
 	for _, cb := range callbacks {
-		linkCallback(cb)
-
 		probs, checked := checkCallback(cb)
 		if !checked {
 			continue
@@ -590,6 +607,15 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 				cb.GoID, shortPos(cb.Pos), cb.Form, cb.CTypedef, cb.Link,
 				filepath.Base(cfnptrs[cb.CTypedef].File), cfnptrs[cb.CTypedef].Line, cfnptrs[cb.CTypedef].Sig())
 		}
+	}
+
+	// ---------- Rule 5: function-pointer struct members ----------
+	//
+	// Once per pair of representations rather than once per slot: the same struct
+	// is a slot in several bindings, and the member is the same member in all of
+	// them.
+	for _, s := range fnPtrStructs {
+		viols = append(viols, checkFnPtrMembers(s)...)
 	}
 
 	// ---------- Rule 4: mirrored constant values ----------
@@ -648,6 +674,10 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 
 		CheckedNUL: nulChecked,
 		CleanNUL:   nulClean,
+
+		CheckedFnPtr: fnptrChecked,
+		CleanFnPtr:   fnptrClean,
+		TracedFnPtr:  fnptrTraced,
 
 		CConsts:     len(cconsts),
 		CConstBad:   len(cconstBad),
@@ -738,6 +768,8 @@ func printReport(r *report) {
 		len(r.PartialEnums), r.EnumMirrored, r.EnumMembers, r.EnumMissing)
 	fmt.Printf("Rule5 callbacks checked:   %d / %d clean (C function-pointer typedefs parsed: %d, unparseable: %d)\n",
 		r.CheckedR5, r.CleanR5, r.CFnPtrs, r.CFnPtrBad)
+	fmt.Printf("fn-ptr members compared:   %d / %d clean (code pointers traced: %d)\n",
+		r.CheckedFnPtr, r.CleanFnPtr, r.TracedFnPtr)
 	fmt.Printf("struct layouts compared:   %d / %d clean\n", r.CheckedLayout, r.CleanLayout)
 	fmt.Printf("pointer targets compared:  %d / %d clean\n", r.CheckedPtr, r.CleanPtr)
 	fmt.Printf("C string buffers checked:  %d / %d NUL-terminated\n", r.CheckedNUL, r.CleanNUL)
@@ -854,7 +886,7 @@ func cmpTypes(t FfiType, cRaw string, cKind Kind, cSize int, slot string) string
 // and maintained by hand in two separate places, so one can gain a field the
 // other did not. That is silent when the difference is absorbed by interior
 // padding, which is exactly how hybridgroup/yzma#289 presented.
-func cmpStructLayout(ct FfiType, goType types.Type, slot, expr, cRaw string) string {
+func cmpStructLayout(ct FfiType, goType types.Type, slot, expr, cRaw, pos string) string {
 	if ct.Kind != KindStruct || goType == nil {
 		return ""
 	}
@@ -862,6 +894,12 @@ func cmpStructLayout(ct FfiType, goType types.Type, slot, expr, cRaw string) str
 	if _, ok := goType.Underlying().(*types.Struct); !ok {
 		return ""
 	}
+
+	// A member of function-pointer type is one C will *call*, not one it reads,
+	// and offsets and widths say nothing about that. Recorded here because this
+	// is where both representations are in hand; checked once per pair, after
+	// every callback site has been linked. See checkFnPtrMembers.
+	noteFnPtrStruct(goType, cRaw, pos)
 
 	gl, gOK := goLeaves(goType)
 	if !gOK {
@@ -1146,7 +1184,7 @@ func checkRet(ret FfiType, cs CallSite, cRaw string) string {
 		// A struct return is where the padding-absorbed field drift of
 		// hybridgroup/yzma#289 landed: llama_context_default_params returns
 		// llama_context_params by value into a Go ContextParams.
-		return cmpStructLayout(ret, cs.RetType, "ret", cs.RetExpr, cRaw)
+		return cmpStructLayout(ret, cs.RetType, "ret", cs.RetExpr, cRaw, shortPos(cs.Pos))
 	}
 	return ""
 }

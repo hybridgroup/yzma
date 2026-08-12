@@ -34,6 +34,9 @@ var cfnptrBad = map[string]string{}
 func resetCCallbacks() {
 	clear(cfnptrs)
 	clear(cfnptrBad)
+	clear(callbacksByID)
+	fnPtrStores, fnPtrStructs = nil, nil
+	fnptrChecked, fnptrClean, fnptrTraced = 0, 0, 0
 }
 
 // collectFnPtrTypedefs parses "typedef RET (*NAME)(params);" out of a header.
@@ -448,4 +451,231 @@ func puregoRet(sig *types.Signature, cf CFunc) []string {
 	}
 
 	return nil
+}
+
+// RULE 5, third form - the function-pointer struct member.
+//
+// The two forms above are where a callback is *built*. A C struct member of
+// function-pointer type is where one is *installed*, and it is the form nothing
+// looked at: llama_model_params.progress_callback, llama_context_params.cb_eval
+// and .abort_callback, mtmd_context_params' two, are all function pointers C
+// will jump through, and to layout.go's Leaf each is 8 bytes of pointer class
+// like any other member. So two things were silent.
+//
+// A Go `func` field is also 8 bytes of pointer class, and it is a pointer to a
+// func *descriptor* rather than to code, so C jumping through it executes
+// whatever the descriptor's first word happens to be. Every offset, width and
+// class comparison passes it.
+//
+// And when the field is the uintptr yzma actually declares, nothing says which
+// callback belongs in it. Storing the log callback's code pointer into cb_eval
+// type-checks, lays out identically, and makes C unpack a ggml_backend_sched
+// _eval_callback's arguments through a ggml_log_callback descriptor on every
+// graph node. So the code pointer is traced back to the site that produced it
+// and the typedef that site was linked to must be the member's own - which,
+// with the descriptor comparison above, is what makes the signature C calls
+// through the member checked rather than assumed.
+
+// FnPtrStore is one assignment of a callback's code pointer into a struct field.
+type FnPtrStore struct {
+	GoStruct types.Type // the struct the field belongs to
+	Field    string     // Go field name
+	Expr     string
+	Pkg      string // the package the assignment is in
+	Site     string // the callback site's GoID: a cif var, or a constructor func
+	Pos      token.Position
+}
+
+var fnPtrStores []*FnPtrStore
+
+// callbacksByID indexes the linked callback sites by the identifier a store
+// resolves to, so a stored code pointer can be traced to the typedef RULE 5
+// already compared its descriptor against.
+//
+// Keyed by package as well as identifier, because pkg/llama and pkg/mtmd give
+// their progress-callback closure the same variable names while the typedefs
+// behind them are llama_progress_callback and mtmd_progress_callback: a bare
+// identifier key resolves one package's store to the other package's callback,
+// which reports two correct sites as defects.
+var callbacksByID = map[string]*Callback{}
+
+func callbackID(pkg, id string) string { return pkg + "." + id }
+
+// fnPtrStruct is one struct-by-value slot's pair of representations, recorded
+// where both are known. Only the pair matters, not the slot: the same struct
+// appears in many slots, and one finding per slot would be the same defect
+// printed five times.
+type fnPtrStruct struct {
+	GoType types.Type
+	CS     *CStruct
+	CRaw   string
+	Pos    string
+}
+
+var fnPtrStructs []fnPtrStruct
+
+// Function-pointer members compared, counted separately for the same reason the
+// pointer targets are: the claim is only made where the C member names a typedef
+// this parser took apart and the Go struct has a member at that offset, and
+// Traced is the narrower subset whose stored code pointer could be followed back
+// to a callback site. A narrowing of either would otherwise leave RULE 5
+// reporting zero findings without reporting that it stopped looking.
+var fnptrChecked, fnptrClean, fnptrTraced int
+
+// noteFnPtrStruct records a struct-by-value slot for the member scan, once per
+// pair of representations.
+func noteFnPtrStruct(goType types.Type, cRaw, pos string) {
+	cs := cstructOf(cRaw)
+	if goType == nil || cs == nil {
+		return
+	}
+
+	// Keyed on the resolved struct rather than the parameter text, which spells
+	// the same struct "struct mtmd_context_params" in one slot and "const struct
+	// mtmd_context_params" in the next.
+	for _, s := range fnPtrStructs {
+		if s.CS == cs && types.Identical(s.GoType, goType) {
+			return
+		}
+	}
+
+	fnPtrStructs = append(fnPtrStructs, fnPtrStruct{GoType: goType, CS: cs, CRaw: cRaw, Pos: pos})
+}
+
+// checkFnPtrMembers compares every function-pointer member of one C struct
+// against the Go member that occupies the same offset.
+//
+// The offset correspondence comes from the same flattening the layout diff uses,
+// so there is one struct walker rather than two: a C member's offset is
+// CStruct.Offs, and the Go leaf at that offset is the field libffi will copy the
+// bytes of.
+func checkFnPtrMembers(s fnPtrStruct) []violation {
+	cs := s.CS
+	if cs == nil || len(cs.Offs) != len(cs.Fields) {
+		return nil
+	}
+
+	gl, ok := goLeaves(s.GoType)
+	if !ok {
+		return nil // already a LAYOUT NOT VERIFIED skip from cmpStructLayout
+	}
+
+	byOff := make(map[int]Leaf, len(gl))
+	for _, l := range gl {
+		byOff[l.Off] = l
+	}
+
+	var viols []violation
+	for i, f := range cs.Fields {
+		td := strings.TrimSpace(strings.ReplaceAll(f.Norm, "const", " "))
+
+		cf, known := cfnptrs[td]
+		if !known {
+			if why, bad := cfnptrBadOf(td); bad {
+				noteSkip("RULE5 %s.%s: C typedef %s could not be parsed: %s - NOT VERIFIED",
+					cs.Name, f.Name, td, why)
+			}
+
+			continue
+		}
+
+		if f.Cnt != 1 {
+			noteSkip("RULE5 %s.%s: an array of %d function pointers is not one member - NOT VERIFIED",
+				cs.Name, f.Name, f.Cnt)
+			continue
+		}
+
+		gf, at := byOff[cs.Offs[i]]
+		if !at {
+			// No Go member at that offset at all. cmpStructLayout owns that
+			// finding, and repeating it here would bury the insertion point.
+			continue
+		}
+
+		fnptrChecked++
+
+		probs := cmpFnPtrMember(cf, s.GoType, gf, cs.Name, f.Name)
+		if len(probs) == 0 {
+			fnptrClean++
+			continue
+		}
+
+		// Named for the member rather than for the typedef, which is also the
+		// name of the callback *site* RULE 5 already reports on: two subjects
+		// under one name would make a report line ambiguous about which of them
+		// is wrong.
+		viols = append(viols, violation{5, cs.Name + "." + f.Name, s.Pos,
+			strings.Join(probs, "; ") + " [C calls it as " + cf.Name + "]", sev(probs)})
+	}
+
+	return viols
+}
+
+// cmpFnPtrMember checks one member: that the Go field can hold a code pointer at
+// all, and that the code pointer stored in it came from the callback site
+// implementing this member's typedef.
+func cmpFnPtrMember(cf CFunc, goType types.Type, gf Leaf, cName, cField string) []string {
+	var probs []string
+
+	where := fmt.Sprintf("Go %s.%s / C %s.%s", goType.String(), gf.Path, cName, cField)
+
+	if gf.GoType != nil {
+		if _, isFunc := gf.GoType.Underlying().(*types.Signature); isFunc {
+			probs = append(probs, fmt.Sprintf("%s: C calls %s through this member, but Go %s is a func value - 8 bytes of pointer class like a code pointer, and a pointer to a func descriptor rather than to code",
+				where, cf.Name, gf.GoType.String()))
+		}
+	}
+
+	// Only a top-level field can be named by an assignment this tool traced; a
+	// nested one is one selector further away than collectFnPtrStores looks, and
+	// no bound struct has one.
+	if strings.Contains(gf.Path, ".") {
+		return probs
+	}
+
+	for _, st := range fnPtrStores {
+		if st.Field != gf.Path || !types.Identical(st.GoStruct, goType) {
+			continue
+		}
+
+		cb, isCallback := callbacksByID[callbackID(st.Pkg, st.Site)]
+		if !isCallback {
+			// Not a callback code pointer, so there is no signature behind it to
+			// compare - the same way a void * names no pointer target. Outside
+			// the claim rather than a skip, which is what fnptrTraced counts.
+			continue
+		}
+
+		fnptrTraced++
+
+		switch {
+		case cb.CTypedef == "":
+			noteSkip("RULE5 %s: code pointer from %s, whose own typedef is unresolved (%s) - NOT VERIFIED",
+				where, st.Site, cb.Link)
+		case cb.CTypedef != cf.Name:
+			probs = append(probs, fmt.Sprintf("%s: the code pointer stored here (%s) implements %s, but C calls this member as %s: every argument is unpacked through the wrong descriptor",
+				where, st.Expr, cb.CTypedef, cf.Name))
+		}
+	}
+
+	return probs
+}
+
+// cfnptrBadOf reports whether a type name is a function-pointer typedef this
+// parser could not take apart. cfnptrBad is keyed by the raw declaration,
+// because an unparseable one may have no usable name, so the name is recovered
+// the way linkCallback recovers it. Without this a member whose typedef failed
+// to parse would look like a member that is not a function pointer at all.
+func cfnptrBadOf(name string) (string, bool) {
+	if name == "" {
+		return "", false
+	}
+
+	for raw, why := range cfnptrBad {
+		if n, _, _ := parseFnPtrTypedef(raw); n == name {
+			return why, true
+		}
+	}
+
+	return "", false
 }

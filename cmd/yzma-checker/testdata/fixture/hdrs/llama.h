@@ -187,6 +187,33 @@ typedef void (*llama_fx_log_callback)(enum llama_fx_level level, const char * te
 // of the register the closure returns, so a word-sized Go result is right.
 typedef bool (*llama_fx_abort_callback)(void * data);
 
+// RULE 5 through a struct member, the shape of llama_context_params.cb_eval and
+// llama_model_params.progress_callback. cb_progress and cb_abort are function
+// pointers C jumps *through* rather than values it reads, and to a layout
+// comparison each is 8 bytes of pointer class like user_data next to it. So
+// neither the signature C calls them with nor the identity of the code stored in
+// them is visible to any offset, width or class comparison.
+struct fx_hooks {
+    uint32_t                   n_slots;
+    llama_fx_progress_callback cb_progress;
+    llama_fx_abort_callback    cb_abort;
+    void *                     user_data;
+};
+
+// fx_use_hooks takes the Go struct whose cb_progress is declared as a Go func
+// value: 8 bytes of pointer class, and a pointer to a func descriptor rather
+// than to code.
+LLAMA_API void fx_use_hooks(struct fx_hooks h);
+
+// fx_use_hooks_ok takes the all-uintptr Go struct, one member of which is given
+// the code pointer of a closure built for the wrong typedef.
+LLAMA_API void fx_use_hooks_ok(struct fx_hooks h);
+
+// fx_use_hooks_clean is the control: both members hold the code pointer of the
+// callback that implements them, one per callback form, and must never be
+// reported.
+LLAMA_API void fx_use_hooks_clean(struct fx_hooks h);
+
 // Integer #defines, including one initialised from another and one carrying the
 // unsigned literal suffix llama.h uses on its file magics.
 #define LLAMA_FX_MAGIC   0x66780001u
