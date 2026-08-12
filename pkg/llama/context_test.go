@@ -14,6 +14,65 @@ func TestContextDefaultParams(t *testing.T) {
 	}
 }
 
+// TestContextDefaultParamsLayout checks that the fields land where C put them.
+//
+// A field missing from the middle of ContextParams shifts everything after it
+// while leaving sizeof() unchanged, because the lost bytes are reabsorbed by the
+// alignment padding in front of the first pointer. That is what happened when
+// b10375 added n_outputs_max_per_seq: the struct stayed 160 bytes, so the FFI
+// auditor stayed green, and the only visible symptom was that PoolingType and
+// Embeddings quietly stopped taking effect. Ranges rather than exact values, so
+// an upstream default tweak does not fail this but a shifted field does.
+func TestContextDefaultParamsLayout(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	params := ContextDefaultParams()
+
+	// The uint32 block at the front. A shift here shows up as a wild n_ctx.
+	if params.NCtx == 0 || params.NCtx > 1<<22 {
+		t.Errorf("NCtx is %d, want a plausible context size", params.NCtx)
+	}
+	if params.NBatch == 0 || params.NBatch > 1<<22 {
+		t.Errorf("NBatch is %d, want a plausible batch size", params.NBatch)
+	}
+	if params.NSeqMax == 0 || params.NSeqMax > 1<<16 {
+		t.Errorf("NSeqMax is %d, want a plausible sequence count", params.NSeqMax)
+	}
+
+	// The enum block, which is what a missing uint32 in front of it displaces.
+	if params.RopeScalingType < RopeScalingTypeUnspecified || params.RopeScalingType > RopeScalingTypeMaxValue {
+		t.Errorf("RopeScalingType is %d, want a valid RopeScalingType", params.RopeScalingType)
+	}
+	if params.PoolingType < PoolingTypeUnspecified || params.PoolingType > PoolingTypeRank {
+		t.Errorf("PoolingType is %d, want a valid PoolingType", params.PoolingType)
+	}
+	if params.AttentionType < AttentionTypeUnspecified || params.AttentionType > AttentionTypeNonCausal {
+		t.Errorf("AttentionType is %d, want a valid AttentionType", params.AttentionType)
+	}
+	if params.FlashAttentionType < FlashAttentionTypeAuto || params.FlashAttentionType > FlashAttentionTypeEnabled {
+		t.Errorf("FlashAttentionType is %d, want a valid FlashAttentionType", params.FlashAttentionType)
+	}
+
+	// The trailing bool block. These are 0 or 1 in C; anything else means the
+	// booleans are being read out of a neighbouring field.
+	for _, b := range []struct {
+		name string
+		val  uint8
+	}{
+		{"Embeddings", params.Embeddings},
+		{"Offload_kqv", params.Offload_kqv},
+		{"NoPerf", params.NoPerf},
+		{"OpOffload", params.OpOffload},
+		{"SwaFull", params.SwaFull},
+		{"KVUnified", params.KVUnified},
+	} {
+		if b.val > 1 {
+			t.Errorf("%s is %d, want 0 or 1", b.name, b.val)
+		}
+	}
+}
+
 func TestInitModel(t *testing.T) {
 	modelFile := testModelFileName(t)
 
