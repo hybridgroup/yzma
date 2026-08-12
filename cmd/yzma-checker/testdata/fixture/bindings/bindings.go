@@ -2,13 +2,15 @@
 // deliberately miniature imitation of yzma's binding style: package-level
 // ffi.Fun vars filled in by lib.Prep, called with unsafe.Pointer avalues.
 //
-// Nine of the fourteen bindings below are wrong, one per rule per direction plus
+// Ten of the twenty bindings below are wrong, one per rule per direction plus
 // one per struct-layout direction plus one transposition plus one variadic
-// nfixed, and the other five are clean. The mirrored constants in the middle
-// carry the tenth plant, for RULE 4, among ten clean controls, and the four
-// callback sites at the end carry the eleventh and twelfth, for RULE 5, with one
-// clean control per form. testdata is invisible to the go tool, so nothing here
-// is ever built as part of the checker.
+// nfixed plus one pointer aimed at the wrong target, and eight are clean. Two
+// more carry the signedness plants, which are deliberately not violations: same
+// width, same register, other meaning. The mirrored constants in the middle
+// carry the RULE 4 plant among ten clean controls, and the four callback sites
+// at the end carry the two RULE 5 plants, with one clean control per form.
+// testdata is invisible to the go tool, so nothing here is ever built as part of
+// the checker.
 package bindings
 
 import (
@@ -173,6 +175,12 @@ var (
 	useNamedFunc   ffi.Fun
 	logfFunc       ffi.Fun
 	printfFunc     ffi.Fun
+	getScoresFunc  ffi.Fun
+	getLogitsFunc  ffi.Fun
+	getCountFunc   ffi.Fun
+	getTokenFunc   ffi.Fun
+	decodeFunc     ffi.Fun
+	decodeOKFunc   ffi.Fun
 )
 
 func load(lib ffi.Lib) error {
@@ -236,6 +244,33 @@ func load(lib ffi.Lib) error {
 	// type after the two fixed ones. It must never be reported.
 	if printfFunc, err = lib.PrepVar("fx_printf", 2, &ffi.TypeSint32,
 		&ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return err
+	}
+
+	// The pointer-target group. Every descriptor here is &ffi.TypePointer and
+	// every avalue is 8 bytes, so nothing in the cif or in the widths can carry
+	// the defect: it is one indirection down, in what the pointer aims at.
+	if getScoresFunc, err = lib.Prep("fx_get_scores", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return err
+	}
+
+	if getLogitsFunc, err = lib.Prep("fx_get_logits", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return err
+	}
+
+	if getCountFunc, err = lib.Prep("fx_get_count", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return err
+	}
+
+	if getTokenFunc, err = lib.Prep("fx_get_token", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return err
+	}
+
+	if decodeFunc, err = lib.Prep("fx_decode", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return err
+	}
+
+	if decodeOKFunc, err = lib.Prep("fx_decode_ok", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
 		return err
 	}
 
@@ -351,10 +386,56 @@ func Clean(thing uintptr, a int32, n uint64) int32 {
 	return int32(result)
 }
 
+// GetScores is the pointer-target plant: fx_get_scores writes float32s and this
+// hands it a *int32, so every value Go reads back is a float's bit pattern read
+// as an integer. The slot is a pointer on both sides and both avalues are 8
+// bytes, so no width, class or layout comparison can see it.
+func GetScores(thing uintptr, out *int32) {
+	getScoresFunc.Call(nil, unsafe.Pointer(&thing), unsafe.Pointer(&out))
+}
+
+// GetLogits is the control for it and must never be reported: the same slot,
+// pointing at the float32 the header declares.
+func GetLogits(thing uintptr, out *float32) {
+	getLogitsFunc.Call(nil, unsafe.Pointer(&thing), unsafe.Pointer(&out))
+}
+
+// GetCount is the pointer-target signedness plant. Signed and unsigned 4-byte
+// integers are the same bytes in the same register, so this is not an ABI break
+// and must not be a violation - but the negative values C writes come back as
+// very large positive ones.
+func GetCount(thing uintptr, out *uint32) {
+	getCountFunc.Call(nil, unsafe.Pointer(&thing), unsafe.Pointer(&out))
+}
+
+// GetToken is the control for that: a *int32 that can hold the -1 sentinel.
+func GetToken(thing uintptr, out *int32) {
+	getTokenFunc.Call(nil, unsafe.Pointer(&thing), unsafe.Pointer(&out))
+}
+
+// Decode is the return-buffer signedness plant. The buffer is a full 8 bytes, so
+// RULE 3 is satisfied, and fx_decode's negative error code is read out of it as
+// 4294967295.
+func Decode(thing uintptr) uint64 {
+	var result uint64
+	decodeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&thing))
+
+	return result
+}
+
+// DecodeOK is the control: the same declaration, the same width, read through a
+// signed buffer.
+func DecodeOK(thing uintptr) int64 {
+	var result int64
+	decodeOKFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&thing))
+
+	return result
+}
+
 var _ = load
 
 // The RULE 5 sites: C calling back into Go. None of them goes through lib.Prep,
-// so none of them is one of the twelve bindings above.
+// so none of them is one of the bindings above.
 
 var (
 	fxProgressCallbackCode unsafe.Pointer

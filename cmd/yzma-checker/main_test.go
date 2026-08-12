@@ -1,6 +1,7 @@
 package main
 
 import (
+	"slices"
 	"strings"
 	"testing"
 )
@@ -103,6 +104,15 @@ func TestFixtureFindsEveryPlantedDefect(t *testing.T) {
 			match: "FxLevelHigh = 1 but C LLAMA_FX_LEVEL_HIGH = 2",
 		},
 		{
+			// The pointer-target plant. The slot is a pointer on both sides and
+			// both avalues are 8 bytes, so every rule passes it; the defect is one
+			// indirection down, where C writes float bit patterns into memory Go
+			// reads as integers.
+			name: "rule2 pointer slot aimed at the wrong target type",
+			rule: 2, fn: "fx_get_scores",
+			match: "arg1: C float * points at float but Go *int32 points at sint",
+		},
+		{
 			// The callback plants, in the direction where C calls Go. The width
 			// is right here and the class is not, so libffi reads the correct
 			// four bytes and the closure then reads a float's bit pattern as an
@@ -159,6 +169,14 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 		// C declaration nothing binds is not a defect, and the assertion that
 		// matters for it is this one, not its presence in the inventory.
 		"fx_printf": true, "fx_unbound": true,
+		// The pointer-target controls: fx_get_logits points at the float32 its
+		// header declares, and fx_get_token at the int32 that can hold its -1
+		// sentinel. fx_get_count and fx_decode carry the two signedness plants
+		// and are on this list on purpose: signed against unsigned is the same
+		// register and the same bytes, so it must be reported as its own class
+		// and never as an ABI violation. fx_decode_ok is its control.
+		"fx_get_logits": true, "fx_get_token": true, "fx_get_count": true,
+		"fx_decode": true, "fx_decode_ok": true,
 		"LLAMA_FX_LEVEL_OFF": true, "LLAMA_FX_LEVEL_LOW": true, "LLAMA_FX_LEVEL_MAX": true,
 		"LLAMA_FX_FLAG_AUTO": true, "LLAMA_FX_FLAG_NONE": true,
 		"LLAMA_FX_FLAG_A": true, "LLAMA_FX_FLAG_B": true,
@@ -179,12 +197,51 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 		}
 	}
 
-	// Exactly the twelve plants, with fx_get_thing counted twice: a void return
+	// Exactly the thirteen plants, with fx_get_thing counted twice: a void return
 	// descriptor is both a wrong cif (rule 1) and a return buffer libffi never
 	// writes (rule 3), which is how the real ggml_backend_cpu_buffer_type
 	// defect presented.
-	if got, want := len(rep.Viols), 14; got != want {
+	if got, want := len(rep.Viols), 15; got != want {
 		t.Errorf("fixture produced %d violations, want %d:\n%s", got, want, dumpViolations(rep))
+	}
+}
+
+// TestFixtureSignedness pins the signedness class, both halves of it.
+//
+// kindCompat merges signed and unsigned on purpose, because on arm64 they are
+// the same register and the same bytes, so this is deliberately not a rule
+// violation: the assertion that the two plants stay out of rep.Viols lives in
+// TestFixtureDoesNotReportTheCleanBinding, and the assertion that they are still
+// *reported* lives here. The controls matter as much: a rule that flagged
+// fx_get_token or fx_decode_ok would flag most of yzma.
+func TestFixtureSignedness(t *testing.T) {
+	rep := fixtureReport(t)
+
+	want := []string{
+		// The pointer target: C writes int32 and Go reads uint32, so a -1 comes
+		// back as 4294967295.
+		"fx_get_count",
+		// The return buffer: fx_decode's negative error code read unsigned.
+		"fx_decode",
+	}
+
+	for _, w := range want {
+		if !slices.ContainsFunc(rep.Signs, func(s string) bool { return strings.HasPrefix(s, w+" (") }) {
+			t.Errorf("signedness plant %s was not reported:\n%v", w, rep.Signs)
+		}
+	}
+
+	if got := len(rep.Signs); got != len(want) {
+		t.Errorf("signedness findings = %d, want %d:\n%v", got, len(want), rep.Signs)
+	}
+
+	// The 1-byte exemption. Plain char is signed in the C table and every string
+	// argument in the tree is a Go *byte, so a rule without this would report
+	// fx_mode_from_str and nothing useful.
+	for _, s := range rep.Signs {
+		if strings.Contains(s, "char") {
+			t.Errorf("a 1-byte char target was reported as a signedness finding: %s", s)
+		}
 	}
 }
 
@@ -194,11 +251,11 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 func TestFixtureAccounting(t *testing.T) {
 	rep := fixtureReport(t)
 
-	if got, want := len(rep.Bindings), 14; got != want {
+	if got, want := len(rep.Bindings), 20; got != want {
 		t.Errorf("bindings found = %d, want %d", got, want)
 	}
 
-	if got, want := rep.Matched, 14; got != want {
+	if got, want := rep.Matched, 20; got != want {
 		t.Errorf("bindings matched to a C decl = %d, want %d", got, want)
 	}
 
@@ -231,8 +288,8 @@ func TestFixtureAccounting(t *testing.T) {
 		t.Fatalf("coverage lines = %d, want %d: %+v", got, want, rep.Coverage)
 	}
 
-	if c := rep.Coverage[0]; c.Header != "llama.h" || c.Bound != 14 || c.Decls != 15 {
-		t.Errorf("coverage line = %+v, want llama.h 14 of 15 bound", c)
+	if c := rep.Coverage[0]; c.Header != "llama.h" || c.Bound != 20 || c.Decls != 21 {
+		t.Errorf("coverage line = %+v, want llama.h 20 of 21 bound", c)
 	}
 
 	if len(rep.Unresolved) != 0 {
@@ -327,6 +384,19 @@ func TestFixtureAccounting(t *testing.T) {
 
 	if got, want := rep.CleanLayout, 9; got != want {
 		t.Errorf("clean struct layouts = %d, want %d", got, want)
+	}
+
+	// The pointer-target comparisons. Eight of the fixture's pointer slots name a
+	// concrete target on both sides; the other pointer slots aim at an opaque
+	// struct fx_thing through a Go uintptr, which names nothing to compare, and
+	// are out of scope rather than skips. Six are clean, one is the plant and one
+	// is the signedness finding.
+	if got, want := rep.CheckedPtr, 8; got != want {
+		t.Errorf("pointer targets compared = %d, want %d", got, want)
+	}
+
+	if got, want := rep.CleanPtr, 6; got != want {
+		t.Errorf("clean pointer targets = %d, want %d", got, want)
 	}
 
 	// Seven slot lines plus the one Go-only-tail note for fx_use_geom_tail.

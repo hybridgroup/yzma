@@ -106,6 +106,10 @@ reads exactly `ffi.Type.Size` bytes from each pointer it is handed. `&x` where
 `x` is a Go `int32` behind an `ffi.TypeUint64` slot makes libffi splice 4 bytes
 of adjacent Go memory into the high half of the C argument.
 
+A pointer slot needs one more comparison than a width, because every pointer is
+8 bytes: what it points *at* is compared too, and a `float *` fed a `*int32` is a
+RULE 2 finding — see *Pointer targets*, below.
+
 For a **struct** passed by value the C-declared size is the authority in one
 direction only: since libffi reaches exactly that far, a Go struct that appends
 its own fields *past* the end of the C struct — as `llama.Batch` does with
@@ -295,6 +299,64 @@ every member after it, and printing all of them buries the insertion point that
 is the actual finding. `-v` adds the full member list of both sides to the
 `STRUCT-BY-VALUE COMPARISONS` section.
 
+### Pointer targets
+
+Offsets and widths cannot see one indirection down either. `classify()` reduces
+every C `T *` to `KindPointer`/8 bytes, which is all the ABI needs, and
+`kindCompat` merges a pointer with an 8-byte integer because on arm64 they are
+the same register. So a C `float *` slot fed a Go `*int32` matches in width,
+matches in ABI class and passes all five rules: the call succeeds, and C then
+writes IEEE-754 bit patterns into memory Go reads as integers. That is the
+wrong-data class of [#289](https://github.com/hybridgroup/yzma/issues/289) again,
+one level of indirection down, and it lands where llama.cpp is busiest, because
+its hottest entry points are pointer-out params — `llama_get_embeddings_seq`,
+`llama_get_logits_ith`, the `llama_batch` members.
+
+The data to compare is already there: the C parameter keeps its type text
+(`const float *`), so stripping one trailing `*` and classifying the remainder
+gives what C points at, and the Go type libffi reads the address from is itself a
+Go pointer, so its element type gives what Go points at. Width and ABI class are
+then compared exactly as RULE 2 compares the slot itself, and a mismatch is a
+RULE 2 finding.
+
+The comparison is only made where **both sides name a concrete scalar target**. A
+`void *`, an opaque `struct llama_context *`, a Go `uintptr` or a Go
+`unsafe.Pointer` names nothing to compare against, so those slots are outside
+what this can decide rather than skips — a skip means "this should have been
+checked and was not", and a `void *` is not that. How many slots are inside that
+scope is on the `SUMMARY` as `pointer targets compared`, so a narrowing of it is
+visible rather than silent.
+
+Pointer *members inside a by-value struct* are **not** covered. `Leaf` carries
+offset, width and ABI class, and the cif descriptor has no target information at
+all — `TypePointer` says nothing about what it points at — so the only comparable
+pair would be the C struct against the Go struct, through a target threaded
+alongside every leaf on both sides. That is a wider change than the check earns,
+so it was left out deliberately rather than half-done.
+
+### Signedness
+
+`kindCompat` merges `KindSint` and `KindUint`, and it is right to: a same-width
+signed and unsigned integer occupy the same register and the same bytes, so
+nothing about the ABI is broken. What breaks is the *meaning*. `llama_decode`
+returns negative on error and `llama_token` uses `-1` as a sentinel, so reading
+either through an unsigned Go type turns a failure into 4294967295 while every
+width, offset and class still matches.
+
+So it is reported as its own class, in its own `SIGNEDNESS` section, and it
+**never affects the exit code** — calling it an ABI violation would be wrong, and
+a CI failure for something the ABI permits is how a checker gets ignored. It is
+raised only where the value is actually *interpreted* rather than forwarded: a
+return buffer, and a pointer target from the section above.
+
+Two exemptions keep it from being noise. `ffi.Arg` is skipped, and has to be:
+RULE 3 *requires* it for an integer return, it is unsigned by construction, so it
+is a container rather than a meaning — what a caller converts it to afterwards is
+one expression further on than this tool looks, which is also why yzma reports
+zero of these today. And a **1-byte** target is skipped, because plain `char` is
+signed in the type table while its signedness is implementation-defined in C, and
+`const char *` fed a Go `*byte` is the string idiom of every binding in the tree.
+
 `jupiterrider/ffi` states both halves of RULE 3 in its `Fun.Call` doc comment
 (`fun.go:19-20`): *"You cannot use integer types smaller than 8 bytes here
 (float32 and structs are not affected)."*
@@ -308,6 +370,9 @@ measurement rather than an assertion:
 - `NOT VERIFIED (skips)` — every slot the tool could not decide, and why. A
   clean run reports **0 skips**; anything else means the coverage claim is
   weaker than the violation list suggests.
+- `SIGNEDNESS` — values read through a Go type of the other sign. Same bytes,
+  same register, other meaning, so these are **not** violations and do not affect
+  the exit code; see *Signedness*, above. yzma reports 0 of them today.
 - `STRUCT-BY-VALUE COMPARISONS` — each struct slot with the cif descriptor size
   and member count next to the C struct's, so those checks are visible rather
   than implied, plus a note for each Go struct carrying members past the end of
@@ -443,6 +508,20 @@ partial one appears is the small half; the assertion that its unmirrored members
 are **not** violations, and do not move the violation count, is the one that pins
 the framing.
 
+For the pointer-target comparison the header grows four pointer-out
+declarations of the same shape, two per half. `fx_get_scores` declares a `float *`
+and is bound to a Go `*int32` — the plant, whose slot is a pointer of the same
+width on both sides, so every other rule passes it — against `fx_get_logits`,
+which is the same declaration bound to the `*float32` it names. `fx_get_count`
+declares an `int32_t *` read through a `*uint32` and `fx_decode` returns a
+negative error code into an unsigned 8-byte buffer: those two are the signedness
+plants, and the gate asserts both that they *are* reported in the `SIGNEDNESS`
+list and that they are **not** violations and do not move the violation count,
+which is the assertion that pins the framing. `fx_get_token` and `fx_decode_ok`
+are their controls, same declarations read through the signed types, and the gate
+also pins that no 1-byte `char` target is ever reported — without that exemption
+the check would flag every string parameter in yzma and nothing else.
+
 For RULE 5 the fixture header grows four function-pointer typedefs and the
 fixture package four callback sites, one plant and one clean control per form: a
 descriptor declaring `&ffi.TypeSint32` where the typedef says `float`, a purego
@@ -577,6 +656,16 @@ in that derivation would be invisible here.
   members have no Go constant, not which of them yzma is missing. `GGML_TYPE_Q2_0`
   and `LLAMA_SPLIT_MODE_TENSOR` are both in that list, and only a maintainer can
   say the first matters and the second does not.
+- **What a pointer inside a by-value struct points at.** The comparison in
+  *Pointer targets* runs on parameter and return slots only. A `float *` member
+  of a struct is one 8-byte leaf on all three sides, and the cif descriptor
+  carries no target information for it at all, so the drift is invisible there.
+  Deliberately left out rather than half-done.
+- **What a caller converts a return buffer to.** RULE 3 requires an integer
+  return to be read into an `ffi.Arg`, which is unsigned by construction, so the
+  signedness check cannot say anything about the `int32(result)` on the next line.
+  That is why yzma has 0 signedness findings today while the fixture demonstrates
+  both halves of the check.
 - **Pointer lifetime.** Go pointers stored in C-visible memory, missing
   `runtime.KeepAlive`, and slices retained over C-owned memory are a separate
   class of hazard entirely.

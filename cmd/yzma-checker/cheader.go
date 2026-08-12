@@ -328,6 +328,24 @@ func classify(t string) (Kind, int) {
 	return KindUnknown, -1
 }
 
+// cPointeeOf classifies what a C pointer type points at, by stripping one level
+// of indirection off its text: "const float *" -> float/4, "char **" ->
+// char */ptr/8.
+//
+// classify() flattens every pointer to KindPointer/8, which is all the ABI needs
+// and one indirection short of what the data needs - see cmpPointerTarget. A
+// target this tool cannot name (a `void *`, an opaque struct pointer, a typedef
+// that is itself a pointer and so carries no `*` here) comes back unclassified,
+// and the caller makes no claim rather than a guess.
+func cPointeeOf(t string) (Kind, int) {
+	t = strings.TrimSpace(t)
+	if !strings.HasSuffix(t, "*") {
+		return KindUnknown, -1
+	}
+
+	return classify(strings.TrimSuffix(t, "*"))
+}
+
 // splitTop splits s on top-level commas (respecting parens).
 func splitTop(s string) []string {
 	var out []string

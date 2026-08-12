@@ -92,6 +92,32 @@ struct fx_named {
 
 LLAMA_API void fx_use_named(struct fx_named n);
 
+// Pointer-out params, the shape of llama_get_embeddings_seq and
+// llama_get_logits_ith. Every one of these is an 8-byte pointer to the ABI, so
+// the slot itself cannot carry the defect: only what it points *at* can.
+//
+// fx_get_scores is the plant, bound to a Go *int32, so C writes IEEE-754 bit
+// patterns into memory Go reads as integers. fx_get_logits is the control, bound
+// to the *float32 it declares.
+LLAMA_API void fx_get_scores(struct fx_thing * t, float * out);
+LLAMA_API void fx_get_logits(struct fx_thing * t, float * out);
+
+// The signedness pair, one indirection down. Neither is an ABI break - a 4-byte
+// signed and unsigned integer are the same register and the same bytes - so
+// fx_get_count must be reported as a signedness finding rather than a violation,
+// and fx_get_token, bound to the *int32 that can hold its -1 sentinel, must not
+// be reported at all.
+LLAMA_API void fx_get_count(struct fx_thing * t, int32_t * out);
+LLAMA_API void fx_get_token(struct fx_thing * t, int32_t * out);
+
+// The same idea on a return buffer, which is where a value is interpreted rather
+// than forwarded: fx_decode returns negative on error, exactly as llama_decode
+// does, so reading it through an unsigned Go buffer turns a failure into
+// 4294967295. fx_decode_ok reads the identical declaration through a signed
+// buffer of the same width and must stay clean.
+LLAMA_API int32_t fx_decode(struct fx_thing * t);
+LLAMA_API int32_t fx_decode_ok(struct fx_thing * t);
+
 // RULE 4. LLAMA_FX_LEVEL_LOW is the member "upstream inserted": every member
 // after it moved up by one, and the Go constant for HIGH still carries the old
 // value. Nothing about that is visible to a compiler on either side.

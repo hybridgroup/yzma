@@ -27,12 +27,40 @@ var skips []string
 
 func noteSkip(format string, a ...any) { skips = append(skips, fmt.Sprintf(format, a...)) }
 
+// signs collects signedness findings: a value read through a Go type of the
+// other sign. Deliberately not a rule violation and deliberately not part of the
+// exit code - see noteSign.
+var signs []string
+
+// noteSign records a signedness finding.
+//
+// kindCompat merges KindSint and KindUint on purpose, and it is right to: on
+// arm64 a same-width signed and unsigned integer occupy the same register and
+// the same bytes, so nothing about the call is broken. What breaks is the
+// *meaning*. llama_decode returns negative on error and llama_token uses -1 as a
+// sentinel, so reading either through an unsigned Go type turns a failure into
+// 4294967295 - and every width, offset and ABI class still matches, which is why
+// no rule here can see it.
+//
+// So it is reported as its own class rather than as an ABI break, it never
+// affects the exit code, and it is only raised where the value is actually
+// interpreted - a return buffer, and a pointer target - never where a slot
+// merely forwards bytes.
+func noteSign(format string, a ...any) { signs = append(signs, fmt.Sprintf(format, a...)) }
+
 var structCmp []string
 
 // Struct-by-value layout comparisons, counted separately from the rule the
 // comparison belongs to: a layout check that silently stopped resolving would
 // otherwise still print "0 violations". See layout.go.
 var layoutChecked, layoutClean int
+
+// Pointer-target comparisons, counted separately for the same reason the layout
+// comparisons are: the claim is only made where both sides name a concrete
+// target, so a narrowing of that scope would leave RULE 2 reporting zero
+// pointer-target findings without reporting that it stopped looking. See
+// cmpPointerTarget.
+var ptrChecked, ptrClean int
 
 // members renders a leaf count for the STRUCT-BY-VALUE COMPARISONS report,
 // distinguishing "no members" from "layout not resolvable".
@@ -124,6 +152,11 @@ type report struct {
 	Skips      []string
 	StructCmp  []string
 
+	// Signs are the signedness findings: same width, same register, other
+	// meaning. Not violations - see noteSign - so they never affect the exit
+	// code.
+	Signs []string
+
 	// Unbound and Coverage are the reverse of NoC: C declarations no binding
 	// names. Not defects - yzma binds a subset by design - so they are counted
 	// and listed, never turned into violations.
@@ -140,6 +173,7 @@ type report struct {
 	CheckedR1, CheckedR2, CheckedR3, CheckedR4, CheckedR5 int
 	CleanR1, CleanR2, CleanR3, CleanR4, CleanR5           int
 	CheckedLayout, CleanLayout                            int
+	CheckedPtr, CleanPtr                                  int
 
 	// CFnPtrs counts the function-pointer typedefs RULE 5 has a signature for,
 	// CFnPtrBad the ones this parser could not take apart. As with CConstBad the
@@ -163,8 +197,9 @@ type report struct {
 func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 	// Parser state is package-level and iterated to a fixpoint, so reset it
 	// to keep repeated calls within one process independent.
-	skips, structCmp = nil, nil
+	skips, structCmp, signs = nil, nil, nil
 	layoutChecked, layoutClean = 0, 0
+	ptrChecked, ptrClean = 0, 0
 	resetCTypes()
 
 	// --- C side ---
@@ -388,6 +423,14 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 			} else {
 				cleanR3++
 			}
+			// A return value is read, not forwarded, so its sign is meaning
+			// rather than register layout: reported as its own class, never as
+			// an ABI break. See noteSign.
+			if ok {
+				if s := checkRetSign(cf, cs); s != "" {
+					noteSign("%s (%s): %s [in %s]", b.CName, csp, s, cs.Fn)
+				}
+			}
 			// Rule 2: argument widths
 			var probs []string
 			na := len(cs.Args)
@@ -436,6 +479,9 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 				cArg := ""
 				if ok && i < len(cf.Params) {
 					cArg = cf.Params[i].Norm
+				}
+				if p := cmpPointerTarget(ca, cArg, b.CName, csp, fmt.Sprintf("arg%d", i)); p != "" {
+					probs = append(probs, p)
 				}
 				if p := cmpStructLayout(ct, ca.Pointee, fmt.Sprintf("arg%d", i), ca.Expr, cArg); p != "" {
 					probs = append(probs, p)
@@ -562,6 +608,7 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		Unresolved: unresolvedList,
 		Skips:      skips,
 		StructCmp:  structCmp,
+		Signs:      signs,
 		TotalDecls: totalDecls,
 		Unparsed:   unparsed,
 		Matched:    matched,
@@ -583,6 +630,9 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 
 		CheckedLayout: layoutChecked,
 		CleanLayout:   layoutClean,
+
+		CheckedPtr: ptrChecked,
+		CleanPtr:   ptrClean,
 
 		CConsts:     len(cconsts),
 		CConstBad:   len(cconstBad),
@@ -638,6 +688,11 @@ func printReport(r *report) {
 		hint = "; -v lists them"
 	}
 	fmt.Printf("(%d unmirrored members in %d partially mirrored enum(s)%s)\n", r.EnumMissing, len(r.PartialEnums), hint)
+	fmt.Println("================ SIGNEDNESS (same bytes, other meaning; not ABI breaks) ================")
+	for _, s := range r.Signs {
+		fmt.Println("  ", s)
+	}
+	fmt.Printf("(%d signedness findings; not violations, so they do not affect the exit code)\n", len(r.Signs))
 	fmt.Println("================ NOT VERIFIED (skips) ================")
 	for _, k := range r.Skips {
 		fmt.Println("  ", k)
@@ -669,6 +724,8 @@ func printReport(r *report) {
 	fmt.Printf("Rule5 callbacks checked:   %d / %d clean (C function-pointer typedefs parsed: %d, unparseable: %d)\n",
 		r.CheckedR5, r.CleanR5, r.CFnPtrs, r.CFnPtrBad)
 	fmt.Printf("struct layouts compared:   %d / %d clean\n", r.CheckedLayout, r.CleanLayout)
+	fmt.Printf("pointer targets compared:  %d / %d clean\n", r.CheckedPtr, r.CleanPtr)
+	fmt.Printf("signedness findings:       %d (not violations)\n", len(r.Signs))
 	nr := map[int]int{}
 	for _, v := range r.Viols {
 		nr[v.Rule]++
@@ -834,6 +891,114 @@ func cmpStructLayout(ct FfiType, goType types.Type, slot, expr, cRaw string) str
 
 	return fmt.Sprintf("%s: Go struct %s layout differs from cif descriptor %s (%s): %s",
 		slot, goType.String(), ct.Name, expr, strings.Join(d, "; "))
+}
+
+// cmpPointerTarget compares what a pointer slot points *at*.
+//
+// Every C `T *` classifies to KindPointer/8 and every Go pointer is 8 bytes, and
+// kindCompat merges pointer with an 8-byte integer, so a C `float *` slot fed a
+// Go `*int32` matches in width, matches in ABI class and passes all five rules.
+// The call then succeeds and C writes floats into memory Go reads as integers:
+// the same silent wrong-data class as hybridgroup/yzma#289, one indirection
+// down. It is not a hypothetical shape either, because llama.cpp's hottest
+// entry points are pointer-out params - llama_get_embeddings_seq,
+// llama_get_logits_ith, the llama_batch members.
+//
+// The claim is only made where both sides actually name a concrete scalar
+// target: a `void *`, an opaque `struct llama_context *`, a Go uintptr or a Go
+// unsafe.Pointer names nothing to compare against, so those slots are outside
+// what this comparison can say anything about rather than guessed at. That
+// scope is what CheckedPtr measures.
+func cmpPointerTarget(ca CallArg, cRaw, fn, pos, slot string) string {
+	if ca.Kind != KindPointer || cRaw == "" || ca.Pointee == nil {
+		return ""
+	}
+
+	ck, cs := cPointeeOf(cRaw)
+	if !scalarKind(ck) || cs <= 0 {
+		return ""
+	}
+
+	gp, ok := ca.Pointee.Underlying().(*types.Pointer)
+	if !ok {
+		return ""
+	}
+
+	gk, gs := goKindOf(gp.Elem())
+	if !scalarKind(gk) || gs <= 0 {
+		return ""
+	}
+
+	ptrChecked++
+
+	switch {
+	case gs != cs:
+		return fmt.Sprintf("%s: C %s points at %dB but Go %s points at %s (%dB) (%s)",
+			slot, squash(cRaw), cs, ca.Pointee.String(), gp.Elem().String(), gs, ca.Expr)
+	case !kindCompat(ck, gk):
+		return fmt.Sprintf("%s: C %s points at %s but Go %s points at %s (%s / %s)",
+			slot, squash(cRaw), ck, ca.Pointee.String(), gk, ca.Expr, gp.Elem().String())
+	case signMismatch(ck, gk, cs):
+		noteSign("%s (%s): %s: C %s points at %s but Go %s points at %s: same bytes, other meaning",
+			fn, pos, slot, squash(cRaw), ck, ca.Pointee.String(), gk)
+
+		return ""
+	}
+
+	ptrClean++
+
+	return ""
+}
+
+// checkRetSign reports a return value read through a Go type of the other sign.
+//
+// A return buffer is where the value is interpreted rather than forwarded, and
+// llama.cpp uses the sign: llama_decode returns negative on error and
+// llama_token uses -1 as a sentinel, so reading either unsigned turns a failure
+// into a very large positive number with every width and class still matching.
+//
+// ffi.Arg is exempt, and has to be: RULE 3 *requires* it for an integer return
+// because libffi always stores a full ffi_arg, and it is unsigned by
+// construction, so it is a container rather than a meaning. What a caller
+// converts it to afterwards is one expression further on than this tool looks.
+func checkRetSign(cf CFunc, cs CallSite) string {
+	if cs.RetNil || cs.RetType == nil || strings.HasSuffix(cs.RetType.String(), "ffi.Arg") {
+		return ""
+	}
+
+	k, _ := goKindOf(cs.RetType)
+	if !signMismatch(cf.RetKind, k, cf.RetSize) {
+		return ""
+	}
+
+	return fmt.Sprintf("C %s returns %s %s but the return buffer %s is %s %s: same bytes, other meaning",
+		cf.Name, squash(cf.RetRaw), cf.RetKind, cs.RetExpr, cs.RetType.String(), k)
+}
+
+// signMismatch is a signed/unsigned pair of the same width.
+//
+// One-byte targets are excluded deliberately. Plain `char` is signed in
+// baseTypes but its signedness is implementation-defined in C, and `const char
+// *` fed a Go `*byte` is the string idiom of every binding in the tree: a rule
+// that reported it would report nothing else. A byte buffer is not read as a
+// number, so there is no meaning to get wrong.
+func signMismatch(a, b Kind, size int) bool {
+	if size < 2 {
+		return false
+	}
+
+	return (a == KindSint && b == KindUint) || (a == KindUint && b == KindSint)
+}
+
+// scalarKind is a kind with one concrete width and one meaning - the only kinds
+// a pointer-target comparison can decide anything about.
+func scalarKind(k Kind) bool {
+	switch k {
+	case KindSint, KindUint, KindFloat, KindDouble, KindPointer:
+		return true
+	}
+
+	return false
 }
 
 // kindCompat: same-width integer signedness is ABI-identical on arm64, so only
