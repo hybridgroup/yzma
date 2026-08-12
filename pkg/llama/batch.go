@@ -1,10 +1,28 @@
 package llama
 
 import (
+	"errors"
 	"fmt"
 	"unsafe"
 
 	"github.com/jupiterrider/ffi"
+)
+
+// Errors reported by [Batch.Add] and [Batch.SetLogit]. They are distinguished so
+// a caller can tell an expected condition (a full batch, which just means it is
+// time to decode) from a programming error, without matching on message text.
+var (
+	// ErrBatchFull means the batch already holds its allocated n_tokens.
+	ErrBatchFull = errors.New("batch is full")
+	// ErrTooManySeqIDs means more sequence IDs were given than the n_seq_max
+	// the batch was allocated with.
+	ErrTooManySeqIDs = errors.New("too many sequence IDs for batch")
+	// ErrBatchNotWritable means the batch owns no writable arrays: it is the
+	// zero value, came from [BatchGetOne], or is an embedding batch whose
+	// token array was never allocated.
+	ErrBatchNotWritable = errors.New("batch owns no writable token arrays")
+	// ErrBatchIndexRange means the index does not address a token in the batch.
+	ErrBatchIndexRange = errors.New("batch index out of range")
 )
 
 var (
@@ -56,16 +74,21 @@ func loadBatchFuncs(lib ffi.Lib) error {
 // All members are left uninitialized.
 func BatchInit(nTokens int32, embd int32, nSeqMax int32) Batch {
 	var batch Batch
-	batchInitFunc.Call(unsafe.Pointer(&batch), &nTokens, &embd, &nSeqMax)
+	batchInitFunc.Call(unsafe.Pointer(&batch.BatchData), &nTokens, &embd, &nSeqMax)
 	batch.capTokens = nTokens
 	batch.capSeq = nSeqMax
+
+	// llama.cpp zeroes n_tokens here, but llama.h documents the members as
+	// left uninitialized. Add and SetLogit bound themselves against NTokens,
+	// so it is set explicitly rather than relying on that.
+	batch.NTokens = 0
 
 	return batch
 }
 
 // BatchFree frees a Batch of tokens allocated with BatchInit.
 func BatchFree(batch Batch) error {
-	batchFreeFunc.Call(nil, unsafe.Pointer(&batch))
+	batchFreeFunc.Call(nil, unsafe.Pointer(&batch.BatchData))
 
 	return nil
 }
@@ -73,6 +96,12 @@ func BatchFree(batch Batch) error {
 // BatchGetOne returns Batch for single sequence of tokens.
 // The sequence ID will be fixed to 0.
 // The position of the tokens will be tracked automatically by [Decode].
+//
+// The returned batch borrows the caller's tokens and owns no writable arrays of
+// its own: llama_batch_get_one leaves pos, n_seq_id, seq_id and logits NULL. It
+// can be passed to [Decode] or [Encode], but [Batch.Add] and [Batch.SetLogit]
+// report [ErrBatchNotWritable] on it. Use [BatchInit] for a batch you intend to
+// fill in yourself.
 func BatchGetOne(tokens []Token) Batch {
 	var batch Batch
 	if len(tokens) == 0 {
@@ -81,7 +110,7 @@ func BatchGetOne(tokens []Token) Batch {
 	toks := unsafe.SliceData(tokens)
 	nTokens := int32(len(tokens))
 
-	batchGetOneFunc.Call(unsafe.Pointer(&batch), unsafe.Pointer(&toks), &nTokens)
+	batchGetOneFunc.Call(unsafe.Pointer(&batch.BatchData), unsafe.Pointer(&toks), &nTokens)
 
 	return batch
 }
@@ -93,12 +122,29 @@ func (b *Batch) Clear() error {
 	return nil
 }
 
+// writable reports whether the batch owns the arrays Add and SetLogit write to.
+// A zero Batch and one from [BatchGetOne] do not, and llama_batch_init leaves
+// token NULL when it was asked for an embedding batch, so each pointer has to be
+// checked rather than inferred from capTokens alone.
+func (b *Batch) writable() bool {
+	return b.capTokens > 0 &&
+		b.Token != nil && b.Pos != nil && b.NSeqId != nil && b.SeqId != nil && b.Logits != nil
+}
+
 // SetLogit sets whether to compute logits for the token at index idx in the batch.
-// It returns an error if idx is outside the batch capacity to avoid writing past
-// the C-allocated array.
+//
+// idx must address a token already in the batch, that is, it must be less than
+// NTokens. llama_decode only reads logit flags over [0, n_tokens), so a flag set
+// beyond that would be silently dropped rather than honoured; the tighter bound
+// reports the caller's index error instead. Writes are also confined to the
+// C-allocated array, which is what makes the bound a safety property and not
+// just a diagnostic.
 func (b *Batch) SetLogit(idx int32, logits bool) error {
-	if idx < 0 || idx >= b.capTokens {
-		return fmt.Errorf("llama: SetLogit index %d out of range [0,%d)", idx, b.capTokens)
+	if !b.writable() {
+		return ErrBatchNotWritable
+	}
+	if idx < 0 || idx >= b.NTokens {
+		return fmt.Errorf("%w: index %d not in [0,%d)", ErrBatchIndexRange, idx, b.NTokens)
 	}
 
 	logitPtr := &unsafe.Slice((*int8)(b.Logits), int(b.capTokens))[idx]
@@ -112,16 +158,23 @@ func (b *Batch) SetLogit(idx int32, logits bool) error {
 }
 
 // Add adds a token to the batch with the given position, sequence IDs, and logits flag.
-// It returns an error (without writing) if the batch is already full or if seqIDs is
-// longer than the n_seq_max the batch was allocated with, to avoid heap corruption.
+//
+// It writes nothing and returns an error if the batch is already full
+// ([ErrBatchFull]), if seqIDs is longer than the n_seq_max the batch was
+// allocated with ([ErrTooManySeqIDs]), or if the batch owns no writable arrays
+// ([ErrBatchNotWritable]), each of which would otherwise corrupt memory.
 func (b *Batch) Add(token Token, pos Pos, seqIDs []SeqId, logits bool) error {
+	if !b.writable() {
+		return ErrBatchNotWritable
+	}
+
 	i := b.NTokens
 
 	if i < 0 || i >= b.capTokens {
-		return fmt.Errorf("llama: batch full: cannot add token at index %d (capacity %d)", i, b.capTokens)
+		return fmt.Errorf("%w: index %d, capacity %d", ErrBatchFull, i, b.capTokens)
 	}
 	if int32(len(seqIDs)) > b.capSeq {
-		return fmt.Errorf("llama: too many sequence IDs %d for token (n_seq_max %d)", len(seqIDs), b.capSeq)
+		return fmt.Errorf("%w: %d sequence IDs for a batch with n_seq_max %d", ErrTooManySeqIDs, len(seqIDs), b.capSeq)
 	}
 
 	// Set token and position
@@ -140,6 +193,8 @@ func (b *Batch) Add(token Token, pos Pos, seqIDs []SeqId, logits bool) error {
 		}
 	}
 
+	// SetLogit bounds idx against NTokens, so the count has to reflect the
+	// token just written before the flag for it can be set.
 	b.NTokens++
 
 	return b.SetLogit(i, logits)
