@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -890,5 +891,104 @@ func TestGetWithContext_FallbackToPreviousVersion(t *testing.T) {
 	expectedFile := filepath.Join(dest, "libllama.so")
 	if _, err := os.Stat(expectedFile); os.IsNotExist(err) {
 		t.Fatalf("Downloaded file not found: %s", expectedFile)
+	}
+}
+
+// createMockVersionedTarGz creates a mock .tar.gz laid out like the llama.cpp
+// release archives: a versioned library plus the unversioned symlink used by the
+// loader, both under a top-level directory prefix.
+func createMockVersionedTarGz(t *testing.T, version, soVersion string) []byte {
+	t.Helper()
+
+	var buf strings.Builder
+	gzw := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gzw)
+
+	prefix := "llama-" + version + "/"
+
+	if err := tw.WriteHeader(&tar.Header{
+		Name:     prefix,
+		Mode:     0755,
+		Typeflag: tar.TypeDir,
+	}); err != nil {
+		t.Fatalf("failed to write tar header: %v", err)
+	}
+
+	versioned := "libllama." + soVersion + ".so"
+	content := []byte("fake library " + version)
+	if err := tw.WriteHeader(&tar.Header{
+		Name: prefix + versioned,
+		Mode: 0755,
+		Size: int64(len(content)),
+	}); err != nil {
+		t.Fatalf("failed to write tar header: %v", err)
+	}
+	if _, err := tw.Write(content); err != nil {
+		t.Fatalf("failed to write tar content: %v", err)
+	}
+
+	if err := tw.WriteHeader(&tar.Header{
+		Name:     prefix + "libllama.so",
+		Mode:     0777,
+		Typeflag: tar.TypeSymlink,
+		Linkname: versioned,
+	}); err != nil {
+		t.Fatalf("failed to write tar header: %v", err)
+	}
+
+	tw.Close()
+	gzw.Close()
+
+	return []byte(buf.String())
+}
+
+// TestExtractTarGzUpgradeRepointsSymlink verifies that installing over an older
+// install repoints the unversioned symlink at the newly installed library
+// instead of leaving it aimed at the superseded one.
+func TestExtractTarGzUpgradeRepointsSymlink(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlinks require elevated privileges on Windows, skipping test")
+	}
+
+	dest := t.TempDir()
+
+	// Simulate an existing older install: a versioned library and the
+	// unversioned symlink pointing at it.
+	old := filepath.Join(dest, "libllama.0.0.10219.so")
+	if err := os.WriteFile(old, []byte("old library"), 0755); err != nil {
+		t.Fatalf("failed to create old library: %v", err)
+	}
+	link := filepath.Join(dest, "libllama.so")
+	if err := os.Symlink("libllama.0.0.10219.so", link); err != nil {
+		t.Fatalf("failed to create old symlink: %v", err)
+	}
+
+	mockTarGz := createMockVersionedTarGz(t, "b10375", "0.0.10375")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/gzip")
+		w.Write(mockTarGz)
+	}))
+	defer server.Close()
+
+	if err := downloadAndExtractTarGz(server.URL+"/b10375/llama-b10375-bin-ubuntu-x64.tar.gz", dest, nil); err != nil {
+		t.Fatalf("downloadAndExtractTarGz() failed: %v", err)
+	}
+
+	target, err := os.Readlink(link)
+	if err != nil {
+		t.Fatalf("failed to read symlink: %v", err)
+	}
+	if target != "libllama.0.0.10375.so" {
+		t.Fatalf("symlink points at %q, want the newly installed libllama.0.0.10375.so", target)
+	}
+
+	// The superseded versioned file is intentionally left in place, and must not
+	// have been overwritten through the stale symlink.
+	content, err := os.ReadFile(old)
+	if err != nil {
+		t.Fatalf("failed to read superseded library: %v", err)
+	}
+	if string(content) != "old library" {
+		t.Fatalf("superseded library was modified: %q", content)
 	}
 }

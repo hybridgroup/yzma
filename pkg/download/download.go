@@ -358,6 +358,12 @@ func downloadAndExtractTarGz(url, dest string, progress getter.ProgressTracker) 
 				return fmt.Errorf("failed to create parent directory: %w", err)
 			}
 
+			// Remove any existing entry first, so an upgrade replaces it instead of
+			// writing through a stale symlink left by a previous install.
+			if err := removeExisting(target); err != nil {
+				return err
+			}
+
 			// Create the file
 			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.FileMode(header.Mode))
 			if err != nil {
@@ -371,14 +377,42 @@ func downloadAndExtractTarGz(url, dest string, progress getter.ProgressTracker) 
 			}
 			f.Close()
 		case tar.TypeSymlink:
-			// Handle symlinks
+			// Ensure parent directory exists
+			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+				return fmt.Errorf("failed to create parent directory: %w", err)
+			}
+
+			// Remove any existing entry first. Keeping it would leave the version
+			// symlinks (e.g. libllama.dylib) pointing at the previously installed
+			// build, so an upgrade would have no effect at load time.
+			if err := removeExisting(target); err != nil {
+				return err
+			}
+
 			if err := os.Symlink(header.Linkname, target); err != nil {
-				// Ignore error if symlink already exists
-				if !os.IsExist(err) {
-					return fmt.Errorf("failed to create symlink: %w", err)
-				}
+				return fmt.Errorf("failed to create symlink: %w", err)
 			}
 		}
+	}
+
+	return nil
+}
+
+// removeExisting removes target unless it is already absent or a directory,
+// which is left alone so extraction can populate it.
+func removeExisting(target string) error {
+	fi, err := os.Lstat(target)
+	switch {
+	case os.IsNotExist(err):
+		return nil
+	case err != nil:
+		return fmt.Errorf("failed to stat %s: %w", target, err)
+	case fi.IsDir():
+		return nil
+	}
+
+	if err := os.Remove(target); err != nil {
+		return fmt.Errorf("failed to remove existing %s: %w", target, err)
 	}
 
 	return nil
