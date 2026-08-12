@@ -122,32 +122,25 @@ func AdapterLoraFree(adapter AdapterLora) error {
 }
 
 // AdapterMetaValStr gets metadata value as a string by key name.
+// The buffer grows as needed, so values of any length are returned in full.
 func AdapterMetaValStr(adapter AdapterLora, key string) (string, bool) {
 	if adapter == 0 {
 		return "", false
 	}
-	buf := make([]byte, 32768)
-	b := unsafe.SliceData(buf)
-	bLen := int32(len(buf))
 
 	keyPtr, _ := utils.BytePtrFromString(key)
-	var result ffi.Arg
-	adapterMetaValStrFunc.Call(
-		unsafe.Pointer(&result),
-		unsafe.Pointer(&adapter),
-		unsafe.Pointer(&keyPtr),
-		unsafe.Pointer(&b),
-		&bLen,
-	)
-	if int32(result) < 0 {
-		return "", false
-	}
 
-	// copy to a new slice to avoid retaining the entire buffer
-	value := make([]byte, int32(result))
-	copy(value, buf[:int32(result)])
-
-	return string(value), true
+	return metaStr(32768, func(b *byte, bLen uint64) int32 {
+		var result ffi.Arg
+		adapterMetaValStrFunc.Call(
+			unsafe.Pointer(&result),
+			unsafe.Pointer(&adapter),
+			unsafe.Pointer(&keyPtr),
+			unsafe.Pointer(&b),
+			&bLen,
+		)
+		return int32(result)
+	})
 }
 
 // AdapterMetaCount gets the number of metadata key/value pairs.
@@ -161,57 +154,41 @@ func AdapterMetaCount(adapter AdapterLora) int32 {
 }
 
 // AdapterMetaKeyByIndex gets metadata key name by index.
+// The buffer grows as needed, so keys of any length are returned in full.
 func AdapterMetaKeyByIndex(adapter AdapterLora, i int32) (string, bool) {
 	if adapter == 0 {
 		return "", false
 	}
-	buf := make([]byte, 128)
-	b := unsafe.SliceData(buf)
-	bLen := int32(len(buf))
 
-	var result ffi.Arg
-	adapterMetaKeyByIndexFunc.Call(
-		unsafe.Pointer(&result),
-		unsafe.Pointer(&adapter),
-		&i,
-		unsafe.Pointer(&b),
-		&bLen)
-	if int32(result) < 0 {
-		return "", false
-	}
-
-	// copy to a new slice to avoid retaining the entire buffer
-	value := make([]byte, int32(result))
-	copy(value, buf[:int32(result)])
-
-	return string(value), true
+	return metaStr(128, func(b *byte, bLen uint64) int32 {
+		var result ffi.Arg
+		adapterMetaKeyByIndexFunc.Call(
+			unsafe.Pointer(&result),
+			unsafe.Pointer(&adapter),
+			&i,
+			unsafe.Pointer(&b),
+			&bLen)
+		return int32(result)
+	})
 }
 
 // AdapterMetaValStrByIndex gets metadata value as a string by index.
+// The buffer grows as needed, so values of any length are returned in full.
 func AdapterMetaValStrByIndex(adapter AdapterLora, i int32) (string, bool) {
 	if adapter == 0 {
 		return "", false
 	}
-	buf := make([]byte, 32768)
-	b := unsafe.SliceData(buf)
-	bLen := int32(len(buf))
 
-	var result ffi.Arg
-	adapterMetaValStrByIndexFunc.Call(
-		unsafe.Pointer(&result),
-		unsafe.Pointer(&adapter),
-		&i,
-		unsafe.Pointer(&b),
-		&bLen)
-	if int32(result) < 0 {
-		return "", false
-	}
-
-	// copy to a new slice to avoid retaining the entire buffer
-	value := make([]byte, int32(result))
-	copy(value, buf[:int32(result)])
-
-	return string(value), true
+	return metaStr(32768, func(b *byte, bLen uint64) int32 {
+		var result ffi.Arg
+		adapterMetaValStrByIndexFunc.Call(
+			unsafe.Pointer(&result),
+			unsafe.Pointer(&adapter),
+			&i,
+			unsafe.Pointer(&b),
+			&bLen)
+		return int32(result)
+	})
 }
 
 // SetAdaptersLora sets LoRa adapters on the context. Will only modify if the adapters currently in context are different.

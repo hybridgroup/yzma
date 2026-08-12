@@ -106,3 +106,60 @@ func TestBatchAdd(t *testing.T) {
 		t.Errorf("Add did not set logits correctly, got %v", logitVals[0])
 	}
 }
+
+func TestBatchAddFull(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	batch := BatchInit(2, 0, 1)
+	defer BatchFree(batch)
+
+	if err := batch.Add(1, 0, []SeqId{0}, true); err != nil {
+		t.Fatalf("first Add returned error: %v", err)
+	}
+	if err := batch.Add(2, 1, []SeqId{0}, true); err != nil {
+		t.Fatalf("second Add returned error: %v", err)
+	}
+
+	// Batch is now at capacity (2); a third Add must fail without writing.
+	if err := batch.Add(3, 2, []SeqId{0}, true); err == nil {
+		t.Fatal("Add past capacity did not return an error")
+	}
+	if batch.NTokens != 2 {
+		t.Errorf("Add past capacity mutated NTokens, got %d want 2", batch.NTokens)
+	}
+}
+
+func TestBatchAddTooManySeqIDs(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	// n_seq_max == 1, so a token carrying 2 sequence IDs must be rejected.
+	batch := BatchInit(2, 0, 1)
+	defer BatchFree(batch)
+
+	if err := batch.Add(1, 0, []SeqId{0, 1}, true); err == nil {
+		t.Fatal("Add with seqIDs longer than n_seq_max did not return an error")
+	}
+	if batch.NTokens != 0 {
+		t.Errorf("rejected Add mutated NTokens, got %d want 0", batch.NTokens)
+	}
+}
+
+func TestBatchSetLogitOutOfRange(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	batch := BatchInit(2, 0, 1)
+	defer BatchFree(batch)
+
+	if err := batch.SetLogit(-1, true); err == nil {
+		t.Error("SetLogit(-1) did not return an error")
+	}
+	if err := batch.SetLogit(2, true); err == nil {
+		t.Error("SetLogit at capacity did not return an error")
+	}
+	if err := batch.SetLogit(0, true); err != nil {
+		t.Errorf("SetLogit(0) returned error: %v", err)
+	}
+}

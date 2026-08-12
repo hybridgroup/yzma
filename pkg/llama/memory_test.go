@@ -212,6 +212,14 @@ func TestMemorySeqDiv(t *testing.T) {
 		t.Fatalf("MemorySeqDiv failed for seqID: %d, p0: %d, p1: %d, d: %d: %v", seqID, p0, p1, d, err)
 	}
 	t.Logf("MemorySeqDiv executed successfully for seqID: %d, p0: %d, p1: %d, d: %d", seqID, p0, p1, d)
+
+	// A non-positive divisor must be rejected before it reaches C, where it
+	// would divide by zero or produce negative positions.
+	for _, bad := range []int{0, -1} {
+		if err := MemorySeqDiv(mem, seqID, p0, p1, bad); err == nil {
+			t.Errorf("MemorySeqDiv accepted d = %d, want an error", bad)
+		}
+	}
 }
 
 func TestMemorySeqPosMin(t *testing.T) {

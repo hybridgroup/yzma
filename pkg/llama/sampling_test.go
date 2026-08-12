@@ -208,7 +208,7 @@ func TestSamplerInitPenalties(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	sampler := SamplerInitPenalties(64, 1.0, 0.0, 0.0)
+	sampler := SamplerInitPenalties(32000, 64, 1.0, 0.0, 0.0)
 	if sampler == (Sampler(0)) {
 		t.Fatal("SamplerInitPenalties failed to initialize a penalties sampler")
 	}
@@ -229,7 +229,7 @@ func TestSamplerInitDry(t *testing.T) {
 
 	vocab := ModelGetVocab(model)
 
-	sampler := SamplerInitDry(vocab, 1024, 0.2, 0.2, 1.0, 2, []string{"the", "and", "of"})
+	sampler := SamplerInitDry(vocab, 0.2, 0.2, 1, 2, []string{"the", "and", "of"})
 	if sampler == (Sampler(0)) {
 		t.Fatal("SamplerInitDry failed to initialize a dry sampler")
 	}
@@ -250,12 +250,78 @@ func TestSamplerInitDry2(t *testing.T) {
 
 	vocab := ModelGetVocab(model)
 
-	sampler := SamplerInitDry(vocab, 1024, 0.2, 0.2, 1.0, 2, nil)
+	sampler := SamplerInitDry(vocab, 0.2, 0.2, 1, 2, nil)
 	if sampler == (Sampler(0)) {
 		t.Fatal("SamplerInitDry failed to initialize a dry sampler")
 	}
 
 	SamplerFree(sampler)
+}
+
+func TestResolvePenaltyLastN(t *testing.T) {
+	tests := []struct {
+		lastN, nCtx, want int32
+	}{
+		{lastN: 64, nCtx: 4096, want: 64},
+		{lastN: 0, nCtx: 4096, want: 0},
+		{lastN: -1, nCtx: 4096, want: 4096},
+		{lastN: -1, nCtx: -1, want: 0},
+	}
+
+	for _, tt := range tests {
+		if got := resolvePenaltyLastN(tt.lastN, tt.nCtx); got != tt.want {
+			t.Errorf("resolvePenaltyLastN(%d, %d) = %d, want %d", tt.lastN, tt.nCtx, got, tt.want)
+		}
+	}
+}
+
+// TestSamplerPenaltiesAndDrySample exercises the penalties and DRY samplers in an
+// actual sampling chain, so that a mismatched libffi call frame is caught.
+func TestSamplerPenaltiesAndDrySample(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	modelFile := testModelFileName(t)
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
+	defer Free(ctx)
+
+	vocab := ModelGetVocab(model)
+
+	sampler := SamplerChainInit(SamplerChainDefaultParams())
+	if sampler == (Sampler(0)) {
+		t.Fatal("SamplerChainInit failed to initialize a sampler chain")
+	}
+	defer SamplerFree(sampler)
+
+	SamplerChainAdd(sampler, SamplerInitPenalties(VocabNTokens(vocab), 64, 1.1, 0.1, 0.1))
+	SamplerChainAdd(sampler, SamplerInitDry(vocab, 0.8, 1.75, 2, 64, []string{"\n", ":", "\"", "*"}))
+	SamplerChainAdd(sampler, SamplerInitDist(DefaultSeed))
+
+	tokens := Tokenize(vocab, "Hello world", true, true)
+	if _, err := Decode(ctx, BatchGetOne(tokens)); err != nil {
+		t.Fatalf("Decode failed: %v", err)
+	}
+
+	for range 4 {
+		token := SamplerSample(sampler, ctx, -1)
+		if token == TokenNull {
+			t.Fatal("SamplerSample returned TokenNull")
+		}
+		SamplerAccept(sampler, token)
+
+		if _, err := Decode(ctx, BatchGetOne([]Token{token})); err != nil {
+			t.Fatalf("Decode failed: %v", err)
+		}
+	}
 }
 
 func TestSamplerInitLogitBias(t *testing.T) {

@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"math"
 	"testing"
 )
 
@@ -440,15 +441,90 @@ func TestVocabGetScore(t *testing.T) {
 
 	vocab := ModelGetVocab(model)
 
-	// Use a valid token for testing, e.g., BOS token
-	token := VocabBOS(vocab)
+	// Scores are log-probabilities, so they are commonly negative. Bound the
+	// magnitude rather than the sign: a float return read through an ffi.Arg
+	// is off by orders of magnitude (~1e9 and up), never merely negative.
+	for i := range VocabNTokens(vocab) {
+		token := Token(i)
+		if score := VocabGetScore(vocab, token); math.Abs(float64(score)) > 1e6 {
+			t.Fatalf("VocabGetScore returned %g for token %d, want a plausible score", score, token)
+		}
+	}
+}
+
+// TestVocabTokenOutOfRange checks that the token accessors reject an id that
+// is not in the vocabulary. llama.cpp resolves them through id_to_token.at(id),
+// which throws std::out_of_range; that exception cannot unwind across libffi,
+// so an unguarded call aborts the process instead of failing this test.
+func TestVocabTokenOutOfRange(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	vocab := ModelGetVocab(model)
+
+	for _, token := range []Token{-1, TokenNull, Token(VocabNTokens(vocab))} {
+		if score := VocabGetScore(vocab, token); score != 0 {
+			t.Errorf("VocabGetScore(%d) = %g, want 0", token, score)
+		}
+		if text := VocabGetText(vocab, token); text != "" {
+			t.Errorf("VocabGetText(%d) = %q, want empty", token, text)
+		}
+		if attr := VocabGetAttr(vocab, token); attr != TokenAttrUnknown {
+			t.Errorf("VocabGetAttr(%d) = %v, want TokenAttrUnknown", token, attr)
+		}
+		if VocabIsEOG(vocab, token) {
+			t.Errorf("VocabIsEOG(%d) = true, want false", token)
+		}
+		if VocabIsControl(vocab, token) {
+			t.Errorf("VocabIsControl(%d) = true, want false", token)
+		}
+		if n := TokenToPiece(vocab, token, make([]byte, 64), 0, false); n != 0 {
+			t.Errorf("TokenToPiece(%d) = %d, want 0", token, n)
+		}
+	}
+}
+
+// TestVocabGetScoreNonZero pins the float return type of llama_vocab_get_score.
+// The bound in TestVocabGetScore cannot do that on its own: every token of a
+// BPE vocab scores exactly 0.0, which is also what a float misread through an
+// ffi.Arg yields. The encoder model has a sentencepiece vocab with real
+// scores, so reading one through an ffi.Arg lands far outside the bound.
+func TestVocabGetScoreNonZero(t *testing.T) {
+	modelFile := testEncoderModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	vocab := ModelGetVocab(model)
+
+	token := Token(TokenNull)
+	for i := range VocabNTokens(vocab) {
+		if VocabGetScore(vocab, Token(i)) != 0 {
+			token = Token(i)
+			break
+		}
+	}
 	if token == TokenNull {
-		t.Skip("skipping test, model does not have BOS token")
+		t.Skip("skipping test, model has no token with a non-zero score")
 	}
 
 	score := VocabGetScore(vocab, token)
-	if score < 0 {
-		t.Fatalf("VocabGetScore returned an invalid score: %f for token: %d", score, token)
+	if math.Abs(float64(score)) > 1e6 {
+		t.Fatalf("VocabGetScore returned %g for token %d, want a plausible score", score, token)
 	}
 
 	t.Logf("VocabGetScore returned score: %f for token: %d", score, token)

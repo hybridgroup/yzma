@@ -3,6 +3,7 @@ package llama
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"unsafe"
 )
@@ -317,6 +318,50 @@ func TestModelClsLabel(t *testing.T) {
 	t.Logf("ModelClsLabel returned: %s", label)
 }
 
+// TestMetaStr drives the buffer growth directly, standing in for a model whose
+// metadata is large enough to overflow the initial buffer. The stub mimics
+// snprintf: it writes what fits, always NUL-terminates, and returns the length
+// it would have written.
+func TestMetaStr(t *testing.T) {
+	snprintf := func(value string) func(b *byte, bLen uint64) int32 {
+		return func(b *byte, bLen uint64) int32 {
+			buf := unsafe.Slice(b, bLen)
+			n := copy(buf[:len(buf)-1], value)
+			buf[n] = 0
+			return int32(len(value))
+		}
+	}
+
+	tests := []struct {
+		name  string
+		size  int
+		value string
+	}{
+		{"fits", 128, "llama 135M Q2_K"},
+		{"exactly one byte short", 16, "123456789012345"},
+		{"needs the whole buffer", 16, "1234567890123456"},
+		{"grows once", 8, strings.Repeat("x", 100)},
+		{"grows a long way", 4, strings.Repeat("chat template ", 5000)},
+		{"empty", 8, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := metaStr(tt.size, snprintf(tt.value))
+			if !ok {
+				t.Fatalf("metaStr(%d) failed for a %d byte value", tt.size, len(tt.value))
+			}
+			if got != tt.value {
+				t.Errorf("metaStr(%d) returned %d bytes, want %d", tt.size, len(got), len(tt.value))
+			}
+		})
+	}
+
+	if _, ok := metaStr(128, func(*byte, uint64) int32 { return -1 }); ok {
+		t.Error("metaStr reported success for a negative result")
+	}
+}
+
 func TestModelDesc(t *testing.T) {
 	modelFile := testModelFileName(t)
 
@@ -434,6 +479,14 @@ func TestModelRopeFreqScaleTrain(t *testing.T) {
 
 	freqScale := ModelRopeFreqScaleTrain(model)
 	t.Logf("ModelRopeFreqScaleTrain returned: %f", freqScale)
+
+	// A float return read through an ffi.Arg yields ~1.2e19 rather than a
+	// scaling factor, so pin the magnitude and not just the call. llama.cpp
+	// stores 1.0f/ropescale, which exceeds 1 for a GGUF with a scaling
+	// factor below 1, so the ceiling only has to exclude the garbage value.
+	if freqScale <= 0 || freqScale > 1e6 {
+		t.Fatalf("ModelRopeFreqScaleTrain returned %g, want a plausible scaling factor", freqScale)
+	}
 }
 
 func TestModelRopeType(t *testing.T) {
@@ -510,6 +563,26 @@ func TestModelMetaValStrByIndex(t *testing.T) {
 		t.Fatal("ModelMetaValStrByIndex failed for index 0")
 	}
 	t.Logf("ModelMetaValStrByIndex returned: %s", val)
+
+	// Enumerate every entry. The C side returns the would-be length, so an
+	// oversized value must be reported as a failure rather than panic on the
+	// copy or come back carrying its NUL terminator. Chat templates are the
+	// keys long enough to reach that path.
+	for i := range count {
+		key, ok := ModelMetaKeyByIndex(model, i)
+		if !ok {
+			t.Errorf("ModelMetaKeyByIndex failed for index %d", i)
+			continue
+		}
+		val, ok := ModelMetaValStrByIndex(model, i)
+		if !ok {
+			t.Errorf("ModelMetaValStrByIndex failed for index %d", i)
+			continue
+		}
+		if strings.ContainsRune(key, 0) || strings.ContainsRune(val, 0) {
+			t.Errorf("metadata entry %d (%q) contains a NUL terminator", i, key)
+		}
+	}
 }
 
 func TestModelMetaValStr(t *testing.T) {

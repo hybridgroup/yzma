@@ -407,10 +407,19 @@ func VocabFIMSep(vocab Vocab) Token {
 	return Token(token)
 }
 
+// validToken reports whether the token can be looked up in the vocabulary.
+// The llama_vocab_get_* accessors resolve tokens through id_to_token.at(id),
+// which throws std::out_of_range for an unknown id. That exception cannot
+// unwind through the Go stack across libffi, so an out of range token aborts
+// the process instead of returning an error.
+func validToken(vocab Vocab, token Token) bool {
+	return vocab != 0 && token >= 0 && token < Token(VocabNTokens(vocab))
+}
+
 // VocabIsEOG checks if a token is an end-of-generation token in the vocabulary.
 func VocabIsEOG(vocab Vocab, token Token) bool {
 	var result ffi.Arg
-	if vocab == 0 {
+	if !validToken(vocab, token) {
 		return false
 	}
 	vocabIsEOGFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&vocab), unsafe.Pointer(&token))
@@ -421,7 +430,7 @@ func VocabIsEOG(vocab Vocab, token Token) bool {
 // VocabIsControl checks if a token is a control token in the vocabulary.
 func VocabIsControl(vocab Vocab, token Token) bool {
 	var result ffi.Arg
-	if vocab == 0 {
+	if !validToken(vocab, token) {
 		return false
 	}
 	vocabIsControlFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&vocab), unsafe.Pointer(&token))
@@ -445,7 +454,7 @@ func VocabNTokens(vocab Vocab) int32 {
 // The `lstrip` parameter specifies the number of leading characters to strip from the piece.
 // The `special` parameter indicates whether to treat special tokens differently.
 func TokenToPiece(vocab Vocab, token Token, buf []byte, lstrip int32, special bool) int32 {
-	if vocab == 0 {
+	if !validToken(vocab, token) {
 		return 0
 	}
 	b := unsafe.SliceData(buf)
@@ -544,7 +553,7 @@ func Detokenize(vocab Vocab, tokens []Token, removeSpecial bool, unparseSpecial 
 
 // VocabGetAttr retrieves the attribute of a given token in the vocabulary.
 func VocabGetAttr(vocab Vocab, token Token) TokenAttr {
-	if vocab == 0 {
+	if !validToken(vocab, token) {
 		return TokenAttrUnknown
 	}
 	var attr ffi.Arg
@@ -554,17 +563,17 @@ func VocabGetAttr(vocab Vocab, token Token) TokenAttr {
 
 // VocabGetScore retrieves the score of a given token in the vocabulary.
 func VocabGetScore(vocab Vocab, token Token) float32 {
-	if vocab == 0 {
+	if !validToken(vocab, token) {
 		return 0.0
 	}
-	var score ffi.Arg
+	var score float32
 	vocabGetScoreFunc.Call(unsafe.Pointer(&score), unsafe.Pointer(&vocab), unsafe.Pointer(&token))
-	return float32(score)
+	return score
 }
 
 // VocabGetText retrieves the text representation of a given token in the vocabulary.
 func VocabGetText(vocab Vocab, token Token) string {
-	if vocab == 0 {
+	if !validToken(vocab, token) {
 		return ""
 	}
 	var textPtr *byte

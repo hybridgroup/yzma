@@ -5,6 +5,24 @@ import (
 	"testing"
 )
 
+func TestGGMLBackendCpuBufferType(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	// Binding this pointer-returning function with a void return type makes
+	// libffi write nothing, so the result is always NULL and every
+	// TensorBuftOverride built from it aborts llama.cpp during model load.
+	buft := GGMLBackendCpuBufferType()
+	if buft == 0 {
+		t.Fatal("GGMLBackendCpuBufferType returned NULL")
+	}
+	t.Logf("GGMLBackendCpuBufferType returned: %#x", uintptr(buft))
+
+	if o := NewTensorBuftAllFFNExprsOverride(); o.Type == 0 {
+		t.Fatal("NewTensorBuftAllFFNExprsOverride produced a NULL buffer type")
+	}
+}
+
 func TestGGMLBackendDevCount(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
@@ -170,13 +188,15 @@ func TestGGMLBackendDeviceMemory(t *testing.T) {
 func TestMoEExpertTensorPattern(t *testing.T) {
 	re := regexp.MustCompile(MoEExpertTensorPattern)
 
+	// Match against real llama.cpp tensor names, not against strings that
+	// contain a literal backslash.
 	match := []string{
-		`\.ffn_up_exps`,
-		`\.ffn_down_exps`,
-		`\.ffn_gate_exps`,
-		`\.ffn_up_chexps`,
-		`\.ffn_down_chexps`,
-		`\.ffn_gate_chexps`,
+		"blk.0.ffn_up_exps.weight",
+		"blk.12.ffn_down_exps.weight",
+		"blk.3.ffn_gate_exps.weight",
+		"blk.0.ffn_up_chexps.weight",
+		"blk.7.ffn_down_chexps.weight",
+		"blk.7.ffn_gate_chexps.weight",
 	}
 	for _, s := range match {
 		if !re.MatchString(s) {
@@ -185,13 +205,22 @@ func TestMoEExpertTensorPattern(t *testing.T) {
 	}
 
 	noMatch := []string{
-		`\.ffn_up_exp`,
-		".attn_q",
-		`\.ffn_down_chexp`,
+		"blk.0.ffn_up_exp.weight",
+		"blk.0.attn_q.weight",
+		"blk.0.ffn_down_chexp.weight",
 	}
 	for _, s := range noMatch {
 		if re.MatchString(s) {
 			t.Errorf("pattern should not match %q", s)
 		}
+	}
+
+	// the per-block pattern must keep the block prefix escaped correctly
+	blockRe := regexp.MustCompile(ffnExprBlockRegex(3))
+	if !blockRe.MatchString("blk.3.ffn_up_exps.weight") {
+		t.Error("block pattern should match its own block")
+	}
+	if blockRe.MatchString("blk.4.ffn_up_exps.weight") {
+		t.Error("block pattern should not match another block")
 	}
 }

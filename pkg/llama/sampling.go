@@ -68,7 +68,8 @@ var (
 	samplerInitLogitBiasFunc ffi.Fun
 
 	// LLAMA_API struct llama_sampler * llama_sampler_init_penalties(
-	// 						int32_t   penalty_last_n,   // last n tokens to penalize (0 = disable penalty, -1 = context size)
+	// 						int32_t   n_vocab,
+	// 						int32_t   penalty_last_n,   // last n tokens to penalize (0 = disable penalty)
 	// 						float   penalty_repeat,   // 1.0 = disabled
 	// 						float   penalty_freq,     // 0.0 = disabled
 	// 						float   penalty_present); // 0.0 = disabled
@@ -76,7 +77,6 @@ var (
 
 	// LLAMA_API struct llama_sampler * llama_sampler_init_dry(
 	// 	const struct llama_vocab *  vocab,
-	// 						int32_t    n_ctx_train,
 	// 						float    dry_multiplier,
 	// 						float    dry_base,
 	// 						int32_t    dry_allowed_length,
@@ -210,11 +210,13 @@ func loadSamplingFuncs(lib ffi.Lib) error {
 		return loadError("llama_sampler_init_logit_bias", err)
 	}
 
-	if samplerInitPenaltiesFunc, err = lib.Prep("llama_sampler_init_penalties", &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat); err != nil {
+	if samplerInitPenaltiesFunc, err = lib.Prep("llama_sampler_init_penalties", &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeFloat,
+		&ffi.TypeFloat, &ffi.TypeFloat); err != nil {
+
 		return loadError("llama_sampler_init_penalties", err)
 	}
 
-	if samplerInitDryFunc, err = lib.Prep("llama_sampler_init_dry", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeFloat, &ffi.TypeFloat,
+	if samplerInitDryFunc, err = lib.Prep("llama_sampler_init_dry", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeFloat,
 		&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer, &ffiTypeSize); err != nil {
 
 		return loadError("llama_sampler_init_dry", err)
@@ -407,15 +409,19 @@ func SamplerInitLogitBias(nVocab int32, nLogitBias int32, logitBias *LogitBias) 
 }
 
 // SamplerInitPenalties initializes a new penalties sampler.
-func SamplerInitPenalties(lastN int32, repeat float32, freq float32, present float32) Sampler {
+// lastN is the number of last tokens to penalize, and must not be negative:
+// llama.cpp clamps negative values to 0, so resolve -1 to the context size first.
+func SamplerInitPenalties(nVocab int32, lastN int32, repeat float32, freq float32, present float32) Sampler {
 	var p Sampler
-	samplerInitPenaltiesFunc.Call(unsafe.Pointer(&p), &lastN, &repeat, &freq, &present)
+	samplerInitPenaltiesFunc.Call(unsafe.Pointer(&p), &nVocab, &lastN, &repeat, &freq, &present)
 
 	return p
 }
 
 // SamplerInitDry initializes a new DRY sampler.
-func SamplerInitDry(vocab Vocab, nCtxTrain int32, multiplier float32, base float32, allowedLength int32, penaltyLast int32,
+// penaltyLast is the number of last tokens to penalize, and must not be negative:
+// llama.cpp clamps negative values to 0, so resolve -1 to the context size first.
+func SamplerInitDry(vocab Vocab, multiplier float32, base float32, allowedLength int32, penaltyLast int32,
 	seqBreakers []string) Sampler {
 	var sp unsafe.Pointer
 	numBreakers := uint64(len(seqBreakers))
@@ -432,7 +438,7 @@ func SamplerInitDry(vocab Vocab, nCtxTrain int32, multiplier float32, base float
 	}
 
 	var p Sampler
-	samplerInitDryFunc.Call(unsafe.Pointer(&p), unsafe.Pointer(&vocab), &nCtxTrain, &multiplier, &base, &allowedLength, &penaltyLast,
+	samplerInitDryFunc.Call(unsafe.Pointer(&p), unsafe.Pointer(&vocab), &multiplier, &base, &allowedLength, &penaltyLast,
 		&sp, &numBreakers)
 	return p
 }
@@ -456,7 +462,10 @@ func SamplerInitTopK(k int32) Sampler {
 // SamplerInitTypical initializes a new Typical-P sampler.
 func SamplerInitTypical(p float32, keep uint32) Sampler {
 	var s Sampler
-	samplerInitTypicalFunc.Call(unsafe.Pointer(&s), &p, &keep)
+	// min_keep is a size_t: the value passed must be 8 bytes wide to match
+	// the cif, otherwise libffi reads adjacent Go memory as the high word.
+	minKeep := uint64(keep)
+	samplerInitTypicalFunc.Call(unsafe.Pointer(&s), &p, &minKeep)
 
 	return s
 }
@@ -464,7 +473,8 @@ func SamplerInitTypical(p float32, keep uint32) Sampler {
 // SamplerInitTopP initializes a new Top-P sampler.
 func SamplerInitTopP(p float32, keep uint32) Sampler {
 	var s Sampler
-	samplerInitTopPFunc.Call(unsafe.Pointer(&s), &p, &keep)
+	minKeep := uint64(keep)
+	samplerInitTopPFunc.Call(unsafe.Pointer(&s), &p, &minKeep)
 
 	return s
 }
@@ -472,7 +482,8 @@ func SamplerInitTopP(p float32, keep uint32) Sampler {
 // SamplerInitMinP initializes a new Min-P sampler.
 func SamplerInitMinP(p float32, keep uint32) Sampler {
 	var s Sampler
-	samplerInitMinPFunc.Call(unsafe.Pointer(&s), &p, &keep)
+	minKeep := uint64(keep)
+	samplerInitMinPFunc.Call(unsafe.Pointer(&s), &p, &minKeep)
 
 	return s
 }
@@ -480,7 +491,8 @@ func SamplerInitMinP(p float32, keep uint32) Sampler {
 // SamplerInitXTC initializes a new XTC sampler.
 func SamplerInitXTC(p float32, t float32, minKeep uint32, seed uint32) Sampler {
 	var s Sampler
-	samplerInitXTCFunc.Call(unsafe.Pointer(&s), &p, &t, &minKeep, &seed)
+	keep := uint64(minKeep)
+	samplerInitXTCFunc.Call(unsafe.Pointer(&s), &p, &t, &keep, &seed)
 
 	return s
 }
@@ -667,6 +679,16 @@ var (
 	}
 )
 
+// resolvePenaltyLastN maps the documented -1 ("context size") value to nCtx, since
+// llama.cpp clamps any negative penalty_last_n to 0 (= penalty disabled) instead.
+func resolvePenaltyLastN(lastN, nCtx int32) int32 {
+	if lastN < 0 {
+		return max(nCtx, 0)
+	}
+
+	return lastN
+}
+
 // NewSampler creates a new sampling chain.
 // The samplers parameter is a list of SamplerType values to include in the chain.
 // The samplers are added in the order they appear in the list.
@@ -679,6 +701,7 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 	}
 	vocab := ModelGetVocab(model)
 	nTokens := VocabNTokens(vocab)
+	nCtxTrain := ModelNCtxTrain(model)
 
 	sampler = SamplerChainInit(SamplerChainDefaultParams())
 
@@ -691,6 +714,14 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 		}
 	}
 
+	// Samplers keep at least this many candidates. The C parameter is an
+	// unsigned size_t where 0 means no floor, so treat any non-positive
+	// MinKeep as 0.
+	minKeep := uint32(0)
+	if params.MinKeep > 0 {
+		minKeep = uint32(params.MinKeep)
+	}
+
 	// add other samplers
 	for _, samplerType := range samplers {
 		switch samplerType {
@@ -699,7 +730,8 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 			SamplerChainAdd(sampler, bias)
 
 		case SamplerTypeDry:
-			dry := SamplerInitDry(vocab, ModelNCtxTrain(model), params.DryMultiplier, params.DryBase, params.DryAllowedLength, params.DryPenaltyLastN, params.DrySequenceBreakers)
+			dry := SamplerInitDry(vocab, params.DryMultiplier, params.DryBase, params.DryAllowedLength,
+				resolvePenaltyLastN(params.DryPenaltyLastN, nCtxTrain), params.DrySequenceBreakers)
 			SamplerChainAdd(sampler, dry)
 
 		case SamplerTypeTopK:
@@ -707,15 +739,15 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 			SamplerChainAdd(sampler, topK)
 
 		case SamplerTypeTopP:
-			topP := SamplerInitTopP(params.TopP, 0)
+			topP := SamplerInitTopP(params.TopP, minKeep)
 			SamplerChainAdd(sampler, topP)
 
 		case SamplerTypeMinP:
-			minP := SamplerInitMinP(params.MinP, 0)
+			minP := SamplerInitMinP(params.MinP, minKeep)
 			SamplerChainAdd(sampler, minP)
 
 		case SamplerTypeTypicalP:
-			typical := SamplerInitTypical(params.TypP, 0)
+			typical := SamplerInitTypical(params.TypP, minKeep)
 			SamplerChainAdd(sampler, typical)
 
 		case SamplerTypeTemperature:
@@ -723,14 +755,15 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 			SamplerChainAdd(sampler, temp)
 
 		case SamplerTypeXTC:
-			xtc := SamplerInitXTC(params.XTCProbability, params.XTCThreshold, 0, params.Seed)
+			xtc := SamplerInitXTC(params.XTCProbability, params.XTCThreshold, minKeep, params.Seed)
 			SamplerChainAdd(sampler, xtc)
 
 		case SamplerTypeInfill:
 			// TODO: add implementation
 
 		case SamplerTypePenalties:
-			penalties := SamplerInitPenalties(params.PenaltyLastN, params.PenaltyRepeat, params.PenaltyFreq, params.PenaltyPresent)
+			penalties := SamplerInitPenalties(nTokens, resolvePenaltyLastN(params.PenaltyLastN, nCtxTrain),
+				params.PenaltyRepeat, params.PenaltyFreq, params.PenaltyPresent)
 			SamplerChainAdd(sampler, penalties)
 
 		case SamplerTypeTopNSigma:
@@ -807,7 +840,7 @@ func DefaultSamplerParams() *SamplerParams {
 		DynatempRange: 0.0,
 		// controls how entropy maps to temperature in dynamic temperature sampler
 		DynatempExponent: 1.0,
-		// last n tokens to penalize (0 = disable penalty, -1 = context size)
+		// last n tokens to penalize (0 = disable penalty, -1 = trained context size)
 		PenaltyLastN: 64,
 		// 1.0 = disabled
 		PenaltyRepeat: 1.0,
@@ -821,7 +854,7 @@ func DefaultSamplerParams() *SamplerParams {
 		DryBase: 1.75,
 		// tokens extending repetitions beyond this receive penalty
 		DryAllowedLength: 2,
-		// how many tokens to scan for repetitions (0 = disable penalty, -1 = context size)
+		// how many tokens to scan for repetitions (0 = disable penalty, -1 = trained context size)
 		DryPenaltyLastN: -1,
 		// 0 = disabled, 1 = mirostat, 2 = mirostat 2.0
 		Mirostat: 0,
