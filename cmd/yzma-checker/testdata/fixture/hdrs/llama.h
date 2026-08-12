@@ -132,6 +132,19 @@ LLAMA_API void fx_set_name(struct fx_thing * t, const char * name);
 LLAMA_API void fx_set_path(struct fx_thing * t, const char * path);
 LLAMA_API void fx_set_text(struct fx_thing * t, const char * text);
 
+// The enum parameters. All three slots are &ffi.TypeSint32 against a 4-byte C
+// enum on the descriptor side and a 4-byte Go int32 on the value side, so every
+// rule passes all of them and only the enum a value belongs to separates them.
+//
+// fx_set_level is the plant, fed the enum that mirrors llama_fx_split_mode, so
+// the library is asked for a split mode where a level belongs. fx_set_flag is the
+// control, fed the type that mirrors its own enum. fx_set_mode is the
+// out-of-scope control: a plain int32 names no enum to compare against, exactly
+// as a void * names no pointer target, so it is neither a finding nor a skip.
+LLAMA_API void fx_set_level(struct fx_thing * t, enum llama_fx_level level);
+LLAMA_API void fx_set_flag(struct fx_thing * t, enum llama_fx_flag flag);
+LLAMA_API void fx_set_mode(struct fx_thing * t, enum llama_fx_split_mode mode);
+
 // RULE 4. LLAMA_FX_LEVEL_LOW is the member "upstream inserted": every member
 // after it moved up by one, and the Go constant for HIGH still carries the old
 // value. Nothing about that is visible to a compiler on either side.

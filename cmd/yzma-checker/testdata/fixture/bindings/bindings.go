@@ -251,6 +251,9 @@ var (
 	setNameFunc    ffi.Fun
 	setPathFunc    ffi.Fun
 	setTextFunc    ffi.Fun
+	setLevelFunc   ffi.Fun
+	setFlagFunc    ffi.Fun
+	setModeFunc    ffi.Fun
 )
 
 func load(lib ffi.Lib) error {
@@ -368,6 +371,21 @@ func load(lib ffi.Lib) error {
 	}
 
 	if setTextFunc, err = lib.Prep("fx_set_text", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return err
+	}
+
+	// The enum-parameter group. Every descriptor is &ffi.TypeSint32 and every Go
+	// value is a 4-byte int32, so the only thing that separates the plant from its
+	// controls is which enumeration the value belongs to.
+	if setLevelFunc, err = lib.Prep("fx_set_level", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return err
+	}
+
+	if setFlagFunc, err = lib.Prep("fx_set_flag", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return err
+	}
+
+	if setModeFunc, err = lib.Prep("fx_set_mode", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
 		return err
 	}
 
@@ -568,6 +586,27 @@ func SetText(thing uintptr, text string) {
 	text += "\x00"
 	p := unsafe.StringData(text)
 	setTextFunc.Call(nil, unsafe.Pointer(&thing), unsafe.Pointer(&p))
+}
+
+// SetLevel is the enum-parameter plant: C takes a llama_fx_level and this passes
+// the type that mirrors llama_fx_split_mode. Both are 4 bytes of sint on both
+// sides, so the call succeeds and the library is asked for a different
+// enumeration than the caller named.
+func SetLevel(thing uintptr, mode FxSplitMode) {
+	setLevelFunc.Call(nil, unsafe.Pointer(&thing), unsafe.Pointer(&mode))
+}
+
+// SetFlag is the control, and the half that matters: a yzma enum type passed to
+// the parameter that takes its own C enum is how every such call in the tree is
+// written.
+func SetFlag(thing uintptr, flag FxFlag) {
+	setFlagFunc.Call(nil, unsafe.Pointer(&thing), unsafe.Pointer(&flag))
+}
+
+// SetMode is the out-of-scope control: an unnamed integer mirrors no enum, so
+// there is nothing to compare it against and nothing to skip either.
+func SetMode(thing uintptr, mode int32) {
+	setModeFunc.Call(nil, unsafe.Pointer(&thing), unsafe.Pointer(&mode))
 }
 
 var _ = load

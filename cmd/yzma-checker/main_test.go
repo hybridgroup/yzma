@@ -123,6 +123,15 @@ func TestFixtureFindsEveryPlantedDefect(t *testing.T) {
 			match: "arg1: C const char * needs a NUL-terminated buffer but unsafe.Pointer(&n) is built from []byte(name) with no terminator",
 		},
 		{
+			// The enum-parameter plant. The slot is 4 bytes of sint on the C side,
+			// the descriptor side and the Go side, and there is no pointer target
+			// and no member to transpose, so every rule passes it: the value simply
+			// belongs to another enumeration than the one C is indexing.
+			name: "rule2 enum parameter passed a value of another enumeration",
+			rule: 2, fn: "fx_set_level",
+			match: "arg1: C takes enum llama_fx_level but Go yzma-checker-fixture/bindings.FxSplitMode mirrors enum llama_fx_split_mode",
+		},
+		{
 			// The callback plants, in the direction where C calls Go. The width
 			// is right here and the class is not, so libffi reads the correct
 			// four bytes and the closure then reads a float's bit pattern as an
@@ -211,6 +220,11 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 		// sites in the tree are, so a rule that reported either would report all
 		// of them.
 		"fx_set_path": true, "fx_set_text": true,
+		// The enum-parameter controls: fx_set_flag is fed the yzma type that
+		// mirrors its own C enum, which is how every enum-taking call in the tree is
+		// written, and fx_set_mode is fed a plain int32, which names no enum and so
+		// must be neither a finding nor a skip.
+		"fx_set_flag": true, "fx_set_mode": true,
 		"LLAMA_FX_LEVEL_OFF": true, "LLAMA_FX_LEVEL_LOW": true, "LLAMA_FX_LEVEL_MAX": true,
 		"LLAMA_FX_FLAG_AUTO": true, "LLAMA_FX_FLAG_NONE": true,
 		"LLAMA_FX_FLAG_A": true, "LLAMA_FX_FLAG_B": true,
@@ -247,7 +261,7 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 		}
 	}
 
-	if got, want := len(rep.Viols), 18; got != want {
+	if got, want := len(rep.Viols), 19; got != want {
 		t.Errorf("fixture produced %d violations, want %d:\n%s", got, want, dumpViolations(rep))
 	}
 }
@@ -297,11 +311,11 @@ func TestFixtureSignedness(t *testing.T) {
 func TestFixtureAccounting(t *testing.T) {
 	rep := fixtureReport(t)
 
-	if got, want := len(rep.Bindings), 26; got != want {
+	if got, want := len(rep.Bindings), 29; got != want {
 		t.Errorf("bindings found = %d, want %d", got, want)
 	}
 
-	if got, want := rep.Matched, 26; got != want {
+	if got, want := rep.Matched, 29; got != want {
 		t.Errorf("bindings matched to a C decl = %d, want %d", got, want)
 	}
 
@@ -334,8 +348,8 @@ func TestFixtureAccounting(t *testing.T) {
 		t.Fatalf("coverage lines = %d, want %d: %+v", got, want, rep.Coverage)
 	}
 
-	if c := rep.Coverage[0]; c.Header != "llama.h" || c.Bound != 26 || c.Decls != 27 {
-		t.Errorf("coverage line = %+v, want llama.h 26 of 27 bound", c)
+	if c := rep.Coverage[0]; c.Header != "llama.h" || c.Bound != 29 || c.Decls != 30 {
+		t.Errorf("coverage line = %+v, want llama.h 29 of 30 bound", c)
 	}
 
 	if len(rep.Unresolved) != 0 {
@@ -478,6 +492,19 @@ func TestFixtureAccounting(t *testing.T) {
 
 	if got, want := rep.CleanNUL, 2; got != want {
 		t.Errorf("NUL-terminated C string buffers = %d, want %d", got, want)
+	}
+
+	// The enum-parameter comparisons. Two of the fixture's three enum slots are fed
+	// a Go type whose mirrored members say which C enum it stands for: the plant and
+	// its control. fx_set_mode's plain int32 mirrors nothing, so it is out of scope
+	// rather than a skip, exactly as a void * is for the pointer targets - and
+	// pinning the count at two is what keeps that narrowing visible.
+	if got, want := rep.CheckedEnum, 2; got != want {
+		t.Errorf("enum params compared = %d, want %d", got, want)
+	}
+
+	if got, want := rep.CleanEnum, 1; got != want {
+		t.Errorf("clean enum params = %d, want %d", got, want)
 	}
 
 	// Ten slot lines plus the one Go-only-tail note for fx_use_geom_tail.

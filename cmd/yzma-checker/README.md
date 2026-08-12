@@ -111,7 +111,9 @@ A pointer slot needs one more comparison than a width, because every pointer is
 8 bytes: what it points *at* is compared too, and a `float *` fed a `*int32` is a
 RULE 2 finding — see *Pointer targets*, below. A `char *` slot needs a third,
 because C finds the end of a string in the bytes and Go never puts a terminator
-there — see *C string termination*.
+there — see *C string termination*. And an `enum` slot needs one the width cannot
+give either, because every enum here is the same 4 bytes of sint: that the value
+belongs to *that* enumeration — see *Enum parameters*.
 
 For a **struct** passed by value the C-declared size is the authority in one
 direction only: since libffi reaches exactly that far, a Go struct that appends
@@ -388,6 +390,43 @@ pair would be the C struct against the Go struct, through a target threaded
 alongside every leaf on both sides. That is a wider change than the check earns,
 so it was left out deliberately rather than half-done.
 
+### Enum parameters
+
+RULE 4 checks that `PoolingTypeMean` still *holds* `LLAMA_POOLING_TYPE_MEAN`'s
+value. Where that value is then *passed* was the other half, and nothing looked
+at it. `classify()` maps every C enum to `KindSint`/4 and every yzma enum type is
+an `int32`, so a `SplitMode` handed to a parameter that takes a
+`llama_pooling_type` is 4 bytes of sint on the C side, the descriptor side and
+the Go side. There is no pointer target and no member to transpose, so all five
+rules pass it and the library is simply asked for a different enumeration than
+the caller named — the same wrong-data-not-wrong-memory class as a transposed
+struct member.
+
+The evidence needed to see it already exists, and is RULE 4's: matching
+`PoolingTypeMean` to `LLAMA_POOLING_TYPE_MEAN` also says which C enum yzma's
+`PoolingType` stands for, because that is the enum the member sits in. So the
+mapping is a by-product of the constant matching rather than a second name
+normaliser, and `constEnumTags` — already there for `Ftype`/`llama_ftype` — is
+what breaks a tie. RULE 4 therefore runs before the call sites now. The C side is
+the enum *tag*, recovered from the `enum <tag>` spelling in the header and
+through a typedef chain for the spellings that are not, because the tag is the
+only thing that distinguishes two enums the ABI considers identical. A mismatch
+is a **RULE 2** finding: what is compared is the Go value against the slot it is
+passed in, exactly as for a pointer target.
+
+The scope is where the Go side names a type the mapping keys on, and it is
+narrowed rather than filled with skips. A slot fed a plain `int32` or `uint32`
+names no enumeration at all — nothing about an unnamed integer is wrong, and
+there is nothing to compare it against, exactly as a `void *` names no pointer
+target — so it is outside the claim rather than a skip. So is a Go enum type with
+no mirrored member (nothing keys on it) and, theoretically, one whose members
+straddle two C enums, which no yzma type does. All six enum-typed parameter slots
+in the tree are inside the scope today, and the number is on the `SUMMARY` as
+`enum params compared`, so a narrowing shows up as a smaller number rather than
+as silence. Enum *members inside a by-value struct* are out, for the same reason
+data-pointer members are: a leaf carries offset, width and class, and the tag is
+in neither the descriptor nor the Go type.
+
 ### C string termination
 
 Widths, classes and pointer targets all agree for a Go byte buffer behind a
@@ -548,7 +587,8 @@ measurement rather than an assertion:
   `SUMMARY`.
 
 - `SUMMARY` — declarations parsed, bindings matched, and checked/clean counts
-  per rule, plus struct layouts, pointer targets and C string buffers compared.
+  per rule, plus struct layouts, pointer targets, C string buffers and enum
+  parameters compared.
   Those three counts are separate because a
   layout comparison that quietly stopped resolving would still leave the rule it
   belongs to reporting zero violations. The RULE 4 line carries three more
@@ -661,6 +701,16 @@ string yzma passes. The gate also pins the scope count at three, so the two
 and `fx_mode_from_str`'s `*byte` parameter — stay out of it and stay out of the
 skips.
 
+For the enum-parameter comparison the header grows three declarations of the
+same shape, each taking one 4-byte C enum. `fx_set_level` takes a
+`llama_fx_level` and is passed the Go type that mirrors `llama_fx_split_mode` —
+the plant, whose slot is `&ffi.TypeSint32` against a 4-byte Go int32, so every
+other rule passes it. `fx_set_flag` is the control, passed the type that mirrors
+its own enum, which is how all six real sites are written: a rule that reported it
+would report every one of them. `fx_set_mode` is the out-of-scope control, passed
+a plain `int32`, and the gate pins the scope count at two so that slot stays
+neither a finding nor a skip.
+
 For RULE 5 the fixture header grows four function-pointer typedefs and the
 fixture package four callback sites, one plant and one clean control per form: a
 descriptor declaring `&ffi.TypeSint32` where the typedef says `float`, a purego
@@ -702,7 +752,7 @@ failure mode the fixture avoids.
 | `sources.go` | resolving the yzma tree, the llama.cpp ref, and the headers |
 | `cheader.go` | C declaration parser: comment blanking that preserves byte offsets, `DEPRECATED(...)` unwrapping, typedef/enum resolution, top-level comma splitting |
 | `cstruct.go` | C struct layout for struct-by-value slots; iterates to a fixpoint because `llama.h` structs reference typedefs declared in `ggml-backend.h` |
-| `cenum.go` | RULE 4: C enum members and integer `#define`s with a small C constant-expression evaluator, the Go constants from `go/types`, the name matching between them, and the partially-mirrored-enum inventory |
+| `cenum.go` | RULE 4: C enum members and integer `#define`s with a small C constant-expression evaluator, the Go constants from `go/types`, the name matching between them, the C enum each yzma enum type is thereby known to mirror, and the partially-mirrored-enum inventory |
 | `ccallback.go` | RULE 5: C function-pointer typedefs, the link from a Go callback site to the typedef it implements, the comparison for both callback forms, and the function-pointer struct members C reaches a callback through |
 | `layout.go` | flattens a C struct, a cif descriptor and a Go struct to a common member list, diffs them, and matches members by name to find transpositions |
 | `goside.go` | `go/packages` type-checked walk: `lib.Prep`/`PrepVar` → binding spec, `<var>.Call(...)` → the Go type libffi will actually read bytes from and, for a C string, the buffer it was built from, `ffi.PrepCif`/`purego.NewCallback` → callback site, `ffi.PrepClosureLoc` and the assignments that install a code pointer in a struct field |
@@ -800,10 +850,16 @@ in that derivation would be invisible here.
   `// C_NAME` comment or listed in `goOnlyConsts`. That means the rule is only
   as complete as those lists — but never quietly so, because the incomplete case
   is a skip and a clean run has none.
-- **What a constant is used *for*.** RULE 4 says `PoolingTypeMean` is the same
-  integer as `LLAMA_POOLING_TYPE_MEAN`; it cannot say that yzma passes it to a
-  parameter that takes a `llama_pooling_type` rather than to some other enum of
-  the same width. Nothing in the C ABI distinguishes those.
+- **What a constant is used *for*, past the parameter slot.** RULE 4 says
+  `PoolingTypeMean` is the same integer as `LLAMA_POOLING_TYPE_MEAN`, and *Enum
+  parameters* above now also says that a value passed into a C parameter of enum
+  type belongs to that enum and not to another one of the same width — for the
+  six such slots where the Go side names an enum type RULE 4 has members for. What
+  is still uncovered is everything one step further: a slot fed a bare `int32`,
+  an enum-typed *member* of a by-value struct, an enum-typed *return* converted by
+  the caller, and which *member* of the right enum a call passes. Nothing in the C
+  ABI distinguishes any of those, and the last one is a matter of program logic
+  rather than of types.
 - **Whether the unbound declarations *should* be bound.** The coverage inventory
   counts them and names them; it cannot say which of them yzma is missing. That
   judgement is the maintainer's, and the inventory exists so it can be made

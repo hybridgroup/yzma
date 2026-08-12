@@ -69,6 +69,13 @@ var ptrChecked, ptrClean int
 // that it stopped looking. See cmpStringTerm.
 var nulChecked, nulClean int
 
+// Enum-typed parameter slots compared against the yzma enum type that mirrors
+// the C enum, counted separately for the same reason the pointer targets are:
+// the claim is only made where the Go side names a type RULE 4 has evidence
+// about, so a narrowing of that scope would leave RULE 2 reporting zero enum
+// findings without reporting that it stopped looking. See cmpEnumType.
+var enumChecked, enumClean int
+
 // members renders a leaf count for the STRUCT-BY-VALUE COMPARISONS report,
 // distinguishing "no members" from "layout not resolvable".
 func members(ls []Leaf, ok bool) string {
@@ -182,6 +189,7 @@ type report struct {
 	CheckedLayout, CleanLayout                            int
 	CheckedPtr, CleanPtr                                  int
 	CheckedNUL, CleanNUL                                  int
+	CheckedEnum, CleanEnum                                int
 
 	// Function-pointer struct members compared, and how many of those had a
 	// stored code pointer that could be traced back to a callback site. Counted
@@ -216,6 +224,7 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 	layoutChecked, layoutClean = 0, 0
 	ptrChecked, ptrClean = 0, 0
 	nulChecked, nulClean = 0, 0
+	enumChecked, enumClean = 0, 0
 	resetCTypes()
 
 	// --- C side ---
@@ -346,6 +355,13 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		}
 		return all[i].PrepPos.Line < all[j].PrepPos.Line
 	})
+
+	// ---------- Rule 4: mirrored constant values ----------
+	//
+	// Ahead of the call sites, because matching each constant to its C counterpart
+	// is also what resolves which C enum a yzma enum type stands for, and RULE 2
+	// needs that mapping while it walks the argument slots. See cmpEnumType.
+	constViols, checkedR4, cleanR4, localConsts := checkConsts(loaded)
 
 	var viols []violation
 	matched, noC, checkedR1, checkedR2, checkedR3 := 0, 0, 0, 0, 0
@@ -511,6 +527,9 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 				if p := cmpPointerTarget(ca, cArg, b.CName, csp, fmt.Sprintf("arg%d", i)); p != "" {
 					probs = append(probs, p)
 				}
+				if p := cmpEnumType(ca, cArg, fmt.Sprintf("arg%d", i)); p != "" {
+					probs = append(probs, p)
+				}
 				if p := cmpStringTerm(ca, cArg, fmt.Sprintf("arg%d", i)); p != "" {
 					probs = append(probs, p)
 				}
@@ -618,8 +637,6 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		viols = append(viols, checkFnPtrMembers(s)...)
 	}
 
-	// ---------- Rule 4: mirrored constant values ----------
-	constViols, checkedR4, cleanR4, localConsts := checkConsts(loaded)
 	viols = append(viols, constViols...)
 
 	// The enum-member inventory reads the mirror set checkConsts just filled, so
@@ -674,6 +691,9 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 
 		CheckedNUL: nulChecked,
 		CleanNUL:   nulClean,
+
+		CheckedEnum: enumChecked,
+		CleanEnum:   enumClean,
 
 		CheckedFnPtr: fnptrChecked,
 		CleanFnPtr:   fnptrClean,
@@ -773,6 +793,7 @@ func printReport(r *report) {
 	fmt.Printf("struct layouts compared:   %d / %d clean\n", r.CheckedLayout, r.CleanLayout)
 	fmt.Printf("pointer targets compared:  %d / %d clean\n", r.CheckedPtr, r.CleanPtr)
 	fmt.Printf("C string buffers checked:  %d / %d NUL-terminated\n", r.CheckedNUL, r.CleanNUL)
+	fmt.Printf("enum params compared:      %d / %d clean\n", r.CheckedEnum, r.CleanEnum)
 	fmt.Printf("signedness findings:       %d (not violations)\n", len(r.Signs))
 	nr := map[int]int{}
 	for _, v := range r.Viols {
@@ -1000,6 +1021,51 @@ func cmpPointerTarget(ca CallArg, cRaw, fn, pos, slot string) string {
 	}
 
 	ptrClean++
+
+	return ""
+}
+
+// cmpEnumType checks that a C parameter of enum type is passed the yzma enum
+// type that mirrors *that* enum.
+//
+// Every C enum here is 4 bytes of sint (classify) and every yzma enum type is an
+// int32, so a SplitMode handed to a parameter that takes a llama_pooling_type
+// matches in width, matches in ABI class, has no pointer target and no members
+// to transpose: all five rules pass it, and the library is simply asked for a
+// different thing than the caller named. That is the wrong-data class again, at
+// the one place RULE 4 could not reach - RULE 4 says PoolingTypeMean holds
+// LLAMA_POOLING_TYPE_MEAN's value, never that it is passed where that enum is
+// wanted.
+//
+// The mapping is RULE 4's own: the C enum a Go type stands for is the enum its
+// mirrored members sit in (goEnumOf). So the claim is only made where the Go side
+// names a type with mirrored members - a plain int32 or uint32 names no enum at
+// all, exactly as a `void *` names no pointer target, and is outside this rather
+// than a skip. What is inside it is on the SUMMARY, so a narrowing is visible.
+func cmpEnumType(ca CallArg, cRaw, slot string) string {
+	tag := cEnumOf(cRaw)
+	if tag == "" || ca.Pointee == nil {
+		return ""
+	}
+
+	named, ok := ca.Pointee.(*types.Named)
+	if !ok {
+		return ""
+	}
+
+	got := goEnumOf(named.Obj().Name())
+	if got == "" {
+		return ""
+	}
+
+	enumChecked++
+
+	if got != tag {
+		return fmt.Sprintf("%s: C takes enum %s but Go %s mirrors enum %s (%s): the value is the wrong enumeration, of the same width",
+			slot, tag, ca.Pointee.String(), got, ca.Expr)
+	}
+
+	enumClean++
 
 	return ""
 }

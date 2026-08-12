@@ -77,6 +77,13 @@ var (
 	// this run. It is what the partially-mirrored enum inventory subtracts from:
 	// RULE 4 walks the Go side, so a C member nothing mirrors is invisible to it.
 	cconstMirrored = map[string]bool{}
+
+	// goEnumTags records, per Go constant type, the C enums its mirrored members
+	// belong to. It is the by-product that makes the enum-parameter check
+	// possible: RULE 4 already resolves PoolingTypeMean to
+	// LLAMA_POOLING_TYPE_MEAN, and that member's enum tag is the one C enum
+	// yzma's PoolingType stands for. See goEnumOf and cmpEnumType.
+	goEnumTags = map[string]map[string]bool{}
 )
 
 func resetCConsts() {
@@ -85,6 +92,7 @@ func resetCConsts() {
 	clear(cconstByNorm)
 	clear(cconstBadByNorm)
 	clear(cconstMirrored)
+	clear(goEnumTags)
 }
 
 func markCConstBad(name, why string) {
@@ -700,6 +708,17 @@ func checkConsts(loaded []*packages.Package) (viols []violation, checked, clean,
 			checked++
 			cconstMirrored[c.Name] = true
 
+			// Which C enum a Go enum type stands for is not stated anywhere in
+			// either language; it is only observable through the members, and
+			// this is where they have just been matched one to one.
+			if g.Type != "" && c.Enum != "" {
+				if goEnumTags[g.Type] == nil {
+					goEnumTags[g.Type] = map[string]bool{}
+				}
+
+				goEnumTags[g.Type][c.Enum] = true
+			}
+
 			if *verbose {
 				fmt.Printf("CONST %-34s = %-12d %s (%s)\n", g.Name, g.Val, c.Name, c.where())
 			}
@@ -776,6 +795,60 @@ func partialEnums() []EnumCoverage {
 	}
 
 	return out
+}
+
+// cEnumOf names the C enum a parameter type is, "" for anything else.
+//
+// classify() reduces every enum to KindSint/4, which is all the ABI needs and
+// exactly what makes one enum indistinguishable from another - see cmpEnumType.
+// The tag is the only thing that tells them apart, so it is recovered here, out
+// of the `enum <tag>` spelling llama.h uses and through a typedef chain for the
+// spellings it does not.
+func cEnumOf(cRaw string) string {
+	t := squash(strings.NewReplacer("const", " ", "volatile", " ", "restrict", " ").Replace(cRaw))
+	if strings.ContainsAny(t, "*[") {
+		return ""
+	}
+
+	for range 12 {
+		if tag, ok := strings.CutPrefix(t, "enum "); ok {
+			return strings.TrimSpace(tag)
+		}
+
+		if enumNames[t] {
+			return t
+		}
+
+		u, ok := typedefs[t]
+		if !ok {
+			return ""
+		}
+
+		t = squash(u)
+	}
+
+	return ""
+}
+
+// goEnumOf names the C enum a Go type mirrors, "" where nothing keys on it.
+//
+// The evidence is RULE 4's: a Go type whose mirrored members all belong to one C
+// enum is that enum, and constEnumTags already records the two types whose names
+// alone are ambiguous. A type with no mirrored member at all - and a type whose
+// members straddle two C enums, which no yzma type does today - names nothing to
+// compare against, so the caller makes no claim rather than a guess.
+func goEnumOf(goType string) string {
+	if tag, ok := constEnumTags[goType]; ok {
+		return tag
+	}
+
+	if tags := goEnumTags[goType]; len(tags) == 1 {
+		for tag := range tags {
+			return tag
+		}
+	}
+
+	return ""
 }
 
 // matchCConst resolves the C constant a Go constant mirrors, preferring the
