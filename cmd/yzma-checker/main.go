@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"go/token"
 	"go/types"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -40,6 +42,14 @@ func members(ls []Leaf, ok bool) string {
 	}
 
 	return fmt.Sprintf("%d members", len(ls))
+}
+
+// hdrCoverage is how much of one header yzma binds. It is an inventory line,
+// never a finding: see the coverage block in analyse.
+type hdrCoverage struct {
+	Header string
+	Decls  int
+	Bound  int
 }
 
 type violation struct {
@@ -114,8 +124,14 @@ type report struct {
 	Skips      []string
 	StructCmp  []string
 
+	// Unbound and Coverage are the reverse of NoC: C declarations no binding
+	// names. Not defects - yzma binds a subset by design - so they are counted
+	// and listed, never turned into violations.
+	Unbound  []string
+	Coverage []hdrCoverage
+
 	TotalDecls, Unparsed                                  int
-	Matched, NCalls                                       int
+	Matched, NCalls, NVariadic                            int
 	CheckedR1, CheckedR2, CheckedR3, CheckedR4, CheckedR5 int
 	CleanR1, CleanR2, CleanR3, CleanR4, CleanR5           int
 	CheckedLayout, CleanLayout                            int
@@ -266,9 +282,14 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 	nCalls := 0
 	unresolvedArgs := 0
 	var unresolvedList []string
+	nVariadic := 0
 
 	for _, b := range all {
 		short := shortPos(b.PrepPos)
+		if b.Variadi {
+			nVariadic++
+		}
+
 		cf, ok := cfuncs[b.CName]
 		if !ok {
 			noC++
@@ -281,7 +302,41 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		if ok {
 			checkedR1++
 			var probs []string
-			if !cf.Vararg && len(b.Args) != len(cf.Params) {
+
+			// Fixed and variadic are two different calling conventions, not two
+			// spellings of one. On Apple arm64 a variadic argument is passed on
+			// the stack where a fixed one goes in a register, so `nfixed` is not
+			// a value the ABI tolerates being off by one: every argument past
+			// the fixed ones is read from the wrong place. A variadic binding
+			// used to be exempt from arity checking altogether, which meant the
+			// one number that decides that split was never looked at.
+			switch {
+			case b.Variadi && !cf.Vararg:
+				probs = append(probs, fmt.Sprintf("variadic: bound with PrepVar (nfixed %d) but C %s declares no \"...\"",
+					b.NFixed, cf.Name))
+			case !b.Variadi && cf.Vararg:
+				probs = append(probs, fmt.Sprintf("variadic: C %s is variadic but the binding is a fixed-arity Prep of %d args",
+					cf.Name, len(b.Args)))
+			case cf.Vararg:
+				// The parser never records the "..." as a parameter, so the
+				// length of cf.Params *is* the fixed parameter count.
+				if b.NFixed < 0 {
+					noteSkip("RULE1 %s (%s): PrepVar nfixed is not a literal - NOT VERIFIED", b.CName, short)
+					break
+				}
+				if b.NFixed != len(cf.Params) {
+					probs = append(probs, fmt.Sprintf("nfixed is %d but C %s declares %d parameter(s) before its \"...\"",
+						b.NFixed, cf.Name, len(cf.Params)))
+				}
+				// A PrepVar cif lists the fixed types *and* the concrete
+				// variadic types of the call it describes, so it can be longer
+				// than nfixed but never shorter: a shorter list means libffi is
+				// told fixed arguments exist that it has no type for.
+				if len(b.Args) < b.NFixed {
+					probs = append(probs, fmt.Sprintf("nfixed is %d but the cif only lists %d arg type(s)",
+						b.NFixed, len(b.Args)))
+				}
+			case len(b.Args) != len(cf.Params):
 				probs = append(probs, fmt.Sprintf("arity: cif has %d args, C has %d", len(b.Args), len(cf.Params)))
 			}
 			// return type
@@ -397,6 +452,49 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		}
 	}
 
+	// ---------- Coverage inventory: C declarations nothing binds ----------
+	//
+	// This is deliberately not a rule. yzma binds a chosen subset of llama.cpp,
+	// so an unbound declaration is not a defect and never becomes a violation or
+	// affects the exit code. What it is, is the only way the coverage claim is
+	// measurable over time: a function yzma should bind appearing upstream, or
+	// the neighbours of a bound function changing shape, is invisible unless the
+	// unbound set is written down somewhere a diff can see it.
+	//
+	// Grouped per header because that is the actionable unit - "mtmd-helper.h: 3
+	// of 40 bound" is a number a maintainer can decide about, and ~600 names in
+	// one list is a number nobody reads.
+	bound := make(map[string]bool, len(all))
+	for _, b := range all {
+		bound[b.CName] = true
+	}
+
+	var unbound []string
+	perHdr := map[string]*hdrCoverage{}
+	for name, cf := range cfuncs {
+		hdr := filepath.Base(cf.File)
+		hc, ok := perHdr[hdr]
+		if !ok {
+			hc = &hdrCoverage{Header: hdr}
+			perHdr[hdr] = hc
+		}
+
+		hc.Decls++
+		if bound[name] {
+			hc.Bound++
+			continue
+		}
+
+		unbound = append(unbound, fmt.Sprintf("%s (%s:%d)", name, hdr, cf.Line))
+	}
+
+	sort.Strings(unbound)
+
+	var coverage []hdrCoverage
+	for _, hdr := range slices.Sorted(maps.Keys(perHdr)) {
+		coverage = append(coverage, *perHdr[hdr])
+	}
+
 	// ---------- Rule 5: callback descriptors and closure signatures ----------
 	checkedR5, cleanR5 := 0, 0
 	for _, cb := range callbacks {
@@ -439,6 +537,8 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		Callbacks:  callbacks,
 		CFuncs:     cfuncs,
 		NoC:        noCList,
+		Unbound:    unbound,
+		Coverage:   coverage,
 		Unresolved: unresolvedList,
 		Skips:      skips,
 		StructCmp:  structCmp,
@@ -446,6 +546,7 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		Unparsed:   unparsed,
 		Matched:    matched,
 		NCalls:     nCalls,
+		NVariadic:  nVariadic,
 		CheckedR1:  checkedR1,
 		CheckedR2:  checkedR2,
 		CheckedR3:  checkedR3,
@@ -482,6 +583,20 @@ func printReport(r *report) {
 	for _, u := range r.NoC {
 		fmt.Println("  ", u)
 	}
+	fmt.Println("================ C DECLS WITH NO BINDING (inventory, not defects) ================")
+	for _, c := range r.Coverage {
+		fmt.Printf("   %-18s %3d of %3d bound (%d unbound)\n", c.Header+":", c.Bound, c.Decls, c.Decls-c.Bound)
+	}
+	if *verbose {
+		for _, u := range r.Unbound {
+			fmt.Println("     ", u)
+		}
+	}
+	hint := ""
+	if !*verbose && len(r.Unbound) > 0 {
+		hint = "; -v lists them"
+	}
+	fmt.Printf("(%d unbound C declarations%s)\n", len(r.Unbound), hint)
 	fmt.Println("================ NOT VERIFIED (skips) ================")
 	for _, k := range r.Skips {
 		fmt.Println("  ", k)
@@ -498,6 +613,9 @@ func printReport(r *report) {
 	fmt.Printf("yzma bindings (Prep):      %d\n", len(r.Bindings))
 	fmt.Printf("  matched to a C decl:     %d\n", r.Matched)
 	fmt.Printf("  no C decl in headers:    %d\n", len(r.NoC))
+	fmt.Printf("  of them variadic:        %d (PrepVar)\n", r.NVariadic)
+	fmt.Printf("C decls bound / unbound:   %d / %d (unbound is an inventory, not a defect)\n",
+		len(r.CFuncs)-len(r.Unbound), len(r.Unbound))
 	fmt.Printf("Call sites analysed:       %d\n", r.NCalls)
 	fmt.Printf("callback sites (C->Go):    %d\n", len(r.Callbacks))
 	fmt.Printf("Rule1 checked/clean:       %d / %d\n", r.CheckedR1, r.CleanR1)
@@ -533,6 +651,7 @@ func sev(p []string) string {
 		// libffi reads the wrong number of avalues, and on a callback every
 		// parameter after the missing one arrives shifted.
 		if strings.Contains(s, "arity") || strings.Contains(s, "nfixed") ||
+			strings.Contains(s, "variadic") ||
 			strings.Contains(s, "parameter(s)") || strings.Contains(s, "arg type(s)") {
 			return "ABI-BREAK"
 		}

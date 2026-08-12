@@ -2,13 +2,13 @@
 // deliberately miniature imitation of yzma's binding style: package-level
 // ffi.Fun vars filled in by lib.Prep, called with unsafe.Pointer avalues.
 //
-// Eight of the twelve bindings below are wrong, one per rule per direction plus
-// one per struct-layout direction plus one transposition, and the other four
-// are clean. The mirrored constants in the middle carry the ninth plant, for
-// RULE 4, among ten clean controls, and the four callback sites at the end carry
-// the tenth and eleventh, for RULE 5, with one clean control per form. testdata
-// is invisible to the go tool, so nothing here is ever built as part of the
-// checker.
+// Nine of the fourteen bindings below are wrong, one per rule per direction plus
+// one per struct-layout direction plus one transposition plus one variadic
+// nfixed, and the other five are clean. The mirrored constants in the middle
+// carry the tenth plant, for RULE 4, among ten clean controls, and the four
+// callback sites at the end carry the eleventh and twelfth, for RULE 5, with one
+// clean control per form. testdata is invisible to the go tool, so nothing here
+// is ever built as part of the checker.
 package bindings
 
 import (
@@ -160,6 +160,8 @@ var (
 	useShortFunc   ffi.Fun
 	usePairFunc    ffi.Fun
 	useNamedFunc   ffi.Fun
+	logfFunc       ffi.Fun
+	printfFunc     ffi.Fun
 )
 
 func load(lib ffi.Lib) error {
@@ -207,6 +209,22 @@ func load(lib ffi.Lib) error {
 	}
 
 	if useNamedFunc, err = lib.Prep("fx_use_named", &ffi.TypeVoid, &ffiTypePair); err != nil {
+		return err
+	}
+
+	// The variadic plant: fx_logf declares two parameters before its "...", and
+	// this says one. Every type in the list is right, so nothing but nfixed
+	// carries the defect - and on Apple arm64 it decides register versus stack
+	// for fmt and everything after it.
+	if logfFunc, err = lib.PrepVar("fx_logf", 1, &ffi.TypeVoid,
+		&ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return err
+	}
+
+	// The variadic control: same C shape, correct nfixed, one concrete variadic
+	// type after the two fixed ones. It must never be reported.
+	if printfFunc, err = lib.PrepVar("fx_printf", 2, &ffi.TypeSint32,
+		&ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
 		return err
 	}
 
@@ -298,6 +316,20 @@ func UsePair(p PairSwapped) {
 // UseNamed is the alias-table control and must never be reported.
 func UseNamed(n NamedOK) {
 	useNamedFunc.Call(nil, unsafe.Pointer(&n))
+}
+
+// Logf exercises the nfixed plant. Every avalue is the width the cif claims, so
+// RULES 2 and 3 have nothing to say about it.
+func Logf(thing uintptr, fmtStr *byte, n int32) {
+	logfFunc.Call(nil, unsafe.Pointer(&thing), unsafe.Pointer(&fmtStr), unsafe.Pointer(&n))
+}
+
+// Printf is the variadic control and must never be reported.
+func Printf(thing uintptr, fmtStr *byte, n int32) int32 {
+	var result ffi.Arg
+	printfFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&thing), unsafe.Pointer(&fmtStr), unsafe.Pointer(&n))
+
+	return int32(result)
 }
 
 // Clean violates nothing and must never appear in the report.

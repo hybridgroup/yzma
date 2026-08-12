@@ -84,6 +84,16 @@ func TestFixtureFindsEveryPlantedDefect(t *testing.T) {
 			match: "member 1: Go yzma-checker-fixture/bindings.Geom +4 float/4B S vs cif ffiTypeGeom +4 uint/4B e1",
 		},
 		{
+			// The variadic plant. Every type in the descriptor is right, so
+			// only nfixed carries it - and on Apple arm64 a variadic argument
+			// travels on the stack where a fixed one travels in a register, so
+			// getting the boundary wrong misplaces every variadic argument. A
+			// variadic binding used to be exempt from arity checking entirely.
+			name: "rule1 PrepVar declares too few fixed arguments",
+			rule: 1, fn: "fx_logf",
+			match: `nfixed is 1 but C fx_logf declares 2 parameter(s) before its "..."`,
+		},
+		{
 			// The constant plant: LLAMA_FX_LEVEL_LOW was inserted in front of
 			// HIGH upstream, so HIGH is 2 in the header and still 1 in Go. No
 			// width, offset or class changed, which is why RULES 1-3 cannot see
@@ -144,6 +154,11 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 	// rule that reported them would report all of those too.
 	clean := map[string]bool{
 		"fx_clean": true, "fx_use_geom": true, "fx_use_geom_tail": true, "fx_use_named": true,
+		// fx_printf is the variadic control - correct nfixed, so nothing about
+		// it is a finding - and fx_unbound is the coverage-inventory control: a
+		// C declaration nothing binds is not a defect, and the assertion that
+		// matters for it is this one, not its presence in the inventory.
+		"fx_printf": true, "fx_unbound": true,
 		"LLAMA_FX_LEVEL_OFF": true, "LLAMA_FX_LEVEL_LOW": true, "LLAMA_FX_LEVEL_MAX": true,
 		"LLAMA_FX_FLAG_AUTO": true, "LLAMA_FX_FLAG_NONE": true,
 		"LLAMA_FX_FLAG_A": true, "LLAMA_FX_FLAG_B": true,
@@ -157,11 +172,11 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 		}
 	}
 
-	// Exactly the eleven plants, with fx_get_thing counted twice: a void return
+	// Exactly the twelve plants, with fx_get_thing counted twice: a void return
 	// descriptor is both a wrong cif (rule 1) and a return buffer libffi never
 	// writes (rule 3), which is how the real ggml_backend_cpu_buffer_type
 	// defect presented.
-	if got, want := len(rep.Viols), 13; got != want {
+	if got, want := len(rep.Viols), 14; got != want {
 		t.Errorf("fixture produced %d violations, want %d:\n%s", got, want, dumpViolations(rep))
 	}
 }
@@ -172,16 +187,45 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 func TestFixtureAccounting(t *testing.T) {
 	rep := fixtureReport(t)
 
-	if got, want := len(rep.Bindings), 12; got != want {
+	if got, want := len(rep.Bindings), 14; got != want {
 		t.Errorf("bindings found = %d, want %d", got, want)
 	}
 
-	if got, want := rep.Matched, 12; got != want {
+	if got, want := rep.Matched, 14; got != want {
 		t.Errorf("bindings matched to a C decl = %d, want %d", got, want)
 	}
 
 	if len(rep.NoC) != 0 {
 		t.Errorf("fixture bindings with no C decl: %v", rep.NoC)
+	}
+
+	// The variadic pair: the plant and its control. Nothing checked nfixed
+	// before, and a variadic binding was exempt from arity checking altogether,
+	// so a count of zero here would mean the check has nothing to run on.
+	if got, want := rep.NVariadic, 2; got != want {
+		t.Errorf("variadic bindings found = %d, want %d", got, want)
+	}
+
+	// The coverage inventory. fx_unbound is the only declaration in the fixture
+	// header nothing binds, and it must be an inventory entry rather than a
+	// violation - which is what TestFixtureDoesNotReportTheCleanBinding pins.
+	if got, want := len(rep.Unbound), 1; got != want {
+		t.Errorf("unbound C declarations = %d, want %d: %v", got, want, rep.Unbound)
+	}
+
+	if len(rep.Unbound) == 1 && !strings.HasPrefix(rep.Unbound[0], "fx_unbound (llama.h:") {
+		t.Errorf("unbound inventory entry = %q, want fx_unbound from llama.h", rep.Unbound[0])
+	}
+
+	// Grouping is per header, and the fixture's declarations all live in
+	// llama.h, so there is exactly one line and its two numbers must add up
+	// against the bindings above.
+	if got, want := len(rep.Coverage), 1; got != want {
+		t.Fatalf("coverage lines = %d, want %d: %+v", got, want, rep.Coverage)
+	}
+
+	if c := rep.Coverage[0]; c.Header != "llama.h" || c.Bound != 14 || c.Decls != 15 {
+		t.Errorf("coverage line = %+v, want llama.h 14 of 15 bound", c)
 	}
 
 	if len(rep.Unresolved) != 0 {

@@ -65,7 +65,8 @@ auditing it describes code that does not run.
 -pkgs   <list>  comma-separated package patterns to audit
 -v              dump every binding: cif types, C signature, and every call site,
                 plus every constant and the C constant it was matched to, and
-                every callback with the C typedef it was linked to
+                every callback with the C typedef it was linked to, and every
+                unbound C declaration
 ```
 
 `-llama` and `-hdrs` are the offline paths.
@@ -77,6 +78,28 @@ width and in class. On arm64: `size_t`/`uint64_t`/any pointer = 8 bytes,
 `int`/`int32_t`/`enum`/`float` = 4, `double` = 8. A struct passed by value has
 its own descriptor and is a common error site, so its members are compared one
 by one — see *Struct layouts*, below.
+
+A **variadic** binding is checked here too, and needs one number the others do
+not. `lib.PrepVar("printf", 1, ret, args...)` says the first argument is fixed
+and everything after it is variadic, and on Apple arm64 those are two different
+calling conventions rather than two spellings of one: a variadic argument is
+passed on the stack where a fixed one goes in a register. So a `nfixed` that is
+off by one misplaces *every* variadic argument while every type in the descriptor
+is still correct — which is why it is compared against the number of parameters
+the C prototype declares in front of its `...`, separately from the list it
+indexes into. The descriptor may be *longer* than `nfixed`, since a `PrepVar` cif
+lists the fixed types plus the concrete variadic types of the call it describes,
+but never shorter: that would mean libffi is told a fixed argument exists that it
+has no type for. And a variadic C function bound with `Prep`, or a fixed one
+bound with `PrepVar`, is an ABI break in itself.
+
+Variadic bindings used to be exempt from arity checking altogether — the arity
+comparison was skipped for any variadic prototype and nothing else looked at
+`nfixed`, so they were the one class of binding RULE 1 never compared against a C
+prototype at all. **yzma has no variadic bindings today**, so this check finds
+nothing in the tree as this is written; it exists so the first one added is
+verified rather than assumed, and the fixture is where it is demonstrated to
+work.
 
 **RULE 2 — the Go variable must be exactly as wide as the cif claims.** libffi
 reads exactly `ffi.Type.Size` bytes from each pointer it is handed. `&x` where
@@ -278,7 +301,7 @@ is the actual finding. `-v` adds the full member list of both sides to the
 
 ## Output
 
-Only mismatches are printed, plus three accounting sections that matter as much
+Only mismatches are printed, plus four accounting sections that matter as much
 as the findings, because they are what makes *"these are the only ones"* a
 measurement rather than an assertion:
 
@@ -291,6 +314,26 @@ measurement rather than an assertion:
   the C struct — legitimate, but the reason a size comparison alone cannot be
   exact, so it stays on the page. `layout?` in place of a member count means the layout could not
   be resolved, and the matching `NOT VERIFIED` entry says which side.
+- `C DECLS WITH NO BINDING` — the reverse of `BINDINGS WITH NO C DECL`, and
+  deliberately **not** a check. yzma binds a chosen subset of llama.cpp, so an
+  unbound declaration is not a defect: this section never produces a violation
+  and never affects the exit code. 862 declarations are parsed and 265 bound, and
+  without this the other 597 are simply unaccounted for. It prints one line per
+  header, because that is the unit a maintainer can act on:
+
+  ```
+  ggml.h:              0 of 362 bound (362 unbound)
+  llama.h:           196 of 239 bound (43 unbound)
+  mtmd-helper.h:      10 of  24 bound (14 unbound)
+  ```
+
+  The count is always printed; `-v` adds every unbound name with its header line.
+  The value is drift over time rather than any single run: a function yzma
+  *should* bind appearing upstream, or the neighbours of a bound function
+  changing, is invisible unless the unbound set is written down where a diff can
+  see it. It makes the coverage claim measurable; it does not claim the coverage
+  is right.
+
 - `SUMMARY` — declarations parsed, bindings matched, and checked/clean counts
   per rule, plus struct layouts compared. The layout count is separate because a
   layout comparison that quietly stopped resolving would still leave the rule it
@@ -357,6 +400,18 @@ covering each initialiser form the C evaluator has to handle (a negative
 sentinel, a shift, a hex literal) and three `#define`s are the controls, matched
 by comment and by normalisation respectively.
 
+For the `nfixed` check the header grows two variadic declarations of the same
+shape — two parameters before the `...` — bound as one plant with `nfixed` 1 and
+one control with `nfixed` 2. Since yzma has no variadic binding of its own, the
+fixture is the only place this check is exercised at all, which makes the control
+half of it the part that matters: a rule that reported a correct `PrepVar` would
+be worse than no rule.
+
+The coverage inventory has one fixture declaration nothing binds. The assertion
+that it appears in the inventory is the small half; the assertion that it is
+**not** a violation, and does not move the violation count, is the one that
+pins the framing.
+
 For RULE 5 the fixture header grows four function-pointer typedefs and the
 fixture package four callback sites, one plant and one clean control per form: a
 descriptor declaring `&ffi.TypeSint32` where the typedef says `float`, a purego
@@ -418,6 +473,10 @@ failure mode the fixture avoids.
   integer as `LLAMA_POOLING_TYPE_MEAN`; it cannot say that yzma passes it to a
   parameter that takes a `llama_pooling_type` rather than to some other enum of
   the same width. Nothing in the C ABI distinguishes those.
+- **Whether the unbound declarations *should* be bound.** The coverage inventory
+  counts them and names them; it cannot say which of them yzma is missing. That
+  judgement is the maintainer's, and the inventory exists so it can be made
+  against a number that moves rather than against a guess.
 - **Pointer lifetime.** Go pointers stored in C-visible memory, missing
   `runtime.KeepAlive`, and slices retained over C-owned memory are a separate
   class of hazard entirely.
