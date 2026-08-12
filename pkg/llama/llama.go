@@ -282,8 +282,15 @@ type TokenDataArray struct {
 	Sorted   uint8      // whether the array is sorted by probability (bool as uint8)
 }
 
-// Batch represents a batch of tokens or embeddings
-type Batch struct {
+// BatchData is the Go mirror of the C struct llama_batch, field for field.
+//
+// It is a separate type because its address is what crosses the libffi
+// boundary: llama_batch is passed by value to llama_encode, llama_decode and
+// llama_batch_free, and returned by value from llama_batch_init and
+// llama_batch_get_one, all against a descriptor built from exactly these seven
+// fields. Nothing may be added to it. Go-only bookkeeping belongs in the
+// enclosing [Batch], which is never handed to libffi.
+type BatchData struct {
 	NTokens int32    // number of tokens
 	Token   *Token   // tokens
 	Embd    *float32 // embeddings (if using embeddings instead of tokens)
@@ -291,10 +298,17 @@ type Batch struct {
 	NSeqId  *int32   // number of sequence IDs per token
 	SeqId   **SeqId  // sequence IDs
 	Logits  *int8    // whether to compute logits for each token
+}
+
+// Batch represents a batch of tokens to be processed by [Decode] or [Encode].
+// The C fields are promoted from the embedded [BatchData], so batch.NTokens and
+// the other members are read and written as before.
+type Batch struct {
+	BatchData
 
 	// capTokens and capSeq record the capacities passed to BatchInit so
-	// Add/SetLogit can bounds-check writes into the C arrays. They are not
-	// part of the C llama_batch struct and are appended after the FFI fields.
+	// Add/SetLogit can bounds-check writes into the C arrays. They are
+	// deliberately outside BatchData, which must stay byte-exact.
 	capTokens int32 // max tokens (n_tokens from BatchInit)
 	capSeq    int32 // max sequence IDs per token (n_seq_max from BatchInit)
 }

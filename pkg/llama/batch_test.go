@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"errors"
 	"testing"
 	"unsafe"
 )
@@ -150,16 +151,98 @@ func TestBatchSetLogitOutOfRange(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	batch := BatchInit(2, 0, 1)
+	batch := BatchInit(4, 0, 1)
 	defer BatchFree(batch)
 
-	if err := batch.SetLogit(-1, true); err == nil {
-		t.Error("SetLogit(-1) did not return an error")
+	// An empty batch has no token at any index, so every index is rejected.
+	if err := batch.SetLogit(0, true); !errors.Is(err, ErrBatchIndexRange) {
+		t.Errorf("SetLogit(0) on an empty batch = %v, want ErrBatchIndexRange", err)
 	}
-	if err := batch.SetLogit(2, true); err == nil {
-		t.Error("SetLogit at capacity did not return an error")
+
+	if err := batch.Add(1, 0, []SeqId{0}, true); err != nil {
+		t.Fatalf("Add returned error: %v", err)
+	}
+	if err := batch.Add(2, 1, []SeqId{0}, true); err != nil {
+		t.Fatalf("Add returned error: %v", err)
+	}
+
+	if err := batch.SetLogit(-1, true); !errors.Is(err, ErrBatchIndexRange) {
+		t.Errorf("SetLogit(-1) = %v, want ErrBatchIndexRange", err)
 	}
 	if err := batch.SetLogit(0, true); err != nil {
 		t.Errorf("SetLogit(0) returned error: %v", err)
+	}
+	if err := batch.SetLogit(1, true); err != nil {
+		t.Errorf("SetLogit(1) returned error: %v", err)
+	}
+
+	// Index 2 is inside the allocation but past the two tokens actually in the
+	// batch. llama_decode only reads logit flags over [0, n_tokens), so a flag
+	// set here would be dropped; it is a caller index bug, not a write to
+	// honour silently.
+	if err := batch.SetLogit(2, true); !errors.Is(err, ErrBatchIndexRange) {
+		t.Errorf("SetLogit past NTokens = %v, want ErrBatchIndexRange", err)
+	}
+	if err := batch.SetLogit(4, true); !errors.Is(err, ErrBatchIndexRange) {
+		t.Errorf("SetLogit at capacity = %v, want ErrBatchIndexRange", err)
+	}
+}
+
+// TestBatchNotWritable pins that the batches which own no writable arrays are
+// refused rather than dereferenced: llama_batch_get_one leaves pos, n_seq_id,
+// seq_id and logits NULL, and llama_batch_init leaves token NULL when it is
+// asked for an embedding batch.
+func TestBatchNotWritable(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	t.Run("zero_value", func(t *testing.T) {
+		var batch Batch
+		if err := batch.Add(1, 0, []SeqId{0}, true); !errors.Is(err, ErrBatchNotWritable) {
+			t.Errorf("Add = %v, want ErrBatchNotWritable", err)
+		}
+		if err := batch.SetLogit(0, true); !errors.Is(err, ErrBatchNotWritable) {
+			t.Errorf("SetLogit = %v, want ErrBatchNotWritable", err)
+		}
+	})
+
+	t.Run("get_one", func(t *testing.T) {
+		tokens := []Token{1, 2, 3}
+		batch := BatchGetOne(tokens)
+		if batch.NTokens != 3 {
+			t.Fatalf("BatchGetOne NTokens = %d, want 3", batch.NTokens)
+		}
+		if err := batch.Add(4, 3, []SeqId{0}, true); !errors.Is(err, ErrBatchNotWritable) {
+			t.Errorf("Add = %v, want ErrBatchNotWritable", err)
+		}
+		if err := batch.SetLogit(2, true); !errors.Is(err, ErrBatchNotWritable) {
+			t.Errorf("SetLogit = %v, want ErrBatchNotWritable", err)
+		}
+	})
+
+	t.Run("embedding_batch", func(t *testing.T) {
+		batch := BatchInit(4, 8, 1)
+		defer BatchFree(batch)
+
+		if batch.Token != nil {
+			t.Skip("llama_batch_init allocated token for an embedding batch")
+		}
+		if err := batch.Add(1, 0, []SeqId{0}, true); !errors.Is(err, ErrBatchNotWritable) {
+			t.Errorf("Add = %v, want ErrBatchNotWritable", err)
+		}
+	})
+}
+
+// TestBatchDataLayout pins the invariant the libffi descriptor depends on: the
+// struct handed to C is BatchData, and it must stay exactly the seven C fields.
+// Batch itself carries Go-only bookkeeping and is deliberately larger.
+func TestBatchDataLayout(t *testing.T) {
+	const cBatchSize = 56 // int32 + 6 pointers, LP64, with tail padding
+
+	if got := unsafe.Sizeof(BatchData{}); got != cBatchSize {
+		t.Errorf("sizeof(BatchData) = %d, want %d: it must mirror C llama_batch exactly", got, cBatchSize)
+	}
+	if got := unsafe.Offsetof(Batch{}.BatchData); got != 0 {
+		t.Errorf("BatchData is at offset %d in Batch, want 0", got)
 	}
 }

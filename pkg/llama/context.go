@@ -374,7 +374,7 @@ func Encode(ctx Context, batch Batch) (int32, error) {
 		return 0, errInvalidContext
 	}
 	var result ffi.Arg
-	encodeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&batch))
+	encodeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&batch.BatchData))
 
 	return int32(result), nil
 }
@@ -385,7 +385,7 @@ func Decode(ctx Context, batch Batch) (int32, error) {
 		return 0, errInvalidContext
 	}
 	var result ffi.Arg
-	decodeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&batch))
+	decodeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&batch.BatchData))
 
 	return int32(result), nil
 }
