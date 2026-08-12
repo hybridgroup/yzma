@@ -1,0 +1,430 @@
+package main
+
+import (
+	"fmt"
+	"go/types"
+	"strings"
+	"unicode"
+)
+
+// Struct-by-value slots used to be compared by total size alone, which is the
+// weakest check the tool makes and the one that failed in the field
+// (hybridgroup/yzma#289): llama.cpp b10375 inserted a uint32_t into
+// llama_context_params, the Go and cif sides did not gain it, and the four
+// missing bytes were reabsorbed by the alignment padding in front of the first
+// pointer member. Both sides really were 160 bytes, while every field between
+// the insertion point and that padding was displaced by four bytes -- silently,
+// so embeddings simply stopped working.
+//
+// Any struct mixing 4-byte and 8-byte members has interior padding, so this is
+// not a contrived shape: it is the shape of llama_context_params,
+// llama_model_params and llama_batch, the three structs upstream churns most.
+//
+// The fix is to compare field layouts rather than total sizes. All three
+// representations of a struct-by-value slot get flattened to the same
+// primitive form -- a Leaf list -- and compared element by element:
+//
+//	C struct        cstructs[name]  -> cLeaves
+//	cif descriptor  ffi.NewType(..) -> ffiLeaves
+//	Go struct       go/types        -> goLeaves
+//
+// Flattening to leaves rather than to immediate fields is what makes the three
+// comparable at all: a nested struct is one field on the C side and one nested
+// ffi.NewType on the cif side, and arrays are one field on both but N slots to
+// libffi. Padding is never emitted, so an equal leaf list means equal offsets
+// for every byte either side will actually read.
+
+// Leaf is one primitive (non-struct, non-array) member of a flattened struct,
+// at its byte offset from the start of the outermost struct.
+type Leaf struct {
+	Off  int
+	Size int
+	Kind Kind
+	Path string // dotted field path, for a diff a human can act on
+}
+
+func (l Leaf) String() string { return fmt.Sprintf("+%d %s/%dB %s", l.Off, l.Kind, l.Size, l.Path) }
+
+// maxLeaves bounds flattening: a struct holding a huge array would otherwise
+// expand to a leaf per element. Exceeding it fails resolution, which surfaces
+// as a NOT VERIFIED skip rather than as a silent pass.
+const maxLeaves = 4096
+
+// maxLeafDepth bounds nesting, so a malformed self-referential struct cannot
+// recurse forever.
+const maxLeafDepth = 8
+
+func elemPath(name string, cnt, i int) string {
+	if cnt == 1 {
+		return name
+	}
+
+	return fmt.Sprintf("%s[%d]", name, i)
+}
+
+// cLeaves flattens a parsed C struct.
+func cLeaves(cs *CStruct) ([]Leaf, bool) {
+	var out []Leaf
+	if !appendCLeaves(&out, cs, 0, "", 0) {
+		return nil, false
+	}
+
+	return out, true
+}
+
+func appendCLeaves(out *[]Leaf, cs *CStruct, base int, prefix string, depth int) bool {
+	if cs == nil || cs.Size < 0 || len(cs.Offs) != len(cs.Fields) || depth > maxLeafDepth {
+		return false
+	}
+
+	for i, f := range cs.Fields {
+		off, name := base+cs.Offs[i], prefix+f.Name
+		if f.Cnt <= 0 {
+			return false
+		}
+
+		if f.Kind == KindStruct {
+			sub := cstructOf(f.Norm)
+			if sub == nil || sub.Size <= 0 {
+				return false
+			}
+
+			for e := range f.Cnt {
+				if !appendCLeaves(out, sub, off+e*sub.Size, elemPath(name, f.Cnt, e)+".", depth+1) {
+					return false
+				}
+			}
+
+			continue
+		}
+
+		if f.Size <= 0 {
+			return false
+		}
+
+		for e := range f.Cnt {
+			if len(*out) >= maxLeaves {
+				return false
+			}
+
+			*out = append(*out, Leaf{Off: off + e*f.Size, Size: f.Size, Kind: f.Kind, Path: elemPath(name, f.Cnt, e)})
+		}
+	}
+
+	return true
+}
+
+// ffiLeaves flattens an ffi.NewType(...) descriptor. Element paths are
+// positional because a libffi descriptor carries no member names.
+func ffiLeaves(t FfiType) ([]Leaf, bool) {
+	var out []Leaf
+	if t.Kind != KindStruct {
+		return nil, false
+	}
+
+	if !appendFfiLeaves(&out, t, 0, "", 0) {
+		return nil, false
+	}
+
+	return out, true
+}
+
+func appendFfiLeaves(out *[]Leaf, t FfiType, base int, prefix string, depth int) bool {
+	if t.Size < 0 || len(t.Offs) != len(t.Elems) || depth > maxLeafDepth {
+		return false
+	}
+
+	for i, el := range t.Elems {
+		off, name := base+t.Offs[i], fmt.Sprintf("%se%d", prefix, i)
+		if el.Kind == KindStruct {
+			if !appendFfiLeaves(out, el, off, name+".", depth+1) {
+				return false
+			}
+
+			continue
+		}
+
+		if el.Size <= 0 || el.Kind == KindUnknown {
+			return false
+		}
+
+		if len(*out) >= maxLeaves {
+			return false
+		}
+
+		*out = append(*out, Leaf{Off: off, Size: el.Size, Kind: el.Kind, Path: name})
+	}
+
+	return true
+}
+
+// goLeaves flattens a Go struct type using the arm64 gc layout.
+func goLeaves(t types.Type) ([]Leaf, bool) {
+	var out []Leaf
+	if t == nil {
+		return nil, false
+	}
+
+	st, ok := t.Underlying().(*types.Struct)
+	if !ok {
+		return nil, false
+	}
+
+	if !appendGoLeaves(&out, st, 0, "", 0) {
+		return nil, false
+	}
+
+	return out, true
+}
+
+func appendGoLeaves(out *[]Leaf, st *types.Struct, base int, prefix string, depth int) bool {
+	if depth > maxLeafDepth {
+		return false
+	}
+
+	fields := make([]*types.Var, st.NumFields())
+	for i := range fields {
+		fields[i] = st.Field(i)
+	}
+
+	offs := arm64Sizes.Offsetsof(fields)
+
+	for i, f := range fields {
+		if !appendGoLeaf(out, f.Type(), base+int(offs[i]), prefix+f.Name(), depth) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func appendGoLeaf(out *[]Leaf, t types.Type, off int, name string, depth int) bool {
+	switch u := t.Underlying().(type) {
+	case *types.Struct:
+		return appendGoLeaves(out, u, off, name+".", depth+1)
+	case *types.Array:
+		n := int(u.Len())
+		if n < 0 {
+			return false
+		}
+
+		stride := int(arm64Sizes.Sizeof(u.Elem()))
+		if stride <= 0 {
+			return false
+		}
+
+		for e := range n {
+			if !appendGoLeaf(out, u.Elem(), off+e*stride, elemPath(name, n, e), depth+1) {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	k, sz := goKindOf(t)
+	if sz <= 0 || k == KindUnknown {
+		return false
+	}
+
+	if len(*out) >= maxLeaves {
+		return false
+	}
+
+	*out = append(*out, Leaf{Off: off, Size: sz, Kind: k, Path: name})
+
+	return true
+}
+
+// maxLeafDiffs bounds how much of a diff is reported. One displaced field
+// shifts every field after it, so printing them all buries the insertion point
+// that is the actual finding.
+const maxLeafDiffs = 3
+
+// diffLeaves reports how two flattened layouts disagree. aName/bName label the
+// sides. An empty result means every member sits at the same offset with the
+// same width and ABI class.
+func diffLeaves(a, b []Leaf, aName, bName string) []string {
+	var out []string
+
+	for i := 0; i < len(a) && i < len(b); i++ {
+		if len(out) >= maxLeafDiffs {
+			break
+		}
+
+		x, y := a[i], b[i]
+		if x.Off == y.Off && x.Size == y.Size && kindCompat(x.Kind, y.Kind) {
+			continue
+		}
+
+		out = append(out, fmt.Sprintf("member %d: %s %s vs %s %s", i, aName, x, bName, y))
+	}
+
+	if len(a) != len(b) {
+		out = append(out, fmt.Sprintf("%s has %d members, %s has %d (%s)",
+			aName, len(a), bName, len(b), extraMembers(a, b, aName, bName)))
+	}
+
+	return out
+}
+
+// diffLeafPrefix compares a Go struct's layout against a cif descriptor's,
+// where the Go struct is allowed to carry members the descriptor does not have
+// — provided they sit past the end of the C struct.
+//
+// libffi reads (and for a struct return, writes) exactly ffi_type.size bytes
+// through the buffer it is handed, so the C-declared size is the authority on
+// how far it reaches. A Go struct appending its own bookkeeping after the FFI
+// members, as llama.Batch does with capTokens/capSeq, is bytes libffi never
+// touches: not a finding. A Go struct that is *short*, or whose extra members
+// land inside the region libffi does reach, is.
+func diffLeafPrefix(gl, fl []Leaf, goName, cifName string, cifSize int) []string {
+	out := diffLeaves(gl[:min(len(gl), len(fl))], fl[:min(len(gl), len(fl))], goName, cifName)
+
+	if len(gl) < len(fl) {
+		out = append(out, fmt.Sprintf("%s has only %d members, %s reads %d (%s)",
+			goName, len(gl), cifName, len(fl), extraMembers(gl, fl, goName, cifName)))
+
+		return out
+	}
+
+	for _, l := range gl[len(fl):] {
+		if l.Off < cifSize {
+			out = append(out, fmt.Sprintf("%s member %s is not in %s but lies inside the %dB libffi reads",
+				goName, l.String(), cifName, cifSize))
+		}
+	}
+
+	return out
+}
+
+// memberAliases reconciles the places where yzma's Go field names diverge from
+// the C member names by more than case and underscores. Each pair is rewritten
+// to its second form on both sides, so the two conventions meet in the middle.
+//
+// It is deliberately a short, closed list rather than a fuzzy matcher: an alias
+// loose enough to guess would also be loose enough to accept a genuine
+// mismatch. Anything not listed here stays unmatched and is reported as NOT
+// VERIFIED, so a new divergence shows up as a skip that needs one line added
+// rather than as a silent hole.
+var memberAliases = [][2]string{
+	{"attention", "attn"},          // FlashAttentionType / flash_attn_type
+	{"context", "ctx"},             // VideoContext / video_ctx
+	{"prompteval", "peval"},        // TPromptEvalMs / t_p_eval_ms
+	{"tensortypes", "ttoverrides"}, // TensorTypes / tt_overrides
+}
+
+// normName reduces a member name to a form comparable across the two naming
+// conventions: Go's NThreadsBatch and C's n_threads_batch become the same
+// string.
+func normName(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if r == '_' {
+			continue
+		}
+
+		b.WriteRune(unicode.ToLower(r))
+	}
+
+	s = b.String()
+
+	for _, a := range memberAliases {
+		s = strings.ReplaceAll(s, a[0], a[1])
+	}
+
+	// A leading n_ is a C counting prefix yzma sometimes keeps (NThreads for
+	// n_threads) and sometimes drops (mtmd's Threads for n_threads), so treat it
+	// as optional on both sides. Two members that collide once it is gone are
+	// dropped from the comparison rather than guessed at, by the duplicate
+	// handling in diffSwappedMembers.
+	return strings.TrimPrefix(s, "n")
+}
+
+// diffSwappedMembers finds members the Go struct has transposed relative to the
+// C struct.
+//
+// Offsets cannot see this: swapping two int32_t members leaves every offset,
+// width and ABI class identical, so the call succeeds and the C library simply
+// receives each value in the other's parameter. Names can see it, and a
+// *permutation* is the evidence to key on — a Go name that matches a C member
+// at a different index is a swap, whereas a name matching nothing at all is
+// just a binding that renamed a field, so that is reported as unverified rather
+// than as a defect.
+func diffSwappedMembers(gl, cl []Leaf, goName, cName string) (probs, unmatched []string) {
+	at := make(map[string]int, len(cl))
+	for i, l := range cl {
+		// A duplicated normalised name would make "found at another index"
+		// meaningless, so drop those from consideration entirely.
+		if _, dup := at[normName(l.Path)]; dup {
+			at[normName(l.Path)] = -1
+			continue
+		}
+
+		at[normName(l.Path)] = i
+	}
+
+	for i, l := range gl {
+		if i >= len(cl) {
+			break // Go-only tail, handled by diffLeafPrefix
+		}
+
+		j, ok := at[normName(l.Path)]
+		switch {
+		case !ok:
+			unmatched = append(unmatched, fmt.Sprintf("%s.%s has no counterpart in %s", goName, l.Path, cName))
+		case j == -1 || j == i:
+		default:
+			if len(probs) < maxLeafDiffs {
+				probs = append(probs, fmt.Sprintf("member %d: %s.%s is C member %d (%s.%s), and member %d holds %s.%s: transposed, so each receives the other's value",
+					i, goName, l.Path, j, cName, cl[j].Path, i, cName, cl[i].Path))
+			}
+		}
+	}
+
+	return probs, unmatched
+}
+
+// goTail describes Go-only members past the end of the C struct, for the
+// STRUCT-BY-VALUE COMPARISONS report. They are legitimate, but they are also
+// the reason a size comparison alone cannot be exact, so they stay visible.
+func goTail(gl, fl []Leaf, goSize, cifSize int) string {
+	if len(gl) <= len(fl) || goSize <= cifSize {
+		return ""
+	}
+
+	names := make([]string, 0, len(gl)-len(fl))
+	for _, l := range gl[len(fl):] {
+		names = append(names, l.Path)
+	}
+
+	return fmt.Sprintf(" (+%dB Go-only tail past the C struct: %s)", goSize-cifSize, strings.Join(names, ", "))
+}
+
+func extraMembers(a, b []Leaf, aName, bName string) string {
+	long, longName := a, aName
+	if len(b) > len(a) {
+		long, longName = b, bName
+	}
+
+	var s []string
+	for _, l := range long[min(len(a), len(b)):] {
+		if len(s) == maxLeafDiffs {
+			s = append(s, "...")
+			break
+		}
+
+		s = append(s, l.String())
+	}
+
+	return "only in " + longName + ": " + strings.Join(s, ", ")
+}
+
+func leafList(ls []Leaf) string {
+	s := make([]string, 0, len(ls))
+	for _, l := range ls {
+		s = append(s, l.String())
+	}
+
+	return strings.Join(s, " ")
+}

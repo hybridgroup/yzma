@@ -18,7 +18,8 @@ type CField struct {
 type CStruct struct {
 	Name   string
 	Fields []CField
-	Size   int // -1 if not computable
+	Offs   []int // byte offset of each field, parallel to Fields; nil if Size is -1
+	Size   int   // -1 if not computable
 	Align  int
 }
 
@@ -30,6 +31,7 @@ func resetCTypes() {
 	clear(cstructs)
 	clear(typedefs)
 	clear(enumNames)
+	resetCConsts()
 }
 
 // collectStructs parses "struct NAME { ... };" definitions out of a header.
@@ -146,14 +148,16 @@ func splitField(decl string) (string, string, int) {
 func computeStructSize(cs *CStruct) {
 	off := 0
 	maxAlign := 1
+	cs.Offs = make([]int, 0, len(cs.Fields))
 	for _, f := range cs.Fields {
 		if f.Size <= 0 || f.Cnt <= 0 {
 			if f.Kind == KindStruct {
-				if sub, ok := cstructs[strings.TrimPrefix(f.Norm, "struct ")]; ok && sub.Size > 0 {
+				if sub := cstructOf(f.Norm); sub != nil && sub.Size > 0 {
 					al := sub.Align
 					if off%al != 0 {
 						off += al - off%al
 					}
+					cs.Offs = append(cs.Offs, off)
 					off += sub.Size * f.Cnt
 					if al > maxAlign {
 						maxAlign = al
@@ -163,15 +167,14 @@ func computeStructSize(cs *CStruct) {
 			}
 			cs.Size = -1
 			cs.Align = -1
+			cs.Offs = nil
 			return
 		}
-		al := f.Size
-		if al > 8 {
-			al = 8
-		}
+		al := min(f.Size, 8)
 		if off%al != 0 {
 			off += al - off%al
 		}
+		cs.Offs = append(cs.Offs, off)
 		off += f.Size * f.Cnt
 		if al > maxAlign {
 			maxAlign = al
@@ -184,22 +187,39 @@ func computeStructSize(cs *CStruct) {
 	cs.Align = maxAlign
 }
 
+// cstructOf resolves a C type text to its parsed struct definition, looking
+// through a typedef when the text names one ("llama_batch" as well as
+// "struct llama_batch"). It returns nil when the text does not name a struct
+// this parser has seen.
+func cstructOf(norm string) *CStruct {
+	n := strings.TrimSpace(strings.ReplaceAll(norm, "const", " "))
+	n = strings.TrimSpace(strings.TrimPrefix(n, "struct"))
+	n = strings.TrimSpace(strings.TrimPrefix(n, "union"))
+	if cs, ok := cstructs[n]; ok {
+		return cs
+	}
+	// maybe a typedef to a struct
+	for range 12 {
+		u, ok := typedefs[n]
+		if !ok {
+			return nil
+		}
+		n = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(u), "struct"))
+		if cs, ok := cstructs[n]; ok {
+			return cs
+		}
+	}
+	return nil
+}
+
 // cTypeSize resolves a possibly-struct C type text to a byte size (-1 unknown).
 func cTypeSize(norm string) int {
 	k, sz := classify(norm)
 	if k != KindStruct {
 		return sz
 	}
-	n := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(strings.ReplaceAll(norm, "const", "")), "struct"))
-	if cs, ok := cstructs[strings.TrimSpace(n)]; ok {
+	if cs := cstructOf(norm); cs != nil {
 		return cs.Size
-	}
-	// maybe a typedef to a struct
-	if u, ok := typedefs[strings.TrimSpace(n)]; ok {
-		un := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(u), "struct"))
-		if cs, ok := cstructs[un]; ok {
-			return cs.Size
-		}
 	}
 	return -1
 }

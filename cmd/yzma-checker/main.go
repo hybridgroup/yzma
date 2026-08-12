@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"go/token"
+	"go/types"
 	"os"
 	"path/filepath"
 	"sort"
@@ -25,6 +26,21 @@ var skips []string
 func noteSkip(format string, a ...any) { skips = append(skips, fmt.Sprintf(format, a...)) }
 
 var structCmp []string
+
+// Struct-by-value layout comparisons, counted separately from the rule the
+// comparison belongs to: a layout check that silently stopped resolving would
+// otherwise still print "0 violations". See layout.go.
+var layoutChecked, layoutClean int
+
+// members renders a leaf count for the STRUCT-BY-VALUE COMPARISONS report,
+// distinguishing "no members" from "layout not resolvable".
+func members(ls []Leaf, ok bool) string {
+	if !ok {
+		return "layout?"
+	}
+
+	return fmt.Sprintf("%d members", len(ls))
+}
 
 type violation struct {
 	Rule     int
@@ -97,10 +113,17 @@ type report struct {
 	Skips      []string
 	StructCmp  []string
 
-	TotalDecls, Unparsed            int
-	Matched, NCalls                 int
-	CheckedR1, CheckedR2, CheckedR3 int
-	CleanR1, CleanR2, CleanR3       int
+	TotalDecls, Unparsed                       int
+	Matched, NCalls                            int
+	CheckedR1, CheckedR2, CheckedR3, CheckedR4 int
+	CleanR1, CleanR2, CleanR3, CleanR4         int
+	CheckedLayout, CleanLayout                 int
+
+	// CConsts counts the C constants whose value this run pinned down, CConstBad
+	// the ones it could not. The second number is the coverage limit of RULE 4:
+	// none of those can be compared against, and a Go constant mirroring one
+	// becomes a skip.
+	CConsts, CConstBad, LocalConsts int
 }
 
 // analyse runs the three rules over the packages named by patterns in the
@@ -109,6 +132,7 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 	// Parser state is package-level and iterated to a fixpoint, so reset it
 	// to keep repeated calls within one process independent.
 	skips, structCmp = nil, nil
+	layoutChecked, layoutClean = 0, 0
 	resetCTypes()
 
 	// --- C side ---
@@ -116,6 +140,7 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 	unparsed := 0
 	totalDecls := 0
 	macros := []string{"LLAMA_API", "GGML_API", "GGML_BACKEND_API", "MTMD_API"}
+	var hdrSrcs []struct{ path, src string }
 	for _, hf := range headerFiles {
 		path := filepath.Join(headerDir, hf.local)
 		raw, err := os.ReadFile(path)
@@ -126,6 +151,7 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		src := unwrapDeprecated(stripComments(string(raw)))
 		collectTypedefs(src)
 		collectStructs(src)
+		hdrSrcs = append(hdrSrcs, struct{ path, src string }{path, src})
 		var fns []CFunc
 		for _, mc := range macros {
 			mf, err := parseHeader(path, mc)
@@ -147,6 +173,21 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 			}
 		}
 	}
+	// Constant values are also iterated, and for the same reason as the structs
+	// below: llama.h is parsed first but initialises LLAMA_ROPE_TYPE_NEOX from
+	// the GGML_ROPE_TYPE_NEOX defined in ggml.h, so an initialiser can name a
+	// constant no earlier pass has seen. The failed attempts are forgotten
+	// between passes so that a name resolved late stops being reported as
+	// unevaluable.
+	for range 3 {
+		clear(cconstBad)
+		clear(cconstBadByNorm)
+
+		for _, h := range hdrSrcs {
+			collectCConsts(h.path, h.src)
+		}
+	}
+
 	// Second pass: headers are parsed in sequence, so a struct in llama.h can
 	// reference a typedef that only appears in ggml-backend.h. Re-classify every
 	// field now that every typedef and struct is known, then re-lay-out.
@@ -246,7 +287,11 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 			csp := shortPos(cs.Pos)
 			// Rule 3: return buffer
 			checkedR3++
-			r3 := checkRet(b.Ret, cs)
+			cRet := ""
+			if ok {
+				cRet = cf.RetRaw
+			}
+			r3 := checkRet(b.Ret, cs, cRet)
 			if strings.HasPrefix(r3, "SKIP: ") {
 				noteSkip("RULE3 %s (%s): %s", b.CName, csp, strings.TrimPrefix(r3, "SKIP: "))
 				r3 = ""
@@ -275,11 +320,24 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 					continue
 				}
 				checkedR2++
+				// Count this slot clean only if nothing below reports on it:
+				// "514 / 514 clean" next to a rule2 violation is an accounting
+				// bug, and the counts are the whole basis for the coverage claim.
+				before := len(probs)
 				if ct.Size <= 0 && ct.Kind != KindVoid {
 					noteSkip("RULE2 %s arg%d: cif descriptor %s size unknown - NOT VERIFIED", b.CName, i, ct.Name)
 					continue
 				}
-				if ca.Size != ct.Size {
+				// For a struct passed by value the C-declared size is the
+				// authority: libffi reads exactly that many bytes through the
+				// pointer, so a larger Go struct is untouched tail (see
+				// cmpStructLayout) and only a short one is a read overrun.
+				// Scalars stay exact - a mismatch either way is a defect.
+				short := ca.Size != ct.Size
+				if ct.Kind == KindStruct && ca.Kind == KindStruct {
+					short = ca.Size < ct.Size
+				}
+				if short {
 					probs = append(probs, fmt.Sprintf("arg%d: cif %s wants %dB, Go %s is %dB (%s)",
 						i, ct.Name, ct.Size, ca.Pointee.String(), ca.Size, ca.Expr))
 					continue
@@ -288,7 +346,16 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 					probs = append(probs, fmt.Sprintf("arg%d: cif kind %s vs Go kind %s (%s / %s)",
 						i, ct.Kind, ca.Kind, ca.Expr, ca.Pointee.String()))
 				}
-				cleanR2++
+				cArg := ""
+				if ok && i < len(cf.Params) {
+					cArg = cf.Params[i].Norm
+				}
+				if p := cmpStructLayout(ct, ca.Pointee, fmt.Sprintf("arg%d", i), ca.Expr, cArg); p != "" {
+					probs = append(probs, p)
+				}
+				if len(probs) == before {
+					cleanR2++
+				}
 			}
 			if len(probs) > 0 {
 				viols = append(viols, violation{2, b.CName, csp, strings.Join(probs, "; ") + " [in " + cs.Fn + "]", "memory-read-overrun"})
@@ -307,6 +374,10 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		}
 	}
 
+	// ---------- Rule 4: mirrored constant values ----------
+	constViols, checkedR4, cleanR4, localConsts := checkConsts(loaded)
+	viols = append(viols, constViols...)
+
 	sort.SliceStable(viols, func(i, j int) bool { return viols[i].Rule < viols[j].Rule })
 
 	return &report{
@@ -324,9 +395,18 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		CheckedR1:  checkedR1,
 		CheckedR2:  checkedR2,
 		CheckedR3:  checkedR3,
+		CheckedR4:  checkedR4,
 		CleanR1:    cleanR1,
 		CleanR2:    cleanR2,
 		CleanR3:    cleanR3,
+		CleanR4:    cleanR4,
+
+		CheckedLayout: layoutChecked,
+		CleanLayout:   layoutClean,
+
+		CConsts:     len(cconsts),
+		CConstBad:   len(cconstBad),
+		LocalConsts: localConsts,
 	}, nil
 }
 
@@ -352,7 +432,7 @@ func printReport(r *report) {
 	for _, k := range r.StructCmp {
 		fmt.Println("  ", k)
 	}
-	fmt.Printf("(%d struct-by-value slots compared)\n", len(r.StructCmp))
+	fmt.Printf("(%d lines; %d struct layouts compared, %d clean)\n", len(r.StructCmp), r.CheckedLayout, r.CleanLayout)
 	fmt.Println("================ SUMMARY ================")
 	fmt.Printf("C declarations found:      %d (unparsed: %d)\n", r.TotalDecls, r.Unparsed)
 	fmt.Printf("distinct C functions:      %d\n", len(r.CFuncs))
@@ -363,11 +443,14 @@ func printReport(r *report) {
 	fmt.Printf("Rule1 checked/clean:       %d / %d\n", r.CheckedR1, r.CleanR1)
 	fmt.Printf("Rule2 arg slots checked:   %d / %d clean (unresolvable exprs: %d)\n", r.CheckedR2, r.CleanR2, len(r.Unresolved))
 	fmt.Printf("Rule3 return bufs checked: %d / %d clean\n", r.CheckedR3, r.CleanR3)
+	fmt.Printf("Rule4 constants checked:   %d / %d clean (C constants parsed: %d, unevaluable: %d; yzma-local: %d)\n",
+		r.CheckedR4, r.CleanR4, r.CConsts, r.CConstBad, r.LocalConsts)
+	fmt.Printf("struct layouts compared:   %d / %d clean\n", r.CheckedLayout, r.CleanLayout)
 	nr := map[int]int{}
 	for _, v := range r.Viols {
 		nr[v.Rule]++
 	}
-	fmt.Printf("violations: rule1=%d rule2=%d rule3=%d\n", nr[1], nr[2], nr[3])
+	fmt.Printf("violations: rule1=%d rule2=%d rule3=%d rule4=%d\n", nr[1], nr[2], nr[3], nr[4])
 }
 
 func argSummary(as []CallArg) string {
@@ -402,11 +485,40 @@ func cmpTypes(t FfiType, cRaw string, cKind Kind, cSize int, slot string) string
 		if t.Kind != KindStruct {
 			return fmt.Sprintf("%s: C passes struct %s (%dB) by value but cif says %s", slot, squash(cRaw), cSize, t.Name)
 		}
-		structCmp = append(structCmp, fmt.Sprintf("%s %s: cif %s=%dB vs C %s=%dB", slot, "structcmp", t.Name, t.Size, squash(cRaw), cSize))
+
+		var probs []string
 		if t.Size >= 0 && t.Size != cSize {
-			return fmt.Sprintf("%s: struct descriptor %s is %dB, C %s is %dB", slot, t.Name, t.Size, squash(cRaw), cSize)
+			probs = append(probs, fmt.Sprintf("%s: struct descriptor %s is %dB, C %s is %dB", slot, t.Name, t.Size, squash(cRaw), cSize))
 		}
-		return ""
+
+		// Equal sizes are not equal layouts: see the comment at the top of
+		// layout.go. Compare member offsets too, which is the check that
+		// catches a field inserted upstream in front of interior padding.
+		cl, cOK := cLeaves(cstructOf(cRaw))
+		fl, fOK := ffiLeaves(t)
+		switch {
+		case !cOK:
+			noteSkip("%s: C struct %q member layout not resolvable - LAYOUT NOT VERIFIED", slot, squash(cRaw))
+		case !fOK:
+			noteSkip("%s: cif descriptor %s member layout not resolvable - LAYOUT NOT VERIFIED", slot, t.Name)
+		default:
+			layoutChecked++
+			if d := diffLeaves(fl, cl, "cif "+t.Name, "C "+squash(cRaw)); len(d) > 0 {
+				probs = append(probs, slot+": struct layout differs from C: "+strings.Join(d, "; "))
+			} else {
+				layoutClean++
+			}
+		}
+
+		structCmp = append(structCmp, fmt.Sprintf("%s structcmp: cif %s=%dB/%s vs C %s=%dB/%s",
+			slot, t.Name, t.Size, members(fl, fOK), squash(cRaw), cSize, members(cl, cOK)))
+		if *verbose {
+			structCmp = append(structCmp,
+				"    cif members: "+leafList(fl),
+				"    C   members: "+leafList(cl))
+		}
+
+		return strings.Join(probs, "; ")
 	}
 	if cKind == KindUnknown || cSize < 0 {
 		noteSkip("%s: C type %q unclassifiable - NOT VERIFIED", slot, squash(cRaw))
@@ -432,6 +544,68 @@ func cmpTypes(t FfiType, cRaw string, cKind Kind, cSize int, slot string) string
 		return fmt.Sprintf("%s: C %s is %s but cif %s is %s", slot, squash(cRaw), cKind, t.Name, t.Kind)
 	}
 	return ""
+}
+
+// cmpStructLayout compares the Go struct libffi will read bytes from against
+// the cif struct descriptor that says how to read them, member by member.
+//
+// Equal total size is not enough: the Go struct and the descriptor are written
+// and maintained by hand in two separate places, so one can gain a field the
+// other did not. That is silent when the difference is absorbed by interior
+// padding, which is exactly how hybridgroup/yzma#289 presented.
+func cmpStructLayout(ct FfiType, goType types.Type, slot, expr, cRaw string) string {
+	if ct.Kind != KindStruct || goType == nil {
+		return ""
+	}
+
+	if _, ok := goType.Underlying().(*types.Struct); !ok {
+		return ""
+	}
+
+	gl, gOK := goLeaves(goType)
+	if !gOK {
+		noteSkip("%s %s: Go struct %s member layout not resolvable - LAYOUT NOT VERIFIED", slot, expr, goType.String())
+		return ""
+	}
+
+	fl, fOK := ffiLeaves(ct)
+	if !fOK {
+		noteSkip("%s %s: cif descriptor %s member layout not resolvable - LAYOUT NOT VERIFIED", slot, expr, ct.Name)
+		return ""
+	}
+
+	layoutChecked++
+
+	goSize := int(arm64Sizes.Sizeof(goType))
+	if tail := goTail(gl, fl, goSize, ct.Size); tail != "" {
+		structCmp = append(structCmp, fmt.Sprintf("%s Go %s=%dB vs cif %s=%dB%s",
+			slot, goType.String(), goSize, ct.Name, ct.Size, tail))
+	}
+
+	d := diffLeafPrefix(gl, fl, "Go "+goType.String(), "cif "+ct.Name, ct.Size)
+
+	// Two members of the same width and ABI class can be swapped without moving
+	// a single offset, and the C library then simply receives each value in the
+	// other's place. Only the member names can see that, and only the header has
+	// names to compare against: a cif descriptor carries none.
+	if cl, ok := cLeaves(cstructOf(cRaw)); ok {
+		sw, unmatched := diffSwappedMembers(gl, cl, goType.String(), squash(cRaw))
+		d = append(d, sw...)
+
+		for _, u := range unmatched {
+			noteSkip("%s %s: %s - NOT VERIFIED against a transposition", slot, expr, u)
+		}
+	} else if cRaw != "" {
+		noteSkip("%s %s: C struct %q member names not resolvable - NOT VERIFIED against a transposition", slot, expr, squash(cRaw))
+	}
+
+	if len(d) == 0 {
+		layoutClean++
+		return ""
+	}
+
+	return fmt.Sprintf("%s: Go struct %s layout differs from cif descriptor %s (%s): %s",
+		slot, goType.String(), ct.Name, expr, strings.Join(d, "; "))
 }
 
 // kindCompat: same-width integer signedness is ABI-identical on arm64, so only
@@ -460,7 +634,7 @@ func kindCompat(a, b Kind) bool {
 }
 
 // checkRet implements Rule 3.
-func checkRet(ret FfiType, cs CallSite) string {
+func checkRet(ret FfiType, cs CallSite, cRaw string) string {
 	switch ret.Kind {
 	case KindVoid:
 		if !cs.RetNil && cs.RetExpr != "" {
@@ -496,11 +670,16 @@ func checkRet(ret FfiType, cs CallSite) string {
 		if cs.RetNil || cs.RetType == nil || ret.Size < 0 {
 			return ""
 		}
+		// As for a struct argument, the cif size is how far libffi writes, so
+		// a larger Go buffer is headroom and only a short one is overrun.
 		_, sz := goKindOf(cs.RetType)
-		if sz != ret.Size {
-			return fmt.Sprintf("struct return buffer %s is %s (%dB) but cif struct descriptor %s is %dB", cs.RetExpr, cs.RetType.String(), sz, ret.Name, ret.Size)
+		if sz < ret.Size {
+			return fmt.Sprintf("struct return buffer %s is %s (only %dB) but libffi writes the %dB of cif struct descriptor %s", cs.RetExpr, cs.RetType.String(), sz, ret.Size, ret.Name)
 		}
-		return ""
+		// A struct return is where the padding-absorbed field drift of
+		// hybridgroup/yzma#289 landed: llama_context_default_params returns
+		// llama_context_params by value into a Go ContextParams.
+		return cmpStructLayout(ret, cs.RetType, "ret", cs.RetExpr, cRaw)
 	}
 	return ""
 }

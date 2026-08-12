@@ -11,9 +11,9 @@ import (
 // stopped working the moment the defects were fixed: a tool that reports
 // nothing is indistinguishable from a tool that checks nothing. Instead the
 // gate now runs the full pipeline over testdata/fixture, a miniature binding
-// package carrying one planted defect per rule per direction plus one clean
-// binding. Both halves matter — every plant must be found, and the clean
-// binding must never be reported.
+// package carrying one planted defect per rule per direction plus clean
+// controls. Both halves matter — every plant must be found, and the clean
+// bindings and constants must never be reported.
 
 func fixtureReport(t *testing.T) *report {
 	t.Helper()
@@ -55,6 +55,42 @@ func TestFixtureFindsEveryPlantedDefect(t *testing.T) {
 			rule: 3, fn: "fx_mode_from_str",
 			match: "must be ffi.Arg",
 		},
+		// The struct-layout plants. Every struct here is the same size on every
+		// side, so a size-only comparison passes all of them: this is the
+		// yzma#289 gap, in each direction.
+		{
+			name: "rule1 cif descriptor missing a member absorbed by padding",
+			rule: 1, fn: "fx_params_default",
+			match: "member 2: cif ffiTypeParams +8 float/4B e2 vs C struct fx_params +8 uint/4B n_c",
+		},
+		{
+			name: "rule2 Go struct shorter than the bytes libffi reads",
+			rule: 2, fn: "fx_use_geom_short",
+			match: "cif ffiTypeGeom wants 24B, Go yzma-checker-fixture/bindings.GeomShort is 12B",
+		},
+		{
+			// Offsets, widths and ABI classes are all identical here: the members
+			// are the same two uint32_t in the other order, so only the names
+			// carry the defect - and the C library receives each value in the
+			// other's place.
+			name: "rule2 same-class members transposed on the Go side",
+			rule: 2, fn: "fx_use_pair",
+			match: "PairSwapped.BetaCount is C member 1 (struct fx_pair.beta_count)",
+		},
+		{
+			name: "rule3 Go struct members ordered differently from the descriptor",
+			rule: 3, fn: "fx_geom_default",
+			match: "member 1: Go yzma-checker-fixture/bindings.Geom +4 float/4B S vs cif ffiTypeGeom +4 uint/4B e1",
+		},
+		{
+			// The constant plant: LLAMA_FX_LEVEL_LOW was inserted in front of
+			// HIGH upstream, so HIGH is 2 in the header and still 1 in Go. No
+			// width, offset or class changed, which is why RULES 1-3 cannot see
+			// it.
+			name: "rule4 enum member value shifted by an insertion upstream",
+			rule: 4, fn: "LLAMA_FX_LEVEL_HIGH",
+			match: "FxLevelHigh = 1 but C LLAMA_FX_LEVEL_HIGH = 2",
+		},
 	}
 
 	for _, tt := range tests {
@@ -74,17 +110,36 @@ func TestFixtureFindsEveryPlantedDefect(t *testing.T) {
 func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 	rep := fixtureReport(t)
 
+	// fx_clean is the scalar control and fx_use_geom the struct-by-value one: a
+	// struct whose C, cif and Go members all agree must survive the layout
+	// comparison silently, or the check is just noise. fx_use_geom_tail is the
+	// llama.Batch shape - Go-only bookkeeping appended past the end of the C
+	// struct, which libffi never reads - and pins that it stays not-a-finding.
+	// fx_use_named is the alias table's control: members whose Go and C spellings
+	// differ by more than case are the same members, not a transposition.
+	// The RULE 4 controls are the constants around the plant: the three other
+	// members of the same enum, every initialiser form of llama_fx_flag, and the
+	// three #defines. A rule that reported those would be worse than useless,
+	// because every mirrored constant in yzma looks like them.
+	clean := map[string]bool{
+		"fx_clean": true, "fx_use_geom": true, "fx_use_geom_tail": true, "fx_use_named": true,
+		"LLAMA_FX_LEVEL_OFF": true, "LLAMA_FX_LEVEL_LOW": true, "LLAMA_FX_LEVEL_MAX": true,
+		"LLAMA_FX_FLAG_AUTO": true, "LLAMA_FX_FLAG_NONE": true,
+		"LLAMA_FX_FLAG_A": true, "LLAMA_FX_FLAG_B": true,
+		"LLAMA_FX_MAGIC": true, "LLAMA_FX_VERSION": true, "LLAMA_FX_MAGIC_ALIAS": true,
+	}
+
 	for _, v := range rep.Viols {
-		if v.Fn == "fx_clean" {
-			t.Errorf("clean binding reported as a violation: RULE%d %s", v.Rule, v.Detail)
+		if clean[v.Fn] {
+			t.Errorf("clean binding %s reported as a violation: RULE%d %s", v.Fn, v.Rule, v.Detail)
 		}
 	}
 
-	// Exactly the four plants, with fx_get_thing counted twice: a void return
+	// Exactly the nine plants, with fx_get_thing counted twice: a void return
 	// descriptor is both a wrong cif (rule 1) and a return buffer libffi never
 	// writes (rule 3), which is how the real ggml_backend_cpu_buffer_type
 	// defect presented.
-	if got, want := len(rep.Viols), 5; got != want {
+	if got, want := len(rep.Viols), 11; got != want {
 		t.Errorf("fixture produced %d violations, want %d:\n%s", got, want, dumpViolations(rep))
 	}
 }
@@ -95,11 +150,11 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 func TestFixtureAccounting(t *testing.T) {
 	rep := fixtureReport(t)
 
-	if got, want := len(rep.Bindings), 5; got != want {
+	if got, want := len(rep.Bindings), 12; got != want {
 		t.Errorf("bindings found = %d, want %d", got, want)
 	}
 
-	if got, want := rep.Matched, 5; got != want {
+	if got, want := rep.Matched, 12; got != want {
 		t.Errorf("bindings matched to a C decl = %d, want %d", got, want)
 	}
 
@@ -119,8 +174,46 @@ func TestFixtureAccounting(t *testing.T) {
 		t.Errorf("fixture produced %d skip(s), so its coverage is not total: %v", len(rep.Skips), rep.Skips)
 	}
 
-	if rep.CheckedR1 == 0 || rep.CheckedR2 == 0 || rep.CheckedR3 == 0 {
-		t.Errorf("a rule checked nothing: r1=%d r2=%d r3=%d", rep.CheckedR1, rep.CheckedR2, rep.CheckedR3)
+	if rep.CheckedR1 == 0 || rep.CheckedR2 == 0 || rep.CheckedR3 == 0 || rep.CheckedR4 == 0 {
+		t.Errorf("a rule checked nothing: r1=%d r2=%d r3=%d r4=%d",
+			rep.CheckedR1, rep.CheckedR2, rep.CheckedR3, rep.CheckedR4)
+	}
+
+	// Every constant in the fixture bindings is mirrored from the header, so all
+	// eleven are compared and only the plant differs. An exact count is what
+	// pins the mapping: a normalisation that stopped matching would show up here
+	// as a lower checked count long before it showed up as a missing violation.
+	if got, want := rep.CheckedR4, 11; got != want {
+		t.Errorf("constants checked = %d, want %d (skips: %v)", got, want, rep.Skips)
+	}
+
+	if got, want := rep.CleanR4, 10; got != want {
+		t.Errorf("clean constants = %d, want %d", got, want)
+	}
+
+	if rep.CConstBad != 0 {
+		t.Errorf("C constants whose value could not be evaluated = %d, want 0", rep.CConstBad)
+	}
+
+	if rep.LocalConsts != 0 {
+		t.Errorf("fixture constants excluded as yzma-local = %d, want 0", rep.LocalConsts)
+	}
+
+	// Struct layouts are compared per struct-by-value slot, once against the C
+	// struct and once against the Go struct the bytes come from: seven slots,
+	// thirteen comparisons (fx_use_geom_short never reaches its Go-side
+	// comparison, the size gate catches it first), four of which are the plants.
+	if got, want := rep.CheckedLayout, 13; got != want {
+		t.Errorf("struct layouts compared = %d, want %d", got, want)
+	}
+
+	if got, want := rep.CleanLayout, 9; got != want {
+		t.Errorf("clean struct layouts = %d, want %d", got, want)
+	}
+
+	// Seven slot lines plus the one Go-only-tail note for fx_use_geom_tail.
+	if got, want := len(rep.StructCmp), 8; got != want {
+		t.Errorf("struct-by-value slots compared = %d, want %d", got, want)
 	}
 }
 

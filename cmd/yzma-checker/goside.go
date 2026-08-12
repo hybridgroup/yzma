@@ -17,24 +17,25 @@ type FfiType struct {
 	Kind  Kind
 	Size  int
 	Elems []FfiType // for structs
+	Offs  []int     // byte offset of each element, parallel to Elems; nil if Size is -1
 }
 
 func (t FfiType) String() string { return fmt.Sprintf("%s{%s/%d}", t.Name, t.Kind, t.Size) }
 
 var ffiScalars = map[string]FfiType{
-	"TypeVoid":       {"TypeVoid", KindVoid, 0, nil},
-	"TypeUint8":      {"TypeUint8", KindUint, 1, nil},
-	"TypeSint8":      {"TypeSint8", KindSint, 1, nil},
-	"TypeUint16":     {"TypeUint16", KindUint, 2, nil},
-	"TypeSint16":     {"TypeSint16", KindSint, 2, nil},
-	"TypeUint32":     {"TypeUint32", KindUint, 4, nil},
-	"TypeSint32":     {"TypeSint32", KindSint, 4, nil},
-	"TypeUint64":     {"TypeUint64", KindUint, 8, nil},
-	"TypeSint64":     {"TypeSint64", KindSint, 8, nil},
-	"TypeFloat":      {"TypeFloat", KindFloat, 4, nil},
-	"TypeDouble":     {"TypeDouble", KindDouble, 8, nil},
-	"TypePointer":    {"TypePointer", KindPointer, 8, nil},
-	"TypeLongdouble": {"TypeLongdouble", KindUnknown, 16, nil},
+	"TypeVoid":       {Name: "TypeVoid", Kind: KindVoid, Size: 0},
+	"TypeUint8":      {Name: "TypeUint8", Kind: KindUint, Size: 1},
+	"TypeSint8":      {Name: "TypeSint8", Kind: KindSint, Size: 1},
+	"TypeUint16":     {Name: "TypeUint16", Kind: KindUint, Size: 2},
+	"TypeSint16":     {Name: "TypeSint16", Kind: KindSint, Size: 2},
+	"TypeUint32":     {Name: "TypeUint32", Kind: KindUint, Size: 4},
+	"TypeSint32":     {Name: "TypeSint32", Kind: KindSint, Size: 4},
+	"TypeUint64":     {Name: "TypeUint64", Kind: KindUint, Size: 8},
+	"TypeSint64":     {Name: "TypeSint64", Kind: KindSint, Size: 8},
+	"TypeFloat":      {Name: "TypeFloat", Kind: KindFloat, Size: 4},
+	"TypeDouble":     {Name: "TypeDouble", Kind: KindDouble, Size: 8},
+	"TypePointer":    {Name: "TypePointer", Kind: KindPointer, Size: 8},
+	"TypeLongdouble": {Name: "TypeLongdouble", Kind: KindUnknown, Size: 16},
 }
 
 // Binding is one yzma ffi.Fun: its Prep spec plus every Call site.
@@ -183,10 +184,12 @@ func (a *analyzer) buildStruct(name string, args []ast.Expr) FfiType {
 		if off%al != 0 {
 			off += al - off%al
 		}
+		st.Offs = append(st.Offs, off)
 		off += el.Size
 	}
 	if !ok {
 		st.Size = -1
+		st.Offs = nil
 		return st
 	}
 	if off%maxAlign != 0 {
