@@ -123,12 +123,19 @@ func AdapterLoraFree(adapter AdapterLora) error {
 
 // AdapterMetaValStr gets metadata value as a string by key name.
 // The buffer grows as needed, so values of any length are returned in full.
+//
+// A key holding an interior NUL is rejected: it cannot be represented as a C
+// string, and passing the resulting nil pointer through to llama.cpp would be
+// dereferenced there rather than reported back.
 func AdapterMetaValStr(adapter AdapterLora, key string) (string, bool) {
 	if adapter == 0 {
 		return "", false
 	}
 
-	keyPtr, _ := utils.BytePtrFromString(key)
+	keyPtr, err := utils.BytePtrFromString(key)
+	if err != nil {
+		return "", false
+	}
 
 	return metaStr(32768, func(b *byte, bLen uint64) int32 {
 		var result ffi.Arg
