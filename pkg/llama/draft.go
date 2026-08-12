@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"fmt"
 	"unsafe"
 
 	"github.com/jupiterrider/ffi"
@@ -39,7 +40,14 @@ type DraftResult struct {
 //   - outTokens: pre-allocated output buffer for draft tokens (len >= nDraft)
 //   - outDists: pre-allocated output buffer for sparse distributions (len >= nDraft, nil for greedy)
 //
-// Returns the number of tokens drafted and the updated nPast position.
+// Returns the number of tokens drafted, the updated nPast position, and an
+// error if the batch could not be filled at all.
+//
+// A non-nil error means the batch is unusable for drafting, which is a caller
+// misconfiguration rather than a model outcome: it is not a single-token batch
+// from [BatchInit], so no draft can ever be produced from it and every call will
+// fail the same way. Reaching the end of generation, a decode failure, or nDraft
+// tokens is ordinary and reported through drafted with a nil error.
 func DraftGenerate(
 	ctx Context,
 	batch *Batch,
@@ -52,9 +60,9 @@ func DraftGenerate(
 	greedy bool,
 	outTokens []Token,
 	outDists [][]DraftCandidate,
-) (drafted int, finalPast Pos) {
+) (drafted int, finalPast Pos, err error) {
 	if ctx == 0 || sampler == 0 || nDraft <= 0 {
-		return 0, nPast
+		return 0, nPast, nil
 	}
 
 	var (
@@ -67,12 +75,15 @@ func DraftGenerate(
 	for range nDraft {
 		// Clear and add single token to batch.
 		batch.NTokens = 0
-		if err := batch.Add(lastToken, nPast, seqIDs, true); err != nil {
-			break
+		if addErr := batch.Add(lastToken, nPast, seqIDs, true); addErr != nil {
+			// The batch is the caller's, unchanged across iterations, so a
+			// failure here fails identically every time. Reporting it beats
+			// returning an empty draft that reads as "the model had nothing".
+			return drafted, nPast, fmt.Errorf("draft batch: %w", addErr)
 		}
 
 		// Decode single token.
-		decodeFunc.Call(unsafe.Pointer(&decodeResult), unsafe.Pointer(&ctx), unsafe.Pointer(batch))
+		decodeFunc.Call(unsafe.Pointer(&decodeResult), unsafe.Pointer(&ctx), unsafe.Pointer(&batch.BatchData))
 		if int32(decodeResult) != 0 {
 			break
 		}
@@ -129,5 +140,5 @@ func DraftGenerate(
 		lastToken = token
 	}
 
-	return drafted, nPast
+	return drafted, nPast, nil
 }
