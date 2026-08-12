@@ -118,6 +118,20 @@ LLAMA_API void fx_get_token(struct fx_thing * t, int32_t * out);
 LLAMA_API int32_t fx_decode(struct fx_thing * t);
 LLAMA_API int32_t fx_decode_ok(struct fx_thing * t);
 
+// The C strings. Every one of these is an 8-byte pointer to a 1-byte char on
+// both sides, so nothing about the slot, the width or the pointer target can
+// carry the defect: what C depends on is the bytes ending in a NUL, and Go never
+// puts one there.
+//
+// fx_set_name is the plant, fed a []byte conversion of a Go string with no
+// terminator appended, so C reads forward off the end of that allocation.
+// fx_set_path and fx_set_text are the controls, one per idiom yzma actually
+// uses: the appended "\x00" before the []byte conversion, and the string
+// terminated in place before unsafe.StringData.
+LLAMA_API void fx_set_name(struct fx_thing * t, const char * name);
+LLAMA_API void fx_set_path(struct fx_thing * t, const char * path);
+LLAMA_API void fx_set_text(struct fx_thing * t, const char * text);
+
 // RULE 4. LLAMA_FX_LEVEL_LOW is the member "upstream inserted": every member
 // after it moved up by one, and the Go constant for HIGH still carries the old
 // value. Nothing about that is visible to a compiler on either side.

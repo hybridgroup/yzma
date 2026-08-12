@@ -113,6 +113,16 @@ func TestFixtureFindsEveryPlantedDefect(t *testing.T) {
 			match: "arg1: C float * points at float but Go *int32 points at sint",
 		},
 		{
+			// The NUL-termination plant. The slot is a pointer to a char on both
+			// sides and the buffer is the *byte every string site in the tree
+			// passes, so every width, class and pointer-target comparison passes
+			// it: what is missing is the one byte C needs to find the end of the
+			// string, and Go never puts it there by itself.
+			name: "rule2 char* buffer built from a Go string with no terminator",
+			rule: 2, fn: "fx_set_name",
+			match: "arg1: C const char * needs a NUL-terminated buffer but unsafe.Pointer(&n) is built from []byte(name) with no terminator",
+		},
+		{
 			// The callback plants, in the direction where C calls Go. The width
 			// is right here and the class is not, so libffi reads the correct
 			// four bytes and the closure then reads a float's bit pattern as an
@@ -177,6 +187,11 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 		// and never as an ABI violation. fx_decode_ok is its control.
 		"fx_get_logits": true, "fx_get_token": true, "fx_get_count": true,
 		"fx_decode": true, "fx_decode_ok": true,
+		// The NUL-termination controls, one per idiom yzma actually uses. This is
+		// the half that matters: both are written exactly as the six real string
+		// sites in the tree are, so a rule that reported either would report all
+		// of them.
+		"fx_set_path": true, "fx_set_text": true,
 		"LLAMA_FX_LEVEL_OFF": true, "LLAMA_FX_LEVEL_LOW": true, "LLAMA_FX_LEVEL_MAX": true,
 		"LLAMA_FX_FLAG_AUTO": true, "LLAMA_FX_FLAG_NONE": true,
 		"LLAMA_FX_FLAG_A": true, "LLAMA_FX_FLAG_B": true,
@@ -197,11 +212,11 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 		}
 	}
 
-	// Exactly the thirteen plants, with fx_get_thing counted twice: a void return
+	// Exactly the fourteen plants, with fx_get_thing counted twice: a void return
 	// descriptor is both a wrong cif (rule 1) and a return buffer libffi never
 	// writes (rule 3), which is how the real ggml_backend_cpu_buffer_type
 	// defect presented.
-	if got, want := len(rep.Viols), 15; got != want {
+	if got, want := len(rep.Viols), 16; got != want {
 		t.Errorf("fixture produced %d violations, want %d:\n%s", got, want, dumpViolations(rep))
 	}
 }
@@ -251,11 +266,11 @@ func TestFixtureSignedness(t *testing.T) {
 func TestFixtureAccounting(t *testing.T) {
 	rep := fixtureReport(t)
 
-	if got, want := len(rep.Bindings), 20; got != want {
+	if got, want := len(rep.Bindings), 23; got != want {
 		t.Errorf("bindings found = %d, want %d", got, want)
 	}
 
-	if got, want := rep.Matched, 20; got != want {
+	if got, want := rep.Matched, 23; got != want {
 		t.Errorf("bindings matched to a C decl = %d, want %d", got, want)
 	}
 
@@ -288,8 +303,8 @@ func TestFixtureAccounting(t *testing.T) {
 		t.Fatalf("coverage lines = %d, want %d: %+v", got, want, rep.Coverage)
 	}
 
-	if c := rep.Coverage[0]; c.Header != "llama.h" || c.Bound != 20 || c.Decls != 21 {
-		t.Errorf("coverage line = %+v, want llama.h 20 of 21 bound", c)
+	if c := rep.Coverage[0]; c.Header != "llama.h" || c.Bound != 23 || c.Decls != 24 {
+		t.Errorf("coverage line = %+v, want llama.h 23 of 24 bound", c)
 	}
 
 	if len(rep.Unresolved) != 0 {
@@ -389,14 +404,30 @@ func TestFixtureAccounting(t *testing.T) {
 	// The pointer-target comparisons. Eight of the fixture's pointer slots name a
 	// concrete target on both sides; the other pointer slots aim at an opaque
 	// struct fx_thing through a Go uintptr, which names nothing to compare, and
-	// are out of scope rather than skips. Six are clean, one is the plant and one
-	// is the signedness finding.
-	if got, want := rep.CheckedPtr, 8; got != want {
+	// are out of scope rather than skips. Nine are clean - the three char *
+	// buffers among them included, since a *byte is the right target for a char -
+	// one is the plant and one is the signedness finding.
+	if got, want := rep.CheckedPtr, 11; got != want {
 		t.Errorf("pointer targets compared = %d, want %d", got, want)
 	}
 
-	if got, want := rep.CleanPtr, 6; got != want {
+	if got, want := rep.CleanPtr, 9; got != want {
 		t.Errorf("clean pointer targets = %d, want %d", got, want)
+	}
+
+	// The NUL-termination comparisons. Three of the fixture's char * slots are fed
+	// a buffer this can trace back to a Go string: the plant and its two controls.
+	// The other char * slots - fx_desc's output buffer from make, and
+	// fx_mode_from_str's *byte parameter - are produced somewhere this cannot see,
+	// so they are out of scope rather than skips, exactly as a void * is for the
+	// pointer targets. A count that drifted down would mean the check quietly
+	// stopped looking.
+	if got, want := rep.CheckedNUL, 3; got != want {
+		t.Errorf("C string buffers checked = %d, want %d", got, want)
+	}
+
+	if got, want := rep.CleanNUL, 2; got != want {
+		t.Errorf("NUL-terminated C string buffers = %d, want %d", got, want)
 	}
 
 	// Seven slot lines plus the one Go-only-tail note for fx_use_geom_tail.

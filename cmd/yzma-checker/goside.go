@@ -68,7 +68,38 @@ type CallArg struct {
 	Size    int        // -1 if unknown
 	Kind    Kind
 	Note    string
+
+	// Str is what could be worked out about the buffer behind this slot, for
+	// the C strings among them. See stringBuf and cmpStringTerm.
+	Str stringBuf
 }
+
+// stringBuf is how a Go buffer handed to a C `char *` was produced, and whether
+// anything in that production terminates it.
+//
+// Width, class and pointer target all match for a Go byte buffer behind a `const
+// char *`, so no rule here looks at the one property C actually depends on: that
+// the bytes end in a NUL. Nothing in Go produces one - a Go string carries its
+// length - so the terminator is always appended by hand, and dropping the
+// `+ "\x00"` from `&[]byte(path + "\x00")[0]` leaves every rule passing while C
+// reads forward off the end of a Go allocation.
+//
+// Producer is empty for a buffer this tool cannot reason about, which is not the
+// same as an unterminated one: a `*byte` arriving as a function parameter or
+// written by C names nothing to trace. Term is empty when the producer *is* one
+// of the traced forms and no terminator was found, which is the finding.
+type stringBuf struct {
+	Producer string // the expression the buffer came from; "" if not one this traces
+	Term     string // the evidence it ends in a NUL; "" if there is none
+}
+
+// nulHelpers are functions taken on inspection to return a NUL-terminated
+// buffer. A closed hand-checked list, for the same reason constAliases and
+// callbackTags are: a rule loose enough to guess which helper terminates its
+// result is loose enough to accept one that does not, and a new helper should
+// cost one reviewed line rather than pass silently. yzma has none today - every
+// site appends the terminator inline - so this is empty on purpose.
+var nulHelpers = map[string]string{}
 
 var arm64Sizes = types.SizesFor("gc", "arm64")
 
@@ -243,6 +274,11 @@ func exprStr(e ast.Expr) string {
 		return "composite{...}"
 	case *ast.SliceExpr:
 		return exprStr(x.X) + "[:]"
+	case *ast.ArrayType:
+		if x.Len == nil {
+			return "[]" + exprStr(x.Elt)
+		}
+		return "[" + exprStr(x.Len) + "]" + exprStr(x.Elt)
 	}
 	return fmt.Sprintf("%T", e)
 }
@@ -250,20 +286,7 @@ func exprStr(e ast.Expr) string {
 // pointeeOf figures out the Go type whose bytes libffi will read for an
 // argument expression passed to Fun.Call.
 func (a *analyzer) pointeeOf(e ast.Expr) (types.Type, string) {
-	// unwrap unsafe.Pointer(x) conversions
-	for {
-		ce, ok := e.(*ast.CallExpr)
-		if !ok || len(ce.Args) != 1 {
-			break
-		}
-		if sel, ok := ce.Fun.(*ast.SelectorExpr); ok {
-			if id, ok := sel.X.(*ast.Ident); ok && id.Name == "unsafe" && sel.Sel.Name == "Pointer" {
-				e = ce.Args[0]
-				continue
-			}
-		}
-		break
-	}
+	e = unwrapUnsafePointer(e)
 	if id, ok := e.(*ast.Ident); ok && id.Name == "nil" {
 		return nil, "nil"
 	}
@@ -281,6 +304,222 @@ func (a *analyzer) pointeeOf(e ast.Expr) (types.Type, string) {
 		return nil, "uintptr (not addressable)"
 	}
 	return nil, "non-pointer " + t.String()
+}
+
+// stringBufOf traces one avalue expression back to the buffer it points at.
+//
+// The avalue is the address of the pointer C receives, so `unsafe.Pointer(&file)`
+// says nothing by itself: what matters is every value `file` is assigned inside
+// the same function, which is where the terminator is either appended or
+// forgotten.
+func stringBufOf(e ast.Expr, body *ast.BlockStmt) stringBuf {
+	u, ok := unparen(unwrapUnsafePointer(e)).(*ast.UnaryExpr)
+	if !ok || u.Op != token.AND || body == nil {
+		return stringBuf{}
+	}
+
+	id, ok := unparen(u.X).(*ast.Ident)
+	if !ok {
+		return stringBuf{}
+	}
+
+	return charBuf(id, body, 0)
+}
+
+// charBuf classifies an expression that produces a `char *`.
+func charBuf(e ast.Expr, body *ast.BlockStmt, depth int) stringBuf {
+	if depth > 4 {
+		return stringBuf{}
+	}
+
+	switch x := unparen(unwrapUnsafePointer(e)).(type) {
+	case *ast.Ident:
+		// Merge every value the identifier is given: a producer with no
+		// terminator anywhere on that list is the finding, so it wins over one
+		// that has it.
+		var found stringBuf
+		for _, v := range assignedValues(x.Name, body) {
+			got := charBuf(v, body, depth+1)
+			if got.Producer == "" {
+				continue
+			}
+			if got.Term == "" {
+				return got
+			}
+			found = got
+		}
+
+		return found
+
+	case *ast.UnaryExpr:
+		// &buf[0], the idiom every yzma site uses.
+		if x.Op != token.AND {
+			return stringBuf{}
+		}
+		ix, ok := unparen(x.X).(*ast.IndexExpr)
+		if !ok || exprStr(ix.Index) != "0" {
+			return stringBuf{}
+		}
+
+		return byteSliceBuf(ix.X, body, depth+1)
+
+	case *ast.CallExpr:
+		switch callee := exprStr(x.Fun); {
+		case callee == "unsafe.SliceData" && len(x.Args) == 1:
+			return byteSliceBuf(x.Args[0], body, depth+1)
+		case callee == "unsafe.StringData" && len(x.Args) == 1:
+			return stringBuf{Producer: exprStr(x), Term: nulTerm(x.Args[0], body, depth+1)}
+		default:
+			if why, ok := nulHelpers[callee]; ok {
+				return stringBuf{Producer: exprStr(x), Term: why}
+			}
+		}
+	}
+
+	return stringBuf{}
+}
+
+// byteSliceBuf classifies the []byte a char * was taken the address of.
+func byteSliceBuf(e ast.Expr, body *ast.BlockStmt, depth int) stringBuf {
+	if depth > 4 {
+		return stringBuf{}
+	}
+
+	switch x := unparen(e).(type) {
+	case *ast.Ident:
+		var found stringBuf
+		for _, v := range assignedValues(x.Name, body) {
+			got := byteSliceBuf(v, body, depth+1)
+			if got.Producer == "" {
+				continue
+			}
+			if got.Term == "" {
+				return got
+			}
+			found = got
+		}
+
+		return found
+
+	case *ast.CallExpr:
+		// []byte(s): a Go string copied into a byte buffer, terminator and all
+		// or terminator and none.
+		if at, ok := x.Fun.(*ast.ArrayType); ok && at.Len == nil && len(x.Args) == 1 {
+			if id, ok := at.Elt.(*ast.Ident); ok && (id.Name == "byte" || id.Name == "uint8") {
+				return stringBuf{Producer: exprStr(x), Term: nulTerm(x.Args[0], body, depth+1)}
+			}
+		}
+
+	case *ast.CompositeLit:
+		at, ok := x.Type.(*ast.ArrayType)
+		if !ok || at.Len != nil || len(x.Elts) == 0 {
+			return stringBuf{}
+		}
+		if id, ok := at.Elt.(*ast.Ident); ok && (id.Name == "byte" || id.Name == "uint8") {
+			buf := stringBuf{Producer: exprStr(x)}
+			if last, ok := x.Elts[len(x.Elts)-1].(*ast.BasicLit); ok && (last.Value == "0" || last.Value == `'\x00'` || last.Value == "0x00") {
+				buf.Term = "[]byte composite ends in 0"
+			}
+
+			return buf
+		}
+	}
+
+	return stringBuf{}
+}
+
+// nulTerm looks for the evidence that a Go *string* expression ends in a NUL.
+//
+// Only the last operand of a concatenation can terminate it, so `path + "\x00"`
+// counts and `"\x00" + path` does not.
+func nulTerm(e ast.Expr, body *ast.BlockStmt, depth int) string {
+	if depth > 6 {
+		return ""
+	}
+
+	switch x := unparen(e).(type) {
+	case *ast.BasicLit:
+		if x.Kind == token.STRING {
+			if s, err := strconv.Unquote(x.Value); err == nil && strings.HasSuffix(s, "\x00") {
+				return `string literal ending in "\x00"`
+			}
+		}
+
+	case *ast.BinaryExpr:
+		if x.Op == token.ADD {
+			return nulTerm(x.Y, body, depth+1)
+		}
+
+	case *ast.Ident:
+		for _, v := range assignedValues(x.Name, body) {
+			if t := nulTerm(v, body, depth+1); t != "" {
+				return t
+			}
+		}
+
+	case *ast.CallExpr:
+		if why, ok := nulHelpers[exprStr(x.Fun)]; ok {
+			return why
+		}
+	}
+
+	return ""
+}
+
+// assignedValues collects every value assigned to name in body.
+//
+// Flow-insensitive on purpose: `x += "\x00"` after the buffer is built and
+// `if len(name) > 0 { n = ... }` are both the shape yzma writes, and the
+// question asked of the result - is there positive evidence of a terminator -
+// does not need an order.
+func assignedValues(name string, body *ast.BlockStmt) []ast.Expr {
+	var out []ast.Expr
+
+	ast.Inspect(body, func(n ast.Node) bool {
+		switch s := n.(type) {
+		case *ast.AssignStmt:
+			if len(s.Lhs) != len(s.Rhs) {
+				return true
+			}
+			for i, l := range s.Lhs {
+				if id, ok := l.(*ast.Ident); ok && id.Name == name {
+					out = append(out, s.Rhs[i])
+				}
+			}
+		case *ast.ValueSpec:
+			for i, id := range s.Names {
+				if id.Name == name && i < len(s.Values) {
+					out = append(out, s.Values[i])
+				}
+			}
+		}
+
+		return true
+	})
+
+	return out
+}
+
+func unparen(e ast.Expr) ast.Expr {
+	for {
+		p, ok := e.(*ast.ParenExpr)
+		if !ok {
+			return e
+		}
+		e = p.X
+	}
+}
+
+// unwrapUnsafePointer strips unsafe.Pointer(x) conversions, which carry no
+// information about x.
+func unwrapUnsafePointer(e ast.Expr) ast.Expr {
+	for {
+		ce, ok := unparen(e).(*ast.CallExpr)
+		if !ok || len(ce.Args) != 1 || exprStr(ce.Fun) != "unsafe.Pointer" {
+			return e
+		}
+		e = ce.Args[0]
+	}
 }
 
 func (a *analyzer) run() {
@@ -435,9 +674,12 @@ func (a *analyzer) run() {
 	// pass 3: Call sites
 	for _, f := range a.pkg.Syntax {
 		var curFn string
+		// The enclosing body is where a C string buffer is built, one or more
+		// statements before the Call that hands it over.
+		var curBody *ast.BlockStmt
 		ast.Inspect(f, func(n ast.Node) bool {
 			if fd, ok := n.(*ast.FuncDecl); ok {
-				curFn = fd.Name.Name
+				curFn, curBody = fd.Name.Name, fd.Body
 			}
 			ce, ok := n.(*ast.CallExpr)
 			if !ok {
@@ -471,7 +713,10 @@ func (a *analyzer) run() {
 					sz = -1
 					k = KindUnknown
 				}
-				cs.Args = append(cs.Args, CallArg{Expr: exprStr(ae), Pointee: pt, Size: sz, Kind: k, Note: note})
+				cs.Args = append(cs.Args, CallArg{
+					Expr: exprStr(ae), Pointee: pt, Size: sz, Kind: k, Note: note,
+					Str: stringBufOf(ae, curBody),
+				})
 			}
 			b.Calls = append(b.Calls, cs)
 			return true

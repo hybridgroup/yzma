@@ -108,7 +108,9 @@ of adjacent Go memory into the high half of the C argument.
 
 A pointer slot needs one more comparison than a width, because every pointer is
 8 bytes: what it points *at* is compared too, and a `float *` fed a `*int32` is a
-RULE 2 finding — see *Pointer targets*, below.
+RULE 2 finding — see *Pointer targets*, below. A `char *` slot needs a third,
+because C finds the end of a string in the bytes and Go never puts a terminator
+there — see *C string termination*.
 
 For a **struct** passed by value the C-declared size is the authority in one
 direction only: since libffi reaches exactly that far, a Go struct that appends
@@ -334,6 +336,71 @@ pair would be the C struct against the Go struct, through a target threaded
 alongside every leaf on both sides. That is a wider change than the check earns,
 so it was left out deliberately rather than half-done.
 
+### C string termination
+
+Widths, classes and pointer targets all agree for a Go byte buffer behind a
+`const char *`: the slot is an 8-byte pointer on both sides, and one indirection
+down it is a C `char` against a Go `byte`, which is the one target pair the
+sections above are happiest with. Nothing there looks at the property C actually
+depends on, which is that the bytes end in a **NUL**.
+
+Go never puts one there. A Go string carries its length, so every C string in
+this tree is terminated by hand:
+
+```go
+p := &[]byte(path + "\x00")[0]        // pkg/llama/ggml.go
+text += "\x00"                        // pkg/mtmd/mtmd.go
+p := unsafe.StringData(text)
+```
+
+Delete the `+ "\x00"` from any of those and every rule above still passes, the
+package still compiles, and C reads forward off the end of a Go allocation —
+through whatever the allocator happened to put next — until it finds a zero byte.
+That is the loudest possible failure with the least possible warning at build
+time, and unlike the drift in #289 it does not even need upstream to change:
+one edit is enough.
+
+So each `char *` parameter slot is traced back to the buffer behind it and
+requires **positive evidence** of a terminator. The trace runs over the enclosing
+Go function, because that is where the buffer is built a statement or two before
+the `Call` that hands it over: the avalue `unsafe.Pointer(&file)` says nothing by
+itself, and every value `file` is assigned does. Three producer forms are
+recognised, which are the ones the tree uses:
+
+| producer | terminated by |
+|---|---|
+| `&[]byte(s)[0]`, `unsafe.SliceData([]byte(s))` | a `"\x00"` at the end of `s` |
+| `unsafe.StringData(s)` | the same, including `s += "\x00"` earlier in the function |
+| `&[]byte{...}[0]` | a composite literal whose last element is `0` |
+
+Only the *last* operand of a concatenation can terminate it, so `path + "\x00"`
+counts and `"\x00" + path` does not. `nulHelpers` in `goside.go` is there for a
+helper function that returns a terminated buffer, and is a closed hand-checked
+list for the same reason `constAliases` and `callbackTags` are — a rule loose
+enough to guess which helper terminates its result is loose enough to accept one
+that does not. It is empty today, because all six live sites append the
+terminator inline.
+
+This is a **RULE 2** finding rather than a class of its own, because the failure
+is RULE 2's failure — C reading bytes the Go side never meant to hand over — and
+because, unlike a signedness difference, nothing about it is permitted: it
+belongs in the exit code. What differs from the rest of RULE 2 is the *evidence*,
+dataflow rather than a width, which is why the scope is counted separately as
+`C string buffers checked` on the `SUMMARY`.
+
+That scope is deliberately narrow, and narrowed rather than filled with skips. A
+`char *` fed a `*byte` that arrived as a function parameter, was written by C, or
+came out of `make` for C to fill into is not traceable to a Go string, and is not
+an unterminated buffer either: it names nothing to decide about, exactly as a
+`void *` names no pointer target. Those slots are therefore outside the claim
+rather than skips — a skip means "this should have been checked and was not" —
+and a clean run still reports 0 skips. What the count guarantees is that a
+narrowing of the traced forms shows up as a smaller number rather than as
+silence. `char **`, `uint8_t *` and `int8_t *` are outside it too: the buffer is
+one indirection further away than this traces in the first case, and a counted
+byte buffer whose length travels in another parameter has no terminator to
+require in the other two.
+
 ### Signedness
 
 `kindCompat` merges `KindSint` and `KindUint`, and it is right to: a same-width
@@ -429,7 +496,8 @@ measurement rather than an assertion:
   `SUMMARY`.
 
 - `SUMMARY` — declarations parsed, bindings matched, and checked/clean counts
-  per rule, plus struct layouts compared. The layout count is separate because a
+  per rule, plus struct layouts, pointer targets and C string buffers compared.
+  Those three counts are separate because a
   layout comparison that quietly stopped resolving would still leave the rule it
   belongs to reporting zero violations. The RULE 4 line carries three more
   numbers for the same reason:
@@ -522,6 +590,19 @@ are their controls, same declarations read through the signed types, and the gat
 also pins that no 1-byte `char` target is ever reported — without that exemption
 the check would flag every string parameter in yzma and nothing else.
 
+For the NUL-termination check the header grows three `const char *` declarations
+of the same shape. `fx_set_name` is fed `&[]byte(name)[0]` with nothing appended —
+the plant, whose slot is a pointer to a `char` read through a `*byte` on both
+sides, so every width, class and pointer-target comparison passes it — against
+`fx_set_path` and `fx_set_text`, one control per idiom the tree actually uses:
+`&[]byte(path + "\x00")[0]`, and `text += "\x00"` before `unsafe.StringData`.
+The control half is the one that matters, because those two are written exactly
+as all six real string sites are: a rule that reported either would report every
+string yzma passes. The gate also pins the scope count at three, so the two
+`char *` slots that are *out* of scope — `fx_desc`'s output buffer from `make`
+and `fx_mode_from_str`'s `*byte` parameter — stay out of it and stay out of the
+skips.
+
 For RULE 5 the fixture header grows four function-pointer typedefs and the
 fixture package four callback sites, one plant and one clean control per form: a
 descriptor declaring `&ffi.TypeSint32` where the typedef says `float`, a purego
@@ -549,7 +630,7 @@ failure mode the fixture avoids.
 | `cenum.go` | RULE 4: C enum members and integer `#define`s with a small C constant-expression evaluator, the Go constants from `go/types`, the name matching between them, and the partially-mirrored-enum inventory |
 | `ccallback.go` | RULE 5: C function-pointer typedefs, the link from a Go callback site to the typedef it implements, and the comparison for both callback forms |
 | `layout.go` | flattens a C struct, a cif descriptor and a Go struct to a common member list, diffs them, and matches members by name to find transpositions |
-| `goside.go` | `go/packages` type-checked walk: `lib.Prep`/`PrepVar` → binding spec, `<var>.Call(...)` → the Go type libffi will actually read bytes from, `ffi.PrepCif`/`purego.NewCallback` → callback site |
+| `goside.go` | `go/packages` type-checked walk: `lib.Prep`/`PrepVar` → binding spec, `<var>.Call(...)` → the Go type libffi will actually read bytes from and, for a C string, the buffer it was built from, `ffi.PrepCif`/`purego.NewCallback` → callback site |
 | `main_test.go` | the correctness gate |
 
 ## Assumptions
@@ -666,6 +747,13 @@ in that derivation would be invisible here.
   signedness check cannot say anything about the `int32(result)` on the next line.
   That is why yzma has 0 signedness findings today while the fixture demonstrates
   both halves of the check.
+- **A C string whose buffer is not built in the same function.** The termination
+  check traces the enclosing Go function, so a `char *` that arrives as a
+  parameter, is written by C, or is handed over as a struct *member* — which is
+  how `mtmd.InputText.Text` reaches C, one level of indirection past every
+  parameter slot the rules look at — is outside its scope rather than a skip.
+  `NewInputText` does append its `"\x00"`, and nothing here proves it. The
+  `C string buffers checked` count is what makes that scope a number.
 - **Pointer lifetime.** Go pointers stored in C-visible memory, missing
   `runtime.KeepAlive`, and slices retained over C-owned memory are a separate
   class of hazard entirely.

@@ -62,6 +62,13 @@ var layoutChecked, layoutClean int
 // cmpPointerTarget.
 var ptrChecked, ptrClean int
 
+// NUL-termination comparisons on C string buffers, counted separately for the
+// same reason the pointer targets are: the claim is only made for a buffer this
+// tool can trace back to the Go string it was built from, so a narrowing of that
+// scope would leave RULE 2 reporting zero unterminated buffers without reporting
+// that it stopped looking. See cmpStringTerm.
+var nulChecked, nulClean int
+
 // members renders a leaf count for the STRUCT-BY-VALUE COMPARISONS report,
 // distinguishing "no members" from "layout not resolvable".
 func members(ls []Leaf, ok bool) string {
@@ -174,6 +181,7 @@ type report struct {
 	CleanR1, CleanR2, CleanR3, CleanR4, CleanR5           int
 	CheckedLayout, CleanLayout                            int
 	CheckedPtr, CleanPtr                                  int
+	CheckedNUL, CleanNUL                                  int
 
 	// CFnPtrs counts the function-pointer typedefs RULE 5 has a signature for,
 	// CFnPtrBad the ones this parser could not take apart. As with CConstBad the
@@ -200,6 +208,7 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 	skips, structCmp, signs = nil, nil, nil
 	layoutChecked, layoutClean = 0, 0
 	ptrChecked, ptrClean = 0, 0
+	nulChecked, nulClean = 0, 0
 	resetCTypes()
 
 	// --- C side ---
@@ -483,6 +492,9 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 				if p := cmpPointerTarget(ca, cArg, b.CName, csp, fmt.Sprintf("arg%d", i)); p != "" {
 					probs = append(probs, p)
 				}
+				if p := cmpStringTerm(ca, cArg, fmt.Sprintf("arg%d", i)); p != "" {
+					probs = append(probs, p)
+				}
 				if p := cmpStructLayout(ct, ca.Pointee, fmt.Sprintf("arg%d", i), ca.Expr, cArg); p != "" {
 					probs = append(probs, p)
 				}
@@ -634,6 +646,9 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		CheckedPtr: ptrChecked,
 		CleanPtr:   ptrClean,
 
+		CheckedNUL: nulChecked,
+		CleanNUL:   nulClean,
+
 		CConsts:     len(cconsts),
 		CConstBad:   len(cconstBad),
 		LocalConsts: localConsts,
@@ -725,6 +740,7 @@ func printReport(r *report) {
 		r.CheckedR5, r.CleanR5, r.CFnPtrs, r.CFnPtrBad)
 	fmt.Printf("struct layouts compared:   %d / %d clean\n", r.CheckedLayout, r.CleanLayout)
 	fmt.Printf("pointer targets compared:  %d / %d clean\n", r.CheckedPtr, r.CleanPtr)
+	fmt.Printf("C string buffers checked:  %d / %d NUL-terminated\n", r.CheckedNUL, r.CleanNUL)
 	fmt.Printf("signedness findings:       %d (not violations)\n", len(r.Signs))
 	nr := map[int]int{}
 	for _, v := range r.Viols {
@@ -948,6 +964,64 @@ func cmpPointerTarget(ca CallArg, cRaw, fn, pos, slot string) string {
 	ptrClean++
 
 	return ""
+}
+
+// cmpStringTerm checks that a C `char *` parameter is fed a NUL-terminated
+// buffer.
+//
+// This is the one property of a string argument that no other comparison here
+// can reach. The slot is a pointer on both sides, the widths match, and the
+// pointer target is `char` against a Go `byte`, so RULES 1-3 and both extensions
+// above pass it - while C's idea of where the string ends comes from the bytes
+// themselves. Go never puts a terminator there: a Go string carries its length,
+// so every one of these buffers is terminated by hand, and dropping the
+// `+ "\x00"` from `&[]byte(path + "\x00")[0]` compiles, type-checks, passes every
+// rule and makes C read forward off the end of a Go allocation - into whatever
+// the allocator put next, for as long as it takes to find a zero byte.
+//
+// It is a RULE 2 finding rather than a class of its own, because the failure is
+// RULE 2's failure: libffi and C reading bytes the Go side never meant to hand
+// over. What differs is the evidence - dataflow rather than a width - which is
+// why the *scope* is counted separately.
+//
+// And the scope is deliberately narrow: the claim is only made for a buffer that
+// can be traced back, inside the same function, to a Go string or byte-slice
+// literal. A `*byte` that arrived as a parameter, was written by C, or came out
+// of `make` for C to fill names nothing to trace, exactly as a `void *` names no
+// pointer target, so those slots are outside what this can decide rather than
+// skips - a skip means "this should have been checked and was not". What is
+// inside that scope is on the SUMMARY, so narrowing it is visible rather than
+// silent.
+func cmpStringTerm(ca CallArg, cRaw, slot string) string {
+	if !cCharPtr(cRaw) || ca.Str.Producer == "" {
+		return ""
+	}
+
+	nulChecked++
+
+	if ca.Str.Term == "" {
+		return fmt.Sprintf("%s: C %s needs a NUL-terminated buffer but %s is built from %s with no terminator: C reads past the end of the Go allocation",
+			slot, squash(cRaw), ca.Expr, ca.Str.Producer)
+	}
+
+	nulClean++
+
+	return ""
+}
+
+// cCharPtr is a single-level C pointer to plain char - the string idiom.
+//
+// A byte buffer spelled `uint8_t *` or `int8_t *` is deliberately not one: it is
+// a counted buffer whose length travels in another parameter, so there is no
+// terminator to require. `char **` is not one either, because the buffer is one
+// more indirection away than this traces.
+func cCharPtr(cRaw string) bool {
+	t := squash(strings.ReplaceAll(strings.ReplaceAll(cRaw, "const", " "), "volatile", " "))
+	if !strings.HasSuffix(t, "*") || strings.Count(t, "*") != 1 {
+		return false
+	}
+
+	return strings.TrimSpace(strings.TrimSuffix(t, "*")) == "char"
 }
 
 // checkRetSign reports a return value read through a Go type of the other sign.

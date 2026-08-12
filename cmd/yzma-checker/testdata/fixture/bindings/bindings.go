@@ -2,9 +2,10 @@
 // deliberately miniature imitation of yzma's binding style: package-level
 // ffi.Fun vars filled in by lib.Prep, called with unsafe.Pointer avalues.
 //
-// Ten of the twenty bindings below are wrong, one per rule per direction plus
-// one per struct-layout direction plus one transposition plus one variadic
-// nfixed plus one pointer aimed at the wrong target, and eight are clean. Two
+// Eleven of the twenty-three bindings below are wrong, one per rule per
+// direction plus one per struct-layout direction plus one transposition plus one
+// variadic nfixed plus one pointer aimed at the wrong target plus one C string
+// with no terminator, and ten are clean. Two
 // more carry the signedness plants, which are deliberately not violations: same
 // width, same register, other meaning. The mirrored constants in the middle
 // carry the RULE 4 plant among ten clean controls, and the four callback sites
@@ -181,6 +182,9 @@ var (
 	getTokenFunc   ffi.Fun
 	decodeFunc     ffi.Fun
 	decodeOKFunc   ffi.Fun
+	setNameFunc    ffi.Fun
+	setPathFunc    ffi.Fun
+	setTextFunc    ffi.Fun
 )
 
 func load(lib ffi.Lib) error {
@@ -271,6 +275,21 @@ func load(lib ffi.Lib) error {
 	}
 
 	if decodeOKFunc, err = lib.Prep("fx_decode_ok", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return err
+	}
+
+	// The C-string group. Every descriptor is &ffi.TypePointer and every buffer
+	// is a Go *byte, so the only thing that separates the plant from its two
+	// controls is whether the bytes end in a NUL.
+	if setNameFunc, err = lib.Prep("fx_set_name", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return err
+	}
+
+	if setPathFunc, err = lib.Prep("fx_set_path", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return err
+	}
+
+	if setTextFunc, err = lib.Prep("fx_set_text", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return err
 	}
 
@@ -430,6 +449,31 @@ func DecodeOK(thing uintptr) int64 {
 	decodeOKFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&thing))
 
 	return result
+}
+
+// SetName is the NUL-termination plant: the buffer is a Go string copied into a
+// []byte and nothing appends a terminator, so C keeps reading past the end of
+// that allocation until it happens to find a zero byte. The slot is a pointer of
+// the same width on both sides, aimed at a char through a *byte, so every other
+// rule passes it.
+func SetName(thing uintptr, name string) {
+	n := &[]byte(name)[0]
+	setNameFunc.Call(nil, unsafe.Pointer(&thing), unsafe.Pointer(&n))
+}
+
+// SetPath is the control for it, written the way every yzma string site is, and
+// must never be reported.
+func SetPath(thing uintptr, path string) {
+	p := &[]byte(path + "\x00")[0]
+	setPathFunc.Call(nil, unsafe.Pointer(&thing), unsafe.Pointer(&p))
+}
+
+// SetText is the second control, in the other idiom yzma uses: the string is
+// terminated in place and handed over with unsafe.StringData.
+func SetText(thing uintptr, text string) {
+	text += "\x00"
+	p := unsafe.StringData(text)
+	setTextFunc.Call(nil, unsafe.Pointer(&thing), unsafe.Pointer(&p))
 }
 
 var _ = load
