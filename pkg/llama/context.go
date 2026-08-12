@@ -13,6 +13,7 @@ var ffiTypeContextParams = ffi.NewType(
 	&ffi.TypeUint32, &ffi.TypeUint32,
 	&ffi.TypeUint32, &ffi.TypeUint32,
 	&ffi.TypeUint32, &ffi.TypeUint32,
+	&ffi.TypeUint32,
 	&ffi.TypeSint32, &ffi.TypeSint32,
 	&ffi.TypeSint32,
 	&ffi.TypeSint32, &ffi.TypeSint32,
