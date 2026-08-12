@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 )
 
@@ -25,6 +26,12 @@ type CFunc struct {
 	Params  []CParam
 	Vararg  bool
 	Raw     string
+
+	// Deprecated is set when upstream wrapped the declaration in DEPRECATED(...).
+	// Purely an inventory fact: a deprecated function still has the same ABI, so
+	// binding one is never a violation here - it is a maintenance signal, and one
+	// the parser used to throw away while unwrapping the macro.
+	Deprecated bool
 }
 
 // Kind classifies a C type for ABI purposes.
@@ -107,7 +114,13 @@ func stripComments(src string) string {
 
 // unwrapDeprecated rewrites DEPRECATED(<decl>, "msg") into <decl> in place,
 // blanking the wrapper so byte offsets and line numbers are preserved.
-func unwrapDeprecated(src string) string {
+//
+// It also reports the byte span each wrapper covered, which is the only trace
+// left of the fact once the macro is blanked: a declaration inside one of those
+// spans is one upstream has marked deprecated. See the deprecation inventory in
+// analyse.
+func unwrapDeprecated(src string) (string, [][2]int) {
+	var spans [][2]int
 	b := []byte(src)
 	const tok = "DEPRECATED("
 	for _, idx := range findAll(string(b), tok) {
@@ -157,8 +170,14 @@ func unwrapDeprecated(src string) string {
 				b[i] = ' '
 			}
 		}
+		spans = append(spans, [2]int{idx, close})
 	}
-	return string(b)
+	return string(b), spans
+}
+
+// inSpans reports whether an offset falls inside one of the spans.
+func inSpans(spans [][2]int, off int) bool {
+	return slices.ContainsFunc(spans, func(s [2]int) bool { return off >= s[0] && off <= s[1] })
 }
 
 // typedefs maps a typedef name -> the underlying type text.
@@ -414,7 +433,7 @@ func parseHeader(path, apiMacro string) ([]CFunc, error) {
 	if err != nil {
 		return nil, err
 	}
-	src := unwrapDeprecated(stripComments(string(raw)))
+	src, deprecated := unwrapDeprecated(stripComments(string(raw)))
 	collectTypedefs(src)
 	// collect enum tag names: "enum llama_foo {"
 	for _, m := range findAll(src, "enum ") {
@@ -470,6 +489,7 @@ func parseHeader(path, apiMacro string) ([]CFunc, error) {
 		fn.File = path
 		fn.Line = line
 		fn.Raw = squash(decl)
+		fn.Deprecated = inSpans(deprecated, idx)
 		out = append(out, fn)
 	}
 	return out, nil

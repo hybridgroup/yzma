@@ -502,6 +502,12 @@ func Logf(thing uintptr, fmtStr *byte, n int32) {
 }
 
 // Printf is the variadic control and must never be reported.
+//
+// It is also the control for the deprecation note: fx_printf is wrapped in
+// DEPRECATED(...) upstream and this paragraph is the form gopls and staticcheck
+// SA1019 read, so nothing about it is a finding.
+//
+// Deprecated: fx_printf is deprecated upstream; this is the fixture's control.
 func Printf(thing uintptr, fmtStr *byte, n int32) int32 {
 	var result ffi.Arg
 	printfFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&thing), unsafe.Pointer(&fmtStr), unsafe.Pointer(&n))
@@ -509,7 +515,12 @@ func Printf(thing uintptr, fmtStr *byte, n int32) int32 {
 	return int32(result)
 }
 
-// Clean violates nothing and must never appear in the report.
+// Clean violates nothing and must never appear in the violation list.
+//
+// It is the plant for the deprecation note instead: fx_clean is wrapped in
+// DEPRECATED(...) upstream, and this comment mentions that in prose without
+// using the convention - exactly as mtmd.Encode does - so a consumer's gopls and
+// staticcheck stay silent. Note: fx_clean is deprecated upstream.
 func Clean(thing uintptr, a int32, n uint64) int32 {
 	var result ffi.Arg
 	cleanFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&thing), &a, &n)

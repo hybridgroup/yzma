@@ -64,10 +64,14 @@ auditing it describes code that does not run.
 -hdrs   <dir>   use pre-extracted headers; the dir must contain llama.h, ggml.h,
                 ggml-backend.h, ggml-cpu.h, mtmd.h and mtmd-helper.h
 -pkgs   <list>  comma-separated package patterns to audit
+-lib    <dir>   also compare the bound symbols against what the llama.cpp
+                libraries installed in <dir> export; off by default, never
+                affects the exit code
 -v              dump every binding: cif types, C signature, and every call site,
                 plus every constant and the C constant it was matched to, and
                 every callback with the C typedef it was linked to, and every
-                unbound C declaration and unmirrored C enum member
+                unbound C declaration, unmirrored C enum member and deprecated
+                declaration yzma binds
 ```
 
 `-llama` and `-hdrs` are the offline paths.
@@ -326,6 +330,38 @@ comparison against C could see it. A reordered Go struct against a correct
 descriptor is the other direction, and the one the README used to list as
 uncovered.
 
+#### Both architectures, not just this one
+
+`goside.go` lays every Go type out with `types.SizesFor("gc", "arm64")`, so every
+width in this report — 8-byte pointer, 8-byte `size_t`, 8-byte `ffi.Arg`, and
+every struct offset derived from them — used to be one target's, printed whatever
+`GOARCH` the tool ran on. This README used to *argue* the other way out of that:
+for the types that cross this boundary amd64 agrees member for member, so the
+audit is valid there too. An argument is the wrong kind of thing to rest a
+report's every number on, and running the walker twice is the whole of what it
+takes to know instead.
+
+So each Go struct crossing the boundary is flattened under **both** architectures
+yzma supports and the two member lists are diffed, once per struct rather than
+once per slot. Agreement is on the `SUMMARY` as `Go layouts cross-arch`, and all
+eleven agree today. A divergence would be a RULE 2 finding, because that is what
+it means: one of the two supported architectures is being audited by offsets that
+are not its own, in a report otherwise full of clean comparisons.
+
+Agreement is also the expected answer, and worth saying why: gc's amd64 and arm64
+share a word size and a maximum alignment, so no Go struct can lay out
+differently between them. That is exactly why the check cannot be demonstrated on
+the fixture, and why the gate demonstrates it against a 32-bit target instead —
+which is also the shape to watch for. A 4-byte pointer moves every interior
+offset in `llama_context_params` and makes RULE 3's "integer returns need 8 bytes"
+the wrong number. yzma has no 32-bit target to break on: `pkg/download/arch.go`
+declares exactly `amd64` and `arm64` and `MustParseArch` panics on anything else,
+`jupiterrider/ffi`'s build tag is `((freebsd || linux || windows || darwin) &&
+(amd64 || arm64)) || (linux && riscv64)`, all 64-bit, and CI builds on
+`ubuntu-latest`, `macos-latest` and `windows-2025`. The thing to watch is a
+32-bit architecture being added to that table — at which point this counter is
+where it shows up.
+
 ### Transposed members
 
 Offsets cannot see everything. Swapping two members of the same width and ABI
@@ -521,7 +557,7 @@ signed in the type table while its signedness is implementation-defined in C, an
 
 ## Output
 
-Only mismatches are printed, plus five accounting sections that matter as much
+Only mismatches are printed, plus the accounting sections that matter as much
 as the findings, because they are what makes *"these are the only ones"* a
 measurement rather than an assertion:
 
@@ -586,10 +622,84 @@ measurement rather than an assertion:
   every member with its value and header line, and the totals are on the
   `SUMMARY`.
 
+- `BINDINGS UPSTREAM HAS DEPRECATED` — the other end of the coverage inventory,
+  and equally not a check. A deprecated function has exactly the same ABI as any
+  other, so every rule above applies to it unchanged and none of them can be
+  failed by the deprecation itself: this never produces a violation and never
+  affects the exit code. The coverage inventory says which declarations yzma has
+  not caught up with; this says which of the ones it *did* bind upstream intends
+  to remove, which is the same drift signal read from the other end. The fact was
+  already in the parser's hands and thrown away — `unwrapDeprecated` blanks
+  `DEPRECATED(...)` to get at the declaration inside — so this costs the byte
+  spans it already computed. Four today:
+
+  ```
+  llama_set_warmup (llama.h:1006)
+  mtmd_encode (mtmd.h:294)
+  mtmd_image_tokens_get_nx (mtmd.h:255)
+  mtmd_image_tokens_get_ny (mtmd.h:257)
+  ```
+
+  The count is always printed; `-v` adds the names and their header lines.
+
+- `GO WRAPPERS NOT PASSING A DEPRECATION ON` — the other half of that fact, and
+  the half with a consequence for somebody other than the maintainer.
+  `// Deprecated: <reason>` is not a comment style, it is an interface: gopls
+  surfaces it in a consumer's editor and staticcheck's SA1019 flags every
+  consumer call site. A wrapper without it passes the deprecation on while
+  suppressing the one signal Go tooling could have given a user — the binding
+  compiles clean, runs clean, reports clean here, and quietly commits consumers
+  to an API upstream has announced it is removing. All four wrappers in yzma are
+  in that state today; `mtmd.Encode` is the instructive one, because it *does*
+  say "Note: this function is marked as deprecated upstream in favor of
+  EncodeChunk" — which reads identically to a human and is invisible to both
+  tools. Only a paragraph *beginning* with `Deprecated: ` counts, deliberately.
+
+  It is its own reported class rather than a rule violation, and it **never**
+  affects the exit code, for the same reason the signedness findings do not:
+  nothing about the ABI is wrong here, every byte crosses correctly, and the exit
+  code of this tool means "this boundary is broken". Failing CI on API hygiene
+  would conflate two claims of very different kinds, which is how a checker gets
+  ignored. That is a statement about placement, not about confidence — unlike an
+  unbound declaration this has exactly one right answer.
+
+  The subject is the **exported wrapper**, found from the enclosing Go func of
+  each call site, because the `ffi.Fun` var is unexported in every package here
+  and is not what a consumer holds. A deprecated binding with no exported wrapper
+  is outside the claim rather than a skip — there is nothing a consumer can call,
+  so there is nothing to announce — and `their Go wrappers` on the `SUMMARY` is
+  what makes that scope a number.
+
+- `SYMBOLS THE INSTALLED LIBRARY DOES NOT EXPORT` — printed only when `-lib` is
+  passed, and the one input the rest of this pipeline structurally cannot see.
+  Everything else is verified against headers, and a header is a *claim* about
+  what the library exports rather than the export itself; what purego does at
+  load time is `dlsym`. A declaration the installed build does not export —
+  because the library predates it, was built with the feature that defines it
+  disabled, or was never exported at all — fails at binding time, and no header
+  comparison can predict that. Neither can the ref this audit resolves: it names
+  the build yzma's installer *would* fetch, not the one on this machine.
+
+  It reads the exported, defined symbols of the libraries yzma actually dlopens
+  (`ggml`, `ggml-base`, `ggml-cpu`, `llama`, `mtmd`, resolved with the same
+  filename rule `pkg/loader` uses) through the platform's `nm`, and compares the
+  265 bound names against their union. All 265 are exported by the build
+  installed here, which is `b10219` against `b10375` headers — so the skew this
+  is for does not exist today.
+
+  It is **opt-in** deliberately, for the same reason it never affects the exit
+  code: the installed library is a property of the machine and not of the
+  repository, so a check that ran by default would make the report's contents
+  depend on whether anybody had run yzma on that box, and a CI runner with no
+  library would either fail or print a paragraph explaining that it could not.
+  With no `-lib` the tool behaves exactly as it did before this existed — no
+  section, no skip, no network, no new dependency. A missing symbol is a fact
+  about a local installation, not a defect in the bindings.
+
 - `SUMMARY` — declarations parsed, bindings matched, and checked/clean counts
-  per rule, plus struct layouts, pointer targets, C string buffers and enum
-  parameters compared.
-  Those three counts are separate because a
+  per rule, plus struct layouts, pointer targets, C string buffers, enum
+  parameters and Go layouts across architectures compared.
+  Those counts are separate because a
   layout comparison that quietly stopped resolving would still leave the rule it
   belongs to reporting zero violations. The RULE 4 line carries three more
   numbers for the same reason:
@@ -738,6 +848,34 @@ counters pin the scope at six members compared with four code pointers traced, s
 the two members with nothing stored in them stay out of both the traced count and
 the skips.
 
+Three checks cannot be planted in the fixture, and the gate says why rather than
+skipping them:
+
+- The **cross-architecture** comparison, because gc's amd64 and arm64 share a
+  word size and a maximum alignment, so no Go struct can be made to disagree
+  between them — which is the check's own result. The gate therefore diffs a
+  fixture struct against a 32-bit layout, where the difference is real and is the
+  shape the README names as the thing to watch, plus the control that the active
+  target compares equal to itself. The fixture's nine boundary structs pin that
+  the comparison runs and agrees.
+- The **bitfield and union guard**, because planting one would spend a skip that
+  the fixture's "0 skips" assertion pays for. It is pinned on the parser directly
+  instead: a plain struct must still lay out, and a bitfield member and a nested
+  union must each leave the struct unresolved with a reason naming the shape.
+- The **library symbol comparison**, because a fixture cannot carry a shared
+  library. Its parsing half is pinned on recorded `nm` output — an undefined `U`
+  symbol and a local lowercase one must both be dropped, since `dlsym` would not
+  find either — and the gate also pins that an ordinary run does not look at a
+  library at all, which is the promise `-lib` being opt-in makes.
+
+For the deprecation inventory the fixture header wraps two declarations in
+`DEPRECATED(...)`, and both are on the clean list: that is the assertion which
+pins the framing, since a deprecated function's ABI is no different. Their Go
+wrappers are the plant and control for the note check — `Printf` carries the
+`Deprecated:` paragraph and `Clean` mentions the fact in prose, exactly as
+`mtmd.Encode` does, so the gate pins that the convention is what counts and prose
+is not.
+
 **Treat a failing `go test` as "do not trust anything this run reports."**
 
 The previous gate was "a run must re-derive these two live defects in yzma."
@@ -750,37 +888,20 @@ failure mode the fixture avoids.
 |---|---|
 | `main.go` | the five rules, the report, and the CLI |
 | `sources.go` | resolving the yzma tree, the llama.cpp ref, and the headers |
-| `cheader.go` | C declaration parser: comment blanking that preserves byte offsets, `DEPRECATED(...)` unwrapping, typedef/enum resolution, top-level comma splitting |
-| `cstruct.go` | C struct layout for struct-by-value slots; iterates to a fixpoint because `llama.h` structs reference typedefs declared in `ggml-backend.h` |
+| `cheader.go` | C declaration parser: comment blanking that preserves byte offsets, `DEPRECATED(...)` unwrapping and the spans it covered, typedef/enum resolution, top-level comma splitting |
+| `cstruct.go` | C struct layout for struct-by-value slots; iterates to a fixpoint because `llama.h` structs reference typedefs declared in `ggml-backend.h`, and refuses to lay out a struct with a bitfield or a union so that one becomes a named skip |
+| `libsyms.go` | `-lib`: the exported symbols of the installed shared libraries, and which bound symbols are missing from them |
 | `cenum.go` | RULE 4: C enum members and integer `#define`s with a small C constant-expression evaluator, the Go constants from `go/types`, the name matching between them, the C enum each yzma enum type is thereby known to mirror, and the partially-mirrored-enum inventory |
 | `ccallback.go` | RULE 5: C function-pointer typedefs, the link from a Go callback site to the typedef it implements, the comparison for both callback forms, and the function-pointer struct members C reaches a callback through |
-| `layout.go` | flattens a C struct, a cif descriptor and a Go struct to a common member list, diffs them, and matches members by name to find transpositions |
-| `goside.go` | `go/packages` type-checked walk: `lib.Prep`/`PrepVar` → binding spec, `<var>.Call(...)` → the Go type libffi will actually read bytes from and, for a C string, the buffer it was built from, `ffi.PrepCif`/`purego.NewCallback` → callback site, `ffi.PrepClosureLoc` and the assignments that install a code pointer in a struct field |
+| `layout.go` | flattens a C struct, a cif descriptor and a Go struct to a common member list, diffs them, matches members by name to find transpositions, and re-flattens each Go struct under the other architecture yzma supports |
+| `goside.go` | `go/packages` type-checked walk: `lib.Prep`/`PrepVar` → binding spec, `<var>.Call(...)` → the Go type libffi will actually read bytes from, the enclosing exported wrapper and its doc comment, and, for a C string, the buffer it was built from, `ffi.PrepCif`/`purego.NewCallback` → callback site, `ffi.PrepClosureLoc` and the assignments that install a code pointer in a struct field |
 | `main_test.go` | the correctness gate |
 
 ## Assumptions
 
-Four things this tool takes as given rather than verifies. None of them is
+Three things this tool takes as given rather than verifies. None of them is
 currently false, but each one is load-bearing, and a reader deciding how much a
 green run is worth cannot see them from the output.
-
-**Sizes are computed for arm64 only.** `goside.go` lays out every Go type with
-`types.SizesFor("gc", "arm64")`, so every width in this report — 8-byte pointer,
-8-byte `size_t`, 8-byte `ffi.Arg`, and every struct offset derived from them — is
-that target's. For the types that actually cross this boundary amd64 agrees
-member for member, so the audit is valid there too, but nothing in the tool
-checks that: it prints arm64 numbers whatever `GOARCH` it runs on. A 32-bit
-target is where it would break rather than merely mislead, because a 4-byte
-pointer changes every interior offset in `llama_context_params` and makes RULE
-3's "integer returns need 8 bytes" the wrong number. yzma has no 32-bit target to
-break on: `pkg/download/arch.go` declares exactly two architectures, `amd64` and
-`arm64`, and `MustParseArch` panics on anything else, so an unsupported `GOARCH`
-cannot get as far as loading a library. `jupiterrider/ffi` narrows it further —
-its build tag is `((freebsd || linux || windows || darwin) && (amd64 || arm64))
-|| (linux && riscv64)`, all 64-bit — and CI builds on `ubuntu-latest`,
-`macos-latest` and `windows-2025`. So this is an assumption about a platform yzma
-does not support, and the thing to watch is a 32-bit architecture being added to
-that table, not the audit being wrong today.
 
 **Every C enum is assumed to be 4 bytes.** `classify()` in `cheader.go` maps
 `enum X` to `KindSint, 4`, which is what every ABI here picks for an enum whose
@@ -833,6 +954,18 @@ in that derivation would be invisible here.
   type-check. Nor does it cover the closure's lifetime: a `PrepClosureLoc` code
   pointer handed to C outlives the Go call that made it, and keeping it alive is
   the pointer-lifetime problem below.
+- **A C struct with a bitfield or a union in it.** Everything in `layout.go`
+  assumes one member per offset, laid end to end. A bitfield (`uint32_t flags :
+  4;`) packs several members into one storage unit and a union overlays them at
+  one offset, so the offsets computed past that member would be wrong — and the
+  comparison would then report the *Go struct* or the *descriptor* as the side
+  that drifted, which is worse than reporting nothing. Neither shape exists in
+  what yzma passes by value: `llama.h` has one anonymous union, inside
+  `llama_model_kv_override`, which only ever crosses as a pointer, and neither
+  header has a bitfield at all. So `cstruct.go` refuses to lay such a struct out
+  rather than guessing, which makes the first one to appear upstream a **named
+  skip** saying which shape defeated the parser. That is the whole of the cover
+  here: the blind spot is closed against silence, not against unions.
 - **Members yzma renames past the alias table.** A transposition is found by
   matching member names, so a Go field whose name resolves to no C member is
   reported as `NOT VERIFIED` for that check rather than compared. Today the

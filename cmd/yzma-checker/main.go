@@ -20,6 +20,7 @@ var (
 	hdrDir   = flag.String("hdrs", "", "use pre-extracted headers from this dir instead of git or the network")
 	pkgs     = flag.String("pkgs", yzmaModulePath+"/pkg/llama,"+yzmaModulePath+"/pkg/mtmd",
 		"comma-separated package patterns to audit")
+	libs    = flag.String("lib", "", "directory holding the installed llama.cpp libraries, to compare the bound symbols against what they export (default: not compared)")
 	verbose = flag.Bool("v", false, "dump every binding with its C signature and call sites")
 )
 
@@ -47,6 +48,20 @@ var signs []string
 // interpreted - a return buffer, and a pointer target - never where a slot
 // merely forwards bytes.
 func noteSign(format string, a ...any) { signs = append(signs, fmt.Sprintf(format, a...)) }
+
+// deps collects the exported Go wrappers of a C declaration upstream has
+// deprecated that carry no `Deprecated:` paragraph of their own. Its own class,
+// like the signedness findings, and for the same kind of reason - see
+// checkDeprecationNote.
+var deps []string
+
+func noteDep(format string, a ...any) { deps = append(deps, fmt.Sprintf(format, a...)) }
+
+// Exported wrappers of a deprecated C declaration, and how many pass the
+// deprecation on. Counted for the same reason the pointer targets are: the claim
+// is only made where a consumer has something to call, so a narrowing of that
+// scope would leave the section empty without saying it stopped looking.
+var depChecked, depClean int
 
 var structCmp []string
 
@@ -177,6 +192,24 @@ type report struct {
 	Unbound  []string
 	Coverage []hdrCoverage
 
+	// LibMissing is the bound symbols the installed library does not export, and
+	// LibNote what was compared or why nothing was. Empty unless -lib was passed;
+	// never violations - see libsyms.go.
+	LibMissing []string
+	LibNote    string
+
+	// Deprecated is the bindings whose C declaration upstream has wrapped in
+	// DEPRECATED(...). An inventory in the same sense: the ABI of a deprecated
+	// function is no different, so this never becomes a violation.
+	Deprecated []string
+
+	// Deps are the exported Go wrappers of those declarations that pass the
+	// deprecation on without the `Deprecated:` paragraph Go tooling reads. Its own
+	// class, like Signs, and outside the exit code for the same kind of reason -
+	// see checkDeprecationNote.
+	Deps                 []string
+	CheckedDep, CleanDep int
+
 	// PartialEnums is the same kind of inventory one layer down: the members of
 	// each partially mirrored C enum that have no Go constant. Not defects
 	// either - see partialEnums in cenum.go.
@@ -190,6 +223,11 @@ type report struct {
 	CheckedPtr, CleanPtr                                  int
 	CheckedNUL, CleanNUL                                  int
 	CheckedEnum, CleanEnum                                int
+
+	// Go structs flattened under both architectures yzma supports. See
+	// diffArchLayouts: this is what turns "amd64 agrees member for member" from
+	// an argument in the README into a number.
+	CheckedArch, CleanArch int
 
 	// Function-pointer struct members compared, and how many of those had a
 	// stored code pointer that could be traced back to a callback site. Counted
@@ -220,11 +258,13 @@ type report struct {
 func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 	// Parser state is package-level and iterated to a fixpoint, so reset it
 	// to keep repeated calls within one process independent.
-	skips, structCmp, signs = nil, nil, nil
+	skips, structCmp, signs, deps = nil, nil, nil, nil
+	depChecked, depClean = 0, 0
 	layoutChecked, layoutClean = 0, 0
 	ptrChecked, ptrClean = 0, 0
 	nulChecked, nulClean = 0, 0
 	enumChecked, enumClean = 0, 0
+	archChecked, archClean, archSeen = 0, 0, nil
 	resetCTypes()
 
 	// --- C side ---
@@ -240,7 +280,7 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 			fmt.Fprintf(os.Stderr, "SKIP header %s: %v\n", path, err)
 			continue
 		}
-		src := unwrapDeprecated(stripComments(string(raw)))
+		src, _ := unwrapDeprecated(stripComments(string(raw)))
 		collectTypedefs(src)
 		collectFnPtrTypedefs(path, src)
 		collectStructs(src)
@@ -595,6 +635,41 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 
 	sort.Strings(unbound)
 
+	// ---------- Deprecation inventory: bindings upstream has deprecated ----------
+	//
+	// Not a rule either, and for the same reason the unbound declarations are not:
+	// a deprecated function has exactly the same ABI as any other, so every check
+	// above applies to it unchanged and none of them can be failed by the
+	// deprecation itself. This never becomes a violation and never affects the
+	// exit code.
+	//
+	// What it is, is the other half of the coverage inventory. That one says which
+	// declarations yzma has not caught up with; this one says which of the ones it
+	// did bind upstream intends to remove - which is the same drift signal, read
+	// from the other end, and one the parser used to discard while unwrapping
+	// DEPRECATED(...) to get at the declaration inside.
+	var deprecated []string
+	for _, b := range all {
+		if cf, ok := cfuncs[b.CName]; ok && cf.Deprecated {
+			deprecated = append(deprecated, fmt.Sprintf("%s (%s:%d)", b.CName, filepath.Base(cf.File), cf.Line))
+
+			// The half of the same fact that has a consequence for a consumer.
+			checkDeprecationNote(b, cf)
+		}
+	}
+
+	slices.Sort(deprecated)
+	deprecated = slices.Compact(deprecated)
+
+	// ---------- Symbol inventory: what the installed library actually exports ----------
+	//
+	// Opt-in, and outside the exit code, for the reasons in libsyms.go.
+	var libMissing []string
+	libNote := ""
+	if *libs != "" {
+		libMissing, libNote = checkLibSymbols(*libs, all)
+	}
+
 	var coverage []hdrCoverage
 	for _, hdr := range slices.Sorted(maps.Keys(perHdr)) {
 		coverage = append(coverage, *perHdr[hdr])
@@ -660,6 +735,12 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		NoC:        noCList,
 		Unbound:    unbound,
 		Coverage:   coverage,
+		Deprecated: deprecated,
+		Deps:       deps,
+		CheckedDep: depChecked,
+		CleanDep:   depClean,
+		LibMissing: libMissing,
+		LibNote:    libNote,
 		Unresolved: unresolvedList,
 		Skips:      skips,
 		StructCmp:  structCmp,
@@ -694,6 +775,9 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 
 		CheckedEnum: enumChecked,
 		CleanEnum:   enumClean,
+
+		CheckedArch: archChecked,
+		CleanArch:   archClean,
 
 		CheckedFnPtr: fnptrChecked,
 		CleanFnPtr:   fnptrClean,
@@ -737,6 +821,30 @@ func printReport(r *report) {
 		hint = "; -v lists them"
 	}
 	fmt.Printf("(%d unbound C declarations%s)\n", len(r.Unbound), hint)
+	if r.LibNote != "" {
+		fmt.Println("================ SYMBOLS THE INSTALLED LIBRARY DOES NOT EXPORT (inventory, not defects) ================")
+		for _, m := range r.LibMissing {
+			fmt.Println("  ", m)
+		}
+		fmt.Printf("(%d of %d bound symbols not exported; %s)\n", len(r.LibMissing), len(r.Bindings), r.LibNote)
+	}
+	fmt.Println("================ BINDINGS UPSTREAM HAS DEPRECATED (inventory, not defects) ================")
+	if *verbose {
+		for _, d := range r.Deprecated {
+			fmt.Println("  ", d)
+		}
+	}
+	hint = ""
+	if !*verbose && len(r.Deprecated) > 0 {
+		hint = "; -v lists them"
+	}
+	fmt.Printf("(yzma binds %d declaration(s) upstream has marked deprecated%s)\n", len(r.Deprecated), hint)
+	fmt.Println("================ GO WRAPPERS NOT PASSING A DEPRECATION ON (not ABI breaks) ================")
+	for _, d := range r.Deps {
+		fmt.Println("  ", d)
+	}
+	fmt.Printf("(%d of %d exported wrappers of a deprecated C declaration carry a \"Deprecated:\" paragraph; not violations, so they do not affect the exit code)\n",
+		r.CleanDep, r.CheckedDep)
 	fmt.Println("================ PARTIALLY MIRRORED C ENUMS (inventory, not defects) ================")
 	for _, ec := range r.PartialEnums {
 		fmt.Printf("   %-34s %3d of %3d members mirrored (%d not mirrored)\n",
@@ -784,6 +892,8 @@ func printReport(r *report) {
 	fmt.Printf("Rule3 return bufs checked: %d / %d clean\n", r.CheckedR3, r.CleanR3)
 	fmt.Printf("Rule4 constants checked:   %d / %d clean (C constants parsed: %d, unevaluable: %d; yzma-local: %d)\n",
 		r.CheckedR4, r.CleanR4, r.CConsts, r.CConstBad, r.LocalConsts)
+	fmt.Printf("bound but deprecated:      %d (inventory, not a defect)\n", len(r.Deprecated))
+	fmt.Printf("  their Go wrappers:       %d / %d pass the deprecation on (not violations)\n", r.CheckedDep, r.CleanDep)
 	fmt.Printf("partially mirrored enums:  %d (%d of %d members mirrored, %d not mirrored; inventory, not a defect)\n",
 		len(r.PartialEnums), r.EnumMirrored, r.EnumMembers, r.EnumMissing)
 	fmt.Printf("Rule5 callbacks checked:   %d / %d clean (C function-pointer typedefs parsed: %d, unparseable: %d)\n",
@@ -794,6 +904,8 @@ func printReport(r *report) {
 	fmt.Printf("pointer targets compared:  %d / %d clean\n", r.CheckedPtr, r.CleanPtr)
 	fmt.Printf("C string buffers checked:  %d / %d NUL-terminated\n", r.CheckedNUL, r.CleanNUL)
 	fmt.Printf("enum params compared:      %d / %d clean\n", r.CheckedEnum, r.CleanEnum)
+	fmt.Printf("Go layouts cross-arch:     %d / %d agree (%s vs %s)\n",
+		r.CheckedArch, r.CleanArch, goTargets[0].Arch, goTargets[1].Arch)
 	fmt.Printf("signedness findings:       %d (not violations)\n", len(r.Signs))
 	nr := map[int]int{}
 	for _, v := range r.Viols {
@@ -833,6 +945,14 @@ func cmpTypes(t FfiType, cRaw string, cKind Kind, cSize int, slot string) string
 	if cKind == KindStruct {
 		cSize = cTypeSize(cRaw)
 		if cSize < 0 {
+			// A struct this parser deliberately refuses to lay out names its own
+			// reason, so the skip says which shape defeated it rather than
+			// leaving a maintainer to work that out from the header.
+			if why := cstructWhy(cRaw); why != "" {
+				noteSkip("%s: C struct %q %s - NOT VERIFIED", slot, squash(cRaw), why)
+				return ""
+			}
+
 			noteSkip("%s: C struct %q size unknown - NOT VERIFIED", slot, squash(cRaw))
 			return ""
 		}
@@ -936,13 +1056,20 @@ func cmpStructLayout(ct FfiType, goType types.Type, slot, expr, cRaw, pos string
 
 	layoutChecked++
 
-	goSize := int(arm64Sizes.Sizeof(goType))
+	goSize := int(goSizes.Sizeof(goType))
 	if tail := goTail(gl, fl, goSize, ct.Size); tail != "" {
 		structCmp = append(structCmp, fmt.Sprintf("%s Go %s=%dB vs cif %s=%dB%s",
 			slot, goType.String(), goSize, ct.Name, ct.Size, tail))
 	}
 
 	d := diffLeafPrefix(gl, fl, "Go "+goType.String(), "cif "+ct.Name, ct.Size)
+
+	// Every width above is one architecture's. Whether the other architecture
+	// yzma supports agrees is a property of this struct rather than of this slot,
+	// so it is compared once per struct here. See diffArchLayouts.
+	if a := diffArchLayouts(goType); a != "" {
+		d = append(d, a)
+	}
 
 	// Two members of the same width and ABI class can be swapped without moving
 	// a single offset, and the C library then simply receives each value in the
@@ -1126,6 +1253,53 @@ func cCharPtr(cRaw string) bool {
 	}
 
 	return strings.TrimSpace(strings.TrimSuffix(t, "*")) == "char"
+}
+
+// checkDeprecationNote checks that the exported Go wrappers of a C declaration
+// upstream has deprecated say so in the way Go tooling can read.
+//
+// The deprecation inventory records that yzma binds the declaration; this is the
+// other half of the same fact, and the half with a consequence for somebody else.
+// `// Deprecated: <reason>` is not a comment style, it is an interface: gopls
+// surfaces it and staticcheck's SA1019 flags every *consumer* call site. A
+// wrapper without it hands the deprecation on while suppressing the one signal
+// Go tooling could have given a user - the binding compiles clean, runs clean and
+// reports clean here, and quietly commits consumers to an API upstream has
+// announced it is removing.
+//
+// It is reported in its own class rather than as a rule violation, and never
+// affects the exit code, for the same reason the signedness findings are not
+// violations: nothing about the ABI is wrong, every byte crosses the boundary
+// correctly, and the exit code here means "this boundary is broken". Failing CI
+// on API hygiene would conflate two claims of very different kinds, which is how
+// a checker gets ignored. The finding is no less definite for that - unlike an
+// unbound declaration it has one right answer.
+//
+// The subject is the exported wrapper rather than the ffi.Fun var: the var is
+// unexported in every package here and is not what a consumer holds. A deprecated
+// binding with no exported wrapper at all is outside the claim rather than a skip,
+// exactly as a `void *` is for a pointer target - there is nothing a consumer can
+// call, so there is nothing to announce - and depChecked is what makes that scope
+// a number.
+func checkDeprecationNote(b *Binding, cf CFunc) {
+	seen := map[string]bool{}
+
+	for _, cs := range b.Calls {
+		if !cs.FnExported || seen[cs.Fn] {
+			continue
+		}
+
+		seen[cs.Fn] = true
+		depChecked++
+
+		if cs.FnDeprecated {
+			depClean++
+			continue
+		}
+
+		noteDep("%s (%s): C %s is DEPRECATED upstream (%s:%d) but the Go wrapper has no \"Deprecated:\" paragraph, so gopls and staticcheck SA1019 cannot warn a consumer",
+			cs.Fn, shortPos(cs.Pos), cf.Name, filepath.Base(cf.File), cf.Line)
+	}
 }
 
 // checkRetSign reports a return value read through a Go type of the other sign.

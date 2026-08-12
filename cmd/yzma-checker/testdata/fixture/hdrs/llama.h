@@ -19,15 +19,27 @@ LLAMA_API float fx_score(struct fx_thing * t, int32_t token);
 LLAMA_API int fx_mode_from_str(const char * s);
 
 // Fully clean control: every width matches on both sides.
-LLAMA_API int32_t fx_clean(struct fx_thing * t, int32_t a, size_t n);
+//
+// It is also the deprecation-inventory control, wrapped exactly as upstream
+// wraps llama_free_model. A deprecated declaration has the same ABI as any
+// other, so it must be parsed as if the macro were not there and must appear in
+// the inventory without becoming a violation - which is the half that matters,
+// and is pinned by fx_clean's place on the clean list.
+DEPRECATED(LLAMA_API int32_t fx_clean(struct fx_thing * t, int32_t a, size_t n),
+    "use nothing, this is a fixture");
 
 // The variadic pair, for the RULE 1 nfixed check. Both declare two parameters
 // before the "...", and on Apple arm64 that boundary decides whether an
 // argument travels in a register or on the stack: fx_logf is bound with nfixed
 // 1, so every argument from fmt onwards is looked for in the wrong place, while
 // fx_printf declares the same shape and is bound correctly.
+//
+// fx_printf is also wrapped in DEPRECATED(...), as the control for the
+// deprecation note on the Go side: its wrapper carries the `Deprecated:`
+// paragraph that fx_clean's does not.
 LLAMA_API void fx_logf(struct fx_thing * t, const char * fmt, ...);
-LLAMA_API int32_t fx_printf(struct fx_thing * t, const char * fmt, ...);
+DEPRECATED(LLAMA_API int32_t fx_printf(struct fx_thing * t, const char * fmt, ...),
+    "use nothing, this is a fixture");
 
 // The coverage-inventory control: nothing binds this, which is not a defect.
 // It must appear in the unbound inventory and must never become a violation.

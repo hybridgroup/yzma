@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go/types"
 	"slices"
 	"strings"
 	"testing"
@@ -305,6 +306,33 @@ func TestFixtureSignedness(t *testing.T) {
 	}
 }
 
+// TestFixtureDeprecationNotes pins both halves of the deprecation-note class.
+//
+// Like the signedness findings this is deliberately not a rule violation - every
+// byte still crosses the boundary correctly - so the assertion that the plant
+// stays out of rep.Viols lives in TestFixtureDoesNotReportTheCleanBinding and the
+// assertion that it is still *reported* lives here. The control is the half that
+// matters twice over: Printf must not be reported because it uses the convention,
+// and Clean must be reported *despite* saying "deprecated" in prose, because prose
+// is what neither gopls nor staticcheck can read.
+func TestFixtureDeprecationNotes(t *testing.T) {
+	rep := fixtureReport(t)
+
+	if got, want := len(rep.Deps), 1; got != want {
+		t.Fatalf("deprecation-note findings = %d, want %d: %v", got, want, rep.Deps)
+	}
+
+	if !strings.HasPrefix(rep.Deps[0], "Clean (") {
+		t.Errorf("deprecation-note finding = %q, want the Clean wrapper", rep.Deps[0])
+	}
+
+	for _, d := range rep.Deps {
+		if strings.HasPrefix(d, "Printf (") {
+			t.Errorf("the wrapper carrying the convention was reported: %s", d)
+		}
+	}
+}
+
 // TestFixtureAccounting guards the counters the report leans on to claim
 // coverage. A rule that silently stops checking would still print "0
 // violations", so the checked counts are part of the contract.
@@ -510,6 +538,171 @@ func TestFixtureAccounting(t *testing.T) {
 	// Ten slot lines plus the one Go-only-tail note for fx_use_geom_tail.
 	if got, want := len(rep.StructCmp), 11; got != want {
 		t.Errorf("struct-by-value slots compared = %d, want %d", got, want)
+	}
+
+	// The cross-architecture comparison, once per distinct Go struct crossing the
+	// boundary rather than once per slot. All of them must agree: a divergence
+	// would mean the widths everywhere else in this report belong to one of the
+	// two supported architectures and not to the other.
+	if got, want := rep.CheckedArch, 9; got != want {
+		t.Errorf("Go layouts compared across architectures = %d, want %d (skips: %v)", got, want, rep.Skips)
+	}
+
+	if got, want := rep.CleanArch, rep.CheckedArch; got != want {
+		t.Errorf("cross-architecture agreements = %d, want %d", got, want)
+	}
+
+	// The deprecation inventory. fx_clean and fx_printf are the two fixture
+	// declarations wrapped in DEPRECATED(...), and the assertion that carries the
+	// framing is not this one but their place on the clean list above: a
+	// deprecated binding has the same ABI and must never be a violation.
+	if got, want := len(rep.Deprecated), 2; got != want {
+		t.Fatalf("deprecated bindings = %d, want %d: %v", got, want, rep.Deprecated)
+	}
+
+	if !strings.HasPrefix(rep.Deprecated[0], "fx_clean (llama.h:") {
+		t.Errorf("deprecation inventory entry = %q, want fx_clean from llama.h", rep.Deprecated[0])
+	}
+
+	// Their exported wrappers: Printf carries the `Deprecated:` paragraph and
+	// Clean only mentions the fact in prose. Pinning the scope at two is what
+	// keeps a wrapper this stops finding visible - the section would otherwise
+	// just get shorter.
+	if got, want := rep.CheckedDep, 2; got != want {
+		t.Errorf("exported wrappers of a deprecated C decl = %d, want %d", got, want)
+	}
+
+	if got, want := rep.CleanDep, 1; got != want {
+		t.Errorf("wrappers passing the deprecation on = %d, want %d: %v", got, want, rep.Deps)
+	}
+
+	// The library symbol comparison is opt-in, so an ordinary run must not have
+	// looked at one - the tool has to behave identically on a machine with no
+	// library installed.
+	if rep.LibNote != "" || len(rep.LibMissing) != 0 {
+		t.Errorf("library symbols were compared without -lib: %q %v", rep.LibNote, rep.LibMissing)
+	}
+}
+
+// TestGoLayoutDivergenceIsDetected is the plant for the cross-architecture
+// comparison, and it cannot live in the fixture: the two architectures yzma
+// supports share a word size and a maximum alignment, so no Go struct can be
+// made to disagree between them, which is the result the check reports. A target
+// where the difference is real is therefore the only way to demonstrate that the
+// comparison would see one - and 32-bit is the exact shape the README names as
+// the thing to watch for, since a 4-byte pointer moves every interior offset.
+func TestGoLayoutDivergenceIsDetected(t *testing.T) {
+	rep := fixtureReport(t)
+
+	// Any struct with a pointer member will do; take one the fixture passes by
+	// value.
+	var st types.Type
+	for _, b := range rep.Bindings {
+		for _, cs := range b.Calls {
+			for _, a := range cs.Args {
+				if a.Kind == KindStruct && a.Pointee != nil {
+					if gl, ok := goLeaves(a.Pointee); ok && slices.ContainsFunc(gl, func(l Leaf) bool { return l.Kind == KindPointer }) {
+						st = a.Pointee
+					}
+				}
+			}
+		}
+	}
+
+	if st == nil {
+		t.Fatal("no by-value struct with a pointer member in the fixture")
+	}
+
+	home, ok := leavesUnder(st, goTargets[0].Sizes)
+	if !ok {
+		t.Fatalf("%s does not flatten under %s", st, goTargets[0].Arch)
+	}
+
+	narrow, ok := leavesUnder(st, types.SizesFor("gc", "386"))
+	if !ok {
+		t.Fatalf("%s does not flatten under 386", st)
+	}
+
+	if d := diffLeaves(home, narrow, goTargets[0].Arch, "386"); len(d) == 0 {
+		t.Errorf("%s compared equal under %s and 386, so the comparison sees nothing: %s vs %s",
+			st, goTargets[0].Arch, leafList(home), leafList(narrow))
+	}
+
+	// And the control: the active target must compare equal to itself, or the
+	// clean half of the count above would be meaningless.
+	again, _ := leavesUnder(st, goTargets[0].Sizes)
+	if d := diffLeaves(home, again, "a", "b"); len(d) != 0 {
+		t.Errorf("%s disagreed with itself: %v", st, d)
+	}
+}
+
+// TestUnionAndBitfieldStructsAreNamedSkips pins the guard from cstruct.go.
+//
+// Neither shape exists in the headers today, so there is nothing in the fixture
+// to plant it in without spending a skip the fixture's "0 skips" assertion pays
+// for. What matters is the parser's own answer: a struct it cannot lay out
+// member-per-offset must say so, because the alternative is a confident wrong
+// layout that blames whichever of the Go struct and the descriptor it compared
+// second.
+func TestUnionAndBitfieldStructsAreNamedSkips(t *testing.T) {
+	resetCTypes()
+	defer resetCTypes()
+
+	collectStructs(`
+struct fx_plain { uint32_t a; uint32_t b; };
+struct fx_bits  { uint32_t a; uint32_t flags : 4; };
+struct fx_union { uint32_t tag; union { int64_t i; double d; }; };
+`)
+
+	// The control first: a struct of the shape every bound struct has must still
+	// lay out, or the guard is just a way of checking nothing.
+	plain := cstructs["fx_plain"]
+	if plain == nil || plain.Size != 8 {
+		t.Fatalf("fx_plain = %+v, want an 8-byte layout", plain)
+	}
+
+	if _, ok := cLeaves(plain); !ok {
+		t.Error("fx_plain did not flatten")
+	}
+
+	for _, tc := range []struct{ name, want string }{
+		{"fx_bits", "bitfield"},
+		{"fx_union", "union"},
+	} {
+		why := cstructUnsupported[tc.name]
+		if !strings.Contains(why, tc.want) {
+			t.Errorf("%s reason = %q, want it to name a %s", tc.name, why, tc.want)
+		}
+
+		if cs := cstructs[tc.name]; cs == nil || cs.Size >= 0 {
+			t.Errorf("%s = %+v, want an unresolved layout so a slot using it is a skip", tc.name, cs)
+		}
+
+		if cstructWhy("struct "+tc.name) != why {
+			t.Errorf("cstructWhy(struct %s) did not recover the reason", tc.name)
+		}
+	}
+}
+
+// TestNMSymbolsReadsDefinedSymbolsOnly pins the parsing half of the -lib
+// comparison: an undefined symbol is one dlsym would not find here either, so
+// counting it as present would make the check report nothing.
+func TestNMSymbolsReadsDefinedSymbolsOnly(t *testing.T) {
+	const out = `0000000000050710 T _llama_decode
+                 U _memcpy
+000000000007cd10 S _llama_token_data
+0000000000000000 t _static_helper
+`
+
+	var got []string
+	for s := range nmSymbols(out) {
+		got = append(got, s)
+	}
+
+	// Mach-O's leading underscore is stripped; the U line is dropped; a
+	// lowercase type letter is a local symbol dlsym cannot reach either.
+	if want := []string{"llama_decode", "llama_token_data"}; !slices.Equal(got, want) {
+		t.Errorf("nmSymbols = %v, want %v", got, want)
 	}
 }
 

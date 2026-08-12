@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go/types"
+	"slices"
 	"strings"
 	"unicode"
 )
@@ -164,7 +165,82 @@ func appendFfiLeaves(out *[]Leaf, t FfiType, base int, prefix string, depth int)
 	return true
 }
 
-// goLeaves flattens a Go struct type using the arm64 gc layout.
+// Go structs flattened under every architecture yzma supports, counted for the
+// same reason the pointer targets are: every width in this report is computed
+// under goTargets[0], so a struct that lays out differently under the other
+// target is being audited by numbers that are not its own - and that would be
+// invisible in a report full of clean comparisons.
+var archChecked, archClean int
+
+// archSeen is the structs already compared. The same struct is a slot in
+// several bindings, and one finding per slot would be the same defect printed
+// five times.
+var archSeen []types.Type
+
+// diffArchLayouts flattens one Go struct under each architecture yzma supports
+// and reports how the member lists disagree.
+//
+// The README used to *argue* that amd64 agrees with arm64 member for member for
+// the types that cross this boundary, which left every number in the report
+// resting on an unmeasured claim: the tool prints arm64 widths whatever GOARCH
+// it runs on, so a divergence would mean one of the two supported architectures
+// is audited by another's offsets, silently, with every comparison green.
+// Running the same walker twice is the whole of what it takes to know instead.
+func diffArchLayouts(t types.Type) string {
+	if t == nil {
+		return ""
+	}
+
+	if slices.ContainsFunc(archSeen, func(s types.Type) bool { return types.Identical(s, t) }) {
+		return ""
+	}
+
+	archSeen = append(archSeen, t)
+
+	home, ok := leavesUnder(t, goTargets[0].Sizes)
+	if !ok {
+		return "" // cmpStructLayout owns that skip; a second copy of it says nothing new
+	}
+
+	var probs []string
+	for _, tgt := range goTargets[1:] {
+		other, ok := leavesUnder(t, tgt.Sizes)
+		if !ok {
+			noteSkip("Go struct %s member layout not resolvable under %s - NOT VERIFIED across architectures", t.String(), tgt.Arch)
+			continue
+		}
+
+		archChecked++
+
+		d := diffLeaves(home, other, goTargets[0].Arch, tgt.Arch)
+		if len(d) == 0 {
+			archClean++
+			continue
+		}
+
+		probs = append(probs, fmt.Sprintf("Go struct %s lays out differently under %s than under %s, so this report's widths are not that target's: %s",
+			t.String(), tgt.Arch, goTargets[0].Arch, strings.Join(d, "; ")))
+	}
+
+	return strings.Join(probs, "; ")
+}
+
+// leavesUnder flattens a Go struct under another target's layout.
+//
+// The active target is swapped around the walk rather than threaded through
+// goLeaves, appendGoLeaf and goKindOf as a parameter, so that the
+// cross-architecture comparison uses the one struct walker every other check
+// uses instead of a second one that could drift from it.
+func leavesUnder(t types.Type, s types.Sizes) ([]Leaf, bool) {
+	prev := goSizes
+	goSizes = s
+
+	defer func() { goSizes = prev }()
+
+	return goLeaves(t)
+}
+
+// goLeaves flattens a Go struct type using the gc layout of the target in force.
 func goLeaves(t types.Type) ([]Leaf, bool) {
 	var out []Leaf
 	if t == nil {
@@ -193,7 +269,7 @@ func appendGoLeaves(out *[]Leaf, st *types.Struct, base int, prefix string, dept
 		fields[i] = st.Field(i)
 	}
 
-	offs := arm64Sizes.Offsetsof(fields)
+	offs := goSizes.Offsetsof(fields)
 
 	for i, f := range fields {
 		if !appendGoLeaf(out, f.Type(), base+int(offs[i]), prefix+f.Name(), depth) {
@@ -214,7 +290,7 @@ func appendGoLeaf(out *[]Leaf, t types.Type, off int, name string, depth int) bo
 			return false
 		}
 
-		stride := int(arm64Sizes.Sizeof(u.Elem()))
+		stride := int(goSizes.Sizeof(u.Elem()))
 		if stride <= 0 {
 			return false
 		}

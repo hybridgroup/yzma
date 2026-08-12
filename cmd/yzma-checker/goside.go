@@ -54,8 +54,17 @@ type Binding struct {
 
 // CallSite is one <var>.Call(...) invocation.
 type CallSite struct {
-	Pos     token.Position
-	Fn      string // enclosing Go func
+	Pos token.Position
+	Fn  string // enclosing Go func
+
+	// FnExported and FnDeprecated describe that enclosing func as a consumer sees
+	// it: whether it is callable from outside the package at all, and whether its
+	// doc comment carries a `Deprecated:` paragraph. Both are here because the
+	// enclosing func of a call site *is* the wrapper yzma exposes for the C symbol
+	// - see checkDeprecationNote.
+	FnExported   bool
+	FnDeprecated bool
+
 	RetExpr string
 	RetType types.Type // pointee type of the return buffer, nil if untrackable
 	RetNil  bool
@@ -102,13 +111,34 @@ type stringBuf struct {
 // site appends the terminator inline - so this is empty on purpose.
 var nulHelpers = map[string]string{}
 
-var arm64Sizes = types.SizesFor("gc", "arm64")
+// goTargets are the architectures yzma supports, the first of which is the one
+// every width in this report is computed under.
+//
+// pkg/download/arch.go declares exactly these two and MustParseArch panics on
+// anything else, and jupiterrider/ffi's build tag narrows it further to the same
+// pair plus linux/riscv64 - all 64-bit - so there is no 32-bit target for a
+// 4-byte pointer to arrive from. That the two agree used to be an argument in
+// the README; goLeaves is run under each of them now so that it is a measurement
+// instead. See diffArchLayouts.
+var goTargets = []struct {
+	Arch  string
+	Sizes types.Sizes
+}{
+	{"arm64", types.SizesFor("gc", "arm64")},
+	{"amd64", types.SizesFor("gc", "amd64")},
+}
+
+// goSizes is the layout in force. It is a variable rather than a constant
+// because the cross-architecture comparison flattens the same struct under each
+// target in turn, and goKindOf reads it rather than taking it as a parameter so
+// that there stays one struct walker instead of two. See leavesUnder.
+var goSizes = goTargets[0].Sizes
 
 func goKindOf(t types.Type) (Kind, int) {
 	if t == nil {
 		return KindUnknown, -1
 	}
-	sz := int(arm64Sizes.Sizeof(t))
+	sz := int(goSizes.Sizeof(t))
 	u := t.Underlying()
 	switch b := u.(type) {
 	case *types.Basic:
@@ -533,6 +563,29 @@ func unwrapUnsafePointer(e ast.Expr) ast.Expr {
 	}
 }
 
+// hasDeprecatedNote reports whether a doc comment carries the deprecation
+// convention: a paragraph *beginning* with "Deprecated: ".
+//
+// The exact form is what matters rather than the sentiment, because the form is
+// what has tooling behind it - gopls surfaces it and staticcheck's SA1019 flags
+// every consumer call site. Prose saying a function is deprecated somewhere in
+// the middle of a comment reads the same to a human and is invisible to both, so
+// it deliberately does not count: mtmd.Encode's "Note: this function is marked as
+// deprecated upstream" is exactly the case this must not accept.
+func hasDeprecatedNote(doc *ast.CommentGroup) bool {
+	if doc == nil {
+		return false
+	}
+
+	for para := range strings.SplitSeq(doc.Text(), "\n\n") {
+		if strings.HasPrefix(para, "Deprecated: ") {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (a *analyzer) run() {
 	a.ffiAlias = map[string]FfiType{}
 	// pass 1: package-level vars that alias ffi types
@@ -688,9 +741,11 @@ func (a *analyzer) run() {
 		// The enclosing body is where a C string buffer is built, one or more
 		// statements before the Call that hands it over.
 		var curBody *ast.BlockStmt
+		curExported, curDeprecated := false, false
 		ast.Inspect(f, func(n ast.Node) bool {
 			if fd, ok := n.(*ast.FuncDecl); ok {
 				curFn, curBody = fd.Name.Name, fd.Body
+				curExported, curDeprecated = fd.Name.IsExported(), hasDeprecatedNote(fd.Doc)
 			}
 			ce, ok := n.(*ast.CallExpr)
 			if !ok {
@@ -708,7 +763,10 @@ func (a *analyzer) run() {
 			if !ok {
 				return true
 			}
-			cs := CallSite{Pos: a.fset.Position(ce.Lparen), Fn: curFn}
+			cs := CallSite{
+				Pos: a.fset.Position(ce.Lparen), Fn: curFn,
+				FnExported: curExported, FnDeprecated: curDeprecated,
+			}
 			if len(ce.Args) > 0 {
 				cs.RetExpr = exprStr(ce.Args[0])
 				pt, note := a.pointeeOf(ce.Args[0])
