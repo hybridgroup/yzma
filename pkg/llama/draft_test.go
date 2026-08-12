@@ -1,6 +1,9 @@
 package llama
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 func TestDraftGenerateGuards(t *testing.T) {
 	nPast := Pos(7)
@@ -22,11 +25,16 @@ func TestDraftGenerateGuards(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			batch := Batch{}
-			drafted, finalPast := DraftGenerate(
+			drafted, finalPast, err := DraftGenerate(
 				tt.ctx, &batch, Vocab(1), tt.sampler,
 				Token(1), nPast, []SeqId{0}, tt.nDraft,
 				true, outTokens, outDists,
 			)
+			// These are guard conditions, not batch failures: the loop is
+			// never entered, so there is nothing to report.
+			if err != nil {
+				t.Fatalf("err = %v, want nil", err)
+			}
 			if drafted != 0 {
 				t.Fatalf("drafted = %d, want 0", drafted)
 			}
@@ -35,6 +43,26 @@ func TestDraftGenerateGuards(t *testing.T) {
 			}
 		})
 	}
+
+	// A batch that owns no writable arrays can never produce a draft, so it is
+	// reported rather than passed off as a model that generated nothing.
+	t.Run("unwritable_batch", func(t *testing.T) {
+		batch := Batch{}
+		drafted, finalPast, err := DraftGenerate(
+			Context(1), &batch, Vocab(1), Sampler(1),
+			Token(1), nPast, []SeqId{0}, 2,
+			true, outTokens, outDists,
+		)
+		if !errors.Is(err, ErrBatchNotWritable) {
+			t.Fatalf("err = %v, want ErrBatchNotWritable", err)
+		}
+		if drafted != 0 {
+			t.Fatalf("drafted = %d, want 0", drafted)
+		}
+		if finalPast != nPast {
+			t.Fatalf("finalPast = %d, want %d", finalPast, nPast)
+		}
+	})
 
 	if outTokens[0] != 111 || outTokens[1] != 222 {
 		t.Fatal("outTokens was unexpectedly modified")
@@ -84,11 +112,14 @@ func TestDraftGenerateGreedy(t *testing.T) {
 	const nDraft = 2
 	outTokens := make([]Token, nDraft)
 
-	drafted, finalPast := DraftGenerate(
+	drafted, finalPast, err := DraftGenerate(
 		ctx, &batch, vocab, sampler,
 		lastToken, nPast, []SeqId{0}, nDraft,
 		true, outTokens, nil,
 	)
+	if err != nil {
+		t.Fatalf("DraftGenerate failed: %v", err)
+	}
 
 	if drafted < 0 || drafted > nDraft {
 		t.Fatalf("drafted = %d, want 0..%d", drafted, nDraft)
@@ -154,11 +185,14 @@ func TestDraftGenerateNonGreedy(t *testing.T) {
 		outDists[i] = make([]DraftCandidate, 0, 16)
 	}
 
-	drafted, finalPast := DraftGenerate(
+	drafted, finalPast, err := DraftGenerate(
 		ctx, &batch, vocab, chain,
 		lastToken, nPast, []SeqId{0}, nDraft,
 		false, outTokens, outDists,
 	)
+	if err != nil {
+		t.Fatalf("DraftGenerate failed: %v", err)
+	}
 
 	if drafted < 0 || drafted > nDraft {
 		t.Fatalf("drafted = %d, want 0..%d", drafted, nDraft)
