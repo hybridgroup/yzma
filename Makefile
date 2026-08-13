@@ -46,6 +46,12 @@ test:
 	export YZMA_TEST_SPLIT_MODELS="$(MODELS_DIR)/stories15M-q8_0-00001-of-00003.gguf,$(MODELS_DIR)/stories15M-q8_0-00002-of-00003.gguf,$(MODELS_DIR)/stories15M-q8_0-00003-of-00003.gguf" && \
 	go test -count=1 ./...
 
+# make check-ffi to audit the FFI bindings against the headers of the current
+# llama.cpp release. The gate runs first: if it fails, do not use what the
+# audit reports.
+check-ffi:
+	cd cmd/yzma-checker && go test ./... && go run .
+
 roadmap:
 	@echo "Checked items (have wrapper):"
 	@grep -E '^\s*[-*]\s*\[x\]' ROADMAP.md | wc -l
