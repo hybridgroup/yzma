@@ -72,3 +72,13 @@ yzma install -l /path/to/lib -v b1234 -p cuda -u
 ## Other commands
 
 See the `yzma help` command for more information about the other things you can do with the `yzma` CLI tool.
+
+## `yzma-checker`
+
+The `yzma-checker` directory holds a separate developer tool, not a subcommand of the `yzma` CLI. It compares the FFI parameter and return types of each yzma binding, and the values of the constants yzma mirrors, with the llama.cpp headers. It is a nested Go module, so `go build ./...` and `go test ./...` at the repo root do not include it.
+
+```shell
+make check-ffi
+```
+
+See [yzma-checker/README.md](./yzma-checker/README.md) for what it verifies and how.

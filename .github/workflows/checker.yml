@@ -1,0 +1,53 @@
+name: FFI Checker
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 'stable'
+          cache-dependency-path: |
+            go.sum
+            cmd/yzma-checker/go.sum
+      # A checker that reports nothing is the same as a checker that checks
+      # nothing. The fixture has one planted defect for each rule in each
+      # direction, and the checker must find all of them.
+      - name: Run the correctness gate
+        working-directory: cmd/yzma-checker
+        run: go test ./...
+
+  audit:
+    # If the gate fails, do not use what the audit reports.
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 'stable'
+          cache-dependency-path: |
+            go.sum
+            cmd/yzma-checker/go.sum
+      # No arguments are necessary. The checker finds the yzma tree, gets the
+      # current llama-cpp-builder release, and then gets the headers for it.
+      # One runner is sufficient, because the checker makes the layout of each
+      # Go structure for amd64 and arm64 on all hosts.
+      - name: Audit the FFI boundary
+        working-directory: cmd/yzma-checker
+        run: go run .

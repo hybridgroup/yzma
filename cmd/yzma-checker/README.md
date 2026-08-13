@@ -37,7 +37,21 @@ out:
 The banner prints all three, so a run is self-documenting. Only the first run
 for a given ref needs the network; after that the header cache serves it.
 
-It exits non-zero when it reports a violation, so it can be wired into CI as-is.
+It exits non-zero when it reports a violation, so it can be wired into CI as-is,
+and it is: `.github/workflows/checker.yml` runs the correctness gate below and
+then this audit, on each pull request and each push to `main`. `make check-ffi`
+runs the same two steps in the same order locally.
+
+There is no schedule, because upstream drift does not wait for a pull request
+and does not need one: `llama-cpp-builder` dispatches that workflow, together
+with the three platform workflows, each time it publishes a new llama.cpp
+release. So the audit runs against a new ref when the ref appears, which is what
+a nightly schedule would be an approximation of.
+
+Note the two failure exits are different. **1** is a violation, and is a
+statement about the bindings. **2** is the audit not running at all — no yzma
+tree, no ref, no headers — which on a runner is most likely the network, and
+says nothing about the code.
 
 ### Auditing a consumer's yzma
 
@@ -1054,3 +1068,7 @@ in that derivation would be invisible here.
 This directory has its own `go.mod` so the `golang.org/x/tools` dependency never
 reaches the root yzma module. `go build ./...`, `go vet ./...` and
 `go test ./...` at the repo root skip it entirely.
+
+Which is also why the gate is its own CI job rather than part of the root test
+run: the workflow that skips this directory cannot be the one that proves the
+tool still works.
