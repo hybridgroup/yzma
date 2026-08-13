@@ -77,9 +77,12 @@ func ChatApplyTemplate(template string, chat []ChatMessage, addAssistantPrompt b
 // ChatBuiltinTemplates returns a slice of built-in chat template names.
 func ChatBuiltinTemplates() []string {
 	// get the needed size
+	// cOutput mirrors C's `const char ** output`: the size probe passes a null
+	// array pointer with length 0, so C writes nothing, but the slot still has
+	// to be the width of a char* array pointer rather than of a single char.
 	var (
 		result  ffi.Arg
-		cOutput *byte
+		cOutput **byte
 		length  uint64
 	)
 	chatBuiltinTemplatesFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&cOutput), &length)
