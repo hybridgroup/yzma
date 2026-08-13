@@ -4,8 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"go/token"
+	"go/types"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -17,6 +20,7 @@ var (
 	hdrDir   = flag.String("hdrs", "", "use pre-extracted headers from this dir instead of git or the network")
 	pkgs     = flag.String("pkgs", yzmaModulePath+"/pkg/llama,"+yzmaModulePath+"/pkg/mtmd",
 		"comma-separated package patterns to audit")
+	libs    = flag.String("lib", "", "directory holding the installed llama.cpp libraries, to compare the bound symbols against what they export (default: not compared)")
 	verbose = flag.Bool("v", false, "dump every binding with its C signature and call sites")
 )
 
@@ -24,7 +28,86 @@ var skips []string
 
 func noteSkip(format string, a ...any) { skips = append(skips, fmt.Sprintf(format, a...)) }
 
+// signs collects signedness findings: a value read through a Go type of the
+// other sign. Deliberately not a rule violation and deliberately not part of the
+// exit code - see noteSign.
+var signs []string
+
+// noteSign records a signedness finding.
+//
+// kindCompat merges KindSint and KindUint on purpose, and it is right to: on
+// arm64 a same-width signed and unsigned integer occupy the same register and
+// the same bytes, so nothing about the call is broken. What breaks is the
+// *meaning*. llama_decode returns negative on error and llama_token uses -1 as a
+// sentinel, so reading either through an unsigned Go type turns a failure into
+// 4294967295 - and every width, offset and ABI class still matches, which is why
+// no rule here can see it.
+//
+// So it is reported as its own class rather than as an ABI break, it never
+// affects the exit code, and it is only raised where the value is actually
+// interpreted - a return buffer, and a pointer target - never where a slot
+// merely forwards bytes.
+func noteSign(format string, a ...any) { signs = append(signs, fmt.Sprintf(format, a...)) }
+
+// deps collects the exported Go wrappers of a C declaration upstream has
+// deprecated that carry no `Deprecated:` paragraph of their own. Its own class,
+// like the signedness findings, and for the same kind of reason - see
+// checkDeprecationNote.
+var deps []string
+
+func noteDep(format string, a ...any) { deps = append(deps, fmt.Sprintf(format, a...)) }
+
+// Exported wrappers of a deprecated C declaration, and how many pass the
+// deprecation on. Counted for the same reason the pointer targets are: the claim
+// is only made where a consumer has something to call, so a narrowing of that
+// scope would leave the section empty without saying it stopped looking.
+var depChecked, depClean int
+
 var structCmp []string
+
+// Struct-by-value layout comparisons, counted separately from the rule the
+// comparison belongs to: a layout check that silently stopped resolving would
+// otherwise still print "0 violations". See layout.go.
+var layoutChecked, layoutClean int
+
+// Pointer-target comparisons, counted separately for the same reason the layout
+// comparisons are: the claim is only made where both sides name a concrete
+// target, so a narrowing of that scope would leave RULE 2 reporting zero
+// pointer-target findings without reporting that it stopped looking. See
+// cmpPointerTarget.
+var ptrChecked, ptrClean int
+
+// NUL-termination comparisons on C string buffers, counted separately for the
+// same reason the pointer targets are: the claim is only made for a buffer this
+// tool can trace back to the Go string it was built from, so a narrowing of that
+// scope would leave RULE 2 reporting zero unterminated buffers without reporting
+// that it stopped looking. See cmpStringTerm.
+var nulChecked, nulClean int
+
+// Enum-typed parameter slots compared against the yzma enum type that mirrors
+// the C enum, counted separately for the same reason the pointer targets are:
+// the claim is only made where the Go side names a type RULE 4 has evidence
+// about, so a narrowing of that scope would leave RULE 2 reporting zero enum
+// findings without reporting that it stopped looking. See cmpEnumType.
+var enumChecked, enumClean int
+
+// members renders a leaf count for the STRUCT-BY-VALUE COMPARISONS report,
+// distinguishing "no members" from "layout not resolvable".
+func members(ls []Leaf, ok bool) string {
+	if !ok {
+		return "layout?"
+	}
+
+	return fmt.Sprintf("%d members", len(ls))
+}
+
+// hdrCoverage is how much of one header yzma binds. It is an inventory line,
+// never a finding: see the coverage block in analyse.
+type hdrCoverage struct {
+	Header string
+	Decls  int
+	Bound  int
+}
 
 type violation struct {
 	Rule     int
@@ -91,16 +174,83 @@ func main() {
 type report struct {
 	Viols      []violation
 	Bindings   []*Binding
+	Callbacks  []*Callback
 	CFuncs     map[string]CFunc
 	NoC        []string
 	Unresolved []string
 	Skips      []string
 	StructCmp  []string
 
-	TotalDecls, Unparsed            int
-	Matched, NCalls                 int
-	CheckedR1, CheckedR2, CheckedR3 int
-	CleanR1, CleanR2, CleanR3       int
+	// Signs are the signedness findings: same width, same register, other
+	// meaning. Not violations - see noteSign - so they never affect the exit
+	// code.
+	Signs []string
+
+	// Unbound and Coverage are the reverse of NoC: C declarations no binding
+	// names. Not defects - yzma binds a subset by design - so they are counted
+	// and listed, never turned into violations.
+	Unbound  []string
+	Coverage []hdrCoverage
+
+	// LibMissing is the bound symbols the installed library does not export, and
+	// LibNote what was compared or why nothing was. Empty unless -lib was passed;
+	// never violations - see libsyms.go.
+	LibMissing []string
+	LibNote    string
+
+	// Deprecated is the bindings whose C declaration upstream has wrapped in
+	// DEPRECATED(...). An inventory in the same sense: the ABI of a deprecated
+	// function is no different, so this never becomes a violation.
+	Deprecated []string
+
+	// Deps are the exported Go wrappers of those declarations that pass the
+	// deprecation on without the `Deprecated:` paragraph Go tooling reads. Its own
+	// class, like Signs, and outside the exit code for the same kind of reason -
+	// see checkDeprecationNote.
+	Deps                 []string
+	CheckedDep, CleanDep int
+
+	// PartialEnums is the same kind of inventory one layer down: the members of
+	// each partially mirrored C enum that have no Go constant. Not defects
+	// either - see partialEnums in cenum.go.
+	PartialEnums []EnumCoverage
+
+	TotalDecls, Unparsed                                  int
+	Matched, NCalls, NVariadic                            int
+	CheckedR1, CheckedR2, CheckedR3, CheckedR4, CheckedR5 int
+	CleanR1, CleanR2, CleanR3, CleanR4, CleanR5           int
+	CheckedLayout, CleanLayout                            int
+	CheckedPtr, CleanPtr                                  int
+	CheckedNUL, CleanNUL                                  int
+	CheckedEnum, CleanEnum                                int
+
+	// Go structs flattened under both architectures yzma supports. See
+	// diffArchLayouts: this is what turns "amd64 agrees member for member" from
+	// an argument in the README into a number.
+	CheckedArch, CleanArch int
+
+	// Function-pointer struct members compared, and how many of those had a
+	// stored code pointer that could be traced back to a callback site. Counted
+	// separately from CheckedR5 because they are a different kind of evidence: a
+	// member is checked against the typedef it declares, not against a descriptor
+	// written next to it.
+	CheckedFnPtr, CleanFnPtr, TracedFnPtr int
+
+	// CFnPtrs counts the function-pointer typedefs RULE 5 has a signature for,
+	// CFnPtrBad the ones this parser could not take apart. As with CConstBad the
+	// second number is the rule's coverage limit: a callback linking to one is a
+	// skip, never a pass.
+	CFnPtrs, CFnPtrBad int
+
+	// CConsts counts the C constants whose value this run pinned down, CConstBad
+	// the ones it could not. The second number is the coverage limit of RULE 4:
+	// none of those can be compared against, and a Go constant mirroring one
+	// becomes a skip.
+	CConsts, CConstBad, LocalConsts int
+
+	// The totals over PartialEnums: members declared, members mirrored, and
+	// members with no Go constant.
+	EnumMembers, EnumMirrored, EnumMissing int
 }
 
 // analyse runs the three rules over the packages named by patterns in the
@@ -108,7 +258,13 @@ type report struct {
 func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 	// Parser state is package-level and iterated to a fixpoint, so reset it
 	// to keep repeated calls within one process independent.
-	skips, structCmp = nil, nil
+	skips, structCmp, signs, deps = nil, nil, nil, nil
+	depChecked, depClean = 0, 0
+	layoutChecked, layoutClean = 0, 0
+	ptrChecked, ptrClean = 0, 0
+	nulChecked, nulClean = 0, 0
+	enumChecked, enumClean = 0, 0
+	archChecked, archClean, archSeen = 0, 0, nil
 	resetCTypes()
 
 	// --- C side ---
@@ -116,6 +272,7 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 	unparsed := 0
 	totalDecls := 0
 	macros := []string{"LLAMA_API", "GGML_API", "GGML_BACKEND_API", "MTMD_API"}
+	var hdrSrcs []struct{ path, src string }
 	for _, hf := range headerFiles {
 		path := filepath.Join(headerDir, hf.local)
 		raw, err := os.ReadFile(path)
@@ -123,9 +280,11 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 			fmt.Fprintf(os.Stderr, "SKIP header %s: %v\n", path, err)
 			continue
 		}
-		src := unwrapDeprecated(stripComments(string(raw)))
+		src, _ := unwrapDeprecated(stripComments(string(raw)))
 		collectTypedefs(src)
+		collectFnPtrTypedefs(path, src)
 		collectStructs(src)
+		hdrSrcs = append(hdrSrcs, struct{ path, src string }{path, src})
 		var fns []CFunc
 		for _, mc := range macros {
 			mf, err := parseHeader(path, mc)
@@ -147,6 +306,21 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 			}
 		}
 	}
+	// Constant values are also iterated, and for the same reason as the structs
+	// below: llama.h is parsed first but initialises LLAMA_ROPE_TYPE_NEOX from
+	// the GGML_ROPE_TYPE_NEOX defined in ggml.h, so an initialiser can name a
+	// constant no earlier pass has seen. The failed attempts are forgotten
+	// between passes so that a name resolved late stops being reported as
+	// unevaluable.
+	for range 3 {
+		clear(cconstBad)
+		clear(cconstBadByNorm)
+
+		for _, h := range hdrSrcs {
+			collectCConsts(h.path, h.src)
+		}
+	}
+
 	// Second pass: headers are parsed in sequence, so a struct in llama.h can
 	// reference a typedef that only appears in ggml-backend.h. Re-classify every
 	// field now that every typedef and struct is known, then re-lay-out.
@@ -159,6 +333,13 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		}
 	}
 	// re-classify now that all typedefs/structs are known
+	for n, f := range cfnptrs {
+		f.RetKind, f.RetSize = classify(f.RetRaw)
+		for i := range f.Params {
+			f.Params[i].Kind, f.Params[i].Size = classify(f.Params[i].Norm)
+		}
+		cfnptrs[n] = f
+	}
 	for n, f := range cfuncs {
 		f.RetKind, f.RetSize = classify(f.RetRaw)
 		for i := range f.Params {
@@ -173,6 +354,7 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		return nil, fmt.Errorf("load %s: %w", strings.Join(patterns, ", "), err)
 	}
 	var all []*Binding
+	var callbacks []*Callback
 	for _, p := range loaded {
 		if len(p.Errors) > 0 {
 			for _, e := range p.Errors {
@@ -187,13 +369,39 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		for _, k := range a.order {
 			all = append(all, a.bindings[k])
 		}
+		callbacks = append(callbacks, a.callbacks...)
+		fnPtrStores = append(fnPtrStores, a.stores...)
 	}
+
+	// Linking runs here rather than in the RULE 5 loop below, because the
+	// function-pointer struct members are checked against the typedef a stored
+	// code pointer's site was linked to, and the struct slots are walked while
+	// RULE 2 runs.
+	for _, cb := range callbacks {
+		linkCallback(cb)
+		if id := callbackID(cb.Pkg, cb.GoID); callbacksByID[id] == nil {
+			callbacksByID[id] = cb
+		}
+	}
+	sort.Slice(callbacks, func(i, j int) bool {
+		if callbacks[i].Pos.Filename != callbacks[j].Pos.Filename {
+			return callbacks[i].Pos.Filename < callbacks[j].Pos.Filename
+		}
+		return callbacks[i].Pos.Line < callbacks[j].Pos.Line
+	})
 	sort.Slice(all, func(i, j int) bool {
 		if all[i].PrepPos.Filename != all[j].PrepPos.Filename {
 			return all[i].PrepPos.Filename < all[j].PrepPos.Filename
 		}
 		return all[i].PrepPos.Line < all[j].PrepPos.Line
 	})
+
+	// ---------- Rule 4: mirrored constant values ----------
+	//
+	// Ahead of the call sites, because matching each constant to its C counterpart
+	// is also what resolves which C enum a yzma enum type stands for, and RULE 2
+	// needs that mapping while it walks the argument slots. See cmpEnumType.
+	constViols, checkedR4, cleanR4, localConsts := checkConsts(loaded)
 
 	var viols []violation
 	matched, noC, checkedR1, checkedR2, checkedR3 := 0, 0, 0, 0, 0
@@ -202,9 +410,14 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 	nCalls := 0
 	unresolvedArgs := 0
 	var unresolvedList []string
+	nVariadic := 0
 
 	for _, b := range all {
 		short := shortPos(b.PrepPos)
+		if b.Variadi {
+			nVariadic++
+		}
+
 		cf, ok := cfuncs[b.CName]
 		if !ok {
 			noC++
@@ -217,7 +430,41 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		if ok {
 			checkedR1++
 			var probs []string
-			if !cf.Vararg && len(b.Args) != len(cf.Params) {
+
+			// Fixed and variadic are two different calling conventions, not two
+			// spellings of one. On Apple arm64 a variadic argument is passed on
+			// the stack where a fixed one goes in a register, so `nfixed` is not
+			// a value the ABI tolerates being off by one: every argument past
+			// the fixed ones is read from the wrong place. A variadic binding
+			// used to be exempt from arity checking altogether, which meant the
+			// one number that decides that split was never looked at.
+			switch {
+			case b.Variadi && !cf.Vararg:
+				probs = append(probs, fmt.Sprintf("variadic: bound with PrepVar (nfixed %d) but C %s declares no \"...\"",
+					b.NFixed, cf.Name))
+			case !b.Variadi && cf.Vararg:
+				probs = append(probs, fmt.Sprintf("variadic: C %s is variadic but the binding is a fixed-arity Prep of %d args",
+					cf.Name, len(b.Args)))
+			case cf.Vararg:
+				// The parser never records the "..." as a parameter, so the
+				// length of cf.Params *is* the fixed parameter count.
+				if b.NFixed < 0 {
+					noteSkip("RULE1 %s (%s): PrepVar nfixed is not a literal - NOT VERIFIED", b.CName, short)
+					break
+				}
+				if b.NFixed != len(cf.Params) {
+					probs = append(probs, fmt.Sprintf("nfixed is %d but C %s declares %d parameter(s) before its \"...\"",
+						b.NFixed, cf.Name, len(cf.Params)))
+				}
+				// A PrepVar cif lists the fixed types *and* the concrete
+				// variadic types of the call it describes, so it can be longer
+				// than nfixed but never shorter: a shorter list means libffi is
+				// told fixed arguments exist that it has no type for.
+				if len(b.Args) < b.NFixed {
+					probs = append(probs, fmt.Sprintf("nfixed is %d but the cif only lists %d arg type(s)",
+						b.NFixed, len(b.Args)))
+				}
+			case len(b.Args) != len(cf.Params):
 				probs = append(probs, fmt.Sprintf("arity: cif has %d args, C has %d", len(b.Args), len(cf.Params)))
 			}
 			// return type
@@ -246,7 +493,11 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 			csp := shortPos(cs.Pos)
 			// Rule 3: return buffer
 			checkedR3++
-			r3 := checkRet(b.Ret, cs)
+			cRet := ""
+			if ok {
+				cRet = cf.RetRaw
+			}
+			r3 := checkRet(b.Ret, cs, cRet)
 			if strings.HasPrefix(r3, "SKIP: ") {
 				noteSkip("RULE3 %s (%s): %s", b.CName, csp, strings.TrimPrefix(r3, "SKIP: "))
 				r3 = ""
@@ -255,6 +506,14 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 				viols = append(viols, violation{3, b.CName, csp, r3 + " [in " + cs.Fn + "]", "latent-corruption"})
 			} else {
 				cleanR3++
+			}
+			// A return value is read, not forwarded, so its sign is meaning
+			// rather than register layout: reported as its own class, never as
+			// an ABI break. See noteSign.
+			if ok {
+				if s := checkRetSign(cf, cs); s != "" {
+					noteSign("%s (%s): %s [in %s]", b.CName, csp, s, cs.Fn)
+				}
 			}
 			// Rule 2: argument widths
 			var probs []string
@@ -275,11 +534,24 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 					continue
 				}
 				checkedR2++
+				// Count this slot clean only if nothing below reports on it:
+				// "514 / 514 clean" next to a rule2 violation is an accounting
+				// bug, and the counts are the whole basis for the coverage claim.
+				before := len(probs)
 				if ct.Size <= 0 && ct.Kind != KindVoid {
 					noteSkip("RULE2 %s arg%d: cif descriptor %s size unknown - NOT VERIFIED", b.CName, i, ct.Name)
 					continue
 				}
-				if ca.Size != ct.Size {
+				// For a struct passed by value the C-declared size is the
+				// authority: libffi reads exactly that many bytes through the
+				// pointer, so a larger Go struct is untouched tail (see
+				// cmpStructLayout) and only a short one is a read overrun.
+				// Scalars stay exact - a mismatch either way is a defect.
+				short := ca.Size != ct.Size
+				if ct.Kind == KindStruct && ca.Kind == KindStruct {
+					short = ca.Size < ct.Size
+				}
+				if short {
 					probs = append(probs, fmt.Sprintf("arg%d: cif %s wants %dB, Go %s is %dB (%s)",
 						i, ct.Name, ct.Size, ca.Pointee.String(), ca.Size, ca.Expr))
 					continue
@@ -288,7 +560,25 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 					probs = append(probs, fmt.Sprintf("arg%d: cif kind %s vs Go kind %s (%s / %s)",
 						i, ct.Kind, ca.Kind, ca.Expr, ca.Pointee.String()))
 				}
-				cleanR2++
+				cArg := ""
+				if ok && i < len(cf.Params) {
+					cArg = cf.Params[i].Norm
+				}
+				if p := cmpPointerTarget(ca, cArg, b.CName, csp, fmt.Sprintf("arg%d", i)); p != "" {
+					probs = append(probs, p)
+				}
+				if p := cmpEnumType(ca, cArg, fmt.Sprintf("arg%d", i)); p != "" {
+					probs = append(probs, p)
+				}
+				if p := cmpStringTerm(ca, cArg, fmt.Sprintf("arg%d", i)); p != "" {
+					probs = append(probs, p)
+				}
+				if p := cmpStructLayout(ct, ca.Pointee, fmt.Sprintf("arg%d", i), ca.Expr, cArg, csp); p != "" {
+					probs = append(probs, p)
+				}
+				if len(probs) == before {
+					cleanR2++
+				}
 			}
 			if len(probs) > 0 {
 				viols = append(viols, violation{2, b.CName, csp, strings.Join(probs, "; ") + " [in " + cs.Fn + "]", "memory-read-overrun"})
@@ -307,26 +597,200 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 		}
 	}
 
+	// ---------- Coverage inventory: C declarations nothing binds ----------
+	//
+	// This is deliberately not a rule. yzma binds a chosen subset of llama.cpp,
+	// so an unbound declaration is not a defect and never becomes a violation or
+	// affects the exit code. What it is, is the only way the coverage claim is
+	// measurable over time: a function yzma should bind appearing upstream, or
+	// the neighbours of a bound function changing shape, is invisible unless the
+	// unbound set is written down somewhere a diff can see it.
+	//
+	// Grouped per header because that is the actionable unit - "mtmd-helper.h: 3
+	// of 40 bound" is a number a maintainer can decide about, and ~600 names in
+	// one list is a number nobody reads.
+	bound := make(map[string]bool, len(all))
+	for _, b := range all {
+		bound[b.CName] = true
+	}
+
+	var unbound []string
+	perHdr := map[string]*hdrCoverage{}
+	for name, cf := range cfuncs {
+		hdr := filepath.Base(cf.File)
+		hc, ok := perHdr[hdr]
+		if !ok {
+			hc = &hdrCoverage{Header: hdr}
+			perHdr[hdr] = hc
+		}
+
+		hc.Decls++
+		if bound[name] {
+			hc.Bound++
+			continue
+		}
+
+		unbound = append(unbound, fmt.Sprintf("%s (%s:%d)", name, hdr, cf.Line))
+	}
+
+	sort.Strings(unbound)
+
+	// ---------- Deprecation inventory: bindings upstream has deprecated ----------
+	//
+	// Not a rule either, and for the same reason the unbound declarations are not:
+	// a deprecated function has exactly the same ABI as any other, so every check
+	// above applies to it unchanged and none of them can be failed by the
+	// deprecation itself. This never becomes a violation and never affects the
+	// exit code.
+	//
+	// What it is, is the other half of the coverage inventory. That one says which
+	// declarations yzma has not caught up with; this one says which of the ones it
+	// did bind upstream intends to remove - which is the same drift signal, read
+	// from the other end, and one the parser used to discard while unwrapping
+	// DEPRECATED(...) to get at the declaration inside.
+	var deprecated []string
+	for _, b := range all {
+		if cf, ok := cfuncs[b.CName]; ok && cf.Deprecated {
+			deprecated = append(deprecated, fmt.Sprintf("%s (%s:%d)", b.CName, filepath.Base(cf.File), cf.Line))
+
+			// The half of the same fact that has a consequence for a consumer.
+			checkDeprecationNote(b, cf)
+		}
+	}
+
+	slices.Sort(deprecated)
+	deprecated = slices.Compact(deprecated)
+
+	// ---------- Symbol inventory: what the installed library actually exports ----------
+	//
+	// Opt-in, and outside the exit code, for the reasons in libsyms.go.
+	var libMissing []string
+	libNote := ""
+	if *libs != "" {
+		libMissing, libNote = checkLibSymbols(*libs, all)
+	}
+
+	var coverage []hdrCoverage
+	for _, hdr := range slices.Sorted(maps.Keys(perHdr)) {
+		coverage = append(coverage, *perHdr[hdr])
+	}
+
+	// ---------- Rule 5: callback descriptors and closure signatures ----------
+	checkedR5, cleanR5 := 0, 0
+	for _, cb := range callbacks {
+		probs, checked := checkCallback(cb)
+		if !checked {
+			continue
+		}
+
+		checkedR5++
+		if len(probs) == 0 {
+			cleanR5++
+		} else {
+			where := cb.Form + " " + cb.GoID
+			if cb.Fn != cb.GoID {
+				where += " in " + cb.Fn
+			}
+
+			viols = append(viols, violation{5, cb.CTypedef, shortPos(cb.Pos),
+				strings.Join(probs, "; ") + " [" + where + "]", sev(probs)})
+		}
+
+		if *verbose {
+			fmt.Printf("CALLBACK %-32s %s\n  %s %s (linked by %s)\n  C   %s:%d %s\n",
+				cb.GoID, shortPos(cb.Pos), cb.Form, cb.CTypedef, cb.Link,
+				filepath.Base(cfnptrs[cb.CTypedef].File), cfnptrs[cb.CTypedef].Line, cfnptrs[cb.CTypedef].Sig())
+		}
+	}
+
+	// ---------- Rule 5: function-pointer struct members ----------
+	//
+	// Once per pair of representations rather than once per slot: the same struct
+	// is a slot in several bindings, and the member is the same member in all of
+	// them.
+	for _, s := range fnPtrStructs {
+		viols = append(viols, checkFnPtrMembers(s)...)
+	}
+
+	viols = append(viols, constViols...)
+
+	// The enum-member inventory reads the mirror set checkConsts just filled, so
+	// it has to run after it.
+	partial := partialEnums()
+
+	enumMembers, enumMirrored, enumMissing := 0, 0, 0
+	for _, ec := range partial {
+		enumMembers += ec.Members
+		enumMirrored += ec.Mirrored
+		enumMissing += len(ec.Missing)
+	}
+
 	sort.SliceStable(viols, func(i, j int) bool { return viols[i].Rule < viols[j].Rule })
 
 	return &report{
 		Viols:      viols,
 		Bindings:   all,
+		Callbacks:  callbacks,
 		CFuncs:     cfuncs,
 		NoC:        noCList,
+		Unbound:    unbound,
+		Coverage:   coverage,
+		Deprecated: deprecated,
+		Deps:       deps,
+		CheckedDep: depChecked,
+		CleanDep:   depClean,
+		LibMissing: libMissing,
+		LibNote:    libNote,
 		Unresolved: unresolvedList,
 		Skips:      skips,
 		StructCmp:  structCmp,
+		Signs:      signs,
 		TotalDecls: totalDecls,
 		Unparsed:   unparsed,
 		Matched:    matched,
 		NCalls:     nCalls,
+		NVariadic:  nVariadic,
 		CheckedR1:  checkedR1,
 		CheckedR2:  checkedR2,
 		CheckedR3:  checkedR3,
+		CheckedR4:  checkedR4,
+		CheckedR5:  checkedR5,
 		CleanR1:    cleanR1,
 		CleanR2:    cleanR2,
 		CleanR3:    cleanR3,
+		CleanR4:    cleanR4,
+		CleanR5:    cleanR5,
+
+		CFnPtrs:   len(cfnptrs),
+		CFnPtrBad: len(cfnptrBad),
+
+		CheckedLayout: layoutChecked,
+		CleanLayout:   layoutClean,
+
+		CheckedPtr: ptrChecked,
+		CleanPtr:   ptrClean,
+
+		CheckedNUL: nulChecked,
+		CleanNUL:   nulClean,
+
+		CheckedEnum: enumChecked,
+		CleanEnum:   enumClean,
+
+		CheckedArch: archChecked,
+		CleanArch:   archClean,
+
+		CheckedFnPtr: fnptrChecked,
+		CleanFnPtr:   fnptrClean,
+		TracedFnPtr:  fnptrTraced,
+
+		CConsts:     len(cconsts),
+		CConstBad:   len(cconstBad),
+		LocalConsts: localConsts,
+
+		PartialEnums: partial,
+		EnumMembers:  enumMembers,
+		EnumMirrored: enumMirrored,
+		EnumMissing:  enumMissing,
 	}, nil
 }
 
@@ -343,6 +807,65 @@ func printReport(r *report) {
 	for _, u := range r.NoC {
 		fmt.Println("  ", u)
 	}
+	fmt.Println("================ C DECLS WITH NO BINDING (inventory, not defects) ================")
+	for _, c := range r.Coverage {
+		fmt.Printf("   %-18s %3d of %3d bound (%d unbound)\n", c.Header+":", c.Bound, c.Decls, c.Decls-c.Bound)
+	}
+	if *verbose {
+		for _, u := range r.Unbound {
+			fmt.Println("     ", u)
+		}
+	}
+	hint := ""
+	if !*verbose && len(r.Unbound) > 0 {
+		hint = "; -v lists them"
+	}
+	fmt.Printf("(%d unbound C declarations%s)\n", len(r.Unbound), hint)
+	if r.LibNote != "" {
+		fmt.Println("================ SYMBOLS THE INSTALLED LIBRARY DOES NOT EXPORT (inventory, not defects) ================")
+		for _, m := range r.LibMissing {
+			fmt.Println("  ", m)
+		}
+		fmt.Printf("(%d of %d bound symbols not exported; %s)\n", len(r.LibMissing), len(r.Bindings), r.LibNote)
+	}
+	fmt.Println("================ BINDINGS UPSTREAM HAS DEPRECATED (inventory, not defects) ================")
+	if *verbose {
+		for _, d := range r.Deprecated {
+			fmt.Println("  ", d)
+		}
+	}
+	hint = ""
+	if !*verbose && len(r.Deprecated) > 0 {
+		hint = "; -v lists them"
+	}
+	fmt.Printf("(yzma binds %d declaration(s) upstream has marked deprecated%s)\n", len(r.Deprecated), hint)
+	fmt.Println("================ GO WRAPPERS NOT PASSING A DEPRECATION ON (not ABI breaks) ================")
+	for _, d := range r.Deps {
+		fmt.Println("  ", d)
+	}
+	fmt.Printf("(%d of %d exported wrappers of a deprecated C declaration carry a \"Deprecated:\" paragraph; not violations, so they do not affect the exit code)\n",
+		r.CleanDep, r.CheckedDep)
+	fmt.Println("================ PARTIALLY MIRRORED C ENUMS (inventory, not defects) ================")
+	for _, ec := range r.PartialEnums {
+		fmt.Printf("   %-34s %3d of %3d members mirrored (%d not mirrored)\n",
+			ec.Enum+":", ec.Mirrored, ec.Members, len(ec.Missing))
+
+		if *verbose {
+			for _, m := range ec.Missing {
+				fmt.Println("     ", m)
+			}
+		}
+	}
+	hint = ""
+	if !*verbose && r.EnumMissing > 0 {
+		hint = "; -v lists them"
+	}
+	fmt.Printf("(%d unmirrored members in %d partially mirrored enum(s)%s)\n", r.EnumMissing, len(r.PartialEnums), hint)
+	fmt.Println("================ SIGNEDNESS (same bytes, other meaning; not ABI breaks) ================")
+	for _, s := range r.Signs {
+		fmt.Println("  ", s)
+	}
+	fmt.Printf("(%d signedness findings; not violations, so they do not affect the exit code)\n", len(r.Signs))
 	fmt.Println("================ NOT VERIFIED (skips) ================")
 	for _, k := range r.Skips {
 		fmt.Println("  ", k)
@@ -352,22 +875,43 @@ func printReport(r *report) {
 	for _, k := range r.StructCmp {
 		fmt.Println("  ", k)
 	}
-	fmt.Printf("(%d struct-by-value slots compared)\n", len(r.StructCmp))
+	fmt.Printf("(%d lines; %d struct layouts compared, %d clean)\n", len(r.StructCmp), r.CheckedLayout, r.CleanLayout)
 	fmt.Println("================ SUMMARY ================")
 	fmt.Printf("C declarations found:      %d (unparsed: %d)\n", r.TotalDecls, r.Unparsed)
 	fmt.Printf("distinct C functions:      %d\n", len(r.CFuncs))
 	fmt.Printf("yzma bindings (Prep):      %d\n", len(r.Bindings))
 	fmt.Printf("  matched to a C decl:     %d\n", r.Matched)
 	fmt.Printf("  no C decl in headers:    %d\n", len(r.NoC))
+	fmt.Printf("  of them variadic:        %d (PrepVar)\n", r.NVariadic)
+	fmt.Printf("C decls bound / unbound:   %d / %d (unbound is an inventory, not a defect)\n",
+		len(r.CFuncs)-len(r.Unbound), len(r.Unbound))
 	fmt.Printf("Call sites analysed:       %d\n", r.NCalls)
+	fmt.Printf("callback sites (C->Go):    %d\n", len(r.Callbacks))
 	fmt.Printf("Rule1 checked/clean:       %d / %d\n", r.CheckedR1, r.CleanR1)
 	fmt.Printf("Rule2 arg slots checked:   %d / %d clean (unresolvable exprs: %d)\n", r.CheckedR2, r.CleanR2, len(r.Unresolved))
 	fmt.Printf("Rule3 return bufs checked: %d / %d clean\n", r.CheckedR3, r.CleanR3)
+	fmt.Printf("Rule4 constants checked:   %d / %d clean (C constants parsed: %d, unevaluable: %d; yzma-local: %d)\n",
+		r.CheckedR4, r.CleanR4, r.CConsts, r.CConstBad, r.LocalConsts)
+	fmt.Printf("bound but deprecated:      %d (inventory, not a defect)\n", len(r.Deprecated))
+	fmt.Printf("  their Go wrappers:       %d checked / %d pass the deprecation on (not violations)\n", r.CheckedDep, r.CleanDep)
+	fmt.Printf("partially mirrored enums:  %d (%d of %d members mirrored, %d not mirrored; inventory, not a defect)\n",
+		len(r.PartialEnums), r.EnumMirrored, r.EnumMembers, r.EnumMissing)
+	fmt.Printf("Rule5 callbacks checked:   %d / %d clean (C function-pointer typedefs parsed: %d, unparseable: %d)\n",
+		r.CheckedR5, r.CleanR5, r.CFnPtrs, r.CFnPtrBad)
+	fmt.Printf("fn-ptr members compared:   %d / %d clean (code pointers traced: %d)\n",
+		r.CheckedFnPtr, r.CleanFnPtr, r.TracedFnPtr)
+	fmt.Printf("struct layouts compared:   %d / %d clean\n", r.CheckedLayout, r.CleanLayout)
+	fmt.Printf("pointer targets compared:  %d / %d clean\n", r.CheckedPtr, r.CleanPtr)
+	fmt.Printf("C string buffers checked:  %d / %d NUL-terminated\n", r.CheckedNUL, r.CleanNUL)
+	fmt.Printf("enum params compared:      %d / %d clean\n", r.CheckedEnum, r.CleanEnum)
+	fmt.Printf("Go layouts cross-arch:     %d / %d agree (%s vs %s)\n",
+		r.CheckedArch, r.CleanArch, goTargets[0].Arch, goTargets[1].Arch)
+	fmt.Printf("signedness findings:       %d (not violations)\n", len(r.Signs))
 	nr := map[int]int{}
 	for _, v := range r.Viols {
 		nr[v.Rule]++
 	}
-	fmt.Printf("violations: rule1=%d rule2=%d rule3=%d\n", nr[1], nr[2], nr[3])
+	fmt.Printf("violations: rule1=%d rule2=%d rule3=%d rule4=%d rule5=%d\n", nr[1], nr[2], nr[3], nr[4], nr[5])
 }
 
 func argSummary(as []CallArg) string {
@@ -384,7 +928,12 @@ func argSummary(as []CallArg) string {
 
 func sev(p []string) string {
 	for _, s := range p {
-		if strings.Contains(s, "arity") {
+		// A wrong argument count breaks the ABI in either direction: on a call
+		// libffi reads the wrong number of avalues, and on a callback every
+		// parameter after the missing one arrives shifted.
+		if strings.Contains(s, "arity") || strings.Contains(s, "nfixed") ||
+			strings.Contains(s, "variadic") ||
+			strings.Contains(s, "parameter(s)") || strings.Contains(s, "arg type(s)") {
 			return "ABI-BREAK"
 		}
 	}
@@ -396,17 +945,54 @@ func cmpTypes(t FfiType, cRaw string, cKind Kind, cSize int, slot string) string
 	if cKind == KindStruct {
 		cSize = cTypeSize(cRaw)
 		if cSize < 0 {
+			// A struct this parser deliberately refuses to lay out names its own
+			// reason, so the skip says which shape defeated it rather than
+			// leaving a maintainer to work that out from the header.
+			if why := cstructWhy(cRaw); why != "" {
+				noteSkip("%s: C struct %q %s - NOT VERIFIED", slot, squash(cRaw), why)
+				return ""
+			}
+
 			noteSkip("%s: C struct %q size unknown - NOT VERIFIED", slot, squash(cRaw))
 			return ""
 		}
 		if t.Kind != KindStruct {
 			return fmt.Sprintf("%s: C passes struct %s (%dB) by value but cif says %s", slot, squash(cRaw), cSize, t.Name)
 		}
-		structCmp = append(structCmp, fmt.Sprintf("%s %s: cif %s=%dB vs C %s=%dB", slot, "structcmp", t.Name, t.Size, squash(cRaw), cSize))
+
+		var probs []string
 		if t.Size >= 0 && t.Size != cSize {
-			return fmt.Sprintf("%s: struct descriptor %s is %dB, C %s is %dB", slot, t.Name, t.Size, squash(cRaw), cSize)
+			probs = append(probs, fmt.Sprintf("%s: struct descriptor %s is %dB, C %s is %dB", slot, t.Name, t.Size, squash(cRaw), cSize))
 		}
-		return ""
+
+		// Equal sizes are not equal layouts: see the comment at the top of
+		// layout.go. Compare member offsets too, which is the check that
+		// catches a field inserted upstream in front of interior padding.
+		cl, cOK := cLeaves(cstructOf(cRaw))
+		fl, fOK := ffiLeaves(t)
+		switch {
+		case !cOK:
+			noteSkip("%s: C struct %q member layout not resolvable - LAYOUT NOT VERIFIED", slot, squash(cRaw))
+		case !fOK:
+			noteSkip("%s: cif descriptor %s member layout not resolvable - LAYOUT NOT VERIFIED", slot, t.Name)
+		default:
+			layoutChecked++
+			if d := diffLeaves(fl, cl, "cif "+t.Name, "C "+squash(cRaw)); len(d) > 0 {
+				probs = append(probs, slot+": struct layout differs from C: "+strings.Join(d, "; "))
+			} else {
+				layoutClean++
+			}
+		}
+
+		structCmp = append(structCmp, fmt.Sprintf("%s structcmp: cif %s=%dB/%s vs C %s=%dB/%s",
+			slot, t.Name, t.Size, members(fl, fOK), squash(cRaw), cSize, members(cl, cOK)))
+		if *verbose {
+			structCmp = append(structCmp,
+				"    cif members: "+leafList(fl),
+				"    C   members: "+leafList(cl))
+		}
+
+		return strings.Join(probs, "; ")
 	}
 	if cKind == KindUnknown || cSize < 0 {
 		noteSkip("%s: C type %q unclassifiable - NOT VERIFIED", slot, squash(cRaw))
@@ -432,6 +1018,339 @@ func cmpTypes(t FfiType, cRaw string, cKind Kind, cSize int, slot string) string
 		return fmt.Sprintf("%s: C %s is %s but cif %s is %s", slot, squash(cRaw), cKind, t.Name, t.Kind)
 	}
 	return ""
+}
+
+// cmpStructLayout compares the Go struct libffi will read bytes from against
+// the cif struct descriptor that says how to read them, member by member.
+//
+// Equal total size is not enough: the Go struct and the descriptor are written
+// and maintained by hand in two separate places, so one can gain a field the
+// other did not. That is silent when the difference is absorbed by interior
+// padding, which is exactly how hybridgroup/yzma#289 presented.
+func cmpStructLayout(ct FfiType, goType types.Type, slot, expr, cRaw, pos string) string {
+	if ct.Kind != KindStruct || goType == nil {
+		return ""
+	}
+
+	if _, ok := goType.Underlying().(*types.Struct); !ok {
+		return ""
+	}
+
+	// A member of function-pointer type is one C will *call*, not one it reads,
+	// and offsets and widths say nothing about that. Recorded here because this
+	// is where both representations are in hand; checked once per pair, after
+	// every callback site has been linked. See checkFnPtrMembers.
+	noteFnPtrStruct(goType, cRaw, pos)
+
+	gl, gOK := goLeaves(goType)
+	if !gOK {
+		noteSkip("%s %s: Go struct %s member layout not resolvable - LAYOUT NOT VERIFIED", slot, expr, goType.String())
+		return ""
+	}
+
+	fl, fOK := ffiLeaves(ct)
+	if !fOK {
+		noteSkip("%s %s: cif descriptor %s member layout not resolvable - LAYOUT NOT VERIFIED", slot, expr, ct.Name)
+		return ""
+	}
+
+	layoutChecked++
+
+	goSize := int(goSizes.Sizeof(goType))
+	if tail := goTail(gl, fl, goSize, ct.Size); tail != "" {
+		structCmp = append(structCmp, fmt.Sprintf("%s Go %s=%dB vs cif %s=%dB%s",
+			slot, goType.String(), goSize, ct.Name, ct.Size, tail))
+	}
+
+	d := diffLeafPrefix(gl, fl, "Go "+goType.String(), "cif "+ct.Name, ct.Size)
+
+	// Every width above is one architecture's. Whether the other architecture
+	// yzma supports agrees is a property of this struct rather than of this slot,
+	// so it is compared once per struct here. See diffArchLayouts.
+	if a := diffArchLayouts(goType); a != "" {
+		d = append(d, a)
+	}
+
+	// Two members of the same width and ABI class can be swapped without moving
+	// a single offset, and the C library then simply receives each value in the
+	// other's place. Only the member names can see that, and only the header has
+	// names to compare against: a cif descriptor carries none.
+	if cl, ok := cLeaves(cstructOf(cRaw)); ok {
+		sw, unmatched := diffSwappedMembers(gl, cl, goType.String(), squash(cRaw))
+		d = append(d, sw...)
+
+		for _, u := range unmatched {
+			noteSkip("%s %s: %s - NOT VERIFIED against a transposition", slot, expr, u)
+		}
+	} else if cRaw != "" {
+		noteSkip("%s %s: C struct %q member names not resolvable - NOT VERIFIED against a transposition", slot, expr, squash(cRaw))
+	}
+
+	if len(d) == 0 {
+		layoutClean++
+		return ""
+	}
+
+	return fmt.Sprintf("%s: Go struct %s layout differs from cif descriptor %s (%s): %s",
+		slot, goType.String(), ct.Name, expr, strings.Join(d, "; "))
+}
+
+// cmpPointerTarget compares what a pointer slot points *at*.
+//
+// Every C `T *` classifies to KindPointer/8 and every Go pointer is 8 bytes, and
+// kindCompat merges pointer with an 8-byte integer, so a C `float *` slot fed a
+// Go `*int32` matches in width, matches in ABI class and passes all five rules.
+// The call then succeeds and C writes floats into memory Go reads as integers:
+// the same silent wrong-data class as hybridgroup/yzma#289, one indirection
+// down. It is not a hypothetical shape either, because llama.cpp's hottest
+// entry points are pointer-out params - llama_get_embeddings_seq,
+// llama_get_logits_ith, the llama_batch members.
+//
+// The claim is only made where both sides actually name a concrete scalar
+// target: a `void *`, an opaque `struct llama_context *`, a Go uintptr or a Go
+// unsafe.Pointer names nothing to compare against, so those slots are outside
+// what this comparison can say anything about rather than guessed at. That
+// scope is what CheckedPtr measures.
+func cmpPointerTarget(ca CallArg, cRaw, fn, pos, slot string) string {
+	if ca.Kind != KindPointer || cRaw == "" || ca.Pointee == nil {
+		return ""
+	}
+
+	ck, cs := cPointeeOf(cRaw)
+	if !scalarKind(ck) || cs <= 0 {
+		return ""
+	}
+
+	gp, ok := ca.Pointee.Underlying().(*types.Pointer)
+	if !ok {
+		return ""
+	}
+
+	gk, gs := goKindOf(gp.Elem())
+	if !scalarKind(gk) || gs <= 0 {
+		return ""
+	}
+
+	ptrChecked++
+
+	switch {
+	case gs != cs:
+		return fmt.Sprintf("%s: C %s points at %dB but Go %s points at %s (%dB) (%s)",
+			slot, squash(cRaw), cs, ca.Pointee.String(), gp.Elem().String(), gs, ca.Expr)
+	case !kindCompat(ck, gk):
+		return fmt.Sprintf("%s: C %s points at %s but Go %s points at %s (%s / %s)",
+			slot, squash(cRaw), ck, ca.Pointee.String(), gk, ca.Expr, gp.Elem().String())
+	case signMismatch(ck, gk, cs):
+		noteSign("%s (%s): %s: C %s points at %s but Go %s points at %s: same bytes, other meaning",
+			fn, pos, slot, squash(cRaw), ck, ca.Pointee.String(), gk)
+
+		return ""
+	}
+
+	ptrClean++
+
+	return ""
+}
+
+// cmpEnumType checks that a C parameter of enum type is passed the yzma enum
+// type that mirrors *that* enum.
+//
+// Every C enum here is 4 bytes of sint (classify) and every yzma enum type is an
+// int32, so a SplitMode handed to a parameter that takes a llama_pooling_type
+// matches in width, matches in ABI class, has no pointer target and no members
+// to transpose: all five rules pass it, and the library is simply asked for a
+// different thing than the caller named. That is the wrong-data class again, at
+// the one place RULE 4 could not reach - RULE 4 says PoolingTypeMean holds
+// LLAMA_POOLING_TYPE_MEAN's value, never that it is passed where that enum is
+// wanted.
+//
+// The mapping is RULE 4's own: the C enum a Go type stands for is the enum its
+// mirrored members sit in (goEnumOf). So the claim is only made where the Go side
+// names a type with mirrored members - a plain int32 or uint32 names no enum at
+// all, exactly as a `void *` names no pointer target, and is outside this rather
+// than a skip. What is inside it is on the SUMMARY, so a narrowing is visible.
+func cmpEnumType(ca CallArg, cRaw, slot string) string {
+	tag := cEnumOf(cRaw)
+	if tag == "" || ca.Pointee == nil {
+		return ""
+	}
+
+	named, ok := ca.Pointee.(*types.Named)
+	if !ok {
+		return ""
+	}
+
+	got := goEnumOf(named.Obj().Name())
+	if got == "" {
+		return ""
+	}
+
+	enumChecked++
+
+	if got != tag {
+		return fmt.Sprintf("%s: C takes enum %s but Go %s mirrors enum %s (%s): the value is the wrong enumeration, of the same width",
+			slot, tag, ca.Pointee.String(), got, ca.Expr)
+	}
+
+	enumClean++
+
+	return ""
+}
+
+// cmpStringTerm checks that a C `char *` parameter is fed a NUL-terminated
+// buffer.
+//
+// This is the one property of a string argument that no other comparison here
+// can reach. The slot is a pointer on both sides, the widths match, and the
+// pointer target is `char` against a Go `byte`, so RULES 1-3 and both extensions
+// above pass it - while C's idea of where the string ends comes from the bytes
+// themselves. Go never puts a terminator there: a Go string carries its length,
+// so every one of these buffers is terminated by hand, and dropping the
+// `+ "\x00"` from `&[]byte(path + "\x00")[0]` compiles, type-checks, passes every
+// rule and makes C read forward off the end of a Go allocation - into whatever
+// the allocator put next, for as long as it takes to find a zero byte.
+//
+// It is a RULE 2 finding rather than a class of its own, because the failure is
+// RULE 2's failure: libffi and C reading bytes the Go side never meant to hand
+// over. What differs is the evidence - dataflow rather than a width - which is
+// why the *scope* is counted separately.
+//
+// And the scope is deliberately narrow: the claim is only made for a buffer that
+// can be traced back, inside the same function, to a Go string or byte-slice
+// literal. A `*byte` that arrived as a parameter, was written by C, or came out
+// of `make` for C to fill names nothing to trace, exactly as a `void *` names no
+// pointer target, so those slots are outside what this can decide rather than
+// skips - a skip means "this should have been checked and was not". What is
+// inside that scope is on the SUMMARY, so narrowing it is visible rather than
+// silent.
+func cmpStringTerm(ca CallArg, cRaw, slot string) string {
+	if !cCharPtr(cRaw) || ca.Str.Producer == "" {
+		return ""
+	}
+
+	nulChecked++
+
+	if ca.Str.Term == "" {
+		return fmt.Sprintf("%s: C %s needs a NUL-terminated buffer but %s is built from %s with no terminator: C reads past the end of the Go allocation",
+			slot, squash(cRaw), ca.Expr, ca.Str.Producer)
+	}
+
+	nulClean++
+
+	return ""
+}
+
+// cCharPtr is a single-level C pointer to plain char - the string idiom.
+//
+// A byte buffer spelled `uint8_t *` or `int8_t *` is deliberately not one: it is
+// a counted buffer whose length travels in another parameter, so there is no
+// terminator to require. `char **` is not one either, because the buffer is one
+// more indirection away than this traces.
+func cCharPtr(cRaw string) bool {
+	t := squash(strings.ReplaceAll(strings.ReplaceAll(cRaw, "const", " "), "volatile", " "))
+	if !strings.HasSuffix(t, "*") || strings.Count(t, "*") != 1 {
+		return false
+	}
+
+	return strings.TrimSpace(strings.TrimSuffix(t, "*")) == "char"
+}
+
+// checkDeprecationNote checks that the exported Go wrappers of a C declaration
+// upstream has deprecated say so in the way Go tooling can read.
+//
+// The deprecation inventory records that yzma binds the declaration; this is the
+// other half of the same fact, and the half with a consequence for somebody else.
+// `// Deprecated: <reason>` is not a comment style, it is an interface: gopls
+// surfaces it and staticcheck's SA1019 flags every *consumer* call site. A
+// wrapper without it hands the deprecation on while suppressing the one signal
+// Go tooling could have given a user - the binding compiles clean, runs clean and
+// reports clean here, and quietly commits consumers to an API upstream has
+// announced it is removing.
+//
+// It is reported in its own class rather than as a rule violation, and never
+// affects the exit code, for the same reason the signedness findings are not
+// violations: nothing about the ABI is wrong, every byte crosses the boundary
+// correctly, and the exit code here means "this boundary is broken". Failing CI
+// on API hygiene would conflate two claims of very different kinds, which is how
+// a checker gets ignored. The finding is no less definite for that - unlike an
+// unbound declaration it has one right answer.
+//
+// The subject is the exported wrapper rather than the ffi.Fun var: the var is
+// unexported in every package here and is not what a consumer holds. A deprecated
+// binding with no exported wrapper at all is outside the claim rather than a skip,
+// exactly as a `void *` is for a pointer target - there is nothing a consumer can
+// call, so there is nothing to announce - and depChecked is what makes that scope
+// a number.
+func checkDeprecationNote(b *Binding, cf CFunc) {
+	seen := map[string]bool{}
+
+	for _, cs := range b.Calls {
+		if !cs.FnExported || seen[cs.Fn] {
+			continue
+		}
+
+		seen[cs.Fn] = true
+		depChecked++
+
+		if cs.FnDeprecated {
+			depClean++
+			continue
+		}
+
+		noteDep("%s (%s): C %s is DEPRECATED upstream (%s:%d) but the Go wrapper has no \"Deprecated:\" paragraph, so gopls and staticcheck SA1019 cannot warn a consumer",
+			cs.Fn, shortPos(cs.Pos), cf.Name, filepath.Base(cf.File), cf.Line)
+	}
+}
+
+// checkRetSign reports a return value read through a Go type of the other sign.
+//
+// A return buffer is where the value is interpreted rather than forwarded, and
+// llama.cpp uses the sign: llama_decode returns negative on error and
+// llama_token uses -1 as a sentinel, so reading either unsigned turns a failure
+// into a very large positive number with every width and class still matching.
+//
+// ffi.Arg is exempt, and has to be: RULE 3 *requires* it for an integer return
+// because libffi always stores a full ffi_arg, and it is unsigned by
+// construction, so it is a container rather than a meaning. What a caller
+// converts it to afterwards is one expression further on than this tool looks.
+func checkRetSign(cf CFunc, cs CallSite) string {
+	if cs.RetNil || cs.RetType == nil || strings.HasSuffix(cs.RetType.String(), "ffi.Arg") {
+		return ""
+	}
+
+	k, _ := goKindOf(cs.RetType)
+	if !signMismatch(cf.RetKind, k, cf.RetSize) {
+		return ""
+	}
+
+	return fmt.Sprintf("C %s returns %s %s but the return buffer %s is %s %s: same bytes, other meaning",
+		cf.Name, squash(cf.RetRaw), cf.RetKind, cs.RetExpr, cs.RetType.String(), k)
+}
+
+// signMismatch is a signed/unsigned pair of the same width.
+//
+// One-byte targets are excluded deliberately. Plain `char` is signed in
+// baseTypes but its signedness is implementation-defined in C, and `const char
+// *` fed a Go `*byte` is the string idiom of every binding in the tree: a rule
+// that reported it would report nothing else. A byte buffer is not read as a
+// number, so there is no meaning to get wrong.
+func signMismatch(a, b Kind, size int) bool {
+	if size < 2 {
+		return false
+	}
+
+	return (a == KindSint && b == KindUint) || (a == KindUint && b == KindSint)
+}
+
+// scalarKind is a kind with one concrete width and one meaning - the only kinds
+// a pointer-target comparison can decide anything about.
+func scalarKind(k Kind) bool {
+	switch k {
+	case KindSint, KindUint, KindFloat, KindDouble, KindPointer:
+		return true
+	}
+
+	return false
 }
 
 // kindCompat: same-width integer signedness is ABI-identical on arm64, so only
@@ -460,7 +1379,7 @@ func kindCompat(a, b Kind) bool {
 }
 
 // checkRet implements Rule 3.
-func checkRet(ret FfiType, cs CallSite) string {
+func checkRet(ret FfiType, cs CallSite, cRaw string) string {
 	switch ret.Kind {
 	case KindVoid:
 		if !cs.RetNil && cs.RetExpr != "" {
@@ -496,11 +1415,16 @@ func checkRet(ret FfiType, cs CallSite) string {
 		if cs.RetNil || cs.RetType == nil || ret.Size < 0 {
 			return ""
 		}
+		// As for a struct argument, the cif size is how far libffi writes, so
+		// a larger Go buffer is headroom and only a short one is overrun.
 		_, sz := goKindOf(cs.RetType)
-		if sz != ret.Size {
-			return fmt.Sprintf("struct return buffer %s is %s (%dB) but cif struct descriptor %s is %dB", cs.RetExpr, cs.RetType.String(), sz, ret.Name, ret.Size)
+		if sz < ret.Size {
+			return fmt.Sprintf("struct return buffer %s is %s (only %dB) but libffi writes the %dB of cif struct descriptor %s", cs.RetExpr, cs.RetType.String(), sz, ret.Size, ret.Name)
 		}
-		return ""
+		// A struct return is where the padding-absorbed field drift of
+		// hybridgroup/yzma#289 landed: llama_context_default_params returns
+		// llama_context_params by value into a Go ContextParams.
+		return cmpStructLayout(ret, cs.RetType, "ret", cs.RetExpr, cRaw, shortPos(cs.Pos))
 	}
 	return ""
 }

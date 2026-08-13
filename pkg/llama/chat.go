@@ -77,11 +77,16 @@ func ChatApplyTemplate(template string, chat []ChatMessage, addAssistantPrompt b
 // ChatBuiltinTemplates returns a slice of built-in chat template names.
 func ChatBuiltinTemplates() []string {
 	// get the needed size
+	// C takes `const char ** output`, so the slot is a pointer to an array of
+	// char*, not to a single char. The probe hands it the nil slice's data
+	// pointer with length 0, which is the null array C writes nothing into.
 	var (
-		result  ffi.Arg
-		cOutput *byte
-		length  uint64
+		result   ffi.Arg
+		cStrings []*byte
+		length   uint64
 	)
+
+	cOutput := unsafe.SliceData(cStrings)
 	chatBuiltinTemplatesFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&cOutput), &length)
 	count := int32(result)
 
@@ -90,7 +95,7 @@ func ChatBuiltinTemplates() []string {
 	}
 
 	// now get the actual templates
-	cStrings := make([]*byte, count)
+	cStrings = make([]*byte, count)
 	cFinalOutput := unsafe.SliceData(cStrings)
 	length = uint64(count)
 
