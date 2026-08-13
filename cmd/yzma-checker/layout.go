@@ -398,11 +398,8 @@ var memberAliases = [][2]string{
 
 // normName reduces a member name to a form comparable across the two naming
 // conventions: Go's NThreadsBatch and C's n_threads_batch become the same
-// string.
+// string. The counting prefix is kept, so this is the exact form.
 func normName(s string) string {
-	// Read off the name as written, before the underscores that mark it go.
-	counted := hasCountPrefix(s)
-
 	var b strings.Builder
 	for _, r := range s {
 		if r == '_' {
@@ -418,22 +415,34 @@ func normName(s string) string {
 		s = strings.ReplaceAll(s, a[0], a[1])
 	}
 
-	if !counted {
-		return s
-	}
-
-	return strings.TrimPrefix(s, "n")
+	return s
 }
 
-// hasCountPrefix reports whether a member name carries the C counting prefix.
+// normNameLoose is normName with the C counting prefix dropped, for the second
+// pass of the two-pass match in diffSwappedMembers.
 //
 // A leading n_ is a prefix yzma sometimes keeps (NThreads for n_threads) and
-// sometimes drops (mtmd's Threads for n_threads), so it is treated as optional
-// on both sides. It has to be recognised on the name as written, though: by the
-// time normName has removed the underscores there is no prefix left to see, only
-// a leading n, and trimming that would make `name` and `ame` the same member.
-// The Go spelling of the same prefix is an N before another capital, which is
-// what separates NThreads from Name.
+// sometimes drops (mtmd's Threads for n_threads), so it has to be optional
+// somewhere. It cannot be optional in the exact form, though, because dropping
+// it unconditionally is lossy in a way that matters: struct llama_batch has both
+// n_seq_id and seq_id, so a single normalisation that treats the prefix as
+// noise maps two real, adjacent members onto one name and can no longer tell
+// which of them a Go member is. Matching exactly first and only falling back to
+// this keeps NSeqId on n_seq_id and SeqId on seq_id.
+//
+// The prefix has to be recognised on the name as written: by the time normName
+// has removed the underscores there is no prefix left to see, only a leading n,
+// and trimming that would make `name` and `ame` the same member. The Go spelling
+// of the same prefix is an N before another capital, which is what separates
+// NThreads from Name.
+func normNameLoose(s string) string {
+	if !hasCountPrefix(s) {
+		return normName(s)
+	}
+
+	return strings.TrimPrefix(normName(s), "n")
+}
+
 func hasCountPrefix(s string) bool {
 	if rest, ok := strings.CutPrefix(s, "n_"); ok {
 		return rest != ""
@@ -442,6 +451,18 @@ func hasCountPrefix(s string) bool {
 	rest, ok := strings.CutPrefix(s, "N")
 
 	return ok && rest != "" && unicode.IsUpper(rune(rest[0]))
+}
+
+// indexMember records the C member at index i under key, marking a key two
+// members share as -1 so it can never answer "found at another index".
+func indexMember(m map[string]int, key string, i int) {
+	if _, dup := m[key]; dup {
+		m[key] = -1
+
+		return
+	}
+
+	m[key] = i
 }
 
 // diffSwappedMembers finds members the Go struct has transposed relative to the
@@ -455,21 +476,17 @@ func hasCountPrefix(s string) bool {
 // just a binding that renamed a field, so that is reported as unverified rather
 // than as a defect.
 func diffSwappedMembers(gl, cl []Leaf, goName, cName string) (probs, unmatched []string) {
-	at := make(map[string]int, len(cl))
+	// Two indexes, because the counting prefix has to be optional without being
+	// discarded: the exact one answers first, and the loose one only sees a Go
+	// member whose name is not in it. A duplicate in either would make "found at
+	// another index" meaningless, so those are marked -1 and dropped from
+	// consideration. Dropping them silently would be indistinguishable from
+	// checking them, though, so a Go member that lands on one is reported as
+	// unverified below rather than passing quietly.
+	at, loose := make(map[string]int, len(cl)), make(map[string]int, len(cl))
 	for i, l := range cl {
-		// A duplicated normalised name would make "found at another index"
-		// meaningless, so those are marked -1 and dropped from consideration.
-		// Dropping them silently would be indistinguishable from checking them,
-		// though, so a Go member landing on one is reported as unverified below:
-		// a collision is a limit of the normalisation, and the point of the skip
-		// list is that those stay visible.
-		if _, dup := at[normName(l.Path)]; dup {
-			at[normName(l.Path)] = -1
-
-			continue
-		}
-
-		at[normName(l.Path)] = i
+		indexMember(at, normName(l.Path), i)
+		indexMember(loose, normNameLoose(l.Path), i)
 	}
 
 	for i, l := range gl {
@@ -478,6 +495,14 @@ func diffSwappedMembers(gl, cl []Leaf, goName, cName string) (probs, unmatched [
 		}
 
 		j, ok := at[normName(l.Path)]
+		if !ok || j == -1 {
+			// Only now is the prefix allowed to be noise: mtmd spells C's
+			// n_threads as Threads, which nothing in the exact index answers.
+			if lj, lok := loose[normNameLoose(l.Path)]; lok {
+				j, ok = lj, true
+			}
+		}
+
 		switch {
 		case !ok:
 			unmatched = append(unmatched, fmt.Sprintf("%s.%s has no counterpart in %s", goName, l.Path, cName))
