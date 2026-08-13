@@ -143,7 +143,7 @@ Who is using `yzma`? Check out some of the [tools](./PROJECTS.md#tools-and-frame
 
 ## Models
 
-`yzma` uses models in the GGUF format supported by `llama.cpp`. There are many models in GGUF format on Hugging Face (over 194k at last count):
+`yzma` uses models in the GGUF format supported by `llama.cpp`. There are many models in GGUF format on Hugging Face (over 196k at last count):
 
 https://huggingface.co/models?library=gguf&sort=trending
 
@@ -190,10 +190,6 @@ Sometimes there are breaking changes to `llama.cpp` that require an update to `y
 | b10105 - b10211  | v1.20.0 - v1.21.0   |
 | b10212 - b10257  | v1.22.0   |
 | b10273+  | v1.23.0   |
-
-`llama.cpp` b10258 - b10272 is not supported: b10258 added `n_vocab` to
-`llama_sampler_init_penalties`, and b10273 removed `n_ctx_train` from
-`llama_sampler_init_dry`. `yzma` v1.23.0 targets both changes together.
 
 ## Benchmarks
 
