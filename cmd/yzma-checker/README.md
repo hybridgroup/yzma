@@ -14,7 +14,7 @@ between
 
 is completely silent at build time and only shows up at runtime as a corrupted
 value or corrupted memory. The same is true in the other direction, where C
-calls a Go closure back. 265 bindings, 169 mirrored constants, 4 callbacks and
+calls a Go closure back. 265 bindings, 170 mirrored constants, 4 callbacks and
 the 5 function-pointer struct members C reaches them through are far too many to
 eyeball credibly, which is why this exists.
 
@@ -687,6 +687,17 @@ measurement rather than an assertion:
   installed here, which is `b10219` against `b10375` headers — so the skew this
   is for does not exist today.
 
+  Which `nm` query that is differs by platform, because the table `dlsym`
+  resolves against does. On ELF it is `.dynsym`, which only `nm -D` reads: a
+  stripped `.so` has no `.symtab` at all, so any other query succeeds and prints
+  nothing, and reading that as "exports nothing" would report all 265 bound
+  symbols missing — a wall of false findings in the one section that is supposed
+  never to produce them. Mach-O has no dynamic symbol table in that sense and
+  llvm's `nm` rejects `-D`, so darwin keeps `-gU`. Either way an empty read is
+  treated as *not compared* and names the library that came back empty, since a
+  library whose symbols could not be read is indistinguishable from one that
+  exports none, and only one of those is a fact worth printing.
+
   It is **opt-in** deliberately, for the same reason it never affects the exit
   code: the installed library is a property of the machine and not of the
   repository, so a check that ran by default would make the report's contents
@@ -705,7 +716,7 @@ measurement rather than an assertion:
   numbers for the same reason:
 
   ```
-  Rule4 constants checked:   169 / 168 clean (C constants parsed: 421, unevaluable: 8; yzma-local: 27)
+  Rule4 constants checked:   170 / 169 clean (C constants parsed: 421, unevaluable: 8; yzma-local: 27)
   ```
 
   *unevaluable* is the rule's coverage limit — C constants whose value the
@@ -865,7 +876,10 @@ skipping them:
 - The **library symbol comparison**, because a fixture cannot carry a shared
   library. Its parsing half is pinned on recorded `nm` output — an undefined `U`
   symbol and a local lowercase one must both be dropped, since `dlsym` would not
-  find either — and the gate also pins that an ordinary run does not look at a
+  find either, an `A` line is an ELF version node rather than a symbol, and a
+  versioned `name@@VERS` is reported bare because that is how the header spells
+  it. A read that yields no symbols is pinned separately as an error rather than
+  as an empty set. The gate also pins that an ordinary run does not look at a
   library at all, which is the promise `-lib` being opt-in makes.
 
 For the deprecation inventory the fixture header wraps two declarations in

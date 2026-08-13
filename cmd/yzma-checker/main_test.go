@@ -2,6 +2,8 @@ package main
 
 import (
 	"go/types"
+	"os"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -688,21 +690,110 @@ struct fx_union { uint32_t tag; union { int64_t i; double d; }; };
 // comparison: an undefined symbol is one dlsym would not find here either, so
 // counting it as present would make the check report nothing.
 func TestNMSymbolsReadsDefinedSymbolsOnly(t *testing.T) {
-	const out = `0000000000050710 T _llama_decode
+	// nmSymbols strips the leading underscore only on darwin, because only
+	// Mach-O adds one, so the fixture has to be the output this platform's nm
+	// would actually produce. Feeding Mach-O output to a Linux run would assert
+	// a transformation that build deliberately does not do.
+	out := `0000000000050710 T llama_decode
+                 U memcpy
+000000000007cd10 S llama_token_data
+0000000000000000 t static_helper
+0000000000000000 A LLAMA_1.0
+0000000000002cd0 T llama_encode@@LLAMA_1.0
+`
+	if runtime.GOOS == "darwin" {
+		out = `0000000000050710 T _llama_decode
                  U _memcpy
 000000000007cd10 S _llama_token_data
 0000000000000000 t _static_helper
+0000000000000000 A _LLAMA_1.0
+0000000000002cd0 T _llama_encode@@LLAMA_1.0
 `
+	}
 
 	var got []string
 	for s := range nmSymbols(out) {
 		got = append(got, s)
 	}
 
-	// Mach-O's leading underscore is stripped; the U line is dropped; a
-	// lowercase type letter is a local symbol dlsym cannot reach either.
-	if want := []string{"llama_decode", "llama_token_data"}; !slices.Equal(got, want) {
+	// On darwin the leading underscore is stripped; the U line is dropped; a
+	// lowercase type letter is a local symbol dlsym cannot reach either; an A
+	// line is an ELF version node rather than a symbol; and a versioned name is
+	// reported bare, which is how the header spells it.
+	if want := []string{"llama_decode", "llama_token_data", "llama_encode"}; !slices.Equal(got, want) {
 		t.Errorf("nmSymbols = %v, want %v", got, want)
+	}
+}
+
+// TestAddNMSymbolsRejectsAnEmptyRead pins the guard behind finding 4. A stripped
+// .so has no .symtab, so a query reading that table exits 0 with nothing to
+// print; taking that as "exports nothing" would report every bound symbol as
+// missing, which is a wall of false findings rather than the intended silence.
+func TestAddNMSymbolsRejectsAnEmptyRead(t *testing.T) {
+	// What nm actually prints for a stripped library: exit 0, no symbol lines.
+	syms := map[string]bool{}
+
+	n, err := addNMSymbols(syms, "nm: libllama.so: no symbols\n", "libllama.so")
+	if err == nil {
+		t.Fatalf("addNMSymbols = %d, nil, want an error so the section says nothing", n)
+	}
+
+	if !strings.Contains(err.Error(), "libllama.so") {
+		t.Errorf("err = %q, want it to name the library that came back empty", err)
+	}
+
+	// A library that does read must still be counted normally.
+	if n, err := addNMSymbols(syms, "0000000000050710 T llama_decode\n", "libllama.so"); err != nil || n != 1 {
+		t.Errorf("addNMSymbols on a readable library = %d, %v, want 1, nil", n, err)
+	}
+}
+
+// TestCheckLibSymbolsReportsNothingWhenItCannotRead pins the other half: a
+// library this machine cannot produce symbols for is a fact about the machine,
+// so the section explains itself rather than accusing the bindings.
+func TestCheckLibSymbolsReportsNothingWhenItCannotRead(t *testing.T) {
+	dir := t.TempDir()
+
+	if err := os.WriteFile(libFilename(dir, "llama"), []byte("not an object file\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	missing, note := checkLibSymbols(dir, []*Binding{{CName: "llama_decode"}})
+	if len(missing) != 0 {
+		t.Errorf("checkLibSymbols reported %d missing symbols from an unreadable library, want 0", len(missing))
+	}
+
+	if !strings.HasPrefix(note, "not compared") {
+		t.Errorf("note = %q, want it to say the comparison did not happen", note)
+	}
+}
+
+// TestMatchCConstSkipsADroppedName pins finding 2: a #define whose definitions
+// disagree is deleted from cconsts but stays in the by-norm index, and taking it
+// as the sole candidate would return a zero-valued CConst with no reason - so a
+// Go constant would be compared against 0 and counted as checked.
+func TestMatchCConstSkipsADroppedName(t *testing.T) {
+	resetCConsts()
+	t.Cleanup(resetCConsts)
+
+	defineCConst("LLAMA_SPLIT_MODE_NONE", "1", "llama.h", 10)
+	defineCConst("LLAMA_SPLIT_MODE_NONE", "2", "llama.h", 20)
+
+	if _, ok := cconsts["LLAMA_SPLIT_MODE_NONE"]; ok {
+		t.Fatal("recordCConst kept a name whose definitions disagree")
+	}
+
+	got, why := matchCConst(GoConst{Name: "SplitModeNone"})
+	if got.Name != "" || got.Val != 0 {
+		t.Errorf("matchCConst = %+v, want no match", got)
+	}
+
+	if why == "" {
+		t.Fatal("matchCConst returned no skip reason, so the caller would count this as checked")
+	}
+
+	if !strings.Contains(why, "defined more than once") {
+		t.Errorf("why = %q, want the recorded conflict rather than a generic no-match", why)
 	}
 }
 

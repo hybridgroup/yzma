@@ -870,9 +870,20 @@ func matchCConst(g GoConst) (CConst, string) {
 		return CConst{}, fmt.Sprintf("comment names %s, which is not an enum member or #define in the headers", g.CName)
 	}
 
+	// A name recordCConst later dropped - because a second #define disagreed
+	// with the first - stays in cconstByNorm, since the index is written when
+	// the first definition lands and never unwound. Such a name is not a
+	// candidate: cconsts no longer holds it, so taking it would return a
+	// zero-valued CConst with no reason attached, count towards checked, and
+	// compare the Go value against 0. Filtering it here is also what lets the
+	// case 0 arm below find the real reason in cconstBadByNorm.
 	var cands []string
 	for _, k := range constKeys(g.Name) {
 		for _, n := range cconstByNorm[k] {
+			if _, bad := cconstBad[n]; bad {
+				continue
+			}
+
 			if !contains(cands, n) {
 				cands = append(cands, n)
 			}

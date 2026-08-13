@@ -400,6 +400,9 @@ var memberAliases = [][2]string{
 // conventions: Go's NThreadsBatch and C's n_threads_batch become the same
 // string.
 func normName(s string) string {
+	// Read off the name as written, before the underscores that mark it go.
+	counted := hasCountPrefix(s)
+
 	var b strings.Builder
 	for _, r := range s {
 		if r == '_' {
@@ -415,12 +418,30 @@ func normName(s string) string {
 		s = strings.ReplaceAll(s, a[0], a[1])
 	}
 
-	// A leading n_ is a C counting prefix yzma sometimes keeps (NThreads for
-	// n_threads) and sometimes drops (mtmd's Threads for n_threads), so treat it
-	// as optional on both sides. Two members that collide once it is gone are
-	// dropped from the comparison rather than guessed at, by the duplicate
-	// handling in diffSwappedMembers.
+	if !counted {
+		return s
+	}
+
 	return strings.TrimPrefix(s, "n")
+}
+
+// hasCountPrefix reports whether a member name carries the C counting prefix.
+//
+// A leading n_ is a prefix yzma sometimes keeps (NThreads for n_threads) and
+// sometimes drops (mtmd's Threads for n_threads), so it is treated as optional
+// on both sides. It has to be recognised on the name as written, though: by the
+// time normName has removed the underscores there is no prefix left to see, only
+// a leading n, and trimming that would make `name` and `ame` the same member.
+// The Go spelling of the same prefix is an N before another capital, which is
+// what separates NThreads from Name.
+func hasCountPrefix(s string) bool {
+	if rest, ok := strings.CutPrefix(s, "n_"); ok {
+		return rest != ""
+	}
+
+	rest, ok := strings.CutPrefix(s, "N")
+
+	return ok && rest != "" && unicode.IsUpper(rune(rest[0]))
 }
 
 // diffSwappedMembers finds members the Go struct has transposed relative to the
@@ -437,9 +458,14 @@ func diffSwappedMembers(gl, cl []Leaf, goName, cName string) (probs, unmatched [
 	at := make(map[string]int, len(cl))
 	for i, l := range cl {
 		// A duplicated normalised name would make "found at another index"
-		// meaningless, so drop those from consideration entirely.
+		// meaningless, so those are marked -1 and dropped from consideration.
+		// Dropping them silently would be indistinguishable from checking them,
+		// though, so a Go member landing on one is reported as unverified below:
+		// a collision is a limit of the normalisation, and the point of the skip
+		// list is that those stay visible.
 		if _, dup := at[normName(l.Path)]; dup {
 			at[normName(l.Path)] = -1
+
 			continue
 		}
 
@@ -455,7 +481,9 @@ func diffSwappedMembers(gl, cl []Leaf, goName, cName string) (probs, unmatched [
 		switch {
 		case !ok:
 			unmatched = append(unmatched, fmt.Sprintf("%s.%s has no counterpart in %s", goName, l.Path, cName))
-		case j == -1 || j == i:
+		case j == -1:
+			unmatched = append(unmatched, fmt.Sprintf("%s.%s matches more than one member of %s once names are normalised, so its position is not checked", goName, l.Path, cName))
+		case j == i:
 		default:
 			if len(probs) < maxLeafDiffs {
 				probs = append(probs, fmt.Sprintf("member %d: %s.%s is C member %d (%s.%s), and member %d holds %s.%s: transposed, so each receives the other's value",

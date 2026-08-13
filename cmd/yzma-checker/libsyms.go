@@ -39,12 +39,14 @@ var libShortNames = []string{"ggml", "ggml-base", "ggml-cpu", "llama", "mtmd"}
 // file dlopen is handed.
 func libFilename(dir, lib string) string {
 	switch runtime.GOOS {
+	case "linux", "freebsd":
+		return filepath.Join(dir, "lib"+lib+".so")
 	case "windows":
 		return filepath.Join(dir, lib+".dll")
 	case "darwin":
 		return filepath.Join(dir, "lib"+lib+".dylib")
 	default:
-		return filepath.Join(dir, "lib"+lib+".so")
+		return filepath.Join(dir, lib)
 	}
 }
 
@@ -69,10 +71,9 @@ func libSymbols(dir string) (map[string]bool, []string, error) {
 			return nil, nil, err
 		}
 
-		n := 0
-		for s := range nmSymbols(out) {
-			syms[s] = true
-			n++
+		n, err := addNMSymbols(syms, out, filepath.Base(path))
+		if err != nil {
+			return nil, nil, err
 		}
 
 		read = append(read, fmt.Sprintf("%s (%d symbols)", filepath.Base(path), n))
@@ -85,21 +86,66 @@ func libSymbols(dir string) (map[string]bool, []string, error) {
 	return syms, read, nil
 }
 
-// nmOutput runs the platform's symbol dumper. `nm -gU` means "external, defined
-// only" to both llvm's nm and binutils'; the bare -g run is the fallback for an
-// nm too old for -U, whose output nmSymbols filters itself anyway.
+// addNMSymbols adds one library's exported symbols to syms and reports how many
+// it contributed.
+//
+// A library that reads as empty is a library whose symbols were not read, not
+// one that exports nothing - it was stripped, or nm answered about a table it
+// does not keep, either of which exits 0 with nothing to show. Carrying on would
+// leave every binding into it looking unexported, so an empty read is an error
+// that abandons the whole comparison rather than a partial symbol set reported
+// as if it were complete: the other libraries being intact does not make the
+// findings against this one true. The name is in the error so a section that
+// goes quiet says which library silenced it.
+func addNMSymbols(syms map[string]bool, out, name string) (int, error) {
+	n := 0
+	for s := range nmSymbols(out) {
+		syms[s] = true
+		n++
+	}
+
+	if n == 0 {
+		return 0, fmt.Errorf("%s exports no symbols nm could read", name)
+	}
+
+	return n, nil
+}
+
+// nmQueries are the symbol-dumper invocations to try, in order, for this
+// platform.
+//
+// The right query is the one that reads the table dlsym resolves against, and
+// that table is not the same file section on both platforms - nor do the two
+// nms accept each other's flags. On ELF it is .dynsym, which only -D reads: a
+// stripped .so has no .symtab at all, so the -g run every other query falls back
+// to succeeds and reports nothing, which would make checkLibSymbols call all 265
+// bound symbols missing. Mach-O has no dynamic symbol table in that sense and
+// llvm's nm rejects -D outright, so darwin keeps the external-and-defined query
+// it always used. Each list ends at a query old tooling still understands, whose
+// output nmSymbols filters itself anyway.
+func nmQueries() [][]string {
+	if runtime.GOOS == "darwin" {
+		return [][]string{{"-gU"}, {"-g"}}
+	}
+
+	return [][]string{{"-D", "--defined-only"}, {"--defined-only"}, {"-g"}}
+}
+
+// nmOutput runs the platform's symbol dumper, taking the first query it accepts.
 func nmOutput(path string) (string, error) {
-	out, err := exec.Command("nm", "-gU", path).Output()
-	if err == nil {
-		return string(out), nil
+	var first error
+	for _, q := range nmQueries() {
+		out, err := exec.Command("nm", append(q, path)...).Output()
+		if err == nil {
+			return string(out), nil
+		}
+
+		if first == nil {
+			first = err
+		}
 	}
 
-	out, err2 := exec.Command("nm", "-g", path).Output()
-	if err2 != nil {
-		return "", fmt.Errorf("nm %s: %w", filepath.Base(path), err)
-	}
-
-	return string(out), nil
+	return "", fmt.Errorf("nm %s: %w", filepath.Base(path), first)
 }
 
 // nmSymbols yields the defined symbol names in nm output.
@@ -107,8 +153,12 @@ func nmOutput(path string) (string, error) {
 // A line is "<addr> <type> <name>", or "<type> <name>" for an undefined one, and
 // the type letter is what separates a symbol the library defines from one it
 // merely imports - a U line names a symbol dlsym would not find here either, and
-// neither would it find a lowercase (local) one. The leading underscore Mach-O
-// adds is stripped so both platforms yield the C name.
+// neither would it find a lowercase (local) one. An A line is not a symbol at
+// all: -D lists each ELF version node (ZLIB_1.2.0 and friends) as an absolute
+// entry, and admitting those would inflate the count in the read note with names
+// nothing can bind to. The leading underscore Mach-O adds is stripped so both
+// platforms yield the C name, and so is the @@VERSION suffix -D puts on a
+// versioned symbol, since the header names it bare.
 func nmSymbols(out string) func(func(string) bool) {
 	return func(yield func(string) bool) {
 		for line := range strings.SplitSeq(out, "\n") {
@@ -118,13 +168,15 @@ func nmSymbols(out string) func(func(string) bool) {
 			}
 
 			kind, name := f[len(f)-2], f[len(f)-1]
-			if len(kind) != 1 || kind == "U" || kind != strings.ToUpper(kind) {
+			if len(kind) != 1 || kind == "U" || kind == "A" || kind != strings.ToUpper(kind) {
 				continue
 			}
 
 			if runtime.GOOS == "darwin" {
 				name = strings.TrimPrefix(name, "_")
 			}
+
+			name, _, _ = strings.Cut(name, "@")
 
 			if !yield(name) {
 				return

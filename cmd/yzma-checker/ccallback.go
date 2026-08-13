@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/token"
 	"go/types"
+	"slices"
 	"strings"
 	"unicode"
 )
@@ -245,13 +246,26 @@ func linkCallback(cb *Callback) {
 			hits = append(hits, name)
 		}
 	}
+	// An unparseable typedef still has a name, and a site normalising onto it
+	// must not fall through to some other typedef that happens to match. More
+	// than one may normalise onto the same name, and cfnptrBad is a map, so the
+	// matches are sorted before one is picked - otherwise the reason reported
+	// would vary between runs of the same input.
+	var badNames []string
+	badWhy := map[string]string{}
+
 	for raw, why := range cfnptrBad {
-		// An unparseable typedef still has a name, and a site normalising onto
-		// it must not fall through to some other typedef that happens to match.
 		if n, _, _ := parseFnPtrTypedef(raw); n != "" && normCallbackName(trimCPrefix(n)) == want {
-			cb.Link = fmt.Sprintf("C typedef %s could not be parsed: %s", n, why)
-			return
+			badNames = append(badNames, n)
+			badWhy[n] = why
 		}
+	}
+
+	if len(badNames) > 0 {
+		slices.Sort(badNames)
+		cb.Link = fmt.Sprintf("C typedef %s could not be parsed: %s", badNames[0], badWhy[badNames[0]])
+
+		return
 	}
 
 	switch len(hits) {
@@ -671,11 +685,20 @@ func cfnptrBadOf(name string) (string, bool) {
 		return "", false
 	}
 
+	// Sorted for the same reason as linkCallback: two unparseable typedefs can
+	// recover the same name, and a map would report whichever came first today.
+	var whys []string
 	for raw, why := range cfnptrBad {
 		if n, _, _ := parseFnPtrTypedef(raw); n == name {
-			return why, true
+			whys = append(whys, why)
 		}
 	}
 
-	return "", false
+	if len(whys) == 0 {
+		return "", false
+	}
+
+	slices.Sort(whys)
+
+	return whys[0], true
 }

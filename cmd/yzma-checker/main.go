@@ -893,7 +893,7 @@ func printReport(r *report) {
 	fmt.Printf("Rule4 constants checked:   %d / %d clean (C constants parsed: %d, unevaluable: %d; yzma-local: %d)\n",
 		r.CheckedR4, r.CleanR4, r.CConsts, r.CConstBad, r.LocalConsts)
 	fmt.Printf("bound but deprecated:      %d (inventory, not a defect)\n", len(r.Deprecated))
-	fmt.Printf("  their Go wrappers:       %d / %d pass the deprecation on (not violations)\n", r.CheckedDep, r.CleanDep)
+	fmt.Printf("  their Go wrappers:       %d checked / %d pass the deprecation on (not violations)\n", r.CheckedDep, r.CleanDep)
 	fmt.Printf("partially mirrored enums:  %d (%d of %d members mirrored, %d not mirrored; inventory, not a defect)\n",
 		len(r.PartialEnums), r.EnumMirrored, r.EnumMembers, r.EnumMissing)
 	fmt.Printf("Rule5 callbacks checked:   %d / %d clean (C function-pointer typedefs parsed: %d, unparseable: %d)\n",
