@@ -130,6 +130,12 @@ const (
 	GGMLTypeCOUNT GGMLType = 43
 )
 
+// String returns the name of the tensor type, for example "q4_K".
+// The llama.cpp libraries must be loaded before you call it.
+func (t GGMLType) String() string {
+	return GGMLTypeName(t)
+}
+
 var (
 	// GGML_API void ggml_backend_load_all(void);
 	ggmlBackendLoadAllFunc ffi.Fun
