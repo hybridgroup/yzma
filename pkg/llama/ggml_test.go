@@ -185,6 +185,136 @@ func TestGGMLBackendDeviceMemory(t *testing.T) {
 	t.Logf("Device memory: free=%d, total=%d", free, total)
 }
 
+func TestGGMLBackendDeviceDescription(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	if GGMLBackendDeviceCount() == 0 {
+		t.Skip("No backend devices to get description from")
+	}
+
+	dev := GGMLBackendDeviceGet(0)
+	if dev == 0 {
+		t.Fatal("GGMLBackendDeviceGet(0) returned 0")
+	}
+
+	desc := GGMLBackendDeviceDescription(dev)
+	if desc == "" {
+		t.Fatal("GGMLBackendDeviceDescription returned empty string")
+	}
+	t.Logf("GGMLBackendDeviceDescription returned: %s", desc)
+}
+
+func TestGGMLBackendDevType(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	// A device found by type must report that same type back. This catches a
+	// return buffer that is too narrow and an enum that moved upstream.
+	dev := GGMLBackendDeviceByType(GGMLBackendDeviceTypeCPU)
+	if dev == 0 {
+		t.Fatal("GGMLBackendDeviceByType(GGMLBackendDeviceTypeCPU) returned 0")
+	}
+
+	if got := GGMLBackendDevType(dev); got != GGMLBackendDeviceTypeCPU {
+		t.Fatalf("GGMLBackendDevType = %v, want %v", got, GGMLBackendDeviceTypeCPU)
+	}
+
+	for i := uint64(0); i < GGMLBackendDeviceCount(); i++ {
+		d := GGMLBackendDeviceGet(i)
+		if d == 0 {
+			continue
+		}
+		t.Logf("device %d (%s) type: %v", i, GGMLBackendDeviceName(d), GGMLBackendDevType(d))
+	}
+}
+
+func TestGGMLBackendDeviceBackendReg(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	if GGMLBackendDeviceCount() == 0 {
+		t.Skip("No backend devices to get the registration from")
+	}
+
+	dev := GGMLBackendDeviceGet(0)
+	if dev == 0 {
+		t.Fatal("GGMLBackendDeviceGet(0) returned 0")
+	}
+
+	reg := GGMLBackendDeviceBackendReg(dev)
+	if reg == 0 {
+		t.Fatal("GGMLBackendDeviceBackendReg returned 0")
+	}
+	t.Logf("GGMLBackendDeviceBackendReg returned: %v", reg)
+}
+
+func TestGGMLBackendRegName(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	if GGMLBackendDeviceCount() == 0 {
+		t.Skip("No backend devices to get the registration name from")
+	}
+
+	dev := GGMLBackendDeviceGet(0)
+	if dev == 0 {
+		t.Fatal("GGMLBackendDeviceGet(0) returned 0")
+	}
+
+	reg := GGMLBackendDeviceBackendReg(dev)
+	if reg == 0 {
+		t.Fatal("GGMLBackendDeviceBackendReg returned 0")
+	}
+
+	name := GGMLBackendRegName(reg)
+	if name == "" {
+		t.Fatal("GGMLBackendRegName returned empty string")
+	}
+	t.Logf("GGMLBackendRegName returned: %s", name)
+
+	// the name must round-trip through the lookup it came from
+	if cpu := GGMLBackendRegByName("CPU"); cpu != 0 {
+		if got := GGMLBackendRegName(cpu); got != "CPU" {
+			t.Fatalf("GGMLBackendRegName(GGMLBackendRegByName(\"CPU\")) = %q, want \"CPU\"", got)
+		}
+	}
+}
+
+func TestGGMLBackendDeviceAccessorsNilDevice(t *testing.T) {
+	if desc := GGMLBackendDeviceDescription(0); desc != "" {
+		t.Fatalf("GGMLBackendDeviceDescription(0) = %q, want empty string", desc)
+	}
+
+	if reg := GGMLBackendDeviceBackendReg(0); reg != 0 {
+		t.Fatalf("GGMLBackendDeviceBackendReg(0) = %v, want 0", reg)
+	}
+
+	if name := GGMLBackendRegName(0); name != "" {
+		t.Fatalf("GGMLBackendRegName(0) = %q, want empty string", name)
+	}
+}
+
+func TestGGMLBackendDeviceTypeString(t *testing.T) {
+	tests := []struct {
+		devType GGMLBackendDeviceType
+		want    string
+	}{
+		{GGMLBackendDeviceTypeCPU, "CPU"},
+		{GGMLBackendDeviceTypeGPU, "GPU"},
+		{GGMLBackendDeviceTypeIGPU, "IGPU"},
+		{GGMLBackendDeviceTypeACCEL, "ACCEL"},
+		{GGMLBackendDeviceTypeMETA, "META"},
+		{GGMLBackendDeviceType(99), "GGMLBackendDeviceType(99)"},
+	}
+
+	for _, tt := range tests {
+		if got := tt.devType.String(); got != tt.want {
+			t.Errorf("GGMLBackendDeviceType(%d).String() = %q, want %q", int32(tt.devType), got, tt.want)
+		}
+	}
+}
+
 func TestMoEExpertTensorPattern(t *testing.T) {
 	re := regexp.MustCompile(MoEExpertTensorPattern)
 

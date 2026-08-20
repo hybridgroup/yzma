@@ -23,9 +23,21 @@ func main() {
 
 	for i := uint64(0); i < llama.GGMLBackendDeviceCount(); i++ {
 		device := llama.GGMLBackendDeviceGet(i)
-		deviceName := llama.GGMLBackendDeviceName(device)
+		if device == 0 {
+			continue
+		}
 
-		fmt.Printf("Device %d: %s\n", i, deviceName)
+		fmt.Printf("Device %d: %s\n", i, llama.GGMLBackendDeviceName(device))
+		fmt.Printf("  Type:        %s\n", llama.GGMLBackendDevType(device))
+		fmt.Printf("  Backend:     %s\n", llama.GGMLBackendRegName(llama.GGMLBackendDeviceBackendReg(device)))
+
+		if desc := llama.GGMLBackendDeviceDescription(device); desc != "" {
+			fmt.Printf("  Description: %s\n", desc)
+		}
+
+		if free, total := llama.GGMLBackendDeviceMemory(device); total > 0 {
+			fmt.Printf("  Memory:      free %d MiB / total %d MiB\n", free/(1024*1024), total/(1024*1024))
+		}
 	}
 
 	fmt.Println()
