@@ -354,3 +354,79 @@ func TestMoEExpertTensorPattern(t *testing.T) {
 		t.Error("block pattern should not match another block")
 	}
 }
+
+func TestGGMLTypeSizeAndBlockSize(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	tests := []struct {
+		typ       GGMLType
+		blockSize int64
+		typeSize  uint64
+	}{
+		{GGMLTypeF32, 1, 4},
+		{GGMLTypeF16, 1, 2},
+		{GGMLTypeQ8_0, 32, 34},
+		{GGMLTypeQ4_0, 32, 18},
+	}
+
+	for _, tt := range tests {
+		if got := GGMLBlockSize(tt.typ); got != tt.blockSize {
+			t.Errorf("GGMLBlockSize(%v) = %d, want %d", tt.typ, got, tt.blockSize)
+		}
+
+		if got := GGMLTypeSize(tt.typ); got != tt.typeSize {
+			t.Errorf("GGMLTypeSize(%v) = %d, want %d", tt.typ, got, tt.typeSize)
+		}
+	}
+}
+
+func TestGGMLRowSize(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	types := []GGMLType{GGMLTypeF32, GGMLTypeF16, GGMLTypeQ8_0, GGMLTypeQ4_0, GGMLTypeQ4_K}
+
+	const ne = 4096
+
+	for _, typ := range types {
+		blockSize := GGMLBlockSize(typ)
+		if blockSize <= 0 {
+			t.Fatalf("GGMLBlockSize(%v) = %d, want a positive block size", typ, blockSize)
+		}
+		if ne%blockSize != 0 {
+			t.Fatalf("GGMLBlockSize(%v) = %d, which does not divide %d", typ, blockSize, ne)
+		}
+
+		want := GGMLTypeSize(typ) * uint64(ne) / uint64(blockSize)
+		if got := GGMLRowSize(typ, ne); got != want {
+			t.Errorf("GGMLRowSize(%v, %d) = %d, want %d", typ, ne, got, want)
+		}
+
+		if got := GGMLRowSize(typ, 0); got != 0 {
+			t.Errorf("GGMLRowSize(%v, 0) = %d, want 0", typ, got)
+		}
+	}
+}
+
+func TestGGMLTypeName(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	if got := GGMLTypeName(GGMLTypeF32); got != "f32" {
+		t.Errorf("GGMLTypeName(GGMLTypeF32) = %q, want %q", got, "f32")
+	}
+
+	if got := GGMLTypeName(GGMLTypeF16); got != "f16" {
+		t.Errorf("GGMLTypeName(GGMLTypeF16) = %q, want %q", got, "f16")
+	}
+
+	name := GGMLTypeName(GGMLTypeQ4_K)
+	if name == "" {
+		t.Error("GGMLTypeName(GGMLTypeQ4_K) returned an empty name")
+	}
+
+	if got := GGMLTypeQ4_K.String(); got != name {
+		t.Errorf("GGMLTypeQ4_K.String() = %q, want %q", got, name)
+	}
+}

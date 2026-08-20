@@ -32,6 +32,18 @@ var (
 
 	// GGML_API const char * ggml_backend_reg_name(ggml_backend_reg_t reg);
 	ggmlBackendRegNameFunc ffi.Fun
+
+	// GGML_API int64_t ggml_blck_size(enum ggml_type type);
+	ggmlBlckSizeFunc ffi.Fun
+
+	// GGML_API size_t ggml_type_size(enum ggml_type type);
+	ggmlTypeSizeFunc ffi.Fun
+
+	// GGML_API size_t ggml_row_size(enum ggml_type type, int64_t ne);
+	ggmlRowSizeFunc ffi.Fun
+
+	// GGML_API const char * ggml_type_name(enum ggml_type type);
+	ggmlTypeNameFunc ffi.Fun
 )
 
 func loadGGMLBase(lib ffi.Lib) error {
@@ -63,6 +75,22 @@ func loadGGMLBase(lib ffi.Lib) error {
 
 	if ggmlBackendRegNameFunc, err = lib.Prep("ggml_backend_reg_name", &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return loadError("ggml_backend_reg_name", err)
+	}
+
+	if ggmlBlckSizeFunc, err = lib.Prep("ggml_blck_size", &ffi.TypeSint64, &ffi.TypeSint32); err != nil {
+		return loadError("ggml_blck_size", err)
+	}
+
+	if ggmlTypeSizeFunc, err = lib.Prep("ggml_type_size", &ffi.TypeUint64, &ffi.TypeSint32); err != nil {
+		return loadError("ggml_type_size", err)
+	}
+
+	if ggmlRowSizeFunc, err = lib.Prep("ggml_row_size", &ffi.TypeUint64, &ffi.TypeSint32, &ffi.TypeSint64); err != nil {
+		return loadError("ggml_row_size", err)
+	}
+
+	if ggmlTypeNameFunc, err = lib.Prep("ggml_type_name", &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("ggml_type_name", err)
 	}
 
 	return nil
@@ -163,6 +191,48 @@ func GGMLBackendRegName(reg GGMLBackendReg) string {
 
 	var ret *byte
 	ggmlBackendRegNameFunc.Call(unsafe.Pointer(&ret), unsafe.Pointer(&reg))
+
+	return utils.BytePtrToString(ret)
+}
+
+// GGMLBlockSize returns the number of elements in one block of the given type.
+// The type must be one of the GGMLType constants; any other value reads past the
+// end of the type table in C.
+func GGMLBlockSize(t GGMLType) int64 {
+	// libffi always stores a full 8-byte ffi_arg for an integer return, so the
+	// return buffer must be ffi.Arg-wide.
+	var ret ffi.Arg
+	ggmlBlckSizeFunc.Call(unsafe.Pointer(&ret), unsafe.Pointer(&t))
+
+	return int64(ret)
+}
+
+// GGMLTypeSize returns the size in bytes of one block of the given type.
+// The type must be one of the GGMLType constants; any other value reads past the
+// end of the type table in C.
+func GGMLTypeSize(t GGMLType) uint64 {
+	var ret ffi.Arg
+	ggmlTypeSizeFunc.Call(unsafe.Pointer(&ret), unsafe.Pointer(&t))
+
+	return uint64(ret)
+}
+
+// GGMLRowSize returns the size in bytes of a row of ne elements of the given type.
+// The type must be one of the GGMLType constants; any other value reads past the
+// end of the type table in C.
+func GGMLRowSize(t GGMLType, ne int64) uint64 {
+	var ret ffi.Arg
+	ggmlRowSizeFunc.Call(unsafe.Pointer(&ret), unsafe.Pointer(&t), unsafe.Pointer(&ne))
+
+	return uint64(ret)
+}
+
+// GGMLTypeName returns the name of the given type, for example "q4_K".
+// The type must be one of the GGMLType constants; any other value reads past the
+// end of the type table in C.
+func GGMLTypeName(t GGMLType) string {
+	var ret *byte
+	ggmlTypeNameFunc.Call(unsafe.Pointer(&ret), unsafe.Pointer(&t))
 
 	return utils.BytePtrToString(ret)
 }
