@@ -2,6 +2,7 @@ package llama
 
 import (
 	"errors"
+	"fmt"
 	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/utils"
@@ -24,7 +25,27 @@ const (
 	GGMLBackendDeviceTypeIGPU
 	// accelerator devices intended to be used together with the CPU backend (e.g. BLAS or AMX)
 	GGMLBackendDeviceTypeACCEL
+	// "meta" device that contains several other devices for tensor parallelism
+	GGMLBackendDeviceTypeMETA
 )
+
+// String returns the name of the backend device type.
+func (t GGMLBackendDeviceType) String() string {
+	switch t {
+	case GGMLBackendDeviceTypeCPU:
+		return "CPU"
+	case GGMLBackendDeviceTypeGPU:
+		return "GPU"
+	case GGMLBackendDeviceTypeIGPU:
+		return "IGPU"
+	case GGMLBackendDeviceTypeACCEL:
+		return "ACCEL"
+	case GGMLBackendDeviceTypeMETA:
+		return "META"
+	default:
+		return fmt.Sprintf("GGMLBackendDeviceType(%d)", int32(t))
+	}
+}
 
 const (
 	// GGML_TYPE_F32

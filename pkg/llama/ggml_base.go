@@ -20,6 +20,18 @@ var (
 
 	// GGML_API void ggml_backend_dev_memory(ggml_backend_dev_t device, size_t * free, size_t * total);
 	ggmlBackendDevMemoryFunc ffi.Fun
+
+	// GGML_API const char * ggml_backend_dev_description(ggml_backend_dev_t device);
+	ggmlBackendDevDescriptionFunc ffi.Fun
+
+	// GGML_API enum ggml_backend_dev_type ggml_backend_dev_type(ggml_backend_dev_t device);
+	ggmlBackendDevTypeFunc ffi.Fun
+
+	// GGML_API ggml_backend_reg_t ggml_backend_dev_backend_reg(ggml_backend_dev_t device);
+	ggmlBackendDevBackendRegFunc ffi.Fun
+
+	// GGML_API const char * ggml_backend_reg_name(ggml_backend_reg_t reg);
+	ggmlBackendRegNameFunc ffi.Fun
 )
 
 func loadGGMLBase(lib ffi.Lib) error {
@@ -35,6 +47,22 @@ func loadGGMLBase(lib ffi.Lib) error {
 
 	if ggmlBackendDevMemoryFunc, err = lib.Prep("ggml_backend_dev_memory", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return loadError("ggml_backend_dev_memory", err)
+	}
+
+	if ggmlBackendDevDescriptionFunc, err = lib.Prep("ggml_backend_dev_description", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("ggml_backend_dev_description", err)
+	}
+
+	if ggmlBackendDevTypeFunc, err = lib.Prep("ggml_backend_dev_type", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
+		return loadError("ggml_backend_dev_type", err)
+	}
+
+	if ggmlBackendDevBackendRegFunc, err = lib.Prep("ggml_backend_dev_backend_reg", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("ggml_backend_dev_backend_reg", err)
+	}
+
+	if ggmlBackendRegNameFunc, err = lib.Prep("ggml_backend_reg_name", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("ggml_backend_reg_name", err)
 	}
 
 	return nil
@@ -86,4 +114,55 @@ func GGMLBackendDeviceName(device GGMLBackendDevice) string {
 
 	name := utils.BytePtrToString(ret)
 	return name
+}
+
+// GGMLBackendDeviceDescription returns the description of the given backend device.
+func GGMLBackendDeviceDescription(device GGMLBackendDevice) string {
+	if device == 0 {
+		return ""
+	}
+
+	var ret *byte
+	ggmlBackendDevDescriptionFunc.Call(unsafe.Pointer(&ret), unsafe.Pointer(&device))
+
+	return utils.BytePtrToString(ret)
+}
+
+// GGMLBackendDevType returns the type of the given backend device.
+// A device that is not valid gives GGMLBackendDeviceTypeCPU.
+func GGMLBackendDevType(device GGMLBackendDevice) GGMLBackendDeviceType {
+	if device == 0 {
+		return GGMLBackendDeviceTypeCPU
+	}
+
+	// libffi always stores a full 8-byte ffi_arg for an integer return, so
+	// the return buffer must be ffi.Arg-wide, not GGMLBackendDeviceType-wide (int32).
+	var ret ffi.Arg
+	ggmlBackendDevTypeFunc.Call(unsafe.Pointer(&ret), unsafe.Pointer(&device))
+
+	return GGMLBackendDeviceType(int32(ret))
+}
+
+// GGMLBackendDeviceBackendReg returns the backend registration that owns the given device.
+func GGMLBackendDeviceBackendReg(device GGMLBackendDevice) GGMLBackendReg {
+	if device == 0 {
+		return 0
+	}
+
+	var ret GGMLBackendReg
+	ggmlBackendDevBackendRegFunc.Call(unsafe.Pointer(&ret), unsafe.Pointer(&device))
+
+	return ret
+}
+
+// GGMLBackendRegName returns the name of the given backend registration.
+func GGMLBackendRegName(reg GGMLBackendReg) string {
+	if reg == 0 {
+		return ""
+	}
+
+	var ret *byte
+	ggmlBackendRegNameFunc.Call(unsafe.Pointer(&ret), unsafe.Pointer(&reg))
+
+	return utils.BytePtrToString(ret)
 }
