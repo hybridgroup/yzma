@@ -37,7 +37,9 @@ type InputChunks uintptr
 
 // Context parameters for the MTMD initialization.
 type ContextParamsType struct {
-	UseGPU             bool
+	UseGPU bool
+	// specific backend device to use, or nil for automatic selection
+	Device             llama.GGMLBackendDevice
 	PrintTimings       bool
 	Threads            int32
 	ImageMarker        *byte
@@ -63,6 +65,7 @@ var (
 	// ffiTypeContextParams represents the C struct mtmd_context_params.
 	ffiTypeContextParams = ffi.NewType(
 		&ffi.TypeUint8,   // use_gpu bool
+		&ffi.TypePointer, // device ggml_backend_dev_t
 		&ffi.TypeUint8,   // print_timings bool
 		&ffi.TypeSint32,  // n_threads int
 		&ffi.TypePointer, // image_marker *char
