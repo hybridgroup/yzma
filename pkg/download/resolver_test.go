@@ -3,6 +3,8 @@ package download
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -30,13 +32,13 @@ func TestInstallUsesResolver(t *testing.T) {
 		t.Fatalf("Install() failed: %v", err)
 	}
 	// Order matters: an auxiliary runtime lands before the libraries linking it.
-	want := []string{"https://example.com/runtime.zip", "https://example.com/llama.tar.gz"}
-	if len(got) != len(want) {
-		t.Fatalf("downloaded %v, want %v", got, want)
+	wantURLs := []string{"https://example.com/runtime.zip", "https://example.com/llama.tar.gz"}
+	if len(got) != len(wantURLs) {
+		t.Fatalf("downloaded %v, want %v", got, wantURLs)
 	}
-	for i := range want {
-		if got[i] != want[i] {
-			t.Fatalf("downloaded %v, want %v", got, want)
+	for i := range wantURLs {
+		if got[i] != wantURLs[i] {
+			t.Fatalf("downloaded %v, want %v", got, wantURLs)
 		}
 	}
 }
@@ -107,5 +109,53 @@ func TestDefaultResolverUnknownProcessor(t *testing.T) {
 	_, err := DefaultResolver.Resolve(Target{Arch: ARM64, OS: Windows, Processor: CUDA, Version: "b7974"})
 	if err == nil {
 		t.Fatal("Resolve() accepted a target with no published build")
+	}
+}
+
+// A tagged release has no binaries of its own, so the llama.cpp assets come from the
+// nightly build tag while the llama-cpp-builder assets keep the release tag.
+func TestDefaultResolverTaggedRelease(t *testing.T) {
+	target := Target{Arch: AMD64, OS: Linux, Processor: CPU, Version: "v0.3.0", UpstreamVersion: "b10621"}
+	urls, err := DefaultResolver.Resolve(target)
+	if err != nil {
+		t.Fatalf("Resolve() failed: %v", err)
+	}
+	want := "https://github.com/ggml-org/llama.cpp/releases/download/b10621/llama-b10621-bin-ubuntu-x64.tar.gz"
+	if urls[0] != want {
+		t.Errorf("Resolve() = %q, want %q", urls[0], want)
+	}
+
+	target.Arch = ARM64
+	urls, err = DefaultResolver.Resolve(target)
+	if err != nil {
+		t.Fatalf("Resolve() failed: %v", err)
+	}
+	want = "https://github.com/hybridgroup/llama-cpp-builder/releases/download/v0.3.0/llama-v0.3.0-bin-ubuntu-cpu-arm64.tar.gz"
+	if urls[0] != want {
+		t.Errorf("Resolve() = %q, want %q", urls[0], want)
+	}
+}
+
+// A nightly tag must not go to the llama.cpp release page, which sometimes rate limits.
+func TestInstallNightlyTagSkipsNightlyTagLookup(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("unexpected request for %s", r.URL.Path)
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	originalURL := nightlyTagURL
+	nightlyTagURL = server.URL + "/%s/nightly-tag.txt"
+	defer func() { nightlyTagURL = originalURL }()
+
+	originalGet := getFunc
+	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+		return nil
+	}
+	defer func() { getFunc = originalGet }()
+
+	target := Target{Arch: AMD64, OS: Linux, Processor: CPU, Version: "b7974"}
+	if err := Install(context.Background(), target, t.TempDir(), nil, nil); err != nil {
+		t.Fatalf("Install() failed: %v", err)
 	}
 }

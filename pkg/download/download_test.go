@@ -992,3 +992,51 @@ func TestExtractTarGzUpgradeRepointsSymlink(t *testing.T) {
 		t.Fatalf("superseded library was modified: %q", content)
 	}
 }
+
+func TestVersionIsValid(t *testing.T) {
+	valid := []string{"b7974", "v0.3.0", "v1.2.3-rc1"}
+	for _, version := range valid {
+		if err := VersionIsValid(version); err != nil {
+			t.Errorf("VersionIsValid(%q) = %v, want nil", version, err)
+		}
+	}
+
+	invalid := []string{"", "nogood", "b", "banana", "0.3.0", "latest"}
+	for _, version := range invalid {
+		if err := VersionIsValid(version); err == nil {
+			t.Errorf("VersionIsValid(%q) accepted an invalid version", version)
+		}
+	}
+}
+
+func TestLlamaNightlyTag(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v0.3.0/nightly-tag.txt" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.Write([]byte("b10621\n"))
+	}))
+	defer server.Close()
+
+	originalURL := nightlyTagURL
+	nightlyTagURL = server.URL + "/%s/nightly-tag.txt"
+	defer func() { nightlyTagURL = originalURL }()
+
+	tag, err := LlamaNightlyTag("v0.3.0")
+	if err != nil {
+		t.Fatalf("LlamaNightlyTag() failed: %v", err)
+	}
+	if tag != "b10621" {
+		t.Fatalf("LlamaNightlyTag() = %q, want b10621", tag)
+	}
+
+	// A nightly tag needs no lookup.
+	if tag, err = LlamaNightlyTag("b7974"); err != nil || tag != "b7974" {
+		t.Fatalf("LlamaNightlyTag() = %q, %v, want b7974, nil", tag, err)
+	}
+
+	if _, err = LlamaNightlyTag("v9.9.9"); err == nil {
+		t.Fatal("LlamaNightlyTag() accepted a release with no nightly tag asset")
+	}
+}

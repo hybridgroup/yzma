@@ -365,6 +365,8 @@ Notes:
   them, so `.tar.gz` and `.zip` archives are unpacked the same way as the built-in builds.
 - `Version` may be `""` or `"latest"`; `Install` resolves it to a release tag before
   calling the resolver, so `t.Version` is always concrete.
+- A tagged release such as `v0.3.0` has no binaries on the llama.cpp release page, so
+  `Install` also sets `t.UpstreamVersion` to the nightly build tag that holds them.
 - Anything [go-getter](https://github.com/hashicorp/go-getter) supports works as a URL,
   including `file://` and S3/GCS.
 
