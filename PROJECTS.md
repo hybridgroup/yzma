@@ -139,6 +139,14 @@ https://codeberg.org/GenAI-On-Small-Devices/yzma-on-jetson
 
 ## Blog Posts/Video
 
+### "Understanding Go AI Inference: Yzma" - Jesús Espino
+
+https://internals-for-interns.com/posts/yzma/
+
+### "Understanding Go AI Inference: What is Inference?" - Jesús Espino
+
+https://internals-for-interns.com/posts/go-ai-inference-what-is-inference/
+
 ### "Free Yourself From The Copilot Tax" - Bill Kennedy
 
 https://www.kronkai.com/blog/free-yourself-from-the-copilot-tax
