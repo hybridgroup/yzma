@@ -14,9 +14,14 @@ type Target struct {
 	OS        OS
 	Processor Processor
 
-	// Version is the llama.cpp release tag, e.g. "b7974". "" or "latest" resolves to
-	// the newest release.
+	// Version is the llama.cpp release tag, e.g. "b7974" or "v0.3.0". "" or "latest"
+	// resolves to the newest release.
 	Version string
+
+	// UpstreamVersion is the nightly build tag that has the llama.cpp binaries for
+	// Version. A tagged release has no binaries of its own, so [Install] fills this
+	// in with [LlamaNightlyTag]. Empty means use Version.
+	UpstreamVersion string
 }
 
 // Resolver reports the release assets to install for a Target, as URLs downloaded in
@@ -40,42 +45,49 @@ var DefaultResolver Resolver = ResolverFunc(defaultResolve)
 func defaultResolve(target Target) ([]string, error) {
 	arch, os, prcssr, version := target.Arch, target.OS, target.Processor, target.Version
 
-	var extra []string
-	var location, filename string
-	location = fmt.Sprintf("https://github.com/ggml-org/llama.cpp/releases/download/%s", version)
+	// The llama.cpp releases hold the binaries under the nightly build tag, while the
+	// llama-cpp-builder releases use the requested tag.
+	upstream := target.UpstreamVersion
+	if upstream == "" {
+		upstream = version
+	}
+	builderLocation := fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
 
-	location = fmt.Sprintf("https://github.com/ggml-org/llama.cpp/releases/download/%s", version)
+	var extra []string
+	var filename string
+	location := fmt.Sprintf("https://github.com/ggml-org/llama.cpp/releases/download/%s", upstream)
+	tag := upstream
 
 	switch os {
 	case Linux:
 		switch prcssr {
 		case CPU:
 			if arch == ARM64 {
-				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cpu-arm64.tar.gz", version)
+				location, tag = builderLocation, version
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cpu-arm64.tar.gz", tag)
 				break
 			}
-			filename = fmt.Sprintf("llama-%s-bin-ubuntu-x64.tar.gz", version)
+			filename = fmt.Sprintf("llama-%s-bin-ubuntu-x64.tar.gz", tag)
 		case CUDA:
-			location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
+			location, tag = builderLocation, version
 			if arch == ARM64 {
 				// defaults to CUDA 12 assuming that is running Jetson Orin.
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-arm64.tar.gz", version)
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-arm64.tar.gz", tag)
 			} else {
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-13-x64.tar.gz", version)
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-13-x64.tar.gz", tag)
 			}
 		case Vulkan:
 			if arch == ARM64 {
-				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-arm64.tar.gz", version)
+				location, tag = builderLocation, version
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-arm64.tar.gz", tag)
 				break
 			}
-			filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-x64.tar.gz", version)
+			filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-x64.tar.gz", tag)
 		case ROCm:
 			if arch != AMD64 {
 				return nil, errors.New("precompiled binaries for Linux ARM64 ROCm are not available")
 			}
-			filename = fmt.Sprintf("llama-%s-bin-ubuntu-rocm-7.2-x64.tar.gz", version)
+			filename = fmt.Sprintf("llama-%s-bin-ubuntu-rocm-7.2-x64.tar.gz", tag)
 		default:
 			return nil, ErrUnknownProcessor
 		}
@@ -84,18 +96,18 @@ func defaultResolve(target Target) ([]string, error) {
 		switch prcssr {
 		case CPU:
 			if arch == ARM64 {
-				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cpu-arm64.tar.gz", version)
+				location, tag = builderLocation, version
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cpu-arm64.tar.gz", tag)
 				break
 			}
 
 			// no AMD64 for bookworm
 			return nil, ErrUnknownProcessor
 		case CUDA:
-			location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
+			location, tag = builderLocation, version
 			if arch == ARM64 {
 				// Jetson Orin.
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-arm64.tar.gz", version)
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-arm64.tar.gz", tag)
 				break
 			}
 
@@ -103,8 +115,8 @@ func defaultResolve(target Target) ([]string, error) {
 			return nil, ErrUnknownProcessor
 		case Vulkan:
 			if arch == ARM64 {
-				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-arm64.tar.gz", version)
+				location, tag = builderLocation, version
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-arm64.tar.gz", tag)
 				break
 			}
 
@@ -118,26 +130,26 @@ func defaultResolve(target Target) ([]string, error) {
 		switch prcssr {
 		case CPU:
 			if arch == ARM64 {
-				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-trixie-cpu-arm64.tar.gz", version)
+				location, tag = builderLocation, version
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-trixie-cpu-arm64.tar.gz", tag)
 				break
 			}
-			filename = fmt.Sprintf("llama-%s-bin-ubuntu-x64.tar.gz", version)
+			filename = fmt.Sprintf("llama-%s-bin-ubuntu-x64.tar.gz", tag)
 		case CUDA:
-			location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
+			location, tag = builderLocation, version
 			if arch == ARM64 {
 				// not yet
 				return nil, ErrUnknownProcessor
 			} else {
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-13-x64.tar.gz", version)
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-13-x64.tar.gz", tag)
 			}
 		case Vulkan:
 			if arch == ARM64 {
-				location = fmt.Sprintf("https://github.com/hybridgroup/llama-cpp-builder/releases/download/%s", version)
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-trixie-vulkan-arm64.tar.gz", version)
+				location, tag = builderLocation, version
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-trixie-vulkan-arm64.tar.gz", tag)
 				break
 			}
-			filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-x64.tar.gz", version)
+			filename = fmt.Sprintf("llama-%s-bin-ubuntu-vulkan-x64.tar.gz", tag)
 		default:
 			return nil, ErrUnknownProcessor
 		}
@@ -148,12 +160,12 @@ func defaultResolve(target Target) ([]string, error) {
 			if arch != ARM64 {
 				return nil, errors.New("precompiled binaries for macOS non-ARM64 CPU/Metal are not available")
 			}
-			filename = fmt.Sprintf("llama-%s-bin-macos-arm64.tar.gz", version)
+			filename = fmt.Sprintf("llama-%s-bin-macos-arm64.tar.gz", tag)
 		case CPU:
 			if arch == ARM64 {
-				filename = fmt.Sprintf("llama-%s-bin-macos-arm64.tar.gz", version)
+				filename = fmt.Sprintf("llama-%s-bin-macos-arm64.tar.gz", tag)
 			} else {
-				filename = fmt.Sprintf("llama-%s-bin-macos-x64.tar.gz", version)
+				filename = fmt.Sprintf("llama-%s-bin-macos-x64.tar.gz", tag)
 			}
 		default:
 			return nil, ErrUnknownProcessor
@@ -163,9 +175,9 @@ func defaultResolve(target Target) ([]string, error) {
 		switch prcssr {
 		case CPU:
 			if arch == ARM64 {
-				filename = fmt.Sprintf("llama-%s-bin-win-cpu-arm64.zip", version)
+				filename = fmt.Sprintf("llama-%s-bin-win-cpu-arm64.zip", tag)
 			} else {
-				filename = fmt.Sprintf("llama-%s-bin-win-cpu-x64.zip", version)
+				filename = fmt.Sprintf("llama-%s-bin-win-cpu-x64.zip", tag)
 			}
 		case CUDA:
 			if arch == ARM64 {
@@ -174,17 +186,17 @@ func defaultResolve(target Target) ([]string, error) {
 			// also requires the CUDA RT files
 			cudart := "cudart-llama-bin-win-cuda-13.3-x64.zip"
 			extra = append(extra, fmt.Sprintf("%s/%s", location, cudart))
-			filename = fmt.Sprintf("llama-%s-bin-win-cuda-13.3-x64.zip", version)
+			filename = fmt.Sprintf("llama-%s-bin-win-cuda-13.3-x64.zip", tag)
 		case Vulkan:
 			if arch == ARM64 {
 				return nil, errors.New("precompiled binaries for Windows ARM64 Vulkan are not available")
 			}
-			filename = fmt.Sprintf("llama-%s-bin-win-vulkan-x64.zip", version)
+			filename = fmt.Sprintf("llama-%s-bin-win-vulkan-x64.zip", tag)
 		case ROCm:
 			if arch != AMD64 {
 				return nil, errors.New("precompiled binaries for Windows ARM64 ROCm are not available")
 			}
-			filename = fmt.Sprintf("llama-%s-bin-win-hip-radeon-x64.zip", version)
+			filename = fmt.Sprintf("llama-%s-bin-win-hip-radeon-x64.zip", tag)
 		default:
 			return nil, ErrUnknownProcessor
 		}
@@ -215,6 +227,17 @@ func Install(ctx context.Context, target Target, dest string, progress getter.Pr
 		return ErrInvalidVersion
 	}
 
+	// Only a tagged release needs a lookup on the llama.cpp release page. A nightly
+	// tag names its own assets, so it stays on the llama-cpp-builder site, which does
+	// not rate limit like the GitHub API.
+	if target.UpstreamVersion == "" && IsTaggedRelease(target.Version) {
+		upstream, err := LlamaNightlyTag(target.Version)
+		if err != nil {
+			return err
+		}
+		target.UpstreamVersion = upstream
+	}
+
 	err := installAssets(ctx, target, dest, progress, resolver)
 
 	// The newest release may still be building for this platform.
@@ -224,6 +247,13 @@ func Install(ctx context.Context, target Target, dest string, progress getter.Pr
 			return err
 		}
 		target.Version = previous
+		target.UpstreamVersion = ""
+		if IsTaggedRelease(previous) {
+			target.UpstreamVersion, prevErr = LlamaNightlyTag(previous)
+			if prevErr != nil {
+				return err
+			}
+		}
 		return installAssets(ctx, target, dest, progress, resolver)
 	}
 

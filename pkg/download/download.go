@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -45,6 +46,17 @@ var (
 	// This is necessary because the build server for the current version might be building the latest version
 	// and might not have it available yet, while the previous version is likely to be available and can be used as a fallback.
 	previousVersionURL = "https://hybridgroup.github.io/llama-cpp-builder/previous.json"
+
+	// nightlyPattern is the format of a llama.cpp nightly build tag, for example "b10620".
+	nightlyPattern = regexp.MustCompile(`^b[0-9]+$`)
+
+	// releasePattern is the format of a llama.cpp tagged release, for example "v0.3.0".
+	releasePattern = regexp.MustCompile(`^v[0-9]+\.[0-9]+\.[0-9]+`)
+
+	// nightlyTagURL is the URL of the asset in a tagged llama.cpp release that gives
+	// the nightly build tag. A tagged release has no binaries of its own.
+	// https://github.com/ggml-org/llama.cpp/releases
+	nightlyTagURL = "https://github.com/ggml-org/llama.cpp/releases/download/%s/nightly-tag.txt"
 )
 
 // LlamaLatestVersion fetches the latest release tag of llama.cpp from the version URL.
@@ -88,6 +100,10 @@ func getLatestVersion() (string, error) {
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return "", err
+	}
+
+	if err := VersionIsValid(result.TagName); err != nil {
+		return "", fmt.Errorf("%w: %s", err, result.TagName)
 	}
 
 	return result.TagName, nil
@@ -136,6 +152,10 @@ func getPreviousVersion() (string, error) {
 		return "", err
 	}
 
+	if err := VersionIsValid(result.TagName); err != nil {
+		return "", fmt.Errorf("%w: %s", err, result.TagName)
+	}
+
 	return result.TagName, nil
 }
 
@@ -166,7 +186,8 @@ var getFunc = get
 // arch can be one of the following values: "amd64", "arm64".
 // os can be one of the following values: "linux", "darwin", "windows", "bookworm", "trixie".
 // processor can be one of the following values: "cpu", "cuda", "metal", "rocm", "vulkan".
-// version should be the desired `b1234` formatted llama.cpp version. If an empty
+// version should be the desired llama.cpp version, either a `b1234` nightly build
+// or a `v1.2.3` tagged release. If an empty
 // string ("") or "latest" is provided, the latest release will be downloaded,
 // with an automatic fallback to the previous version if the latest is still building.
 // dest in the destination directory for the downloaded binaries.
@@ -179,7 +200,8 @@ func Get(architecture string, operatingSystem string, processor string, version 
 // arch can be one of the following values: "amd64", "arm64".
 // os can be one of the following values: "linux", "darwin", "windows", "bookworm", "trixie".
 // processor can be one of the following values: "cpu", "cuda", "metal", "rocm", "vulkan".
-// version should be the desired `b1234` formatted llama.cpp version. If an empty
+// version should be the desired llama.cpp version, either a `b1234` nightly build
+// or a `v1.2.3` tagged release. If an empty
 // string ("") or "latest" is provided, the latest release will be downloaded,
 // with an automatic fallback to the previous version if the latest is still building.
 // dest in the destination directory for the downloaded binaries.
@@ -192,21 +214,12 @@ func GetWithProgress(architecture string, operatingSystem string, processor stri
 // arch can be one of the following values: "amd64", "arm64".
 // os can be one of the following values: "linux", "darwin", "windows", "bookworm", "trixie".
 // processor can be one of the following values: "cpu", "cuda", "metal", "rocm", "vulkan".
-// version should be the desired `b1234` formatted llama.cpp version. If an empty
+// version should be the desired llama.cpp version, either a `b1234` nightly build
+// or a `v1.2.3` tagged release. If an empty
 // string ("") or "latest" is provided, the latest release will be downloaded,
 // with an automatic fallback to the previous version if the latest is still building.
 // dest in the destination directory for the downloaded binaries.
 func GetWithContext(ctx context.Context, architecture string, operatingSystem string, processor string, version string, dest string, progress getter.ProgressTracker) error {
-	autoVersion := false
-	if version == "" || version == "latest" {
-		autoVersion = true
-		var err error
-		version, err = LlamaLatestVersion()
-		if err != nil {
-			return err
-		}
-	}
-
 	arch, err := ParseArch(architecture)
 	if err != nil {
 		return ErrUnknownArch
@@ -222,34 +235,7 @@ func GetWithContext(ctx context.Context, architecture string, operatingSystem st
 		return ErrUnknownProcessor
 	}
 
-	if err := VersionIsValid(version); err != nil {
-		return ErrInvalidVersion
-	}
-
-	location, filename, err := getDownloadLocationAndFilename(arch, os, prcssr, version, dest)
-	if err != nil {
-		return err
-	}
-
-	url := fmt.Sprintf("%s/%s", location, filename)
-	err = getFunc(ctx, url, dest, progress)
-
-	if err != nil && autoVersion && errors.Is(err, ErrFileNotFound) {
-		prevVersion, prevErr := LlamaPreviousVersion()
-		if prevErr != nil {
-			return err
-		}
-
-		location, filename, prevErr = getDownloadLocationAndFilename(arch, os, prcssr, prevVersion, dest)
-		if prevErr != nil {
-			return err
-		}
-
-		url = fmt.Sprintf("%s/%s", location, filename)
-		return getFunc(ctx, url, dest, progress)
-	}
-
-	return err
+	return Install(ctx, Target{Arch: arch, OS: os, Processor: prcssr, Version: version}, dest, progress, nil)
 }
 
 func get(ctx context.Context, url, dest string, progress getter.ProgressTracker) error {
@@ -420,11 +406,54 @@ func removeExisting(target string) error {
 
 // VersionIsValid checks if the provided version string is valid.
 func VersionIsValid(version string) error {
-	if !strings.HasPrefix(version, "b") {
+	if !nightlyPattern.MatchString(version) && !releasePattern.MatchString(version) {
 		return ErrInvalidVersion
 	}
 
 	return nil
+}
+
+// IsTaggedRelease tells if version is a tagged llama.cpp release such as "v0.3.0",
+// which needs [LlamaNightlyTag] to find the build with the binaries.
+func IsTaggedRelease(version string) bool {
+	return releasePattern.MatchString(version)
+}
+
+// LlamaNightlyTag returns the nightly build tag that has the binaries for a llama.cpp
+// version. A nightly tag such as "b10620" gives itself. A tagged release such as
+// "v0.3.0" has no binaries of its own, so the nightly build tag comes from the
+// nightly-tag.txt asset of that release.
+func LlamaNightlyTag(version string) (string, error) {
+	if nightlyPattern.MatchString(version) {
+		return version, nil
+	}
+
+	if err := VersionIsValid(version); err != nil {
+		return "", err
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(fmt.Sprintf(nightlyTagURL, version))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("received status code %d for nightly tag of %s", resp.StatusCode, version)
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 64))
+	if err != nil {
+		return "", err
+	}
+
+	tag := strings.TrimSpace(string(body))
+	if !nightlyPattern.MatchString(tag) {
+		return "", fmt.Errorf("%w: %s", ErrInvalidVersion, tag)
+	}
+
+	return tag, nil
 }
 
 // LibraryName returns the name for the llama.cpp library for any given OS.
