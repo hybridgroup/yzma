@@ -57,7 +57,7 @@ func describe(tmpFile string) error {
 	output := mtmd.InputChunksInit()
 	input := mtmd.NewInputText(chatTemplate(true), true, true)
 
-	bitmap := mtmd.BitmapInitFromFile(mtmdCtx, tmpFile, false)
+	bitmap := mtmd.BitmapInitFromFile(mtmdCtx, tmpFile, false, mtmd.InitOptDefault())
 	defer mtmd.BitmapFree(bitmap.Bitmap)
 
 	mtmd.Tokenize(mtmdCtx, output, input, []mtmd.Bitmap{bitmap.Bitmap})

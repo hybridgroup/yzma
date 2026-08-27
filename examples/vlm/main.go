@@ -96,7 +96,7 @@ func main() {
 
 	output := mtmd.InputChunksInit()
 	input := mtmd.NewInputText(chatTemplate(true), true, true)
-	bitmap := mtmd.BitmapInitFromFile(mtmdCtx, *imageFile, false)
+	bitmap := mtmd.BitmapInitFromFile(mtmdCtx, *imageFile, false, mtmd.InitOptDefault())
 	defer mtmd.BitmapFree(bitmap.Bitmap)
 
 	mtmd.Tokenize(mtmdCtx, output, input, []mtmd.Bitmap{bitmap.Bitmap})

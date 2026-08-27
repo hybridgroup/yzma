@@ -22,9 +22,22 @@ type BitmapWrapper struct {
 	VideoContext VideoContext
 }
 
+// InitOpt contains the options for BitmapInitFromFile and BitmapInitFromBuf.
+// Use InitOptDefault to obtain a copy with sensible defaults.
+//
+//	struct mtmd_helper_init_opt {
+//	    struct mtmd_helper_video_init_params video_params;
+//	};
+type InitOpt struct {
+	VideoParams VideoInitParams
+}
+
 var (
 	// ffiTypeBitmapWrapper represents the C struct mtmd_helper_bitmap_wrapper as an FFI type.
 	ffiTypeBitmapWrapper = ffi.NewType(&ffi.TypePointer, &ffi.TypePointer)
+
+	// ffiTypeInitOpt mirrors struct mtmd_helper_init_opt
+	ffiTypeInitOpt = ffi.NewType(&ffiTypeVideoInitParams)
 )
 
 var (
@@ -37,10 +50,13 @@ var (
 	// MTMD_API size_t                mtmd_bitmap_get_n_bytes(const mtmd_bitmap * bitmap);
 	bitmapGetNBytesFunc ffi.Fun
 
-	// MTMD_API mtmd_helper_bitmap_wrapper mtmd_helper_bitmap_init_from_file(mtmd_context * ctx, const char * fname);
+	// MTMD_API struct mtmd_helper_init_opt mtmd_helper_init_opt_default(void);
+	initOptDefaultFunc ffi.Fun
+
+	// MTMD_API mtmd_helper_bitmap_wrapper mtmd_helper_bitmap_init_from_file(mtmd_context * ctx, const char * fname, bool placeholder, struct mtmd_helper_init_opt opt);
 	bitmapInitFromFileFunc ffi.Fun
 
-	// MTMD_API mtmd_helper_bitmap_wrapper mtmd_helper_bitmap_init_from_buf(mtmd_context * ctx, const unsigned char * buf, size_t len);
+	// MTMD_API mtmd_helper_bitmap_wrapper mtmd_helper_bitmap_init_from_buf(mtmd_context * ctx, const unsigned char * buf, size_t len, bool placeholder, struct mtmd_helper_init_opt opt);
 	bitmapInitFromBufFunc ffi.Fun
 
 	// MTMD_API uint32_t mtmd_bitmap_get_nx(const mtmd_bitmap * bitmap);
@@ -83,11 +99,15 @@ func loadBitmapFuncs(lib ffi.Lib) error {
 		return loadError("mtmd_bitmap_get_n_bytes", err)
 	}
 
-	if bitmapInitFromFileFunc, err = lib.Prep("mtmd_helper_bitmap_init_from_file", &ffiTypeBitmapWrapper, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint8); err != nil {
+	if initOptDefaultFunc, err = lib.Prep("mtmd_helper_init_opt_default", &ffiTypeInitOpt); err != nil {
+		return loadError("mtmd_helper_init_opt_default", err)
+	}
+
+	if bitmapInitFromFileFunc, err = lib.Prep("mtmd_helper_bitmap_init_from_file", &ffiTypeBitmapWrapper, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint8, &ffiTypeInitOpt); err != nil {
 		return loadError("mtmd_helper_bitmap_init_from_file", err)
 	}
 
-	if bitmapInitFromBufFunc, err = lib.Prep("mtmd_helper_bitmap_init_from_buf", &ffiTypeBitmapWrapper, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize, &ffi.TypeUint8); err != nil {
+	if bitmapInitFromBufFunc, err = lib.Prep("mtmd_helper_bitmap_init_from_buf", &ffiTypeBitmapWrapper, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize, &ffi.TypeUint8, &ffiTypeInitOpt); err != nil {
 		return loadError("mtmd_helper_bitmap_init_from_buf", err)
 	}
 
@@ -149,9 +169,18 @@ func BitmapGetNBytes(bitmap Bitmap) uint64 {
 	return uint64(result)
 }
 
+// InitOptDefault returns the default options for BitmapInitFromFile and BitmapInitFromBuf.
+func InitOptDefault() InitOpt {
+	var opt InitOpt
+	initOptDefaultFunc.Call(unsafe.Pointer(&opt))
+
+	return opt
+}
+
 // BitmapInitFromFile initializes a BitmapWrapper from a file.
 // If placeholder is true, the bitmap will have dimensions but no pixel data, suitable for counting tokens without preprocessing.
-func BitmapInitFromFile(ctx Context, fname string, placeholder bool) BitmapWrapper {
+// The opt parameter controls how a video file is read. Use InitOptDefault to obtain the defaults.
+func BitmapInitFromFile(ctx Context, fname string, placeholder bool, opt InitOpt) BitmapWrapper {
 	var bitmap BitmapWrapper
 	if ctx == 0 {
 		return bitmap
@@ -166,14 +195,15 @@ func BitmapInitFromFile(ctx Context, fname string, placeholder bool) BitmapWrapp
 		ph = 1
 	}
 	file := &[]byte(fname + "\x00")[0]
-	bitmapInitFromFileFunc.Call(unsafe.Pointer(&bitmap), unsafe.Pointer(&ctx), unsafe.Pointer(&file), unsafe.Pointer(&ph))
+	bitmapInitFromFileFunc.Call(unsafe.Pointer(&bitmap), unsafe.Pointer(&ctx), unsafe.Pointer(&file), unsafe.Pointer(&ph), unsafe.Pointer(&opt))
 
 	return bitmap
 }
 
 // BitmapInitFromBuf initializes a BitmapWrapper from a buffer of bytes.
 // If placeholder is true, the bitmap will have dimensions but no pixel data, suitable for counting tokens without preprocessing.
-func BitmapInitFromBuf(ctx Context, buf *byte, len uint64, placeholder bool) BitmapWrapper {
+// The opt parameter controls how a video buffer is read. Use InitOptDefault to obtain the defaults.
+func BitmapInitFromBuf(ctx Context, buf *byte, len uint64, placeholder bool, opt InitOpt) BitmapWrapper {
 	var bitmap BitmapWrapper
 	if ctx == 0 {
 		return bitmap
@@ -182,7 +212,7 @@ func BitmapInitFromBuf(ctx Context, buf *byte, len uint64, placeholder bool) Bit
 	if placeholder {
 		ph = 1
 	}
-	bitmapInitFromBufFunc.Call(unsafe.Pointer(&bitmap), unsafe.Pointer(&ctx), unsafe.Pointer(&buf), &len, unsafe.Pointer(&ph))
+	bitmapInitFromBufFunc.Call(unsafe.Pointer(&bitmap), unsafe.Pointer(&ctx), unsafe.Pointer(&buf), &len, unsafe.Pointer(&ph), unsafe.Pointer(&opt))
 
 	return bitmap
 }
