@@ -269,7 +269,7 @@ func TestBitmapInitFromFile(t *testing.T) {
 	defer llama.ModelFree(model)
 	defer Free(ctx)
 
-	bitmap := BitmapInitFromFile(ctx, "../../images/domestic_llama.jpg", false)
+	bitmap := BitmapInitFromFile(ctx, "../../images/domestic_llama.jpg", false, InitOptDefault())
 	defer BitmapFree(bitmap.Bitmap)
 
 	if bitmap.Bitmap == Bitmap(0) {
@@ -294,7 +294,7 @@ func TestBitmapInitFromFilePlaceholder(t *testing.T) {
 	defer llama.ModelFree(model)
 	defer Free(ctx)
 
-	bitmap := BitmapInitFromFile(ctx, "../../images/domestic_llama.jpg", true)
+	bitmap := BitmapInitFromFile(ctx, "../../images/domestic_llama.jpg", true, InitOptDefault())
 	defer BitmapFree(bitmap.Bitmap)
 
 	if bitmap.Bitmap == Bitmap(0) {
@@ -314,7 +314,7 @@ func TestBitmapInitFromFilePlaceholder(t *testing.T) {
 
 func TestBitmapInitFromFileZeroCtx(t *testing.T) {
 	// BitmapInitFromFile should return a zero Bitmap when ctx is 0.
-	bitmap := BitmapInitFromFile(Context(0), "../../images/domestic_llama.jpg", false)
+	bitmap := BitmapInitFromFile(Context(0), "../../images/domestic_llama.jpg", false, InitOpt{})
 	if bitmap.Bitmap != Bitmap(0) {
 		t.Fatal("BitmapInitFromFile should return zero Bitmap for zero context")
 	}
@@ -328,7 +328,7 @@ func TestBitmapInitFromFileNonExistent(t *testing.T) {
 	defer llama.ModelFree(model)
 	defer Free(ctx)
 
-	bitmap := BitmapInitFromFile(ctx, "/nonexistent/path/image.jpg", false)
+	bitmap := BitmapInitFromFile(ctx, "/nonexistent/path/image.jpg", false, InitOptDefault())
 	if bitmap.Bitmap != Bitmap(0) {
 		BitmapFree(bitmap.Bitmap)
 		t.Fatal("BitmapInitFromFile should return zero Bitmap for non-existent file")
@@ -348,7 +348,7 @@ func TestBitmapInitFromBuf(t *testing.T) {
 		t.Fatalf("could not read image file: %v", err)
 	}
 
-	bitmap := BitmapInitFromBuf(ctx, &fileBytes[0], uint64(len(fileBytes)), false)
+	bitmap := BitmapInitFromBuf(ctx, &fileBytes[0], uint64(len(fileBytes)), false, InitOptDefault())
 	defer BitmapFree(bitmap.Bitmap)
 
 	if bitmap.Bitmap == Bitmap(0) {
@@ -375,7 +375,7 @@ func TestBitmapInitFromBufPlaceholder(t *testing.T) {
 		t.Fatalf("could not read image file: %v", err)
 	}
 
-	bitmap := BitmapInitFromBuf(ctx, &fileBytes[0], uint64(len(fileBytes)), true)
+	bitmap := BitmapInitFromBuf(ctx, &fileBytes[0], uint64(len(fileBytes)), true, InitOptDefault())
 	defer BitmapFree(bitmap.Bitmap)
 
 	if bitmap.Bitmap == Bitmap(0) {
@@ -395,7 +395,7 @@ func TestBitmapInitFromBufPlaceholder(t *testing.T) {
 
 func TestBitmapInitFromBufZeroCtx(t *testing.T) {
 	fileBytes := []byte{0xFF, 0xD8, 0xFF} // minimal JPEG header bytes
-	bitmap := BitmapInitFromBuf(Context(0), &fileBytes[0], uint64(len(fileBytes)), false)
+	bitmap := BitmapInitFromBuf(Context(0), &fileBytes[0], uint64(len(fileBytes)), false, InitOpt{})
 	if bitmap.Bitmap != Bitmap(0) {
 		t.Fatal("BitmapInitFromBuf should return zero Bitmap for zero context")
 	}
