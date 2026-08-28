@@ -42,7 +42,7 @@ USAGE:
    yzma install [command options]
 
 OPTIONS:
-   --version value, -v value    version of llama.cpp to install (leave empty for latest)
+   --version value, -v value    version of llama.cpp to install (leave empty for the version this yzma release uses)
    --lib value, -l value        path to llama.cpp compiled library files [$YZMA_LIB]
    --processor value, -p value  processor to use (cpu, cuda, metal, vulkan) (default: "cpu")
    --upgrade, -u                upgrade existing installation (default: false)

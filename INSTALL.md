@@ -364,7 +364,10 @@ Notes:
 - Resolvers must not download anything themselves — return URLs and let `Install` fetch
   them, so `.tar.gz` and `.zip` archives are unpacked the same way as the built-in builds.
 - `Version` may be `""` or `"latest"`; `Install` resolves it to a release tag before
-  calling the resolver, so `t.Version` is always concrete.
+  calling the resolver, so `t.Version` is always concrete. `""` takes
+  `download.DefaultVersion`, the llama.cpp release this yzma release was tested with.
+  A development build of yzma leaves that empty, so `""` then gets the most recent
+  nightly build. `"latest"` always gets the most recent nightly build.
 - A tagged release such as `v0.3.0` has no binaries on the llama.cpp release page, so
   `Install` also sets `t.UpstreamVersion` to the nightly build tag that holds them.
 - Anything [go-getter](https://github.com/hashicorp/go-getter) supports works as a URL,

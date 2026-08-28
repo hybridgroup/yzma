@@ -159,3 +159,133 @@ func TestInstallNightlyTagSkipsNightlyTagLookup(t *testing.T) {
 		t.Fatalf("Install() failed: %v", err)
 	}
 }
+
+// A pinned version must not ask the version server which build is the newest.
+func TestInstallUsesDefaultVersion(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("unexpected request for %s", r.URL.Path)
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	originalCurrent := currentVersionURL
+	currentVersionURL = server.URL + "/llama-cpp-builder/version.json"
+	defer func() { currentVersionURL = originalCurrent }()
+
+	originalDefault := DefaultVersion
+	DefaultVersion = "b7974"
+	defer func() { DefaultVersion = originalDefault }()
+
+	var got []string
+	originalGet := getFunc
+	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+		got = append(got, url)
+		return nil
+	}
+	defer func() { getFunc = originalGet }()
+
+	target := Target{Arch: AMD64, OS: Linux, Processor: CPU}
+	if err := Install(context.Background(), target, t.TempDir(), nil, nil); err != nil {
+		t.Fatalf("Install() failed: %v", err)
+	}
+
+	want := "https://github.com/ggml-org/llama.cpp/releases/download/b7974/llama-b7974-bin-ubuntu-x64.tar.gz"
+	if len(got) != 1 || got[0] != want {
+		t.Fatalf("downloaded %v, want [%s]", got, want)
+	}
+}
+
+// An explicit version wins over the pinned one.
+func TestInstallExplicitVersionOverridesDefault(t *testing.T) {
+	originalDefault := DefaultVersion
+	DefaultVersion = "v0.3.0"
+	defer func() { DefaultVersion = originalDefault }()
+
+	var got []string
+	originalGet := getFunc
+	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+		got = append(got, url)
+		return nil
+	}
+	defer func() { getFunc = originalGet }()
+
+	target := Target{Arch: AMD64, OS: Linux, Processor: CPU, Version: "b7974"}
+	if err := Install(context.Background(), target, t.TempDir(), nil, nil); err != nil {
+		t.Fatalf("Install() failed: %v", err)
+	}
+
+	want := "https://github.com/ggml-org/llama.cpp/releases/download/b7974/llama-b7974-bin-ubuntu-x64.tar.gz"
+	if len(got) != 1 || got[0] != want {
+		t.Fatalf("downloaded %v, want [%s]", got, want)
+	}
+}
+
+// "latest" asks for the newest build even when a version is pinned.
+func TestInstallLatestSkipsDefaultVersion(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"tag_name": "b8000"}`))
+	}))
+	defer server.Close()
+
+	originalCurrent := currentVersionURL
+	currentVersionURL = server.URL + "/llama-cpp-builder/version.json"
+	defer func() { currentVersionURL = originalCurrent }()
+
+	originalDefault := DefaultVersion
+	DefaultVersion = "b7974"
+	defer func() { DefaultVersion = originalDefault }()
+
+	var got []string
+	originalGet := getFunc
+	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+		got = append(got, url)
+		return nil
+	}
+	defer func() { getFunc = originalGet }()
+
+	target := Target{Arch: AMD64, OS: Linux, Processor: CPU, Version: "latest"}
+	if err := Install(context.Background(), target, t.TempDir(), nil, nil); err != nil {
+		t.Fatalf("Install() failed: %v", err)
+	}
+
+	want := "https://github.com/ggml-org/llama.cpp/releases/download/b8000/llama-b8000-bin-ubuntu-x64.tar.gz"
+	if len(got) != 1 || got[0] != want {
+		t.Fatalf("downloaded %v, want [%s]", got, want)
+	}
+}
+
+// A pinned version is already published, so a missing file is a real error and must
+// not fall back to the previous build.
+func TestInstallDefaultVersionDoesNotFallBack(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("unexpected request for %s", r.URL.Path)
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	originalCurrent := currentVersionURL
+	originalPrev := previousVersionURL
+	currentVersionURL = server.URL + "/llama-cpp-builder/version.json"
+	previousVersionURL = server.URL + "/llama-cpp-builder/previous.json"
+	defer func() {
+		currentVersionURL = originalCurrent
+		previousVersionURL = originalPrev
+	}()
+
+	originalDefault := DefaultVersion
+	DefaultVersion = "b7974"
+	defer func() { DefaultVersion = originalDefault }()
+
+	originalGet := getFunc
+	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+		return ErrFileNotFound
+	}
+	defer func() { getFunc = originalGet }()
+
+	target := Target{Arch: AMD64, OS: Linux, Processor: CPU}
+	err := Install(context.Background(), target, t.TempDir(), nil, nil)
+	if !errors.Is(err, ErrFileNotFound) {
+		t.Fatalf("Install() error = %v, want %v", err, ErrFileNotFound)
+	}
+}

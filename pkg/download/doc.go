@@ -15,5 +15,8 @@
 //
 //	err := download.Install(ctx, target, libPath, download.ProgressTracker, resolver)
 //
+// An empty [Target.Version] takes [DefaultVersion], the llama.cpp release this yzma
+// release was tested with. "latest" always gets the most recent nightly build.
+//
 // See INSTALL.md for the longer version.
 package download
