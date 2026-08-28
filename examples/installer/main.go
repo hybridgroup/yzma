@@ -29,9 +29,12 @@ func main() {
 		}
 	}
 
-	if *version == "" || *version == "latest" {
+	switch {
+	case *version == "" && download.DefaultVersion != "":
+		fmt.Println("installing llama.cpp version", download.DefaultVersion, "to", *libPath)
+	case *version == "" || *version == "latest":
 		fmt.Println("installing latest llama.cpp version to", *libPath)
-	} else {
+	default:
 		fmt.Println("installing llama.cpp version", *version, "to", *libPath)
 	}
 	if err := download.Get(runtime.GOARCH, runtime.GOOS, *processor, *version, *libPath); err != nil {

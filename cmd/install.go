@@ -17,7 +17,7 @@ var InstallCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:    "version",
 			Aliases: []string{"v"},
-			Usage:   "version of llama.cpp to install (leave empty for latest)",
+			Usage:   "version of llama.cpp to install (leave empty for the version this yzma release uses)",
 			Value:   "",
 		},
 		&cli.StringFlag{
@@ -75,9 +75,12 @@ func runInstall(c *cli.Context) error {
 
 	quiet := c.Bool("quiet")
 	if !quiet {
-		if version == "" || version == "latest" {
+		switch {
+		case version == "" && download.DefaultVersion != "":
+			fmt.Println("installing llama.cpp version", download.DefaultVersion, "to", libPath)
+		case version == "" || version == "latest":
 			fmt.Println("installing latest llama.cpp version to", libPath)
-		} else {
+		default:
 			fmt.Println("installing llama.cpp version", version, "to", libPath)
 		}
 	} else {

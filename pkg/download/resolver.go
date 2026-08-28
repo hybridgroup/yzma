@@ -14,7 +14,8 @@ type Target struct {
 	OS        OS
 	Processor Processor
 
-	// Version is the llama.cpp release tag, e.g. "b7974" or "v0.3.0". "" or "latest"
+	// Version is the llama.cpp release tag, e.g. "b7974" or "v0.3.0". "" takes
+	// [DefaultVersion], or the newest release if that is empty. "latest" always
 	// resolves to the newest release.
 	Version string
 
@@ -209,10 +210,16 @@ func defaultResolve(target Target) ([]string, error) {
 }
 
 // Install downloads the llama.cpp binaries for target into dest. A nil resolver means
-// [DefaultResolver].
+// [DefaultResolver]. An empty [Target.Version] takes [DefaultVersion].
 func Install(ctx context.Context, target Target, dest string, progress getter.ProgressTracker, resolver Resolver) error {
 	if resolver == nil {
 		resolver = DefaultResolver
+	}
+
+	// An empty version takes the release pinned by this yzma release. "latest" always
+	// asks for the newest build, so it skips the pin.
+	if target.Version == "" && DefaultVersion != "" {
+		target.Version = DefaultVersion
 	}
 
 	autoVersion := target.Version == "" || target.Version == "latest"

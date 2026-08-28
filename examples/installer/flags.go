@@ -23,7 +23,7 @@ installer -version [version] -lib [llama.cpp .so file path] -processor [cpu, cud
 
 func handleFlags() error {
 	help = flag.String("help", "", "show help")
-	version = flag.String("version", "", "version of llama.cpp to install (leave empty for latest)")
+	version = flag.String("version", "", "version of llama.cpp to install (leave empty for the version this yzma release uses)")
 	libPath = flag.String("lib", "", "path to llama.cpp compiled library files (leave empty to use YZMA_LIB env var)")
 	processor = flag.String("processor", "", "processor to use (cpu, cuda, metal, vulkan)")
 	upgrade = flag.Bool("upgrade", false, "upgrade existing installation")
