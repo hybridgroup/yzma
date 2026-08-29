@@ -411,20 +411,21 @@ type ContextParams struct {
 
 // ModelQuantizeParams defines the parameters for model quantize parameters
 type ModelQuantizeParams struct {
-	NThread              int32 // number of threads to use for quantizing
-	Ftype                Ftype // quantize to this llama_ftype
-	OutputTensorType     int32 // output tensor type
-	TokenEmbeddingType   int32 // token embeddings tensor type
-	AllowRequantize      uint8 // allow quantizing non-f32/f16 tensors (bool as uint8)
-	QuantizeOutputTensor uint8 // quantize output.weight (bool as uint8)
-	OnlyCopy             uint8 // only copy tensors - ftype, allow_requantize and quantize_output_tensor are ignored
-	Pure                 uint8 // quantize all tensors to the default type
-	KeepSplit            uint8 // keep split tensors (bool as uint8)
-	DryRun               uint8 // calculate and show the final quantization size without performing quantization (bool as uint8)
-	IMatrix              *byte // pointer to importance matrix data
-	KvOverrides          *byte // pointer to vector containing overrides
-	TensorTypes          *byte // pointer to vector containing tensor types
-	PruneLayers          *byte // pointer to vector containing layer indices to prune
+	NThread              int32  // number of threads to use for quantizing
+	Ftype                Ftype  // quantize to this llama_ftype
+	OutputTensorType     int32  // output tensor type
+	TokenEmbeddingType   int32  // token embeddings tensor type
+	AllowRequantize      uint8  // allow quantizing non-f32/f16 tensors (bool as uint8)
+	QuantizeOutputTensor uint8  // quantize output.weight (bool as uint8)
+	OnlyCopy             uint8  // only copy tensors - ftype, allow_requantize and quantize_output_tensor are ignored
+	Pure                 uint8  // quantize all tensors to the default type
+	KeepSplit            uint8  // keep split tensors (bool as uint8)
+	DryRun               uint8  // calculate and show the final quantization size without performing quantization (bool as uint8)
+	IMatrix              *byte  // pointer to importance matrix data
+	KvOverrides          *byte  // pointer to vector containing overrides
+	TensorTypes          *byte  // pointer to vector containing tensor types
+	PruneLayers          *byte  // pointer to vector containing layer indices to prune
+	MaxBufSize           uint64 // max bytes of tensor rows kept in memory at once, 0 = default (8 GiB)
 }
 
 // Chat message
