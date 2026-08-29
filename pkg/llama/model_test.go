@@ -79,6 +79,9 @@ func TestModelDefaultParamsLayout(t *testing.T) {
 	if params.LoadMode < LoadModeAuto || params.LoadMode > LoadModeDirectIO {
 		t.Errorf("LoadMode is %d, want a valid LoadMode", params.LoadMode)
 	}
+	if params.LazyMode < LazyModeOff || params.LazyMode > LazyModeOn {
+		t.Errorf("LazyMode is %d, want a valid LazyMode", params.LazyMode)
+	}
 	if params.MainGpu < 0 {
 		t.Errorf("MainGpu is %d, want >= 0", params.MainGpu)
 	}
