@@ -184,12 +184,12 @@ const (
 	LoadModeDirectIO  LoadMode = 4  // use direct I/O if available
 )
 
-type TensorReadLazy int32
+type LazyMode int32
 
 const (
-	TensorReadLazyOff  TensorReadLazy = 0 // always read the whole tensor up front
-	TensorReadLazyAuto TensorReadLazy = 1 // lazy only for marked tensors larger than 4 GiB (requires mmap)
-	TensorReadLazyOn   TensorReadLazy = 2 // read the rows of tensors marked by the arch on demand (requires mmap)
+	LazyModeOff  LazyMode = 0 // always read the whole tensor up front
+	LazyModeAuto LazyMode = 1 // lazy only for marked tensors larger than 4 GiB (requires mmap)
+	LazyModeOn   LazyMode = 2 // read the rows of tensors marked by the arch on demand (requires mmap)
 )
 
 type GpuBackend int32
@@ -336,23 +336,23 @@ type ProgressCallback func(progress float32, userData uintptr) uint8
 
 // ModelParams allows configuration of the model and how it's loaded
 type ModelParams struct {
-	Devices                  uintptr        // ggml_backend_dev_t * - NULL-terminated list of devices
-	TensorBuftOverrides      uintptr        // const struct llama_model_tensor_buft_override *
-	NGpuLayers               int32          // number of layers to store in VRAM
-	SplitMode                SplitMode      // how to split the model across multiple GPUs
-	LoadMode                 LoadMode       // how to load the model
-	TensorReadLazy           TensorReadLazy // on-demand reading of tensors marked by the arch
-	MainGpu                  int32          // the GPU that is used for the entire model
-	TensorSplit              *float32       // proportion of the model to offload to each GPU
-	ProgressCallback         uintptr        // llama_progress_callback function pointer
-	ProgressCallbackUserData uintptr        // context pointer passed to the progress callback
-	KvOverrides              uintptr        // const struct llama_model_kv_override *
-	VocabOnly                uint8          // only load the vocabulary, no weights (bool as uint8)
-	CheckTensors             uint8          // validate model tensor data (bool as uint8)
-	UseExtraBufts            uint8          // use extra buffer types (bool as uint8)
-	NoHost                   uint8          // bypass host buffer allowing extra buffers to be used (bool as uint8)
-	NoAlloc                  uint8          // only load metadata and simulate memory allocations (bool as uint8)
-	LoadMTP                  uint8          // whether to load MTP layers (bool as uint8)
+	Devices                  uintptr   // ggml_backend_dev_t * - NULL-terminated list of devices
+	TensorBuftOverrides      uintptr   // const struct llama_model_tensor_buft_override *
+	NGpuLayers               int32     // number of layers to store in VRAM
+	SplitMode                SplitMode // how to split the model across multiple GPUs
+	LoadMode                 LoadMode  // how to load the model
+	LazyMode                 LazyMode  // on-demand reading of tensors marked by the arch
+	MainGpu                  int32     // the GPU that is used for the entire model
+	TensorSplit              *float32  // proportion of the model to offload to each GPU
+	ProgressCallback         uintptr   // llama_progress_callback function pointer
+	ProgressCallbackUserData uintptr   // context pointer passed to the progress callback
+	KvOverrides              uintptr   // const struct llama_model_kv_override *
+	VocabOnly                uint8     // only load the vocabulary, no weights (bool as uint8)
+	CheckTensors             uint8     // validate model tensor data (bool as uint8)
+	UseExtraBufts            uint8     // use extra buffer types (bool as uint8)
+	NoHost                   uint8     // bypass host buffer allowing extra buffers to be used (bool as uint8)
+	NoAlloc                  uint8     // only load metadata and simulate memory allocations (bool as uint8)
+	LoadMTP                  uint8     // whether to load MTP layers (bool as uint8)
 }
 
 // ContextParams controls the parameters available for the model context
