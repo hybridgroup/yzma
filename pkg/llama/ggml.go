@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/hybridgroup/yzma/pkg/utils"
 	"github.com/jupiterrider/ffi"
 )
@@ -170,7 +171,7 @@ var (
 	ggmlBackendRegByNameFunc ffi.Fun
 )
 
-func loadGGML(lib ffi.Lib) error {
+func loadGGML(lib loader.Lib) error {
 	var err error
 
 	if ggmlBackendLoadAllFunc, err = lib.Prep("ggml_backend_load_all", &ffi.TypeVoid); err != nil {

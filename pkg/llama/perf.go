@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/jupiterrider/ffi"
 )
 
@@ -54,7 +55,7 @@ var (
 	perfSamplerResetFunc ffi.Fun
 )
 
-func loadPerfFuncs(lib ffi.Lib) error {
+func loadPerfFuncs(lib loader.Lib) error {
 	var err error
 
 	if perfContextFunc, err = lib.Prep("llama_perf_context", &ffiPerfContextData, &ffi.TypePointer); err != nil {

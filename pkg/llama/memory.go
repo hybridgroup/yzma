@@ -4,6 +4,7 @@ import (
 	"errors"
 	"unsafe"
 
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/jupiterrider/ffi"
 )
 
@@ -42,7 +43,7 @@ var (
 	memoryCanShiftFunc ffi.Fun
 )
 
-func loadMemoryFuncs(lib ffi.Lib) error {
+func loadMemoryFuncs(lib loader.Lib) error {
 	var err error
 
 	if memoryClearFunc, err = lib.Prep("llama_memory_clear", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeUint8); err != nil {

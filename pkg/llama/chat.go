@@ -3,6 +3,7 @@ package llama
 import (
 	"unsafe"
 
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/hybridgroup/yzma/pkg/utils"
 	"github.com/jupiterrider/ffi"
 )
@@ -21,7 +22,7 @@ var (
 	chatBuiltinTemplatesFunc ffi.Fun
 )
 
-func loadChatFuncs(lib ffi.Lib) error {
+func loadChatFuncs(lib loader.Lib) error {
 	var err error
 	if chatApplyTemplateFunc, err = lib.Prep("llama_chat_apply_template", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize,
 		&ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint32); err != nil {

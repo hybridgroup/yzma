@@ -1,10 +1,13 @@
 package loader
 
 import (
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/jupiterrider/ffi"
 )
 
 func TestGetLibraryFilename(t *testing.T) {
@@ -184,5 +187,67 @@ func TestGetLibraryFilename_DifferentLibNames(t *testing.T) {
 				t.Errorf("expected result to contain '%s', got '%s'", lib, result)
 			}
 		})
+	}
+}
+
+// The cif must point at the same argument type array that Prep keeps alive.
+// If it points somewhere else, the collector can free the array that libffi
+// reads on every call.
+func TestPrepKeepsArgTypes(t *testing.T) {
+	if os.Getenv("YZMA_LIB") == "" {
+		t.Skip("no YZMA_LIB set, skipping test")
+	}
+
+	lib, err := LoadLibrary("", "llama")
+	if err != nil {
+		t.Fatalf("LoadLibrary failed: %v", err)
+	}
+
+	args := []*ffi.Type{&ffi.TypePointer, &ffi.TypeSint32}
+	fun, err := lib.Prep("llama_model_n_params", &ffi.TypeUint64, args...)
+	if err != nil {
+		t.Fatalf("Prep failed: %v", err)
+	}
+
+	kept := keepArgTypes(args)
+
+	if fun.Cif.ArgTypes != &kept[0] {
+		t.Errorf("cif.ArgTypes is %p, want the kept array at %p", fun.Cif.ArgTypes, &kept[0])
+	}
+
+	runtime.GC()
+
+	if fun.Cif.ArgTypes != &kept[0] {
+		t.Errorf("cif.ArgTypes changed after a collection")
+	}
+}
+
+// A second Prep of the same signature must not keep a second array.
+func TestPrepReusesArgTypes(t *testing.T) {
+	if os.Getenv("YZMA_LIB") == "" {
+		t.Skip("no YZMA_LIB set, skipping test")
+	}
+
+	lib, err := LoadLibrary("", "llama")
+	if err != nil {
+		t.Fatalf("LoadLibrary failed: %v", err)
+	}
+
+	argTypesMu.Lock()
+	before := len(argTypes)
+	argTypesMu.Unlock()
+
+	for range 10 {
+		if _, err := lib.Prep("llama_model_n_params", &ffi.TypeUint64, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+			t.Fatalf("Prep failed: %v", err)
+		}
+	}
+
+	argTypesMu.Lock()
+	after := len(argTypes)
+	argTypesMu.Unlock()
+
+	if after-before > 1 {
+		t.Errorf("10 preps of one signature kept %d arrays, want at most 1", after-before)
 	}
 }

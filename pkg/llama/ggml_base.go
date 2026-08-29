@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/hybridgroup/yzma/pkg/utils"
 	"github.com/jupiterrider/ffi"
 )
@@ -46,7 +47,7 @@ var (
 	ggmlTypeNameFunc ffi.Fun
 )
 
-func loadGGMLBase(lib ffi.Lib) error {
+func loadGGMLBase(lib loader.Lib) error {
 	var err error
 
 	if ggmlBackendCpuBufferType, err = lib.Prep("ggml_backend_cpu_buffer_type", &ffi.TypePointer); err != nil {

@@ -4,6 +4,7 @@ import (
 	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/hybridgroup/yzma/pkg/utils"
 	"github.com/jupiterrider/ffi"
 )
@@ -71,7 +72,7 @@ var (
 	inputImageTokensGetNPosFunc ffi.Fun
 )
 
-func loadChunkFuncs(lib ffi.Lib) error {
+func loadChunkFuncs(lib loader.Lib) error {
 	var err error
 
 	if inputChunksInitFunc, err = lib.Prep("mtmd_input_chunks_init", &ffi.TypePointer); err != nil {

@@ -3,6 +3,7 @@ package llama
 import (
 	"unsafe"
 
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/hybridgroup/yzma/pkg/utils"
 	"github.com/jupiterrider/ffi"
 )
@@ -119,7 +120,7 @@ var (
 	stateSeqSetDataExtFunc ffi.Fun
 )
 
-func loadStateFuncs(lib ffi.Lib) error {
+func loadStateFuncs(lib loader.Lib) error {
 	var err error
 
 	if stateSaveFileFunc, err = lib.Prep("llama_state_save_file", &ffi.TypeUint8, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint64); err != nil {

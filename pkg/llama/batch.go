@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/jupiterrider/ffi"
 )
 
@@ -47,7 +48,7 @@ var (
 	batchGetOneFunc ffi.Fun
 )
 
-func loadBatchFuncs(lib ffi.Lib) error {
+func loadBatchFuncs(lib loader.Lib) error {
 	var err error
 
 	if batchInitFunc, err = lib.Prep("llama_batch_init", &ffiTypeBatch, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32); err != nil {
