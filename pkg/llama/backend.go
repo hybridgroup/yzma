@@ -3,6 +3,7 @@ package llama
 import (
 	"unsafe"
 
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/hybridgroup/yzma/pkg/utils"
 	"github.com/jupiterrider/ffi"
 )
@@ -55,7 +56,7 @@ var (
 	loadModeFromStrFunc ffi.Fun
 )
 
-func loadBackendFuncs(lib ffi.Lib) error {
+func loadBackendFuncs(lib loader.Lib) error {
 	var err error
 	if backendInitFunc, err = lib.Prep("llama_backend_init", &ffi.TypeVoid); err != nil {
 		return loadError("llama_backend_init", err)

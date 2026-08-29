@@ -5,6 +5,7 @@ import (
 	"os"
 	"unsafe"
 
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/hybridgroup/yzma/pkg/utils"
 	"github.com/jupiterrider/ffi"
 )
@@ -163,7 +164,7 @@ var (
 	splitPrefixFunc ffi.Fun
 )
 
-func loadModelFuncs(lib ffi.Lib) error {
+func loadModelFuncs(lib loader.Lib) error {
 	var err error
 
 	if modelDefaultParamsFunc, err = lib.Prep("llama_model_default_params", &ffiTypeModelParams); err != nil {

@@ -4,6 +4,7 @@ import (
 	"sync"
 	"unsafe"
 
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/hybridgroup/yzma/pkg/utils"
 	"github.com/jupiterrider/ffi"
 )
@@ -114,7 +115,7 @@ var (
 	vocabTypeFunc ffi.Fun
 )
 
-func loadVocabFuncs(lib ffi.Lib) error {
+func loadVocabFuncs(lib loader.Lib) error {
 	var err error
 
 	if modelGetVocabFunc, err = lib.Prep("llama_model_get_vocab", &ffi.TypePointer, &ffi.TypePointer); err != nil {

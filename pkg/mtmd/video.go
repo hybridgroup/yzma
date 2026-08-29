@@ -4,6 +4,7 @@ import (
 	"os"
 	"unsafe"
 
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/hybridgroup/yzma/pkg/utils"
 	"github.com/jupiterrider/ffi"
 )
@@ -72,7 +73,7 @@ var (
 	helperVideoGetInfoFunc ffi.Fun
 )
 
-func loadVideoFuncs(lib ffi.Lib) error {
+func loadVideoFuncs(lib loader.Lib) error {
 	var err error
 
 	if helperSupportVideoFunc, err = lib.Prep("mtmd_helper_support_video", &ffi.TypeUint8, &ffi.TypePointer); err != nil {

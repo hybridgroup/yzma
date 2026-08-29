@@ -4,6 +4,7 @@ import (
 	"math"
 	"unsafe"
 
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/hybridgroup/yzma/pkg/utils"
 	"github.com/jupiterrider/ffi"
 )
@@ -167,7 +168,7 @@ var (
 	samplerGetSeedFunc ffi.Fun
 )
 
-func loadSamplingFuncs(lib ffi.Lib) error {
+func loadSamplingFuncs(lib loader.Lib) error {
 	var err error
 
 	if samplerChainDefaultParamsFunc, err = lib.Prep("llama_sampler_chain_default_params", &ffiSamplerChainParams); err != nil {

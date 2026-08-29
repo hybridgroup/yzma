@@ -4,6 +4,7 @@ import (
 	"os"
 	"unsafe"
 
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/hybridgroup/yzma/pkg/utils"
 	"github.com/jupiterrider/ffi"
 )
@@ -84,7 +85,7 @@ var (
 	bitmapInitFromAudioFunc ffi.Fun
 )
 
-func loadBitmapFuncs(lib ffi.Lib) error {
+func loadBitmapFuncs(lib loader.Lib) error {
 	var err error
 
 	if bitmapInitFunc, err = lib.Prep("mtmd_bitmap_init", &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer); err != nil {

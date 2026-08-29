@@ -4,6 +4,7 @@ import (
 	"errors"
 	"unsafe"
 
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/hybridgroup/yzma/pkg/utils"
 	"github.com/jupiterrider/ffi"
 )
@@ -55,7 +56,7 @@ var (
 	errInvalidAdapter = errors.New("invalid LoRA adapter")
 )
 
-func loadLoraFuncs(lib ffi.Lib) error {
+func loadLoraFuncs(lib loader.Lib) error {
 	var err error
 
 	if adapterLoraInitFunc, err = lib.Prep("llama_adapter_lora_init", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer); err != nil {

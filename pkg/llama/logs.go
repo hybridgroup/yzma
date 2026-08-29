@@ -4,6 +4,7 @@ import (
 	"unsafe"
 
 	"github.com/ebitengine/purego"
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/jupiterrider/ffi"
 )
 
@@ -18,7 +19,7 @@ var (
 	logGetFunc ffi.Fun
 )
 
-func loadLogFuncs(lib ffi.Lib) error {
+func loadLogFuncs(lib loader.Lib) error {
 	var err error
 
 	if logSetFunc, err = lib.Prep("llama_log_set", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer); err != nil {

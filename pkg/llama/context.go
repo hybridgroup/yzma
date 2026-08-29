@@ -5,6 +5,7 @@ import (
 	"unsafe"
 
 	"github.com/ebitengine/purego"
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/jupiterrider/ffi"
 )
 
@@ -182,7 +183,7 @@ var (
 	nCtxSeqFunc ffi.Fun
 )
 
-func loadContextFuncs(lib ffi.Lib) error {
+func loadContextFuncs(lib loader.Lib) error {
 	var err error
 
 	if contextDefaultParamsFunc, err = lib.Prep("llama_context_default_params", &ffiTypeContextParams); err != nil {

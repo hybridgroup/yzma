@@ -7,6 +7,7 @@ import (
 	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
+	"github.com/hybridgroup/yzma/pkg/loader"
 	"github.com/hybridgroup/yzma/pkg/utils"
 	"github.com/jupiterrider/ffi"
 )
@@ -157,7 +158,7 @@ var (
 	getMarkerFunc ffi.Fun
 )
 
-func loadFuncs(lib ffi.Lib) error {
+func loadFuncs(lib loader.Lib) error {
 	var err error
 
 	if defaultMarkerFunc, err = lib.Prep("mtmd_default_marker", &ffi.TypePointer); err != nil {
