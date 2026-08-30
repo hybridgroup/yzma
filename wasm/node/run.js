@@ -8,10 +8,15 @@
 // Usage:
 //   node wasm/node/run.js --dir build/wasm --model ~/models/SmolLM-135M.Q2_K.gguf \
 //       --prompt "Are you ready to go?" --tokens 12 [--expect "<text>"] [--mt]
+//       [--webgpu]
 //
 // --mt takes the build with more than one thread. Node has SharedArrayBuffer
 // without the headers that a browser needs, so this is a way to test that build
 // outside a browser.
+//
+// --webgpu asks for the WebGPU build. Node has no WebGPU, so this tests the
+// other half of that story: the loader must quietly take a build on the CPU and
+// the program must still make text.
 
 const fs = require("node:fs");
 const path = require("node:path");
@@ -27,7 +32,21 @@ const prompt = option("prompt", "Are you ready to go?");
 const maxTokens = parseInt(option("tokens", "12"), 10);
 const expect = option("expect", "");
 const mt = process.argv.includes("--mt");
-const moduleName = mt ? "yzma_wasm_mt.js" : "yzma_wasm.js";
+const webgpu = process.argv.includes("--webgpu");
+
+// This harness stands in for yzma-loader.js, so it makes the same choice the
+// loader would make in a place that has no WebGPU: it falls back to the CPU.
+let moduleName = "yzma_wasm.js";
+if (mt) {
+  moduleName = "yzma_wasm_mt.js";
+}
+if (webgpu) {
+  if (globalThis.navigator && globalThis.navigator.gpu) {
+    moduleName = "yzma_wasm_webgpu.js";
+  } else {
+    console.log("[loader] no WebGPU here, using the build on the CPU");
+  }
+}
 
 if (!modelFile) {
   console.error("give a model with --model");
@@ -37,7 +56,16 @@ if (!modelFile) {
 // The output of the Go program comes here, because a Node process has no
 // postMessage.
 const output = [];
+
+let programIsReady;
+const programReady = new Promise((resolve) => {
+  programIsReady = resolve;
+});
+
 globalThis.yzmaOnMessage = (message) => {
+  if (message.kind === "ready" || message.kind === "error") {
+    programIsReady();
+  }
   if (message.kind === "token") {
     output.push(message.text);
     process.stdout.write(message.text);
@@ -62,6 +90,11 @@ async function main() {
   globalThis.yzmaModule = llamaModule;
   globalThis.yzmaReady = Promise.resolve(llamaModule);
   globalThis.yzmaThreaded = mt;
+  globalThis.yzmaBackend = moduleName.includes("webgpu")
+    ? "webgpu"
+    : mt
+      ? "cpu-threads"
+      : "cpu";
 
   // Put the model in the filesystem of the module. A browser gets it over the
   // network instead, with FetchModelFile.
@@ -77,7 +110,9 @@ async function main() {
   // The program blocks at the end of main, so do not wait for this.
   go.run(result.instance);
 
-  await settle();
+  // Wait for the program to say it is ready. Starting the backend takes a
+  // moment, and longer with WebGPU.
+  await programReady;
 
   const done = new Promise((resolve) => {
     const previous = globalThis.yzmaOnMessage;
@@ -112,11 +147,6 @@ async function main() {
     console.error("no tokens came out");
     process.exit(1);
   }
-}
-
-// settle gives the Go program the turns it needs to set its functions.
-function settle() {
-  return new Promise((resolve) => setTimeout(resolve, 50));
 }
 
 main().catch((err) => {

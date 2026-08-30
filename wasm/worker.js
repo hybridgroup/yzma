@@ -14,6 +14,14 @@
 
 self.yzmaBase = ".";
 
+// The page can choose the backend with a query on the URL of this worker, such
+// as new Worker("./worker.js?mode=cpu"). The values are the ones that
+// yzma-loader.js takes: auto, webgpu, or cpu.
+const workerQuery = new URLSearchParams((self.location.search || "").slice(1));
+if (workerQuery.get("mode")) {
+  self.yzmaMode = workerQuery.get("mode");
+}
+
 // A failure with nobody to catch it must reach the page. Without this the page
 // only sees that nothing more happens.
 self.onerror = (event) => {
@@ -26,6 +34,24 @@ self.onunhandledrejection = (event) => {
 importScripts("./yzma-loader.js");
 importScripts("./wasm_exec.js");
 
+// The Go program says when it is ready by sending its first message, which is
+// the one of kind "ready". Waiting for that is the only safe way to know that
+// it has set its functions: starting the backend takes a moment with the CPU
+// and much longer with WebGPU, where it has to find an adapter and make the
+// shaders.
+let programIsReady;
+const programReady = new Promise((resolve) => {
+  programIsReady = resolve;
+});
+
+const sendToPage = self.postMessage.bind(self);
+self.postMessage = (message) => {
+  if (message && (message.kind === "ready" || message.kind === "error")) {
+    programIsReady();
+  }
+  sendToPage(message);
+};
+
 const started = (async () => {
   // llama.cpp must be ready before the Go program calls Load.
   await self.yzmaReady;
@@ -37,8 +63,11 @@ const started = (async () => {
   // can call into it. Do not wait for this promise.
   go.run(result.instance);
 
-  // Give the program the turn it needs to set its functions.
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await programReady;
+
+  if (typeof self.yzmaLoadModel !== "function") {
+    throw new Error("the Go program did not set its functions");
+  }
 })();
 
 self.onmessage = async (event) => {
