@@ -87,6 +87,33 @@ happens where there is none: Node has no WebGPU, so the loader must take a build
 on the CPU and the program must still make text. Only a browser can run the
 WebGPU build itself.
 
+## Threads
+
+llama.cpp asks for **four** threads unless it is told otherwise, whatever the
+machine has, and that is a large amount of speed to leave on the table:
+
+| Tokens a second, in Chrome | Four threads | Every thread |
+| --- | --- | --- |
+| SmolLM-135M Q2_K | 55.9 | 63.3 |
+| Gemma 3 1B Q2_K | 8.7 | 18.5 |
+| SmolVLM-256M Q8_0, the answer | 56.3 | 96.9 |
+
+So `ContextDefaultParams` and `MtmdContextParamsDefault` pass
+`llamawasm.Threads()`, the number the JavaScript glue takes from the machine, and
+the glue sizes the pool of threads of the module to match. A pool that is too
+small is worse than a small number of threads: llama.cpp then waits for threads
+that cannot start, because the thread that would start them is busy computing.
+
+The WebGPU build gains from this as well, and it has no threads at all: asking
+for one thread instead of four takes away the waiting at barriers that four
+threads set up and only one thread ever reached. SmolLM-135M went from 47.6
+tokens a second to 63.3 that way.
+
+The threads have **no effect on the image**, which is the surprise here. The
+projector took 30.4 seconds on four threads and 33.3 on sixteen, and 38.3 against
+42.7 in a browser, so a large number of threads is slightly worse. What makes an
+image fast is the GPU, not the CPU.
+
 ## Speed
 
 Measured in Chrome on one machine, an RTX 4070 with an Intel integrated GPU,
@@ -95,27 +122,29 @@ with the greedy sampler:
 | Model | Backend | Tokens a second |
 | --- | --- | --- |
 | SmolLM-135M Q2_K | one thread | 10.8 |
-| SmolLM-135M Q2_K | more threads | 55.9 |
-| SmolLM-135M Q2_K | WebGPU | 47.6 |
-| Gemma 3 1B Q2_K | more threads | 8.7 |
-| Gemma 3 1B Q2_K | WebGPU | 32.3 |
+| SmolLM-135M Q2_K | more threads | 63.3 |
+| SmolLM-135M Q2_K | WebGPU | 63.3 |
+| Gemma 3 1B Q2_K | more threads | 18.5 |
+| Gemma 3 1B Q2_K | WebGPU | 38.7 |
 
-The GPU wins on the larger model and loses on the smaller one, where the work of
-each operation is too small to pay for the trip to the GPU. Try both: the page
-takes `?mode=cpu` and `?mode=webgpu`.
+The GPU wins on the larger model, and on the smaller one the two come out the
+same, because the work of each operation is too small to pay for the trip to the
+GPU. Try both: the page takes `?mode=cpu` and `?mode=webgpu`.
 
 An image is a different story. This is the same photo of 960 by 720 through the
 projector of SmolVLM-256M Q8_0, and then 32 tokens of answer:
 
 | Backend | Time for the image | Tokens a second |
 | --- | --- | --- |
-| more threads, in Chrome | 38.3 s | 56.3 |
-| WebGPU, in Chrome | 1.5 s | 61.7 |
+| more threads, in Chrome | 42.7 s | 96.9 |
+| WebGPU, in Chrome | 1.6 s | 64.4 |
 | one thread, in Node | 80 s | 17.4 |
 
 Putting an image through a projector is a wall of numbers all at once, which is
 what a GPU is for, so the GPU is twenty five times faster at it. On the CPU it is
-the image, and not the answer, that a reader waits for.
+the image, and not the answer, that a reader waits for. The threads make the
+answer faster and the image no faster at all, so a page that takes images wants
+WebGPU more than a page that takes only text does.
 
 The size of the image hardly matters: a model has a resolution of its own and
 resizes what it gets, so 224 by 224 and 448 by 448 both took about the same time

@@ -160,6 +160,25 @@ func Threaded() bool {
 	return threaded
 }
 
+// Threads gives the number of threads that the module can use, which the
+// JavaScript glue takes from the machine. It is 1 for a build that uses one
+// thread, and for the WebGPU build, where the GPU does the work.
+//
+// llama.cpp asks for four threads unless it is told otherwise, whatever the
+// machine has, so [ContextDefaultParams] and [MtmdContextParamsDefault] pass
+// this instead.
+func Threads() int32 {
+	if !Loaded() {
+		return 0
+	}
+
+	n := js.Global().Get("yzmaThreads")
+	if n.Type() != js.TypeNumber || n.Int() < 1 {
+		return 1
+	}
+	return int32(n.Int())
+}
+
 // Init starts the llama.cpp backend. Call it after Load.
 func Init() {
 	if !Loaded() {

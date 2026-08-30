@@ -34,6 +34,10 @@ var (
 	vocab   llamawasm.Vocab
 	sampler llamawasm.Sampler
 	nBatch  int32 = 2048
+
+	// maxImageTokens bounds the tokens that one image becomes, for a model whose
+	// resolution changes with the image. 0 takes the bounds of the model.
+	maxImageTokens int32
 )
 
 func main() {
@@ -93,9 +97,14 @@ func loadModel(this js.Value, args []js.Value) any {
 	return nil
 }
 
-// openModel() loads the files that are already in the filesystem of the module.
-// A test that has them puts them there itself.
+// openModel(maxImageTokens) loads the files that are already in the filesystem
+// of the module. A test that has them puts them there itself.
+//
+// maxImageTokens is optional, and 0 takes the bounds of the model.
 func openModel(this js.Value, args []js.Value) any {
+	if len(args) > 0 && args[0].Truthy() {
+		maxImageTokens = int32(args[0].Int())
+	}
 	go open()
 	return nil
 }
@@ -131,7 +140,13 @@ func open() {
 
 	post("status", "loading the projector")
 
-	if mctx, err = llamawasm.MtmdInitFromFile(projectPath, model, 0, onGPU); err != nil {
+	// The default takes every thread the module has, which matters: the
+	// projector is the slow part, and llama.cpp asks for only four threads
+	// unless it is told otherwise.
+	projectorParams := llamawasm.MtmdContextParamsDefault()
+	projectorParams.ImageMaxTokens = maxImageTokens
+
+	if mctx, err = llamawasm.MtmdInitFromFile(projectPath, model, projectorParams); err != nil {
 		post("error", err.Error())
 		return
 	}
@@ -287,7 +302,7 @@ func backendReport() string {
 	if device := llamawasm.GPUDevice(); device != "" {
 		return fmt.Sprintf("backend: %s (%s)", llamawasm.Backend(), device)
 	}
-	return fmt.Sprintf("backend: %s", llamawasm.Backend())
+	return fmt.Sprintf("backend: %s, %d threads", llamawasm.Backend(), llamawasm.Threads())
 }
 
 // post sends a message to whatever holds this module.

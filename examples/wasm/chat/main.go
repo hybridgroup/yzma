@@ -131,7 +131,7 @@ func backendReport() string {
 	if device := llamawasm.GPUDevice(); device != "" {
 		return fmt.Sprintf("backend: %s (%s)", llamawasm.Backend(), device)
 	}
-	return fmt.Sprintf("backend: %s", llamawasm.Backend())
+	return fmt.Sprintf("backend: %s, %d threads", llamawasm.Backend(), llamawasm.Threads())
 }
 
 // generate(prompt, maxTokens) makes text and sends each piece to the page.

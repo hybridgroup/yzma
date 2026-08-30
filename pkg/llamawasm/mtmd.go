@@ -15,7 +15,7 @@ import "fmt"
 //
 // The order of the calls is the same as in the examples/vlm program:
 //
-//	mctx, err := llamawasm.MtmdInitFromFile("mmproj.gguf", model, 0, true)
+//	mctx, err := llamawasm.MtmdInitFromFile("mmproj.gguf", model, llamawasm.MtmdContextParamsDefault())
 //	bitmap, err := llamawasm.MtmdBitmapInit(width, height, rgb)
 //	chunks, err := llamawasm.MtmdInputChunksInit()
 //	llamawasm.MtmdTokenize(mctx, chunks, prompt, true, true, []MtmdBitmap{bitmap})
@@ -37,6 +37,35 @@ type (
 	MtmdInputChunks int32
 )
 
+// MtmdContextParams holds what the shim can set while it loads a projector.
+//
+// It is the small part of mtmd.ContextParamsType that a browser can use.
+type MtmdContextParams struct {
+	// NThreads is the number of threads for the projector. Putting an image
+	// through one is the slowest part of an answer, so this matters more than
+	// the threads of the context do.
+	NThreads int32
+
+	// UseGPU puts the projector on the GPU where there is one.
+	UseGPU bool
+
+	// ImageMinTokens and ImageMaxTokens bound the number of tokens that one
+	// image becomes, for a model whose resolution changes with the image. 0
+	// takes the bounds of the model. Fewer tokens is less work and less detail.
+	ImageMinTokens int32
+	ImageMaxTokens int32
+}
+
+// MtmdContextParamsDefault gives the parameters that a projector uses if the
+// program changes nothing: every thread the module has, and the GPU if
+// llama.cpp found one.
+func MtmdContextParamsDefault() MtmdContextParams {
+	return MtmdContextParams{
+		NThreads: Threads(),
+		UseGPU:   GPUDevice() != "",
+	}
+}
+
 // MtmdSupported tells if the module has the multimodal calls. A module from a
 // release before they came has none.
 func MtmdSupported() bool {
@@ -47,9 +76,8 @@ func MtmdSupported() bool {
 // in the filesystem of the module, the same as the model, and the model must be
 // loaded first.
 //
-// useGPU puts the projector on the GPU where there is one. nThreads of 0 leaves
-// the number of threads to the module.
-func MtmdInitFromFile(mmprojPath string, model Model, nThreads int32, useGPU bool) (MtmdContext, error) {
+// Pass [MtmdContextParamsDefault] unless there is a reason not to.
+func MtmdInitFromFile(mmprojPath string, model Model, params MtmdContextParams) (MtmdContext, error) {
 	if !Loaded() {
 		return 0, ErrNotLoaded
 	}
@@ -63,7 +91,9 @@ func MtmdInitFromFile(mmprojPath string, model Model, nThreads int32, useGPU boo
 	}
 	writeString(ptr, mmprojPath)
 
-	handle, err := callErr("_yzma_mtmd_init_from_file", ptr, int(model), int(nThreads), boolToInt(useGPU))
+	handle, err := callErr("_yzma_mtmd_init_from_file", ptr, int(model),
+		int(params.NThreads), boolToInt(params.UseGPU),
+		int(params.ImageMinTokens), int(params.ImageMaxTokens))
 	if err != nil {
 		return 0, err
 	}
