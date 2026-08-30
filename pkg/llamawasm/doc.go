@@ -62,6 +62,19 @@
 // Set NGpuLayers in [ModelParams] to put layers on the GPU. It does nothing in
 // a build for the CPU.
 //
+// # A model with eyes
+//
+// The multimodal library of llama.cpp, mtmd, is in every build. [MtmdBitmapInit]
+// takes the pixels of an image, [MtmdTokenize] puts them into a prompt beside
+// the text, and [MtmdHelperEvalChunks] runs both through the model. See mtmd.go
+// for the order of the calls.
+//
+// The pixels must be RGB. A page decodes the image itself, with a canvas, so any
+// format the browser reads works and no image library goes into the build.
+//
+// Images only. Audio needs the page to decode and resample the samples, and
+// video needs ffmpeg in a subprocess.
+//
 // # Limits
 //
 // A build for the CPU uses SIMD. WebGPU needs Chrome or Edge 137 and later,
@@ -71,6 +84,6 @@
 // A WebAssembly module can address 4 GB, and one JavaScript ArrayBuffer holds
 // at most 2 GB, so a model of more than 2 GB must be in splits.
 //
-// The package has the calls that text generation and embeddings need. It does
-// not have multimodal input, LoRA adapters, saved state, or quantization.
+// The package has the calls that text generation, embeddings, and images need.
+// It does not have audio, video, LoRA adapters, saved state, or quantization.
 package llamawasm
