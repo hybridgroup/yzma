@@ -48,7 +48,7 @@ func main() {
 	js.Global().Set("yzmaOpenModel", js.FuncOf(openModel))
 	js.Global().Set("yzmaGenerate", js.FuncOf(generate))
 
-	post("ready", fmt.Sprintf("threads: %v", llamawasm.Threaded()))
+	post("ready", backendReport())
 
 	// Keep the program alive so that the page can call into it.
 	<-make(chan struct{})
@@ -98,24 +98,40 @@ func openModel(this js.Value, args []js.Value) any {
 func open(path string) {
 	post("status", "loading the model")
 
+	params := llamawasm.ModelDefaultParams()
+
+	// A build with WebGPU has a device, so put every layer on it. A build on the
+	// CPU has none, and the value does nothing there.
+	if llamawasm.GPUDevice() != "" {
+		params.NGpuLayers = 999
+	}
+
 	var err error
-	if model, err = llamawasm.ModelLoadFromFile(path, llamawasm.ModelDefaultParams()); err != nil {
+	if model, err = llamawasm.ModelLoadFromFile(path, params); err != nil {
 		post("error", err.Error())
 		return
 	}
 
-	params := llamawasm.ContextDefaultParams()
-	params.NCtx = 2048
-	params.NBatch = 512
+	ctxParams := llamawasm.ContextDefaultParams()
+	ctxParams.NCtx = 2048
+	ctxParams.NBatch = 512
 
-	if ctx, err = llamawasm.InitFromModel(model, params); err != nil {
+	if ctx, err = llamawasm.InitFromModel(model, ctxParams); err != nil {
 		post("error", err.Error())
 		return
 	}
 
 	vocab = llamawasm.ModelGetVocab(model)
 
-	post("loaded", llamawasm.ModelDesc(model))
+	post("loaded", llamawasm.ModelDesc(model)+", "+backendReport())
+}
+
+// backendReport says what does the computation.
+func backendReport() string {
+	if device := llamawasm.GPUDevice(); device != "" {
+		return fmt.Sprintf("backend: %s (%s)", llamawasm.Backend(), device)
+	}
+	return fmt.Sprintf("backend: %s", llamawasm.Backend())
 }
 
 // generate(prompt, maxTokens) makes text and sends each piece to the page.

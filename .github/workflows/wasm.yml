@@ -64,5 +64,14 @@ jobs:
             --dir $GITHUB_WORKSPACE/$WASM_DIR \
             --model $GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf \
             --tokens 12
+      # Node has no WebGPU, so this checks the other half of that story: asking
+      # for WebGPU where there is none must quietly take a build on the CPU and
+      # still make text. Only a browser can run the WebGPU build itself.
+      - name: Check the fallback from WebGPU
+        run: |
+          node wasm/node/run.js \
+            --dir $GITHUB_WORKSPACE/$WASM_DIR \
+            --model $GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf \
+            --tokens 12 --webgpu
       - name: Build the example with the standard toolchain
         run: make wasm-example-go

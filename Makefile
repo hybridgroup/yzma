@@ -91,6 +91,12 @@ test-wasm:
 test-wasm-mt:
 	node wasm/node/run.js --dir $(WASM_DIR) --model $(MODELS_DIR)/SmolLM-135M.Q2_K.gguf --tokens 12 --mt
 
+# make test-wasm-webgpu to check what happens where there is no WebGPU. Node has
+# none, so this must fall back to a build on the CPU and still make text. Only a
+# browser can run the WebGPU build itself.
+test-wasm-webgpu:
+	node wasm/node/run.js --dir $(WASM_DIR) --model $(MODELS_DIR)/SmolLM-135M.Q2_K.gguf --tokens 12 --webgpu
+
 clean-wasm:
 	rm -rf $(WASM_DIR)
 

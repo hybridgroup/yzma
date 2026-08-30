@@ -36,6 +36,7 @@
       <code>pkg/llamawasm</code> package of yzma. Everything runs in a Web
       Worker in this browser.
     </p>
+    <p id="backend">looking for a backend</p>
 
     <label for="model">Model URL (GGUF, less than 2 GB)</label>
     <input
@@ -56,11 +57,18 @@
       const output = document.getElementById("output");
       const generateButton = document.getElementById("generate");
 
-      const worker = new Worker("./worker.js");
+      // ?mode=cpu on the page passes through to the worker, which lets a
+      // reader compare the GPU with the CPU.
+      const mode = new URLSearchParams(location.search).get("mode");
+      const worker = new Worker("./worker.js" + (mode ? "?mode=" + encodeURIComponent(mode) : ""));
 
       worker.onmessage = (event) => {
         const { kind, text } = event.data || {};
         switch (kind) {
+          case "ready":
+            document.getElementById("backend").textContent = text;
+            status.textContent = "ready";
+            break;
           case "token":
             output.textContent += text;
             break;
