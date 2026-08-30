@@ -133,6 +133,20 @@ Sure! Let's go to the zoo and feed the llama. What kind of llama are you interes
 
 [See the code here](./examples/chat/main.go).
 
+### WebAssembly Example
+
+`yzma` also runs in a browser. `llama.cpp` becomes a WebAssembly module, and a Go program compiled by TinyGo drives it through the [`pkg/llamawasm`](./pkg/llamawasm) package:
+
+```shell
+$ make download-llama.cpp-wasm
+$ make wasm-example
+$ make serve-wasm
+```
+
+Then open http://localhost:8080
+
+See [wasm/README.md](./wasm/README.md) for how it works and what it can do.
+
 ### Additional Examples
 
 See the [examples](./examples/) directory for more examples of how to use `yzma`.
@@ -168,6 +182,12 @@ You can use multimodal models (image/audio) and text language models with full h
 | Linux   | amd64, arm64 | CUDA, Vulkan, HIP, ROCm, SYCL   |
 | macOS   | arm64        | Metal                           |
 | Windows | amd64        | CUDA, Vulkan, HIP, SYCL, OpenCL |
+
+A browser is also a target. There the computation uses the CPU and SIMD only, and the API is the smaller one of the [`pkg/llamawasm`](./pkg/llamawasm) package: text generation and embeddings, with no multimodal input, LoRA adapters, saved state, or quantization. See [wasm/README.md](./wasm/README.md).
+
+| Target  | CPU          | GPU  |
+| ------- | ------------ | ---- |
+| Browser | wasm32 SIMD, one or more threads | none |
 
 Whenever there is a new release of `llama.cpp`, the tests for `yzma` are run automatically. This helps us stay up to date with the latest code and models.
 

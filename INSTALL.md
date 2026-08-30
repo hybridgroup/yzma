@@ -220,6 +220,16 @@ You can run `yzma` on a [Arduino UNO Q board](https://docs.arduino.cc/hardware/u
 yzma install --lib /path/to/lib --processor cpu --os trixie
 ```
 
+### WebAssembly (browser)
+
+`yzma` runs in a browser with the WebAssembly build of `llama.cpp`. Both builds come down, the one with a single thread and the one with more threads, and the JavaScript glue takes the one that the page can use:
+
+```
+yzma install --lib /path/to/web --os wasm
+```
+
+This build has no GPU, and it uses the smaller API of the [`pkg/llamawasm`](./pkg/llamawasm) package. See [wasm/README.md](./wasm/README.md).
+
 ### Windows CPU
 
 ![Windows logo](./images/windows-10-logo.png)

@@ -9,6 +9,10 @@ var (
 	Trixie   = newOS("trixie")
 	Darwin   = newOS("darwin")
 	Windows  = newOS("windows")
+
+	// Wasm is the WebAssembly build that a browser runs. It is not an
+	// operating system, but it is a target that has its own assets.
+	Wasm = newOS("wasm")
 )
 
 // =============================================================================
