@@ -1,0 +1,66 @@
+name: WebAssembly
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      TINYGO_VERSION: '0.41.1'
+      WASM_DIR: build/wasm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 'stable'
+      - name: Check the WebAssembly code
+        run: make vet-wasm
+      - name: Install TinyGo
+        run: |
+          set -e
+          curl -sSL -o tinygo.deb https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/tinygo_${TINYGO_VERSION}_amd64.deb
+          sudo dpkg -i tinygo.deb
+          tinygo version
+      - name: Get latest llama.cpp version
+        id: llama-version
+        run: |
+          VERSION=$(curl -s https://hybridgroup.github.io/llama-cpp-builder/version.json | jq -r '.tag_name')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Latest llama.cpp version: $VERSION"
+      - name: Install yzma command
+        run: go install .
+      - name: Install the WebAssembly build of llama.cpp
+        run: |
+          set -e
+          yzma install -lib $GITHUB_WORKSPACE/$WASM_DIR -os wasm -version ${{ steps.llama-version.outputs.version }}
+      - name: Build the example with TinyGo
+        run: make wasm-example
+      - name: Cache test model
+        id: cache-model
+        uses: actions/cache@v4
+        with:
+          path: models
+          key: ${{ runner.os }}-wasm-models-v1
+      - name: Download the test model
+        if: steps.cache-model.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ./models
+          yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf
+      - name: Run inference in Node
+        run: |
+          node wasm/node/run.js \
+            --dir $GITHUB_WORKSPACE/$WASM_DIR \
+            --model $GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf \
+            --tokens 12
+      - name: Build the example with the standard toolchain
+        run: make wasm-example-go
