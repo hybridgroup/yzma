@@ -53,10 +53,16 @@ wasm-example: wasm-assets
 	tinygo build -target wasm -o $(WASM_DIR)/yzma.wasm ./examples/wasm/chat
 	cp "$(shell tinygo env TINYGOROOT)/targets/wasm_exec.js" $(WASM_DIR)/
 
-# make wasm-example-go to build the same example with the standard toolchain.
-# The binary is larger, which helps when TinyGo cannot build a dependency.
+# make wasm-vlm-example to build the browser example that takes an image.
+wasm-vlm-example: wasm-assets
+	tinygo build -target wasm -o $(WASM_DIR)/yzma-vlm.wasm ./examples/wasm/vlm
+	cp "$(shell tinygo env TINYGOROOT)/targets/wasm_exec.js" $(WASM_DIR)/
+
+# make wasm-example-go to build the same examples with the standard toolchain.
+# The binaries are larger, which helps when TinyGo cannot build a dependency.
 wasm-example-go: wasm-assets
 	GOOS=js GOARCH=wasm go build -o $(WASM_DIR)/yzma.wasm ./examples/wasm/chat
+	GOOS=js GOARCH=wasm go build -o $(WASM_DIR)/yzma-vlm.wasm ./examples/wasm/vlm
 	cp "$(shell go env GOROOT)/lib/wasm/wasm_exec.js" $(WASM_DIR)/
 
 # wasm-assets copies the JavaScript glue and the page into the build directory.
@@ -64,7 +70,7 @@ wasm-example-go: wasm-assets
 # program copies the correct one.
 wasm-assets:
 	mkdir -p $(WASM_DIR)
-	cp wasm/yzma-loader.js wasm/worker.js wasm/index.html $(WASM_DIR)/
+	cp wasm/yzma-loader.js wasm/worker.js wasm/index.html wasm/vlm.html $(WASM_DIR)/
 
 # make download-llama.cpp-wasm to get the WebAssembly build of llama.cpp.
 download-llama.cpp-wasm:
@@ -80,7 +86,8 @@ serve-wasm:
 # because the tests of the repo build for the machine they run on.
 vet-wasm:
 	GOOS=js GOARCH=wasm go build -o /dev/null ./examples/wasm/chat
-	GOOS=js GOARCH=wasm go vet ./pkg/llamawasm ./examples/wasm/chat
+	GOOS=js GOARCH=wasm go build -o /dev/null ./examples/wasm/vlm
+	GOOS=js GOARCH=wasm go vet ./pkg/llamawasm ./examples/wasm/chat ./examples/wasm/vlm
 
 # make test-wasm to run the WebAssembly build in Node, with no browser.
 test-wasm:
@@ -96,6 +103,17 @@ test-wasm-mt:
 # browser can run the WebGPU build itself.
 test-wasm-webgpu:
 	node wasm/node/run.js --dir $(WASM_DIR) --model $(MODELS_DIR)/SmolLM-135M.Q2_K.gguf --tokens 12 --webgpu
+
+# make test-wasm-vlm to answer a question about an image in Node, with no
+# browser. Node has no canvas, so the harness makes the pixels itself.
+#
+# It takes the build with more threads, because putting an image through a
+# projector is slow: about 30 seconds with threads and 80 with one.
+test-wasm-vlm:
+	node wasm/node/vlm.js --dir $(WASM_DIR) \
+		--model $(MODELS_DIR)/SmolVLM-256M-Instruct-Q8_0.gguf \
+		--mmproj $(MODELS_DIR)/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf \
+		--tokens 24 --mt
 
 clean-wasm:
 	rm -rf $(WASM_DIR)

@@ -228,7 +228,7 @@ yzma install --lib /path/to/lib --processor cpu --os trixie
 yzma install --lib /path/to/web --os wasm
 ```
 
-WebGPU needs Chrome or Edge 137 and later, and an adapter with f16 shaders; every other browser runs on the CPU. This target uses the smaller API of the [`pkg/llamawasm`](./pkg/llamawasm) package. See [wasm/README.md](./wasm/README.md).
+WebGPU needs Chrome or Edge 137 and later, and an adapter with f16 shaders; every other browser runs on the CPU. Every build has the multimodal library, so a model with a projector works for images. This target uses the smaller API of the [`pkg/llamawasm`](./pkg/llamawasm) package. See [wasm/README.md](./wasm/README.md).
 
 ### Windows CPU
 

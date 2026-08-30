@@ -135,15 +135,16 @@ Sure! Let's go to the zoo and feed the llama. What kind of llama are you interes
 
 ### WebAssembly Example
 
-`yzma` also runs in a browser, on the CPU or on the GPU with WebGPU. `llama.cpp` becomes a WebAssembly module, and a Go program compiled by TinyGo drives it through the [`pkg/llamawasm`](./pkg/llamawasm) package:
+`yzma` also runs in a browser, on the CPU or on the GPU with WebGPU, with text or with images. `llama.cpp` becomes a WebAssembly module, and a Go program compiled by TinyGo drives it through the [`pkg/llamawasm`](./pkg/llamawasm) package:
 
 ```shell
 $ make download-llama.cpp-wasm
 $ make wasm-example
+$ make wasm-vlm-example
 $ make serve-wasm
 ```
 
-Then open http://localhost:8080
+Then open http://localhost:8080 for chat, or http://localhost:8080/vlm.html to ask about an image.
 
 See [wasm/README.md](./wasm/README.md) for how it works and what it can do.
 
@@ -183,7 +184,7 @@ You can use multimodal models (image/audio) and text language models with full h
 | macOS   | arm64        | Metal                           |
 | Windows | amd64        | CUDA, Vulkan, HIP, SYCL, OpenCL |
 
-A browser is also a target. The API there is the smaller one of the [`pkg/llamawasm`](./pkg/llamawasm) package: text generation and embeddings, with no multimodal input, LoRA adapters, saved state, or quantization. See [wasm/README.md](./wasm/README.md).
+A browser is also a target. The API there is the smaller one of the [`pkg/llamawasm`](./pkg/llamawasm) package: text generation, embeddings, and images, with no audio, video, LoRA adapters, saved state, or quantization. See [wasm/README.md](./wasm/README.md).
 
 | Target  | CPU          | GPU  |
 | ------- | ------------ | ---- |

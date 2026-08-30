@@ -45,19 +45,23 @@ jobs:
         run: |
           set -e
           yzma install -lib $GITHUB_WORKSPACE/$WASM_DIR -os wasm -version ${{ steps.llama-version.outputs.version }}
-      - name: Build the example with TinyGo
-        run: make wasm-example
-      - name: Cache test model
+      - name: Build the examples with TinyGo
+        run: |
+          make wasm-example
+          make wasm-vlm-example
+      - name: Cache test models
         id: cache-model
         uses: actions/cache@v4
         with:
           path: models
-          key: ${{ runner.os }}-wasm-models-v1
-      - name: Download the test model
+          key: ${{ runner.os }}-wasm-models-v2
+      - name: Download the test models
         if: steps.cache-model.outputs.cache-hit != 'true'
         run: |
           mkdir -p ./models
           yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf
+          yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF/resolve/main/SmolVLM-256M-Instruct-Q8_0.gguf
+          yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF/resolve/main/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf
       - name: Run inference in Node
         run: |
           node wasm/node/run.js \
@@ -73,5 +77,14 @@ jobs:
             --dir $GITHUB_WORKSPACE/$WASM_DIR \
             --model $GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf \
             --tokens 12 --webgpu
-      - name: Build the example with the standard toolchain
+      # Node has no canvas, so the harness makes its own pixels. This checks the
+      # whole path: the pixels, the projector, and the tokens that come out.
+      - name: Ask about an image in Node
+        run: |
+          node wasm/node/vlm.js \
+            --dir $GITHUB_WORKSPACE/$WASM_DIR \
+            --model $GITHUB_WORKSPACE/models/SmolVLM-256M-Instruct-Q8_0.gguf \
+            --mmproj $GITHUB_WORKSPACE/models/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf \
+            --tokens 24 --mt
+      - name: Build the examples with the standard toolchain
         run: make wasm-example-go
