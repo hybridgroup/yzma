@@ -8,6 +8,7 @@
 
 - Run the latest Vision Language Models (VLM) and Large/Small/Tiny Language Models (LLM) on Linux, macOS, or Windows.
 - Use any available hardware acceleration such as [CUDA](https://en.wikipedia.org/wiki/CUDA), [Metal](https://en.wikipedia.org/wiki/Metal_(API)), or [Vulkan](https://en.wikipedia.org/wiki/Vulkan) for maximum performance.
+- Run in a browser as well, with [TinyGo](https://tinygo.org) and WebAssembly, on the CPU or on the GPU with [WebGPU](https://en.wikipedia.org/wiki/WebGPU).
 - `yzma` uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed.
 - Works with the newest `llama.cpp` releases so you can use the latest features, performance improvements, and bugfixes.
 
@@ -135,7 +136,7 @@ Sure! Let's go to the zoo and feed the llama. What kind of llama are you interes
 
 ### WebAssembly Example
 
-`yzma` also runs in a browser, on the CPU or on the GPU with WebGPU, with text or with images. `llama.cpp` becomes a WebAssembly module, and a Go program compiled by TinyGo drives it through the [`pkg/llamawasm`](./pkg/llamawasm) package:
+`yzma` also runs in a browser, with text or with images. `llama.cpp` becomes a WebAssembly module of its own, and a Go program compiled by [TinyGo](https://tinygo.org) drives it through the [`pkg/llamawasm`](./pkg/llamawasm) package. The model never leaves the machine of the reader, and no server does any of the work.
 
 ```shell
 $ make download-llama.cpp-wasm
@@ -144,9 +145,27 @@ $ make wasm-vlm-example
 $ make serve-wasm
 ```
 
-Then open http://localhost:8080 for chat, or http://localhost:8080/vlm.html to ask about an image.
+Then open http://localhost:8080 for chat, or http://localhost:8080/vlm.html to ask a question about an image. Each page says which backend it got:
 
-See [wasm/README.md](./wasm/README.md) for how it works and what it can do.
+```
+backend: webgpu (WebGPU)
+```
+
+There are three builds of `llama.cpp`, and the JavaScript glue takes the best one the browser can run:
+
+| Build | What the browser needs |
+|-------|------------------------|
+| WebGPU | WebGPU with f16 shaders, and JSPI: Chrome or Edge 137 and later |
+| More threads | `SharedArrayBuffer`, so a page with the COOP and COEP headers |
+| One thread | Nothing. It works everywhere. |
+
+So a browser without WebGPU still works, on the CPU. The GPU is worth the most to a page that takes images: putting one through the projector of a model takes a second or two on the GPU against half a minute or more on the CPU.
+
+The API in a browser is the smaller one of [`pkg/llamawasm`](./pkg/llamawasm): the calls that text generation, embeddings, and images need. The names and the order of the calls are the same as in [`pkg/llama`](./pkg/llama) and [`pkg/mtmd`](./pkg/mtmd), so a program moves over with a change of the import.
+
+[See the code here](./examples/wasm/chat/main.go), or [the one that takes an image](./examples/wasm/vlm/main.go).
+
+See [wasm/README.md](./wasm/README.md) for how it works, what each build costs in speed, and what a page must do to use one.
 
 ### Additional Examples
 
@@ -184,13 +203,13 @@ You can use multimodal models (image/audio) and text language models with full h
 | macOS   | arm64        | Metal                           |
 | Windows | amd64        | CUDA, Vulkan, HIP, SYCL, OpenCL |
 
-A browser is also a target. The API there is the smaller one of the [`pkg/llamawasm`](./pkg/llamawasm) package: text generation, embeddings, and images, with no audio, video, LoRA adapters, saved state, or quantization. See [wasm/README.md](./wasm/README.md).
+A browser is also a target:
 
 | Target  | CPU          | GPU  |
 | ------- | ------------ | ---- |
 | Browser | wasm32 SIMD, one or more threads | WebGPU |
 
-The JavaScript glue takes the build that the browser can run, so a browser with no WebGPU still works on the CPU. WebGPU needs Chrome or Edge 137 and later, and an adapter with f16 shaders.
+There the API is the smaller one of the [`pkg/llamawasm`](./pkg/llamawasm) package: text generation, embeddings, and images, with no audio, video, LoRA adapters, saved state, or quantization. See the [WebAssembly example](#webassembly-example) above and [wasm/README.md](./wasm/README.md).
 
 Whenever there is a new release of `llama.cpp`, the tests for `yzma` are run automatically. This helps us stay up to date with the latest code and models.
 
