@@ -48,9 +48,25 @@
 // is not a limit in practice: llama.cpp itself takes one call at a time, and
 // the generation loop is one goroutine.
 //
+// # WebGPU
+//
+// There are three builds of llama.cpp, and the JavaScript glue takes the best
+// one that the browser can run: WebGPU, the CPU with more than one thread, or
+// the CPU with one thread. [Backend] says which one it took, and [GPUDevice]
+// names the GPU that llama.cpp found.
+//
+// A page can have WebGPU while llama.cpp has no device, because the backend
+// needs an adapter with f16 shaders. Ask [GPUDevice], which reports what
+// llama.cpp really has.
+//
+// Set NGpuLayers in [ModelParams] to put layers on the GPU. It does nothing in
+// a build for the CPU.
+//
 // # Limits
 //
-// The computation uses the CPU and SIMD. There is no GPU.
+// A build for the CPU uses SIMD. WebGPU needs Chrome or Edge 137 and later,
+// because the backend waits for the GPU inside a synchronous call and that
+// needs JavaScript Promise Integration.
 //
 // A WebAssembly module can address 4 GB, and one JavaScript ArrayBuffer holds
 // at most 2 GB, so a model of more than 2 GB must be in splits.
