@@ -9,6 +9,9 @@ var (
 	Metal  = newProcessor("metal")
 	ROCm   = newProcessor("rocm")
 	Vulkan = newProcessor("vulkan")
+
+	// WebGPU is the GPU of a browser. It goes with the Wasm target only.
+	WebGPU = newProcessor("webgpu")
 )
 
 // =============================================================================
