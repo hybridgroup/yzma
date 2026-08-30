@@ -5,3 +5,6 @@ lib/
 /models
 yzma
 llama.webm
+
+# WebAssembly build output
+build/

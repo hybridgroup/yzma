@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>yzma in WebAssembly</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0 auto;
+        max-width: 46rem;
+        padding: 1.5rem;
+        line-height: 1.5;
+      }
+      label { display: block; margin-top: 1rem; font-weight: 600; }
+      input, textarea, button { font: inherit; width: 100%; box-sizing: border-box; }
+      input, textarea { padding: 0.4rem; }
+      button { margin-top: 0.75rem; padding: 0.5rem; cursor: pointer; }
+      #status { margin-top: 1rem; color: #555; }
+      #output {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        min-height: 8rem;
+        white-space: pre-wrap;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background: #fafafa;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>yzma in WebAssembly</h1>
+    <p>
+      llama.cpp runs as a WebAssembly module. The program that drives it is Go,
+      compiled by TinyGo, and it calls llama.cpp through the
+      <code>pkg/llamawasm</code> package of yzma. Everything runs in a Web
+      Worker in this browser.
+    </p>
+
+    <label for="model">Model URL (GGUF, less than 2 GB)</label>
+    <input
+      id="model"
+      value="https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf"
+    />
+    <button id="load">Load the model</button>
+
+    <label for="prompt">Prompt</label>
+    <textarea id="prompt" rows="3">Are you ready to go?</textarea>
+    <button id="generate" disabled>Generate</button>
+
+    <div id="status">starting</div>
+    <div id="output"></div>
+
+    <script>
+      const status = document.getElementById("status");
+      const output = document.getElementById("output");
+      const generateButton = document.getElementById("generate");
+
+      const worker = new Worker("./worker.js");
+
+      worker.onmessage = (event) => {
+        const { kind, text } = event.data || {};
+        switch (kind) {
+          case "token":
+            output.textContent += text;
+            break;
+          case "loaded":
+            status.textContent = "model loaded: " + text;
+            generateButton.disabled = false;
+            break;
+          case "error":
+            status.textContent = "error: " + text;
+            break;
+          default:
+            status.textContent = kind + ": " + text;
+        }
+      };
+
+      document.getElementById("load").onclick = () => {
+        status.textContent = "loading";
+        generateButton.disabled = true;
+        worker.postMessage({ kind: "load", url: document.getElementById("model").value });
+      };
+
+      generateButton.onclick = () => {
+        output.textContent = "";
+        status.textContent = "generating";
+        worker.postMessage({
+          kind: "generate",
+          prompt: document.getElementById("prompt").value,
+          maxTokens: 128,
+        });
+      };
+    </script>
+  </body>
+</html>
