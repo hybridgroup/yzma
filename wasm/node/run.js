@@ -81,15 +81,21 @@ async function main() {
   globalThis.yzmaBase = dir;
 
   const factory = require(path.join(dir, moduleName));
+  // The same numbers the JavaScript glue would choose: a pool that follows the
+  // machine, and a thread count that the Go side reads.
+  const threads = mt ? Math.max(1, Math.min(require("node:os").cpus().length, 16)) : 1;
+
   const llamaModule = await factory({
     locateFile: (file) => path.join(dir, file),
     print: () => {},
     printErr: () => {},
+    pthreadPoolSize: threads,
   });
 
   globalThis.yzmaModule = llamaModule;
   globalThis.yzmaReady = Promise.resolve(llamaModule);
   globalThis.yzmaThreaded = mt;
+  globalThis.yzmaThreads = threads;
   globalThis.yzmaBackend = moduleName.includes("webgpu")
     ? "webgpu"
     : mt

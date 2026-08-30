@@ -7,6 +7,7 @@
 //   globalThis.yzmaReady     a promise whose value is the llama.cpp module
 //   globalThis.yzmaModule    the module, after the promise is done
 //   globalThis.yzmaThreaded  true if the build uses more than one thread
+//   globalThis.yzmaThreads   how many threads the build can use
 //   globalThis.yzmaBackend   "webgpu", "cpu-threads", or "cpu"
 //   globalThis.yzmaAdapter   the name of the GPU, if there is one
 //
@@ -104,9 +105,17 @@
       backend = "cpu-threads";
     }
 
+    // The number of threads follows the machine. llama.cpp asks for four
+    // threads unless a caller says otherwise, and putting an image through a
+    // projector on four threads of a machine with many is slow, so the Go side
+    // reads this and says otherwise.
+    const cores = Math.max(1, Math.min(globalThis.navigator?.hardwareConcurrency || 4, 16));
+    const threads = backend === "cpu-threads" ? cores : 1;
+
     globalThis.yzmaThreaded = backend === "cpu-threads";
     globalThis.yzmaBackend = backend;
     globalThis.yzmaAdapter = adapter;
+    globalThis.yzmaThreads = threads;
 
     await loadScript(base + "/" + name + ".js");
 
@@ -121,6 +130,11 @@
       locateFile: (path) => base + "/" + path,
       print: (text) => console.log(text),
       printErr: (text) => console.warn(text),
+
+      // The build with threads takes its pool size from here. A pool that is
+      // too small makes llama.cpp wait for threads that cannot start, because
+      // the thread that would start them is busy computing.
+      pthreadPoolSize: threads,
     });
 
     // From here on yzmaModule is the instance, which is what the Go code uses.

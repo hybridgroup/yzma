@@ -75,15 +75,15 @@ type ContextParams struct {
 // ContextDefaultParams gives the parameters that a context uses if the program
 // changes nothing.
 //
-// NThreads is 0, which leaves the number of threads to the module: the build
-// with more than one thread takes the number of cores of the machine, and the
-// build with one thread stays at one.
+// NThreads comes from [Threads], the number that the module can use. Leaving it
+// at 0 would give the four threads that llama.cpp asks for whatever the machine
+// has, which is slower on a machine with more.
 func ContextDefaultParams() ContextParams {
 	return ContextParams{
 		NCtx:        0,
 		NBatch:      0,
 		NUbatch:     0,
-		NThreads:    0,
+		NThreads:    Threads(),
 		PoolingType: PoolingTypeUnspecified,
 		Embeddings:  0,
 	}

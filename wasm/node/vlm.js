@@ -8,7 +8,7 @@
 // Usage:
 //   node wasm/node/vlm.js --dir build/wasm --model <model.gguf> \
 //       --mmproj <mmproj.gguf> [--tokens 24] [--ppm <file.ppm>] [--side 448]
-//       [--mt] [--webgpu]
+//       [--mt] [--webgpu] [--threads N] [--image-max-tokens N]
 //
 // --ppm takes a real image in the binary PPM format (P6), which needs no
 // decoder: convert one with "magick in.jpg out.ppm" or "ffmpeg -i in.jpg out.ppm".
@@ -30,6 +30,8 @@ const ppmFile = option("ppm", "");
 const webgpu = process.argv.includes("--webgpu");
 const mt = process.argv.includes("--mt");
 const side = parseInt(option("side", "448"), 10);
+const threadsOverride = parseInt(option("threads", "0"), 10);
+const imageMaxTokens = parseInt(option("image-max-tokens", "0"), 10);
 
 if (!modelFile || !mmprojFile) {
   console.error("give a model with --model and a projector with --mmproj");
@@ -131,15 +133,24 @@ async function main() {
   globalThis.yzmaBase = dir;
 
   const factory = require(path.join(dir, moduleName));
+  // The same numbers the JavaScript glue would choose: a pool that follows the
+  // machine, and a thread count that the Go side reads.
+  const threads = threadsOverride > 0
+    ? threadsOverride
+    : mt ? Math.max(1, Math.min(require("node:os").cpus().length, 16)) : 1;
+  console.log("[threads] " + threads);
+
   const llamaModule = await factory({
     locateFile: (file) => path.join(dir, file),
     print: () => {},
     printErr: () => {},
+    pthreadPoolSize: threads,
   });
 
   globalThis.yzmaModule = llamaModule;
   globalThis.yzmaReady = Promise.resolve(llamaModule);
   globalThis.yzmaThreaded = mt;
+  globalThis.yzmaThreads = threads;
   globalThis.yzmaBackend = moduleName.includes("webgpu") ? "webgpu" : "cpu";
 
   // A browser gets both files over the network. Here they go straight in.
@@ -174,7 +185,7 @@ async function main() {
 
   // The files are in place, so this only opens them. A browser gets them over
   // the network with yzmaLoadModel instead.
-  globalThis.yzmaOpenModel();
+  globalThis.yzmaOpenModel(imageMaxTokens);
 
   const last = await done;
   console.log();
