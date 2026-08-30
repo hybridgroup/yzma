@@ -22,6 +22,10 @@ if (workerQuery.get("mode")) {
   self.yzmaMode = workerQuery.get("mode");
 }
 
+// Which Go program to run. The chat page takes the default, and the page for a
+// model with eyes asks for its own.
+const program = workerQuery.get("program") || "yzma.wasm";
+
 // A failure with nobody to catch it must reach the page. Without this the page
 // only sees that nothing more happens.
 self.onerror = (event) => {
@@ -57,7 +61,7 @@ const started = (async () => {
   await self.yzmaReady;
 
   const go = new Go();
-  const result = await WebAssembly.instantiateStreaming(fetch("./yzma.wasm"), go.importObject);
+  const result = await WebAssembly.instantiateStreaming(fetch("./" + program), go.importObject);
 
   // The Go program blocks at the end of main, so it keeps running and the page
   // can call into it. Do not wait for this promise.
@@ -78,10 +82,20 @@ self.onmessage = async (event) => {
 
     switch (message.kind) {
       case "load":
-        self.yzmaLoadModel(message.url);
+        self.yzmaLoadModel(message.url, message.projector || "");
         break;
       case "generate":
         self.yzmaGenerate(message.prompt, message.maxTokens || 128);
+        break;
+      case "describe":
+        // The image comes as RGBA from a canvas of the page.
+        self.yzmaDescribe(
+          message.prompt,
+          message.width,
+          message.height,
+          new Uint8Array(message.rgba),
+          message.maxTokens || 128,
+        );
         break;
       default:
         self.postMessage({ kind: "error", text: "unknown message: " + message.kind });

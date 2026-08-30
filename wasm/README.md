@@ -39,8 +39,10 @@ token, the same as the `examples/hello` program.
 | `yzma-loader.js` | Finds what the browser can run — WebGPU, more than one thread, or one thread — then loads that build of llama.cpp and puts it in `globalThis.yzmaReady`. |
 | `worker.js` | Runs llama.cpp and the Go program in a Web Worker, and sends each piece of text to the page. |
 | `index.html` | A page that loads a model and makes text. |
+| `vlm.html` | A page that asks a question about an image. |
 | `serve/main.go` | A static server that sets the headers that a build with more than one thread needs. |
 | `node/run.js` | Runs the same build in Node, with no browser. This is the test that CI uses. |
+| `node/vlm.js` | The same for a model with eyes. It makes its own pixels, because Node has no canvas. |
 
 ## Build and run
 
@@ -48,15 +50,19 @@ token, the same as the `examples/hello` program.
 # get the WebAssembly build of llama.cpp
 make download-llama.cpp-wasm
 
-# build the program with TinyGo
+# build the programs with TinyGo
 make wasm-example
+make wasm-vlm-example
 
-# serve it
+# serve them
 make serve-wasm
 ```
 
-Then open <http://localhost:8080>. Add `?mode=cpu` or `?mode=webgpu` to the URL
-of the page to choose the backend instead of letting the loader choose.
+Then <http://localhost:8080> is the chat page and
+<http://localhost:8080/vlm.html> is the page that takes an image.
+
+Add `?mode=cpu` or `?mode=webgpu` to the URL of either page to choose the backend
+instead of letting the loader choose.
 
 `make wasm-example-go` builds the same program with the standard Go toolchain.
 The binary is larger, which is useful if TinyGo cannot build a dependency.
@@ -98,9 +104,68 @@ The GPU wins on the larger model and loses on the smaller one, where the work of
 each operation is too small to pay for the trip to the GPU. Try both: the page
 takes `?mode=cpu` and `?mode=webgpu`.
 
+An image is a different story. This is the same photo of 960 by 720 through the
+projector of SmolVLM-256M Q8_0, and then 32 tokens of answer:
+
+| Backend | Time for the image | Tokens a second |
+| --- | --- | --- |
+| more threads, in Chrome | 38.3 s | 56.3 |
+| WebGPU, in Chrome | 1.5 s | 61.7 |
+| one thread, in Node | 80 s | 17.4 |
+
+Putting an image through a projector is a wall of numbers all at once, which is
+what a GPU is for, so the GPU is twenty five times faster at it. On the CPU it is
+the image, and not the answer, that a reader waits for.
+
+The size of the image hardly matters: a model has a resolution of its own and
+resizes what it gets, so 224 by 224 and 448 by 448 both took about the same time
+and both came to 148 tokens of image.
+
 The builds on the CPU give the same text every time. The GPU gives the same text
 for the first few tokens and then goes its own way, because the shaders do the
 arithmetic in a different order than the CPU does.
+
+## A model with eyes
+
+`vlm.html` and `examples/wasm/vlm` answer a question about an image. The
+multimodal library of llama.cpp, mtmd, is in every build, so nothing more needs
+installing.
+
+**The page decodes the image, not llama.cpp.** It draws the file on a canvas and
+sends the pixels to the program:
+
+```js
+const bitmap = await createImageBitmap(file);
+context.drawImage(bitmap, 0, 0, width, height);
+const { data } = context.getImageData(0, 0, width, height); // RGBA
+worker.postMessage({ kind: "describe", prompt, width, height, rgba: data.buffer }, [data.buffer]);
+```
+
+So any format the browser reads works, and no image library goes into the
+WebAssembly build. The Go side drops the alpha byte and hands the RGB to mtmd.
+
+The calls follow the mtmd package, with an Mtmd prefix because one package holds
+the llama calls as well:
+
+```go
+mctx, err := llamawasm.MtmdInitFromFile("/models/mmproj.gguf", model, 0, onGPU)
+bitmap, err := llamawasm.MtmdBitmapInit(width, height, rgb)
+chunks, err := llamawasm.MtmdInputChunksInit()
+llamawasm.MtmdTokenize(mctx, chunks, prompt, true, true, []llamawasm.MtmdBitmap{bitmap})
+nPast, err := llamawasm.MtmdHelperEvalChunks(mctx, ctx, chunks, 0, 0, nBatch, true)
+// then the same loop of SamplerSample and Decode as for text alone
+```
+
+The prompt must hold one marker for each image, and `MtmdMarker` gives the
+marker of the model. `ChatApplyTemplate` puts the marker and the question into
+the format the model expects.
+
+Two models come down for this: the model itself and its projector, the mmproj
+file.
+
+Images only. Audio and video stay out: audio needs the page to decode and
+resample the samples itself, and video needs ffmpeg in a subprocess, which a
+browser has not got.
 
 ## Why a worker
 
@@ -176,5 +241,6 @@ origin of the page.
 - An operation larger than `maxStorageBufferBindingSize` goes back to the CPU.
 - One JavaScript ArrayBuffer holds at most 2 GB, so a larger model must be in
   splits.
-- `pkg/llamawasm` has the calls that text generation and embeddings need. It
-  does not have multimodal input, LoRA adapters, saved state, or quantization.
+- `pkg/llamawasm` has the calls that text generation, embeddings, and images
+  need. It does not have audio, video, LoRA adapters, saved state, or
+  quantization.

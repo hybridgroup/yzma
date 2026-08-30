@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>yzma: a model with eyes in WebAssembly</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0 auto;
+        max-width: 46rem;
+        padding: 1.5rem;
+        line-height: 1.5;
+      }
+      label { display: block; margin-top: 1rem; font-weight: 600; }
+      input, textarea, button { font: inherit; width: 100%; box-sizing: border-box; }
+      input, textarea { padding: 0.4rem; }
+      button { margin-top: 0.75rem; padding: 0.5rem; cursor: pointer; }
+      #status { margin-top: 1rem; color: #555; }
+      #preview { max-width: 100%; margin-top: 1rem; border-radius: 4px; display: none; }
+      #output {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        min-height: 6rem;
+        white-space: pre-wrap;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background: #fafafa;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>A model with eyes, in WebAssembly</h1>
+    <p>
+      llama.cpp and its multimodal library run as a WebAssembly module. The
+      program that drives them is Go, compiled by TinyGo, through the
+      <code>pkg/llamawasm</code> package of yzma. This page decodes the image and
+      sends the pixels to the program, which puts them in the prompt beside the
+      question.
+    </p>
+    <p id="backend">looking for a backend</p>
+
+    <label for="model">Model URL (GGUF)</label>
+    <input
+      id="model"
+      value="https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF/resolve/main/SmolVLM-256M-Instruct-Q8_0.gguf"
+    />
+
+    <label for="mmproj">Projector URL (mmproj GGUF)</label>
+    <input
+      id="mmproj"
+      value="https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF/resolve/main/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf"
+    />
+    <button id="load">Load the model</button>
+
+    <label for="file">Image</label>
+    <input id="file" type="file" accept="image/*" />
+    <img id="preview" alt="the image that goes to the model" />
+
+    <label for="prompt">Question</label>
+    <textarea id="prompt" rows="2">Describe this image.</textarea>
+    <button id="ask" disabled>Ask</button>
+
+    <p>
+      On the CPU the image itself takes half a minute or more: the projector is
+      the slow part, not the answer. With WebGPU it takes a second or two.
+    </p>
+
+    <div id="status">starting</div>
+    <div id="output"></div>
+
+    <script>
+      const status = document.getElementById("status");
+      const output = document.getElementById("output");
+      const askButton = document.getElementById("ask");
+      const preview = document.getElementById("preview");
+
+      // The largest side of the image that goes to the model. A projector works
+      // on a small image of its own anyway, so sending more only costs memory.
+      const maxSide = 896;
+
+      let picture = null;
+
+      const mode = new URLSearchParams(location.search).get("mode");
+      const worker = new Worker(
+        "./worker.js?program=yzma-vlm.wasm" + (mode ? "&mode=" + encodeURIComponent(mode) : ""),
+      );
+
+      worker.onmessage = (event) => {
+        const { kind, text } = event.data || {};
+        switch (kind) {
+          case "ready":
+            document.getElementById("backend").textContent = text;
+            status.textContent = "ready";
+            break;
+          case "token":
+            output.textContent += text;
+            break;
+          case "loaded":
+            status.textContent = "model loaded: " + text;
+            askButton.disabled = !picture;
+            break;
+          case "error":
+            status.textContent = "error: " + text;
+            break;
+          default:
+            status.textContent = kind + ": " + text;
+        }
+      };
+
+      // Turn the file the reader picked into RGBA pixels.
+      document.getElementById("file").onchange = async (event) => {
+        const file = event.target.files[0];
+        if (!file) {
+          return;
+        }
+
+        const bitmap = await createImageBitmap(file);
+
+        const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+        const width = Math.max(1, Math.round(bitmap.width * scale));
+        const height = Math.max(1, Math.round(bitmap.height * scale));
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        context.drawImage(bitmap, 0, 0, width, height);
+
+        picture = { width, height, rgba: context.getImageData(0, 0, width, height).data };
+
+        preview.src = canvas.toDataURL();
+        preview.style.display = "block";
+        status.textContent = "image ready, " + width + " by " + height;
+        askButton.disabled = !document.getElementById("model").dataset.loaded;
+      };
+
+      document.getElementById("load").onclick = () => {
+        status.textContent = "loading";
+        askButton.disabled = true;
+        worker.postMessage({
+          kind: "load",
+          url: document.getElementById("model").value,
+          projector: document.getElementById("mmproj").value,
+        });
+        document.getElementById("model").dataset.loaded = "yes";
+      };
+
+      askButton.onclick = () => {
+        if (!picture) {
+          status.textContent = "pick an image first";
+          return;
+        }
+        output.textContent = "";
+        status.textContent = "asking";
+
+        // The pixels go over as a copy of their buffer.
+        const rgba = picture.rgba.slice().buffer;
+        worker.postMessage(
+          {
+            kind: "describe",
+            prompt: document.getElementById("prompt").value,
+            width: picture.width,
+            height: picture.height,
+            rgba,
+            maxTokens: 128,
+          },
+          [rgba],
+        );
+      };
+    </script>
+  </body>
+</html>
