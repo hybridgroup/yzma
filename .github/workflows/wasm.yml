@@ -19,10 +19,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+      # TinyGo 0.41.1 works with Go 1.26 and not with Go 1.27. Go back to
+      # 'stable' after the release of TinyGo that adds Go 1.27.
       - name: Install Go
         uses: actions/setup-go@v6
         with:
-          go-version: 'stable'
+          go-version: '1.26'
       - name: Check the WebAssembly code
         run: make vet-wasm
       - name: Install TinyGo
