@@ -19,7 +19,7 @@ import (
 // each one is tested for before it is used.
 const (
 	abiVersionMin = 1 // 1 has the calls for text generation and embeddings
-	abiVersion    = 2 // 2 adds yzma_gpu_device
+	abiVersion    = 3 // 2 adds yzma_gpu_device, 3 adds the multimodal calls
 )
 
 // Error codes that the shim returns. These are the same as the values in
@@ -38,6 +38,10 @@ var (
 
 	// ErrNoModule says that the JavaScript glue did not run before Load.
 	ErrNoModule = errors.New("llamawasm: globalThis.yzmaReady is missing, load yzma-loader.js first")
+
+	// ErrNoMultimodal says that the module came from a release before the
+	// multimodal calls, which are in ABI version 3 and later.
+	ErrNoMultimodal = errors.New("llamawasm: this llama.cpp module has no multimodal calls, install a newer build")
 )
 
 // mod is the Emscripten module instance of llama.cpp.

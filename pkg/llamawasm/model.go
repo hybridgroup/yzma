@@ -105,3 +105,49 @@ func modelString(name string, model Model, size int) string {
 func (m Model) String() string {
 	return fmt.Sprintf("model(%d)", int32(m))
 }
+
+// ChatApplyTemplate puts one message into the chat format of the model.
+//
+// One message is enough for a prompt with a question about an image. A chat with
+// turns needs the template of the model, which [ModelChatTemplate] gives.
+//
+// addAssistant adds the opening of the turn of the assistant, which is what
+// makes the model answer instead of carrying on the message.
+func ChatApplyTemplate(model Model, role, content string, addAssistant bool) (string, error) {
+	if !Loaded() {
+		return "", ErrNotLoaded
+	}
+	if !has("_yzma_chat_apply_template") {
+		return "", ErrNoMultimodal
+	}
+
+	roleLen := len(role) + 1
+	rolePtr, err := textScratch.reserve(roleLen + len(content) + 1)
+	if err != nil {
+		return "", err
+	}
+	writeString(rolePtr, role)
+
+	contentPtr := rolePtr + roleLen
+	writeString(contentPtr, content)
+
+	size := len(content) + 512
+	for {
+		outPtr, err := pieceScratch.reserve(size)
+		if err != nil {
+			return "", err
+		}
+
+		n := call("_yzma_chat_apply_template", int(model), rolePtr, contentPtr,
+			boolToInt(addAssistant), outPtr, size)
+		switch {
+		case n == errTooSmall && size < 1<<20:
+			size *= 4
+			continue
+		case n < 0:
+			return "", shimError("_yzma_chat_apply_template", n)
+		default:
+			return string(readBytes(outPtr, int(n))), nil
+		}
+	}
+}
