@@ -44,10 +44,13 @@ const (
 // ModelParams holds what the shim can set while it loads a model.
 //
 // The struct is much smaller than llama.ModelParams, because a WebAssembly
-// build has no GPU and no device list.
+// build has no device list.
 type ModelParams struct {
-	// NGpuLayers is here to keep the same shape as llama.ModelParams. A
-	// WebAssembly build has no GPU, so any value other than 0 does nothing.
+	// NGpuLayers is the number of layers to put on the GPU. A value larger than
+	// the number of layers of the model puts them all there.
+	//
+	// It does nothing in a build for the CPU. Test [GPUDevice] first: it is
+	// empty when llama.cpp has no GPU.
 	NGpuLayers int32
 }
 
