@@ -202,6 +202,17 @@ func defaultResolve(target Target) ([]string, error) {
 			return nil, ErrUnknownProcessor
 		}
 
+	case Wasm:
+		// A WebAssembly build has no GPU, so the processor is always CPU. Both
+		// variants come down: the JavaScript glue takes the one with more than
+		// one thread only if the page is isolated.
+		if prcssr != CPU {
+			return nil, ErrUnknownProcessor
+		}
+		location, tag = builderLocation, version
+		extra = append(extra, fmt.Sprintf("%s/llama-%s-bin-wasm-simd-mt.tar.gz", location, tag))
+		filename = fmt.Sprintf("llama-%s-bin-wasm-simd.tar.gz", tag)
+
 	default:
 		return nil, ErrUnknownOS
 	}

@@ -105,6 +105,46 @@ func TestDefaultResolverWindowsCUDA(t *testing.T) {
 	}
 }
 
+// A wasm target takes both builds from the llama-cpp-builder release page: the
+// JavaScript glue picks the one with more than one thread only if the page can
+// use it.
+func TestDefaultResolverWasm(t *testing.T) {
+	urls, err := DefaultResolver.Resolve(Target{Arch: AMD64, OS: Wasm, Processor: CPU, Version: "b7974"})
+	if err != nil {
+		t.Fatalf("Resolve() failed: %v", err)
+	}
+	if len(urls) != 2 {
+		t.Fatalf("Resolve() returned %d urls, want 2: %v", len(urls), urls)
+	}
+	for _, want := range []string{
+		"llama-cpp-builder/releases/download/b7974/llama-b7974-bin-wasm-simd-mt.tar.gz",
+		"llama-cpp-builder/releases/download/b7974/llama-b7974-bin-wasm-simd.tar.gz",
+	} {
+		found := false
+		for _, url := range urls {
+			if strings.HasSuffix(url, want) {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("Resolve() = %v, want an asset ending in %q", urls, want)
+		}
+	}
+}
+
+// A wasm build has no GPU, so any processor other than CPU has no assets.
+func TestDefaultResolverWasmGPU(t *testing.T) {
+	if _, err := DefaultResolver.Resolve(Target{Arch: AMD64, OS: Wasm, Processor: CUDA, Version: "b7974"}); err == nil {
+		t.Fatal("Resolve() accepted a wasm target with a GPU")
+	}
+}
+
+func TestDefaultResolverLibraryNameWasm(t *testing.T) {
+	if got := LibraryName(Wasm.String()); got != "yzma_wasm.wasm" {
+		t.Errorf("LibraryName(wasm) = %q, want %q", got, "yzma_wasm.wasm")
+	}
+}
+
 func TestDefaultResolverUnknownProcessor(t *testing.T) {
 	_, err := DefaultResolver.Resolve(Target{Arch: ARM64, OS: Windows, Processor: CUDA, Version: "b7974"})
 	if err == nil {

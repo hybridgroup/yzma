@@ -470,6 +470,8 @@ func LibraryName(operatingSystem string) string {
 		return "llama.dll"
 	case Darwin:
 		return "libllama.dylib"
+	case Wasm:
+		return "yzma_wasm.wasm"
 	default:
 		return "unknown"
 	}

@@ -34,7 +34,7 @@ var InstallCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "os",
-			Usage: "operating system to use (linux, windows, darwin, bookworm, trixie)",
+			Usage: "target to use (linux, windows, darwin, bookworm, trixie, wasm)",
 			Value: runtime.GOOS,
 		},
 		&cli.BoolFlag{
@@ -66,8 +66,11 @@ func runInstall(c *cli.Context) error {
 		return fmt.Errorf("missing lib flag or YZMA_LIB env var")
 	}
 
+	// A wasm install puts the WebAssembly build of llama.cpp in place, which has
+	// its own file name, so the check for an existing install follows the target
+	// and not the machine that runs the command.
 	if !upgrade {
-		if _, err := os.Stat(filepath.Join(libPath, download.LibraryName(runtime.GOOS))); !os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(libPath, download.LibraryName(osInstall))); !os.IsNotExist(err) {
 			fmt.Println("llama.cpp already installed at", libPath)
 			return nil
 		}
@@ -85,6 +88,11 @@ func runInstall(c *cli.Context) error {
 		}
 	} else {
 		download.ProgressTracker = nil
+	}
+
+	if osInstall == download.Wasm.String() {
+		// A WebAssembly build has no GPU.
+		processor = download.CPU.String()
 	}
 
 	if processor == "" {
@@ -109,10 +117,27 @@ func runInstall(c *cli.Context) error {
 
 	if !quiet {
 		fmt.Println("done.")
-		showInstallRequirements(libPath)
+		if osInstall == download.Wasm.String() {
+			showWasmRequirements(libPath)
+		} else {
+			showInstallRequirements(libPath)
+		}
 	}
 
 	return nil
+}
+
+// showWasmRequirements says what to do with a WebAssembly install. YZMA_LIB has
+// no part in it, because a browser loads the files over HTTP.
+func showWasmRequirements(libPath string) {
+	fmt.Println(`
+The WebAssembly build of llama.cpp is in ` + libPath + `
+
+Put the JavaScript glue and the program of your page in the same directory, then
+serve it with the headers that a build with more than one thread needs:
+
+    make wasm-example
+    make serve-wasm`)
 }
 
 func showInstallRequirements(libPath string) {
