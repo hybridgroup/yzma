@@ -19,7 +19,8 @@ import (
 // each one is tested for before it is used.
 const (
 	abiVersionMin = 1 // 1 has the calls for text generation and embeddings
-	abiVersion    = 3 // 2 adds yzma_gpu_device, 3 adds the multimodal calls
+	abiVersion    = 4 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
+	//                   bounds of the tokens of an image
 )
 
 // Error codes that the shim returns. These are the same as the values in

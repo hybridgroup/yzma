@@ -52,6 +52,8 @@ type MtmdContextParams struct {
 	// ImageMinTokens and ImageMaxTokens bound the number of tokens that one
 	// image becomes, for a model whose resolution changes with the image. 0
 	// takes the bounds of the model. Fewer tokens is less work and less detail.
+	//
+	// A module of ABI version 3 takes no notice of these.
 	ImageMinTokens int32
 	ImageMaxTokens int32
 }
