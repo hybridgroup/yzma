@@ -105,37 +105,42 @@ func TestDefaultResolverWindowsCUDA(t *testing.T) {
 	}
 }
 
-// A wasm target takes both builds from the llama-cpp-builder release page: the
-// JavaScript glue picks the one with more than one thread only if the page can
-// use it.
+// A wasm target takes every build from the llama-cpp-builder release page,
+// because the JavaScript glue chooses at run time: WebGPU where the browser has
+// it, more than one thread where the page is isolated, one thread otherwise.
 func TestDefaultResolverWasm(t *testing.T) {
-	urls, err := DefaultResolver.Resolve(Target{Arch: AMD64, OS: Wasm, Processor: CPU, Version: "b7974"})
-	if err != nil {
-		t.Fatalf("Resolve() failed: %v", err)
-	}
-	if len(urls) != 2 {
-		t.Fatalf("Resolve() returned %d urls, want 2: %v", len(urls), urls)
-	}
-	for _, want := range []string{
-		"llama-cpp-builder/releases/download/b7974/llama-b7974-bin-wasm-simd-mt.tar.gz",
-		"llama-cpp-builder/releases/download/b7974/llama-b7974-bin-wasm-simd.tar.gz",
-	} {
-		found := false
-		for _, url := range urls {
-			if strings.HasSuffix(url, want) {
-				found = true
-			}
+	for _, prcssr := range []Processor{CPU, WebGPU} {
+		urls, err := DefaultResolver.Resolve(Target{Arch: AMD64, OS: Wasm, Processor: prcssr, Version: "b7974"})
+		if err != nil {
+			t.Fatalf("Resolve(%s) failed: %v", prcssr, err)
 		}
-		if !found {
-			t.Errorf("Resolve() = %v, want an asset ending in %q", urls, want)
+		if len(urls) != 3 {
+			t.Fatalf("Resolve(%s) returned %d urls, want 3: %v", prcssr, len(urls), urls)
+		}
+		for _, want := range []string{
+			"llama-cpp-builder/releases/download/b7974/llama-b7974-bin-wasm-simd-mt.tar.gz",
+			"llama-cpp-builder/releases/download/b7974/llama-b7974-bin-wasm-webgpu.tar.gz",
+			"llama-cpp-builder/releases/download/b7974/llama-b7974-bin-wasm-simd.tar.gz",
+		} {
+			found := false
+			for _, url := range urls {
+				if strings.HasSuffix(url, want) {
+					found = true
+				}
+			}
+			if !found {
+				t.Errorf("Resolve(%s) = %v, want an asset ending in %q", prcssr, urls, want)
+			}
 		}
 	}
 }
 
-// A wasm build has no GPU, so any processor other than CPU has no assets.
-func TestDefaultResolverWasmGPU(t *testing.T) {
-	if _, err := DefaultResolver.Resolve(Target{Arch: AMD64, OS: Wasm, Processor: CUDA, Version: "b7974"}); err == nil {
-		t.Fatal("Resolve() accepted a wasm target with a GPU")
+// CUDA, Metal, ROCm and Vulkan have no meaning in a browser.
+func TestDefaultResolverWasmUnknownProcessor(t *testing.T) {
+	for _, prcssr := range []Processor{CUDA, Metal, ROCm, Vulkan} {
+		if _, err := DefaultResolver.Resolve(Target{Arch: AMD64, OS: Wasm, Processor: prcssr, Version: "b7974"}); err == nil {
+			t.Errorf("Resolve() accepted a wasm target with the %s processor", prcssr)
+		}
 	}
 }
 

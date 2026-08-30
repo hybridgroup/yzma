@@ -135,7 +135,7 @@ Sure! Let's go to the zoo and feed the llama. What kind of llama are you interes
 
 ### WebAssembly Example
 
-`yzma` also runs in a browser. `llama.cpp` becomes a WebAssembly module, and a Go program compiled by TinyGo drives it through the [`pkg/llamawasm`](./pkg/llamawasm) package:
+`yzma` also runs in a browser, on the CPU or on the GPU with WebGPU. `llama.cpp` becomes a WebAssembly module, and a Go program compiled by TinyGo drives it through the [`pkg/llamawasm`](./pkg/llamawasm) package:
 
 ```shell
 $ make download-llama.cpp-wasm
@@ -183,11 +183,13 @@ You can use multimodal models (image/audio) and text language models with full h
 | macOS   | arm64        | Metal                           |
 | Windows | amd64        | CUDA, Vulkan, HIP, SYCL, OpenCL |
 
-A browser is also a target. There the computation uses the CPU and SIMD only, and the API is the smaller one of the [`pkg/llamawasm`](./pkg/llamawasm) package: text generation and embeddings, with no multimodal input, LoRA adapters, saved state, or quantization. See [wasm/README.md](./wasm/README.md).
+A browser is also a target. The API there is the smaller one of the [`pkg/llamawasm`](./pkg/llamawasm) package: text generation and embeddings, with no multimodal input, LoRA adapters, saved state, or quantization. See [wasm/README.md](./wasm/README.md).
 
 | Target  | CPU          | GPU  |
 | ------- | ------------ | ---- |
-| Browser | wasm32 SIMD, one or more threads | none |
+| Browser | wasm32 SIMD, one or more threads | WebGPU |
+
+The JavaScript glue takes the build that the browser can run, so a browser with no WebGPU still works on the CPU. WebGPU needs Chrome or Edge 137 and later, and an adapter with f16 shaders.
 
 Whenever there is a new release of `llama.cpp`, the tests for `yzma` are run automatically. This helps us stay up to date with the latest code and models.
 

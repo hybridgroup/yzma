@@ -222,13 +222,13 @@ yzma install --lib /path/to/lib --processor cpu --os trixie
 
 ### WebAssembly (browser)
 
-`yzma` runs in a browser with the WebAssembly build of `llama.cpp`. Both builds come down, the one with a single thread and the one with more threads, and the JavaScript glue takes the one that the page can use:
+`yzma` runs in a browser with the WebAssembly build of `llama.cpp`. All three builds come down, the one with WebGPU, the one with more threads, and the one with a single thread, and the JavaScript glue takes the one that the page can use:
 
 ```
 yzma install --lib /path/to/web --os wasm
 ```
 
-This build has no GPU, and it uses the smaller API of the [`pkg/llamawasm`](./pkg/llamawasm) package. See [wasm/README.md](./wasm/README.md).
+WebGPU needs Chrome or Edge 137 and later, and an adapter with f16 shaders; every other browser runs on the CPU. This target uses the smaller API of the [`pkg/llamawasm`](./pkg/llamawasm) package. See [wasm/README.md](./wasm/README.md).
 
 ### Windows CPU
 
