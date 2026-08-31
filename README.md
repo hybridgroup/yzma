@@ -2,7 +2,7 @@
 
 # yzma - Go with your own intelligence
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/hybridgroup/yzma.svg)](https://pkg.go.dev/github.com/hybridgroup/yzma) [![Linux](https://github.com/hybridgroup/yzma/actions/workflows/linux.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/linux.yml) [![macOS](https://github.com/hybridgroup/yzma/actions/workflows/macos.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/macos.yml) [![Windows](https://github.com/hybridgroup/yzma/actions/workflows/windows.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/windows.yml) [![GitHub Release](https://img.shields.io/github/v/release/hybridgroup/llama-cpp-builder?logo=github&logoColor=lightgray&label=llama.cpp)](https://github.com/hybridgroup/llama-cpp-builder/releases) [![Bluesky](https://img.shields.io/badge/bluesky-follow-blue?style=flat&logo=bluesky&logoColor=lightgrey)](https://bsky.app/profile/yzma.ai) [![Mastodon](https://img.shields.io/badge/mastodon-follow-blue?style=flat&logo=mastodon&logoColor=lightgrey)](https://mastodon.social/@yzma_ai)
+[![Go Reference](https://pkg.go.dev/badge/github.com/hybridgroup/yzma.svg)](https://pkg.go.dev/github.com/hybridgroup/yzma) [![Linux](https://github.com/hybridgroup/yzma/actions/workflows/linux.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/linux.yml) [![macOS](https://github.com/hybridgroup/yzma/actions/workflows/macos.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/macos.yml) [![Windows](https://github.com/hybridgroup/yzma/actions/workflows/windows.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/windows.yml) [![WASM](https://github.com/hybridgroup/yzma/actions/workflows/wasm.yml/badge.svg)](https://github.com/hybridgroup/yzma/actions/workflows/wasm.yml) [![GitHub Release](https://img.shields.io/github/v/release/hybridgroup/llama-cpp-builder?logo=github&logoColor=lightgray&label=llama.cpp)](https://github.com/hybridgroup/llama-cpp-builder/releases) [![Bluesky](https://img.shields.io/badge/bluesky-follow-blue?style=flat&logo=bluesky&logoColor=lightgrey)](https://bsky.app/profile/yzma.ai) [![Mastodon](https://img.shields.io/badge/mastodon-follow-blue?style=flat&logo=mastodon&logoColor=lightgrey)](https://mastodon.social/@yzma_ai)
 
 `yzma` lets you write Go applications that directly integrate [`llama.cpp`](https://github.com/ggml-org/llama.cpp) for fully local inference using hardware acceleration.
 
@@ -177,7 +177,7 @@ Who is using `yzma`? Check out some of the [tools](./PROJECTS.md#tools-and-frame
 
 ## Models
 
-`yzma` uses models in the GGUF format supported by `llama.cpp`. There are many models in GGUF format on Hugging Face (over 199k at last count):
+`yzma` uses models in the GGUF format supported by `llama.cpp`. There are many models in GGUF format on Hugging Face (over 201k at last count):
 
 https://huggingface.co/models?library=gguf&sort=trending
 
