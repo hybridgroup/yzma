@@ -1,22 +1,16 @@
 package message
 
-import (
-	"github.com/hybridgroup/yzma/pkg/llama"
-)
-
-// StopMarkers returns the set of string markers that should halt text generation
-// when any of them appears in the accumulated output.
+// StopMarkersFor returns the set of string markers that should halt text
+// generation when any of them appears in the accumulated output.
 //
-// It combines two sources:
-//  1. The model's own EOT (end-of-turn) token text, obtained directly from the
-//     vocabulary via VocabEOT so it works for any model regardless of format.
-//  2. Format-specific role/turn-boundary tokens that signal the model has started
-//     simulating the next conversation turn (fabricated Q&A).
+// The eot argument holds the end of turn text of the model, which a caller gets
+// from the vocabulary. StopMarkers gives it for a vocabulary of the backend of
+// the build.
 //
 // The caller should stop generation and discard everything from the first
 // matching marker onwards.
-func StopMarkers(vocab llama.Vocab, format Format) []string {
-	markers := eotMarkers(vocab)
+func StopMarkersFor(eot []string, format Format) []string {
+	markers := append([]string(nil), eot...)
 
 	switch format {
 	case FormatGemma3:
@@ -69,32 +63,15 @@ func StopMarkers(vocab llama.Vocab, format Format) []string {
 	return markers
 }
 
-// eotMarkers returns a deduplicated list of strings for the model's EOT token.
-// It uses TokenToPiece (the decoded form that appears in the output stream) as
-// the primary value, with VocabGetText as a fallback, so the returned string
-// matches exactly what will appear in accumulated output chunks.
-func eotMarkers(vocab llama.Vocab) []string {
-	eot := llama.VocabEOT(vocab)
-	if eot < 0 {
-		return nil
-	}
-
-	buf := make([]byte, 64)
-	n := llama.TokenToPiece(vocab, eot, buf, 0, true)
-	piece := ""
-	if n > 0 {
-		piece = string(buf[:n])
-	}
-
-	text := llama.VocabGetText(vocab, eot)
-
+// dedupe removes the empty strings and the repeated values, and keeps the order.
+func dedupe(values []string) []string {
 	seen := map[string]bool{}
-	var markers []string
-	for _, s := range []string{piece, text} {
+	var out []string
+	for _, s := range values {
 		if s != "" && !seen[s] {
 			seen[s] = true
-			markers = append(markers, s)
+			out = append(out, s)
 		}
 	}
-	return markers
+	return out
 }

@@ -49,6 +49,7 @@ jobs:
         run: |
           make wasm-example
           make wasm-vlm-example
+          make wasm-tools-example
       - name: Cache test models
         id: cache-model
         uses: actions/cache@v4
@@ -86,5 +87,13 @@ jobs:
             --model $GITHUB_WORKSPACE/models/SmolVLM-256M-Instruct-Q8_0.gguf \
             --mmproj $GITHUB_WORKSPACE/models/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf \
             --tokens 24 --mt
+      # A model of this size makes no tool call, thus this checks the round trip
+      # only: the chat template renders, tokens come out, and the program ends.
+      - name: Call tools in Node
+        run: |
+          node wasm/node/tools.js \
+            --dir $GITHUB_WORKSPACE/$WASM_DIR \
+            --model $GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf \
+            --tokens 32
       - name: Build the examples with the standard toolchain
         run: make wasm-example-go

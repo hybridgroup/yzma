@@ -109,7 +109,8 @@ func (m Model) String() string {
 // ChatApplyTemplate puts one message into the chat format of the model.
 //
 // One message is sufficient for a prompt with a question about an image. For a
-// chat with turns, use the template that [ModelChatTemplate] gives.
+// chat with turns or for tool calling, render the template that
+// [ModelChatTemplate] gives with the template package of yzma.
 //
 // addAssistant adds the start of the turn of the assistant. This makes the model
 // answer and not continue the message.
