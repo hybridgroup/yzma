@@ -86,7 +86,6 @@ Raspberry Pi Pico / Pico 2 pin selector desktop application built with ImmyGo. B
 
 https://github.com/amken3d/Pingo
 
-
 ### unch
 
 <a href="https://github.com/uchebnick/unch" target="_blank">
@@ -112,6 +111,16 @@ https://github.com/laszukdawid/terminal-agent
 Physical AI running locally on the Arduino UNO Q like you have never seen before (and still won't until 2053).
 
 https://github.com/talkingheads2053/talkingheads
+
+### OpenOcta - AIOps Agent (ITOps AIAgent)
+
+<a href="https://github.com/openocta/openocta" target="_blank">
+<img src="https://raw.githubusercontent.com/openocta/openocta/refs/heads/main/imgs/readmePIC/QQ20260710-140337.png" width="300" alt="OpenOcta logo">
+</a>
+
+OpenOcta is a desktop IT Ops Agent for Windows / macOS.
+
+https://github.com/openocta/openocta
 
 ## Examples and Tutorials
 
