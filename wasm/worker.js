@@ -12,6 +12,10 @@
 // The worker sends back { kind, text } messages, where kind is one of ready,
 // status, progress, loaded, token, done, or error.
 
+// Emscripten starts each thread with new Worker(_scriptName), which in a
+// classic worker is this file. A thread must only load llama.cpp.
+const isThread = globalThis.name === "em-pthread";
+
 self.yzmaBase = ".";
 
 // The page can choose the backend with a query on the URL of this worker, such
@@ -22,85 +26,100 @@ if (workerQuery.get("mode")) {
   self.yzmaMode = workerQuery.get("mode");
 }
 
+// Only the build with more than one thread has threads, so a thread does not
+// need to look for a GPU.
+if (isThread) {
+  self.yzmaMode = "cpu";
+}
+
 // Which Go program to run. The chat page takes the default, and the page for a
 // model with eyes asks for its own.
 const program = workerQuery.get("program") || "yzma.wasm";
 
-// A failure with nobody to catch it must reach the page. Without this the page
-// only sees that nothing more happens.
-self.onerror = (event) => {
-  self.postMessage({ kind: "error", text: String((event && event.message) || event) });
-};
-self.onunhandledrejection = (event) => {
-  self.postMessage({ kind: "error", text: String((event && event.reason) || event) });
-};
-
 importScripts("./yzma-loader.js");
-importScripts("./wasm_exec.js");
 
-// The Go program says when it is ready by sending its first message, which is
-// the one of kind "ready". Waiting for that is the only safe way to know that
-// it has set its functions: starting the backend takes a moment with the CPU
-// and much longer with WebGPU, where it has to find an adapter and make the
-// shaders.
-let programIsReady;
-const programReady = new Promise((resolve) => {
-  programIsReady = resolve;
-});
+// A thread stops here.
+if (!isThread) {
+  run();
+}
 
-const sendToPage = self.postMessage.bind(self);
-self.postMessage = (message) => {
-  if (message && (message.kind === "ready" || message.kind === "error")) {
-    programIsReady();
-  }
-  sendToPage(message);
-};
+// run starts llama.cpp and the Go program for the page.
+function run() {
+  // A failure with nobody to catch it must reach the page. Without this the page
+  // only sees that nothing more happens.
+  self.onerror = (event) => {
+    self.postMessage({ kind: "error", text: String((event && event.message) || event) });
+  };
+  self.onunhandledrejection = (event) => {
+    self.postMessage({ kind: "error", text: String((event && event.reason) || event) });
+  };
 
-const started = (async () => {
-  // llama.cpp must be ready before the Go program calls Load.
-  await self.yzmaReady;
+  importScripts("./wasm_exec.js");
 
-  const go = new Go();
-  const result = await WebAssembly.instantiateStreaming(fetch("./" + program), go.importObject);
+  // The Go program says when it is ready by sending its first message, which is
+  // the one of kind "ready". Waiting for that is the only safe way to know that
+  // it has set its functions: starting the backend takes a moment with the CPU
+  // and much longer with WebGPU, where it has to find an adapter and make the
+  // shaders.
+  let programIsReady;
+  const programReady = new Promise((resolve) => {
+    programIsReady = resolve;
+  });
 
-  // The Go program blocks at the end of main, so it keeps running and the page
-  // can call into it. Do not wait for this promise.
-  go.run(result.instance);
-
-  await programReady;
-
-  if (typeof self.yzmaLoadModel !== "function") {
-    throw new Error("the Go program did not set its functions");
-  }
-})();
-
-self.onmessage = async (event) => {
-  const message = event.data || {};
-
-  try {
-    await started;
-
-    switch (message.kind) {
-      case "load":
-        self.yzmaLoadModel(message.url, message.projector || "");
-        break;
-      case "generate":
-        self.yzmaGenerate(message.prompt, message.maxTokens || 128);
-        break;
-      case "describe":
-        // The image comes as RGBA from a canvas of the page.
-        self.yzmaDescribe(
-          message.prompt,
-          message.width,
-          message.height,
-          new Uint8Array(message.rgba),
-          message.maxTokens || 128,
-        );
-        break;
-      default:
-        self.postMessage({ kind: "error", text: "unknown message: " + message.kind });
+  const sendToPage = self.postMessage.bind(self);
+  self.postMessage = (message) => {
+    if (message && (message.kind === "ready" || message.kind === "error")) {
+      programIsReady();
     }
-  } catch (err) {
-    self.postMessage({ kind: "error", text: String(err) });
-  }
-};
+    sendToPage(message);
+  };
+
+  const started = (async () => {
+    // llama.cpp must be ready before the Go program calls Load.
+    await self.yzmaReady;
+
+    const go = new Go();
+    const result = await WebAssembly.instantiateStreaming(fetch("./" + program), go.importObject);
+
+    // The Go program blocks at the end of main, so it keeps running and the page
+    // can call into it. Do not wait for this promise.
+    go.run(result.instance);
+
+    await programReady;
+
+    if (typeof self.yzmaLoadModel !== "function") {
+      throw new Error("the Go program did not set its functions");
+    }
+  })();
+
+  self.onmessage = async (event) => {
+    const message = event.data || {};
+
+    try {
+      await started;
+
+      switch (message.kind) {
+        case "load":
+          self.yzmaLoadModel(message.url, message.projector || "");
+          break;
+        case "generate":
+          self.yzmaGenerate(message.prompt, message.maxTokens || 128);
+          break;
+        case "describe":
+          // The image comes as RGBA from a canvas of the page.
+          self.yzmaDescribe(
+            message.prompt,
+            message.width,
+            message.height,
+            new Uint8Array(message.rgba),
+            message.maxTokens || 128,
+          );
+          break;
+        default:
+          self.postMessage({ kind: "error", text: "unknown message: " + message.kind });
+      }
+    } catch (err) {
+      self.postMessage({ kind: "error", text: String(err) });
+    }
+  };
+}
