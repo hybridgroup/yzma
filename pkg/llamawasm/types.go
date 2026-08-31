@@ -3,8 +3,8 @@
 package llamawasm
 
 // The shim gives each object of llama.cpp a small int32 handle. A handle of 0
-// is never valid. The Go code never holds an address inside the llama.cpp
-// module, so the module is free to move or grow its memory.
+// is never valid. The Go code holds no address in the llama.cpp module, thus
+// the module can move or increase its memory.
 type (
 	// Token is one token of a vocabulary.
 	Token int32
@@ -49,7 +49,7 @@ type ModelParams struct {
 	// NGpuLayers is the number of layers to put on the GPU. A value larger than
 	// the number of layers of the model puts them all there.
 	//
-	// It does nothing in a build for the CPU. Test [GPUDevice] first: it is
+	// A CPU build ignores this value. Examine [GPUDevice] first, because it is
 	// empty when llama.cpp has no GPU.
 	NGpuLayers int32
 }
@@ -75,9 +75,9 @@ type ContextParams struct {
 // ContextDefaultParams gives the parameters that a context uses if the program
 // changes nothing.
 //
-// NThreads comes from [Threads], the number that the module can use. Leaving it
-// at 0 would give the four threads that llama.cpp asks for whatever the machine
-// has, which is slower on a machine with more.
+// NThreads comes from [Threads], which is the number that the module can use. A
+// value of 0 gives the four threads of llama.cpp, which is slow on a machine
+// with more cores.
 func ContextDefaultParams() ContextParams {
 	return ContextParams{
 		NCtx:        0,

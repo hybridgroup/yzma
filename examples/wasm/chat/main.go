@@ -2,19 +2,19 @@
 
 // Chat runs llama.cpp inference in a browser.
 //
-// The program is the same shape as examples/hello, but it uses the llamawasm
-// package instead of the llama package, and it sends each piece of text to the
-// page instead of printing it.
+// The program has the same structure as examples/hello. It uses the llamawasm
+// package in place of the llama package, and it sends each piece of text to the
+// page in place of a print.
 //
-// Build it with TinyGo:
+// Build it with TinyGo.
 //
 //	tinygo build -target wasm -o build/wasm/yzma.wasm ./examples/wasm/chat
 //
-// or with the standard toolchain:
+// Or build it with the standard toolchain.
 //
 //	GOOS=js GOARCH=wasm go build -o build/wasm/yzma.wasm ./examples/wasm/chat
 //
-// See wasm/README.md for how to serve the result.
+// See wasm/README.md for the method to serve the result.
 package main
 
 import (
@@ -82,7 +82,7 @@ func loadModel(this js.Value, args []js.Value) any {
 }
 
 // openModel(path) loads a model that is already in the filesystem of the
-// llama.cpp module. A test that has the file puts it there itself.
+// llama.cpp module. A test puts the file there itself.
 func openModel(this js.Value, args []js.Value) any {
 	path := modelPath
 	if len(args) > 0 && args[0].Truthy() {
@@ -100,8 +100,8 @@ func open(path string) {
 
 	params := llamawasm.ModelDefaultParams()
 
-	// A build with WebGPU has a device, so put every layer on it. A build on the
-	// CPU has none, and the value does nothing there.
+	// A WebGPU build has a device, thus put each layer on it. A CPU build has no
+	// device and ignores this value.
 	if llamawasm.GPUDevice() != "" {
 		params.NGpuLayers = 999
 	}
@@ -126,7 +126,7 @@ func open(path string) {
 	post("loaded", llamawasm.ModelDesc(model)+", "+backendReport())
 }
 
-// backendReport says what does the computation.
+// backendReport gives the name of the backend that computes.
 func backendReport() string {
 	if device := llamawasm.GPUDevice(); device != "" {
 		return fmt.Sprintf("backend: %s (%s)", llamawasm.Backend(), device)
@@ -207,8 +207,8 @@ func generate(this js.Value, args []js.Value) any {
 	return nil
 }
 
-// post sends a message to whatever holds this module. In a worker that is the
-// page, and in Node it is the console.
+// post sends a message to the container of this module. In a worker that is
+// the page, and in Node it is the console.
 func post(kind, text string) {
 	message := map[string]any{"kind": kind, "text": text}
 

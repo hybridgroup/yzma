@@ -10,9 +10,9 @@ import (
 	"syscall/js"
 )
 
-// The llama.cpp module has its own filesystem in memory, and llama.cpp opens
-// the model as an ordinary file in it. A program must therefore put the file
-// there before ModelLoadFromFile.
+// The llama.cpp module has its own filesystem in memory and opens the model as
+// a usual file in it. Thus a program must put the file there before
+// ModelLoadFromFile.
 
 // WriteModelFile writes data to name in the filesystem of the llama.cpp
 // module. It makes the directories of the path that are not there.
@@ -32,8 +32,8 @@ func WriteModelFile(name string, data []byte) error {
 	return err
 }
 
-// RemoveModelFile removes name from the filesystem of the llama.cpp module,
-// which gives the memory of the file back.
+// RemoveModelFile removes name from the filesystem of the llama.cpp module and
+// releases the memory of the file.
 func RemoveModelFile(name string) error {
 	fs, err := filesystem()
 	if err != nil {
@@ -57,8 +57,8 @@ func filesystem() (js.Value, error) {
 }
 
 // makeDir makes the directories of the path of name. The filesystem of the
-// module starts with almost nothing in it, so a path such as
-// /models/model.gguf needs its directory first.
+// module is almost empty at the start, thus a path such as /models/model.gguf
+// needs its directory first.
 func makeDir(fs js.Value, name string) error {
 	dir := path.Dir(name)
 	if dir == "." || dir == "/" || dir == "" {
@@ -74,9 +74,9 @@ func makeDir(fs js.Value, name string) error {
 	return nil
 }
 
-// fsCall calls a function of the filesystem of the module and turns a
-// JavaScript exception into an error. A call that fails throws, and a throw in
-// a call from Go is a panic, which would stop the program.
+// fsCall calls a function of the filesystem of the module and changes a
+// JavaScript exception into an error. A failed call throws, and a throw in a
+// call from Go is a panic that stops the program.
 func fsCall(fs js.Value, name string, args ...any) (result js.Value, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -91,14 +91,15 @@ func fsCall(fs js.Value, name string, args ...any) (result js.Value, err error) 
 // filesystem of the llama.cpp module. It makes the directories of the path that
 // are not there.
 //
-// The body of the response goes into the file piece by piece, so the memory
-// that this needs stays near the size of the model and not twice that size.
-// The progress function, if it is not nil, is called with the number of bytes
-// so far and the total number of bytes. The total is 0 if the server does not
-// give a length.
+// The body of the response goes into the file in small parts. Thus the memory
+// stays near the size of the model and not two times that size.
 //
-// One JavaScript ArrayBuffer holds at most 2 GB, so a larger model must be in
-// splits.
+// If the progress function is not nil, it receives the number of bytes to this
+// point and the total number of bytes. The total is 0 if the server gives no
+// length.
+//
+// One JavaScript ArrayBuffer holds a maximum of 2 GB, thus a larger model must
+// be in splits.
 func FetchModelFile(name, url string, progress func(done, total int64)) error {
 	fs, err := filesystem()
 	if err != nil {
@@ -147,8 +148,8 @@ func FetchModelFile(name, url string, progress func(done, total int64)) error {
 		value := chunk.Get("value")
 		n := value.Get("length").Int()
 
-		// FS.write takes the position in the file, so the whole model never
-		// needs to be in memory at one time.
+		// FS.write takes the position in the file, thus the full model is never
+		// in memory at one time.
 		if _, err := fsCall(fs, "write", stream, value, 0, n, done); err != nil {
 			return err
 		}
@@ -162,9 +163,9 @@ func FetchModelFile(name, url string, progress func(done, total int64)) error {
 	return nil
 }
 
-// ReleaseScratch gives the scratch memory of this package back to the
-// llama.cpp module. The next call takes it again, so this is only useful after
-// the last inference.
+// ReleaseScratch returns the scratch memory of this package to the llama.cpp
+// module. The next call takes it again, thus use this only after the last
+// inference.
 func ReleaseScratch() {
 	if !Loaded() {
 		return

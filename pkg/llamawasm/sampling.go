@@ -12,9 +12,9 @@ func SamplerChainInit(params SamplerChainParams) Sampler {
 
 // SamplerChainAdd puts a sampler at the end of a chain.
 //
-// The chain then owns the sampler, so the handle of the sampler is no longer
-// valid and SamplerFree of that handle does nothing. Freeing the chain frees
-// every sampler in it.
+// The chain then owns the sampler. Thus the handle of the sampler is no longer
+// valid and SamplerFree of that handle has no result. When you free the chain,
+// you free each sampler in it.
 func SamplerChainAdd(chain Sampler, smpl Sampler) {
 	if !Loaded() {
 		return
@@ -74,8 +74,8 @@ func SamplerSample(smpl Sampler, ctx Context, idx int32) Token {
 	return Token(call("_yzma_sampler_sample", int(smpl), int(ctx), int(idx)))
 }
 
-// SamplerAccept tells the sampler which token the program took, which the
-// samplers that look at the tokens that came before need.
+// SamplerAccept gives the sampler the token that the program selected. The
+// samplers that examine the previous tokens need this.
 func SamplerAccept(smpl Sampler, token Token) {
 	if !Loaded() {
 		return

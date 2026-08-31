@@ -19,8 +19,8 @@ func Tokenize(vocab Vocab, text string, addSpecial bool, parseSpecial bool) []To
 	}
 	writeString(textPtr, text)
 
-	// One token holds at least one byte of text, so the number of bytes plus
-	// room for the special tokens is always enough.
+	// One token holds a minimum of one byte of text. Thus the number of bytes
+	// with space for the special tokens is always sufficient.
 	max := len(text) + 8
 
 	for {
@@ -47,8 +47,8 @@ func Tokenize(vocab Vocab, text string, addSpecial bool, parseSpecial bool) []To
 
 // Detokenize turns tokens back into text.
 //
-// The shim has no call for this, so the text comes from TokenToPiece of each
-// token, which is what a generation loop does.
+// The shim has no call for this. Thus the text comes from TokenToPiece of each
+// token, which is the method that a generation loop uses.
 func Detokenize(vocab Vocab, tokens []Token, removeSpecial bool, unparseSpecial bool) string {
 	if !Loaded() {
 		return ""

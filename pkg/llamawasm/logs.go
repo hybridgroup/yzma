@@ -2,10 +2,10 @@
 
 package llamawasm
 
-// The llama.cpp module cannot take a Go function as its log callback, so the
-// shim holds the callback and this package only sets how much it prints. The
-// values below stand in for the function pointer that llama.LogSet takes, so
-// that the same program builds for both.
+// The llama.cpp module cannot use a Go function as its log callback. Thus the
+// shim holds the callback and this package only sets the quantity of output.
+// The values below replace the function pointer of llama.LogSet, thus the same
+// program builds for both.
 const (
 	// LogNormal lets llama.cpp print its messages to the console.
 	LogNormal uintptr = 0

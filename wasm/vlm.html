@@ -75,8 +75,8 @@
       const askButton = document.getElementById("ask");
       const preview = document.getElementById("preview");
 
-      // The largest side of the image that goes to the model. A projector works
-      // on a small image of its own anyway, so sending more only costs memory.
+      // The maximum side of the image that goes to the model. A projector uses
+      // a small image, thus a larger image only uses more memory.
       const maxSide = 896;
 
       let picture = null;
@@ -108,7 +108,7 @@
         }
       };
 
-      // Turn the file the reader picked into RGBA pixels.
+      // Change the file that the reader selected into RGBA pixels.
       document.getElementById("file").onchange = async (event) => {
         const file = event.target.files[0];
         if (!file) {
@@ -154,7 +154,7 @@
         output.textContent = "";
         status.textContent = "asking";
 
-        // The pixels go over as a copy of their buffer.
+        // The pixels go to the worker as a copy of their buffer.
         const rgba = picture.rgba.slice().buffer;
         worker.postMessage(
           {
