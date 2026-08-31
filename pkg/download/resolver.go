@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 
 	getter "github.com/hashicorp/go-getter"
 )
@@ -41,6 +42,26 @@ func (f ResolverFunc) Resolve(target Target) ([]string, error) { return f(target
 // DefaultResolver resolves the assets published on the llama.cpp and llama-cpp-builder
 // release pages. [Install] uses it when no resolver is given.
 var DefaultResolver Resolver = ResolverFunc(defaultResolve)
+
+// rocmRenameBuild is the first llama.cpp nightly build that names its ROCm assets
+// after the ROCm version on both platforms. Builds before it publish
+// "ubuntu-rocm-7.2-x64.tar.gz" and "win-hip-radeon-x64.zip"; b10356 and newer
+// publish "ubuntu-rocm-7.14-x64.tar.gz" and "win-rocm-7.14-x64.zip".
+const rocmRenameBuild = 10356
+
+// legacyROCmNames tells whether tag is a nightly build old enough to carry the ROCm
+// asset names used before [rocmRenameBuild]. A tag that is not a nightly build, such
+// as a tagged release resolved without its upstream build, takes the current names.
+func legacyROCmNames(tag string) bool {
+	if !nightlyPattern.MatchString(tag) {
+		return false
+	}
+	build, err := strconv.Atoi(tag[1:])
+	if err != nil {
+		return false
+	}
+	return build < rocmRenameBuild
+}
 
 // defaultResolve is the built-in platform table.
 func defaultResolve(target Target) ([]string, error) {
@@ -88,7 +109,11 @@ func defaultResolve(target Target) ([]string, error) {
 			if arch != AMD64 {
 				return nil, errors.New("precompiled binaries for Linux ARM64 ROCm are not available")
 			}
-			filename = fmt.Sprintf("llama-%s-bin-ubuntu-rocm-7.2-x64.tar.gz", tag)
+			if legacyROCmNames(tag) {
+				filename = fmt.Sprintf("llama-%s-bin-ubuntu-rocm-7.2-x64.tar.gz", tag)
+				break
+			}
+			filename = fmt.Sprintf("llama-%s-bin-ubuntu-rocm-7.14-x64.tar.gz", tag)
 		default:
 			return nil, ErrUnknownProcessor
 		}
@@ -197,7 +222,11 @@ func defaultResolve(target Target) ([]string, error) {
 			if arch != AMD64 {
 				return nil, errors.New("precompiled binaries for Windows ARM64 ROCm are not available")
 			}
-			filename = fmt.Sprintf("llama-%s-bin-win-hip-radeon-x64.zip", tag)
+			if legacyROCmNames(tag) {
+				filename = fmt.Sprintf("llama-%s-bin-win-hip-radeon-x64.zip", tag)
+				break
+			}
+			filename = fmt.Sprintf("llama-%s-bin-win-rocm-7.14-x64.zip", tag)
 		default:
 			return nil, ErrUnknownProcessor
 		}
