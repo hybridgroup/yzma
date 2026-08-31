@@ -334,3 +334,50 @@ func TestInstallDefaultVersionDoesNotFallBack(t *testing.T) {
 		t.Fatalf("Install() error = %v, want %v", err, ErrFileNotFound)
 	}
 }
+
+// llama.cpp renamed its ROCm assets at build b10356, so resolution has to follow the
+// naming that the requested build actually published.
+func TestDefaultResolverROCmNaming(t *testing.T) {
+	tests := []struct {
+		name    string
+		os      OS
+		version string
+		want    string
+	}{
+		{"linux before the rename", Linux, "b10355", "llama-b10355-bin-ubuntu-rocm-7.2-x64.tar.gz"},
+		{"linux at the rename", Linux, "b10356", "llama-b10356-bin-ubuntu-rocm-7.14-x64.tar.gz"},
+		{"linux after the rename", Linux, "b10705", "llama-b10705-bin-ubuntu-rocm-7.14-x64.tar.gz"},
+		{"windows before the rename", Windows, "b10355", "llama-b10355-bin-win-hip-radeon-x64.zip"},
+		{"windows at the rename", Windows, "b10356", "llama-b10356-bin-win-rocm-7.14-x64.zip"},
+		{"windows after the rename", Windows, "b10705", "llama-b10705-bin-win-rocm-7.14-x64.zip"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			urls, err := DefaultResolver.Resolve(Target{
+				Arch: AMD64, OS: tt.os, Processor: ROCm, Version: tt.version,
+			})
+			if err != nil {
+				t.Fatalf("Resolve() failed: %v", err)
+			}
+			want := "https://github.com/ggml-org/llama.cpp/releases/download/" + tt.version + "/" + tt.want
+			if len(urls) != 1 || urls[0] != want {
+				t.Fatalf("Resolve() = %v, want [%s]", urls, want)
+			}
+		})
+	}
+}
+
+// A tagged release carries its binaries under a nightly build tag, so that tag, not
+// the release name, decides the ROCm asset names.
+func TestDefaultResolverROCmTaggedRelease(t *testing.T) {
+	urls, err := DefaultResolver.Resolve(Target{
+		Arch: AMD64, OS: Linux, Processor: ROCm, Version: "v0.3.0", UpstreamVersion: "b10355",
+	})
+	if err != nil {
+		t.Fatalf("Resolve() failed: %v", err)
+	}
+	want := "https://github.com/ggml-org/llama.cpp/releases/download/b10355/llama-b10355-bin-ubuntu-rocm-7.2-x64.tar.gz"
+	if len(urls) != 1 || urls[0] != want {
+		t.Fatalf("Resolve() = %v, want [%s]", urls, want)
+	}
+}

@@ -47,6 +47,12 @@ test:
 	export YZMA_TEST_SPLIT_MODELS="$(MODELS_DIR)/stories15M-q8_0-00001-of-00003.gguf,$(MODELS_DIR)/stories15M-q8_0-00002-of-00003.gguf,$(MODELS_DIR)/stories15M-q8_0-00003-of-00003.gguf" && \
 	go test -count=1 ./...
 
+# make test-manifest to check the download resolver against a real llama.cpp release,
+# which catches upstream asset renames. It talks to the GitHub API, so it is not part
+# of `make test`. Set YZMA_TEST_LLAMA_TAG to check a build other than the newest one.
+test-manifest:
+	go test -count=1 -tags manifest -run TestDefaultResolverMatchesRelease ./pkg/download/
+
 # make wasm-example to build the browser example with TinyGo. Run
 # make download-llama.cpp-wasm first to get the WebAssembly build of llama.cpp.
 wasm-example: wasm-assets
