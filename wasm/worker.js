@@ -7,9 +7,10 @@
 //
 //   { kind: "load", url: "<model URL>" }
 //   { kind: "generate", prompt: "<text>", maxTokens: 128 }
+//   { kind: "ask", question: "<text>", maxTokens: 256 }
 //
 // The worker sends back { kind, text } messages, where kind is one of ready,
-// status, progress, loaded, token, done, or error.
+// status, progress, loaded, token, tool, result, answer, done, or error.
 
 // Emscripten starts each thread with new Worker(_scriptName), which in a
 // classic worker is this file. A thread must only load llama.cpp.
@@ -99,6 +100,11 @@ function run() {
           break;
         case "generate":
           self.yzmaGenerate(message.prompt, message.maxTokens || 128);
+          break;
+        case "ask":
+          // The tools page sends a question, not a prompt. The Go program
+          // renders the chat template of the model itself.
+          self.yzmaAsk(message.question, message.maxTokens || 256);
           break;
         case "describe":
           // The image comes as RGBA from a canvas of the page.

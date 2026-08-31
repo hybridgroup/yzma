@@ -39,9 +39,11 @@ for each token, as in the `examples/hello` program.
 | `worker.js` | Runs llama.cpp and the Go program in a Web Worker and sends each piece of text to the page. |
 | `index.html` | A page that loads a model and makes text. |
 | `vlm.html` | A page that asks a question about an image. |
+| `tools.html` | A page where the model calls tools. |
 | `serve/main.go` | A static server that sets the headers for a build with more than one thread. |
 | `node/run.js` | Runs the same build in Node with no browser. CI uses this test. |
 | `node/vlm.js` | The same test for an image model. It makes its own pixels, because Node has no canvas. |
+| `node/tools.js` | The same test for tool calling. |
 
 ## Build and run
 
@@ -52,13 +54,15 @@ make download-llama.cpp-wasm
 # build the programs with TinyGo
 make wasm-example
 make wasm-vlm-example
+make wasm-tools-example
 
 # serve them
 make serve-wasm
 ```
 
-Then <http://localhost:8080> is the chat page and
-<http://localhost:8080/vlm.html> is the page that takes an image.
+Then <http://localhost:8080> is the chat page,
+<http://localhost:8080/vlm.html> is the page that takes an image, and
+<http://localhost:8080/tools.html> is the page where the model calls tools.
 
 Add `?mode=cpu` or `?mode=webgpu` to the URL of a page to select the backend
 yourself.
@@ -258,6 +262,40 @@ the CORS headers. Hugging Face sends them, thus the model in `index.html` comes
 down without a change. A model on a host with no CORS headers needs a copy on
 the origin of the page.
 
+## Tool calling
+
+`tools.html` and `examples/wasm/tools` let the model call a function. The
+`pkg/template` and `pkg/message` packages are pure Go, thus they build for
+WebAssembly and the browser gets the same tool calling as the host.
+
+`llamawasm.ModelChatTemplate` gives the template that the GGUF holds.
+`template.ApplyWithTools` renders it with the whole conversation and the tool
+definitions, so a template that has a `tools` branch writes the tools itself.
+
+```go
+tmpl := llamawasm.ModelChatTemplate(model, "")
+prompt, err := template.ApplyWithTools(tmpl, messages, tools, true)
+```
+
+`message.ParseToolCalls` reads the calls out of the answer. The program runs
+them, appends a `message.Tool` and a `message.ToolResponse`, and renders again
+for the final answer.
+
+A model must be trained for tool calls to make one. Qwen2.5-0.5B-Instruct is
+about the smallest that works. `make test-wasm-tools` uses a smaller model and
+checks the round trip only, because that model makes no call. Add
+`--expect-tool get_weather` to require one.
+
+`llamawasm.ChatApplyTemplate` takes one message only. Use `pkg/template` for a
+conversation with turns.
+
+### Stop markers
+
+`message.StopMarkers` cuts the text where a model starts to write the next turn.
+The shim has no call for the end of turn token, thus the WebAssembly build takes
+the text of the end of sequence token and probes a short list of the usual
+markers. The host build reads the token itself.
+
 ## Limits
 
 - WebGPU needs Chrome or Edge 137 or later, and an adapter with f16 shaders. All
@@ -270,3 +308,6 @@ the origin of the page.
   in splits.
 - `pkg/llamawasm` has the calls for text generation, embeddings, and images. It
   does not have audio, video, LoRA adapters, saved state, or quantization.
+- The shim gives no end of turn token and no grammar sampler. Thus
+  `message.StopMarkers` approximates, and a tool call cannot be forced by a
+  grammar as it can on a host.

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>yzma: tool calling in WebAssembly</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0 auto;
+        max-width: 46rem;
+        padding: 1.5rem;
+        line-height: 1.5;
+      }
+      label { display: block; margin-top: 1rem; font-weight: 600; }
+      input, textarea, button { font: inherit; width: 100%; box-sizing: border-box; }
+      input, textarea { padding: 0.4rem; }
+      button { margin-top: 0.75rem; padding: 0.5rem; cursor: pointer; }
+      #status { margin-top: 1rem; color: #555; }
+      #trace { margin-top: 1rem; }
+      .step {
+        margin-bottom: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        border-left: 3px solid #ccc;
+        white-space: pre-wrap;
+        font-family: ui-monospace, monospace;
+        font-size: 0.9rem;
+        background: #fafafa;
+      }
+      .step.tool { border-color: #b8860b; }
+      .step.result { border-color: #2e8b57; }
+      .step .kind { display: block; font-weight: 600; color: #555; }
+      #output {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        min-height: 6rem;
+        white-space: pre-wrap;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background: #fafafa;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Tool calling, in WebAssembly</h1>
+    <p>
+      llama.cpp runs as a WebAssembly module. The program that drives it is Go,
+      compiled by TinyGo, through the <code>pkg/llamawasm</code> package of yzma.
+      The <code>pkg/template</code> package renders the chat template of the
+      model and offers it the tools, and <code>pkg/message</code> parses the tool
+      calls that come back. The page runs no model logic itself.
+    </p>
+    <p>
+      Two tools are available. <code>get_weather</code> gives the weather of a
+      city, and <code>calculate</code> does arithmetic on two numbers. Both
+      answer from their arguments alone.
+    </p>
+    <p id="backend">looking for a backend</p>
+
+    <label for="model">Model URL (GGUF)</label>
+    <input
+      id="model"
+      value="https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q8_0.gguf"
+    />
+    <button id="load">Load the model</button>
+
+    <label for="question">Question</label>
+    <textarea id="question" rows="2">What is the weather in Paris?</textarea>
+    <button id="ask" disabled>Ask</button>
+
+    <p>
+      A model must be trained for tool calls to make one. A small chat model
+      answers in plain text instead, which the page shows as the answer.
+    </p>
+
+    <div id="status">starting</div>
+    <div id="trace"></div>
+    <div id="output"></div>
+
+    <script>
+      const status = document.getElementById("status");
+      const output = document.getElementById("output");
+      const trace = document.getElementById("trace");
+      const askButton = document.getElementById("ask");
+
+      const mode = new URLSearchParams(location.search).get("mode");
+      const worker = new Worker(
+        "./worker.js?program=yzma-tools.wasm" + (mode ? "&mode=" + encodeURIComponent(mode) : ""),
+      );
+
+      // step adds one line of the round trip, so a reader sees each tool call
+      // and its result apart from the text of the model.
+      function step(kind, label, text) {
+        const box = document.createElement("div");
+        box.className = "step " + kind;
+
+        const name = document.createElement("span");
+        name.className = "kind";
+        name.textContent = label;
+
+        box.appendChild(name);
+        box.appendChild(document.createTextNode(text));
+        trace.appendChild(box);
+      }
+
+      worker.onmessage = (event) => {
+        const { kind, text } = event.data || {};
+        switch (kind) {
+          case "ready":
+            document.getElementById("backend").textContent = text;
+            status.textContent = "ready";
+            break;
+          case "loaded":
+            status.textContent = "model loaded: " + text;
+            askButton.disabled = false;
+            break;
+          case "token":
+            output.textContent += text;
+            break;
+          case "tool":
+            step("tool", "the model calls", text);
+            output.textContent = "";
+            break;
+          case "result":
+            step("result", "the tool answers", text);
+            break;
+          case "answer":
+            output.textContent = text;
+            break;
+          case "done":
+            status.textContent = text;
+            askButton.disabled = false;
+            break;
+          case "error":
+            status.textContent = "error: " + text;
+            askButton.disabled = false;
+            break;
+          default:
+            status.textContent = kind + ": " + text;
+        }
+      };
+
+      document.getElementById("load").onclick = () => {
+        status.textContent = "loading";
+        askButton.disabled = true;
+        worker.postMessage({ kind: "load", url: document.getElementById("model").value });
+      };
+
+      askButton.onclick = () => {
+        output.textContent = "";
+        trace.textContent = "";
+        status.textContent = "asking";
+        askButton.disabled = true;
+
+        worker.postMessage({
+          kind: "ask",
+          question: document.getElementById("question").value,
+          maxTokens: 256,
+        });
+      };
+    </script>
+  </body>
+</html>

@@ -73,6 +73,15 @@
 // Images only. Audio needs the page to decode and resample the samples, and
 // video needs ffmpeg in a subprocess.
 //
+// # Chat templates and tool calling
+//
+// [ModelChatTemplate] gives the template that the GGUF holds. The template and
+// message packages of yzma are pure Go, thus they render a conversation with
+// turns and parse the tool calls that come back. See examples/wasm/tools.
+//
+// [ChatApplyTemplate] takes one message only, which is sufficient for a
+// question about an image.
+//
 // # Limits
 //
 // A CPU build uses SIMD. WebGPU needs Chrome or Edge 137 or later, because the
@@ -84,4 +93,7 @@
 //
 // The package has the calls that text generation, embeddings, and images need.
 // It does not have audio, video, LoRA adapters, saved state, or quantization.
+//
+// The shim gives no end of turn token and no grammar sampler. Thus StopMarkers
+// of the message package approximates, and a grammar cannot force a tool call.
 package llamawasm

@@ -2,6 +2,7 @@ package template
 
 import (
 	"embed"
+	"encoding/json"
 	"strings"
 
 	"github.com/ardanlabs/jinja"
@@ -30,6 +31,10 @@ type Options struct {
 	// directly. Models whose templates do not use this variable ignore it.
 	// Defaults to true (thinking enabled) so existing callers are unaffected.
 	EnableThinking bool
+
+	// Tools are the tool definitions offered to the model. When empty the tools
+	// variable stays undefined, thus a template takes its plain path.
+	Tools []message.ToolDefinition
 }
 
 // DefaultOptions returns Options with all fields set to their defaults.
@@ -65,9 +70,45 @@ func ApplyWithOptions(tmpl string, messages []message.Message, addAssistantPromp
 		msgs[i] = msg
 	}
 
-	return t.Render(map[string]any{
+	vars := map[string]any{
 		"messages":              msgs,
 		"add_generation_prompt": addAssistantPrompt,
 		"enable_thinking":       opts.EnableThinking,
-	})
+	}
+
+	if len(opts.Tools) > 0 {
+		tools, err := toolsContext(opts.Tools)
+		if err != nil {
+			return "", err
+		}
+		vars["tools"] = tools
+	}
+
+	return t.Render(vars)
+}
+
+// ApplyWithTools applies a jinja chat template and offers the tool definitions
+// to it. A template that has no tools branch ignores them.
+func ApplyWithTools(tmpl string, messages []message.Message, tools []message.ToolDefinition, addAssistantPrompt bool) (string, error) {
+	opts := DefaultOptions()
+	opts.Tools = tools
+
+	return ApplyWithOptions(tmpl, messages, addAssistantPrompt, opts)
+}
+
+// toolsContext turns the tool definitions into the plain values that a template
+// needs. It goes through JSON, thus tojson gives the form that the templates of
+// the models expect.
+func toolsContext(tools []message.ToolDefinition) ([]any, error) {
+	raw, err := json.Marshal(tools)
+	if err != nil {
+		return nil, err
+	}
+
+	var out []any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }

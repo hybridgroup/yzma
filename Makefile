@@ -64,11 +64,17 @@ wasm-vlm-example: wasm-assets
 	tinygo build -target wasm -o $(WASM_DIR)/yzma-vlm.wasm ./examples/wasm/vlm
 	cp "$(shell tinygo env TINYGOROOT)/targets/wasm_exec.js" $(WASM_DIR)/
 
+# make wasm-tools-example to build the browser example that calls tools.
+wasm-tools-example: wasm-assets
+	tinygo build -target wasm -o $(WASM_DIR)/yzma-tools.wasm ./examples/wasm/tools
+	cp "$(shell tinygo env TINYGOROOT)/targets/wasm_exec.js" $(WASM_DIR)/
+
 # make wasm-example-go to build the same examples with the standard toolchain.
 # The binaries are larger, which helps when TinyGo cannot build a dependency.
 wasm-example-go: wasm-assets
 	GOOS=js GOARCH=wasm go build -o $(WASM_DIR)/yzma.wasm ./examples/wasm/chat
 	GOOS=js GOARCH=wasm go build -o $(WASM_DIR)/yzma-vlm.wasm ./examples/wasm/vlm
+	GOOS=js GOARCH=wasm go build -o $(WASM_DIR)/yzma-tools.wasm ./examples/wasm/tools
 	cp "$(shell go env GOROOT)/lib/wasm/wasm_exec.js" $(WASM_DIR)/
 
 # wasm-assets copies the JavaScript glue and the page into the build directory.
@@ -76,7 +82,7 @@ wasm-example-go: wasm-assets
 # program copies the correct one.
 wasm-assets:
 	mkdir -p $(WASM_DIR)
-	cp wasm/yzma-loader.js wasm/worker.js wasm/index.html wasm/vlm.html $(WASM_DIR)/
+	cp wasm/yzma-loader.js wasm/worker.js wasm/index.html wasm/vlm.html wasm/tools.html $(WASM_DIR)/
 
 # make download-llama.cpp-wasm to get the WebAssembly build of llama.cpp.
 download-llama.cpp-wasm:
@@ -93,7 +99,9 @@ serve-wasm:
 vet-wasm:
 	GOOS=js GOARCH=wasm go build -o /dev/null ./examples/wasm/chat
 	GOOS=js GOARCH=wasm go build -o /dev/null ./examples/wasm/vlm
-	GOOS=js GOARCH=wasm go vet ./pkg/llamawasm ./examples/wasm/chat ./examples/wasm/vlm
+	GOOS=js GOARCH=wasm go build -o /dev/null ./examples/wasm/tools
+	GOOS=js GOARCH=wasm go vet ./pkg/llamawasm ./pkg/message ./pkg/template \
+		./examples/wasm/chat ./examples/wasm/vlm ./examples/wasm/tools
 
 # make test-wasm to run the WebAssembly build in Node, with no browser.
 test-wasm:
@@ -120,6 +128,14 @@ test-wasm-vlm:
 		--model $(MODELS_DIR)/SmolVLM-256M-Instruct-Q8_0.gguf \
 		--mmproj $(MODELS_DIR)/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf \
 		--tokens 24 --mt
+
+# make test-wasm-tools to call a tool in Node, with no browser.
+#
+# The default only checks the round trip, because a small model does not make a
+# tool call. Add --expect-tool get_weather with a model that is trained for it,
+# for example Qwen2.5-0.5B-Instruct.
+test-wasm-tools:
+	node wasm/node/tools.js --dir $(WASM_DIR) --model $(MODELS_DIR)/SmolLM-135M.Q2_K.gguf --tokens 32
 
 clean-wasm:
 	rm -rf $(WASM_DIR)
