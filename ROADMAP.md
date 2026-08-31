@@ -2,292 +2,336 @@
 
 `yzma` currently has support for over 96% of `llama.cpp` functionality.
 
-This is a list of all functions exposed by `llama.cpp` and the current state of the associated `yzma` wrapper.
+This is a list of all functions exposed by `llama.cpp` and the current state of
+the associated `yzma` wrapper. The WebAssembly column gives the state of the same
+function in a browser, which the [WebAssembly support](#webassembly-support)
+section at the end explains.
 
 ## Completed wrappers
 
 ### Backend Functions
-- [x] `llama_backend_free`
-- [x] `llama_backend_init`
-- [x] `llama_flash_attn_type_name`
-- [x] `llama_ftype_name`
-- [x] `llama_load_mode_from_str`
-- [x] `llama_load_mode_name`
-- [x] `llama_max_devices`
-- [x] `llama_max_parallel_sequences`
-- [x] `llama_max_tensor_buft_overrides`
-- [x] `llama_numa_init`
-- [x] `llama_print_system_info`
-- [x] `llama_supports_gpu_offload`
-- [x] `llama_supports_mlock`
-- [x] `llama_supports_mmap`
-- [x] `llama_supports_rpc`
-- [x] `llama_time_us`
+
+| Function | `yzma` | WebAssembly |
+| --- | :-: | :-: |
+| `llama_backend_free` | yes | yes |
+| `llama_backend_init` | yes | yes |
+| `llama_flash_attn_type_name` | yes | no |
+| `llama_ftype_name` | yes | no |
+| `llama_load_mode_from_str` | yes | no |
+| `llama_load_mode_name` | yes | no |
+| `llama_max_devices` | yes | no |
+| `llama_max_parallel_sequences` | yes | no |
+| `llama_max_tensor_buft_overrides` | yes | no |
+| `llama_numa_init` | yes | no |
+| `llama_print_system_info` | yes | no |
+| `llama_supports_gpu_offload` | yes | no |
+| `llama_supports_mlock` | yes | no |
+| `llama_supports_mmap` | yes | no |
+| `llama_supports_rpc` | yes | no |
+| `llama_time_us` | yes | no |
 
 ### Model Functions
-- [x] `llama_init_from_model`
-- [x] `llama_model_chat_template`
-- [x] `llama_model_cls_label`
-- [x] `llama_model_decoder_start_token`
-- [x] `llama_model_default_params`
-- [x] `llama_model_desc`
-- [x] `llama_model_free`
-- [x] `llama_model_ftype`
-- [x] `llama_model_has_decoder`
-- [x] `llama_model_has_encoder`
-- [x] `llama_model_is_diffusion`
-- [x] `llama_model_is_hybrid`
-- [x] `llama_model_is_recurrent`
-- [x] `llama_model_load_from_file`
-- [x] `llama_model_load_from_splits`
-- [x] `llama_model_meta_count`
-- [x] `llama_model_meta_key_by_index`
-- [x] `llama_model_meta_key_str`
-- [x] `llama_model_meta_val_str_by_index`
-- [x] `llama_model_meta_val_str`
-- [x] `llama_model_n_cls_out`
-- [x] `llama_model_n_ctx_train`
-- [x] `llama_model_n_embd_inp`
-- [x] `llama_model_n_embd_out`
-- [x] `llama_model_n_embd`
-- [x] `llama_model_n_head_kv`
-- [x] `llama_model_n_head`
-- [x] `llama_model_n_layer_nextn`
-- [x] `llama_model_n_layer`
-- [x] `llama_model_n_params`
-- [x] `llama_model_n_swa`
-- [x] `llama_model_quantize_default_params`
-- [x] `llama_model_quantize`
-- [x] `llama_model_rope_freq_scale_train`
-- [x] `llama_model_rope_type`
-- [x] `llama_model_save_to_file`
-- [x] `llama_model_size`
-- [x] `llama_split_path`
-- [x] `llama_split_prefix`
+
+| Function | `yzma` | WebAssembly |
+| --- | :-: | :-: |
+| `llama_init_from_model` | yes | yes |
+| `llama_model_chat_template` | yes | yes |
+| `llama_model_cls_label` | yes | no |
+| `llama_model_decoder_start_token` | yes | no |
+| `llama_model_default_params` | yes | partial |
+| `llama_model_desc` | yes | yes |
+| `llama_model_free` | yes | yes |
+| `llama_model_ftype` | yes | no |
+| `llama_model_has_decoder` | yes | no |
+| `llama_model_has_encoder` | yes | no |
+| `llama_model_is_diffusion` | yes | no |
+| `llama_model_is_hybrid` | yes | no |
+| `llama_model_is_recurrent` | yes | no |
+| `llama_model_load_from_file` | yes | yes |
+| `llama_model_load_from_splits` | yes | no |
+| `llama_model_meta_count` | yes | no |
+| `llama_model_meta_key_by_index` | yes | no |
+| `llama_model_meta_key_str` | yes | no |
+| `llama_model_meta_val_str_by_index` | yes | no |
+| `llama_model_meta_val_str` | yes | no |
+| `llama_model_n_cls_out` | yes | no |
+| `llama_model_n_ctx_train` | yes | yes |
+| `llama_model_n_embd_inp` | yes | no |
+| `llama_model_n_embd_out` | yes | no |
+| `llama_model_n_embd` | yes | yes |
+| `llama_model_n_head_kv` | yes | no |
+| `llama_model_n_head` | yes | no |
+| `llama_model_n_layer_nextn` | yes | no |
+| `llama_model_n_layer` | yes | no |
+| `llama_model_n_params` | yes | no |
+| `llama_model_n_swa` | yes | no |
+| `llama_model_quantize_default_params` | yes | no |
+| `llama_model_quantize` | yes | no |
+| `llama_model_rope_freq_scale_train` | yes | no |
+| `llama_model_rope_type` | yes | no |
+| `llama_model_save_to_file` | yes | no |
+| `llama_model_size` | yes | no |
+| `llama_split_path` | yes | no |
+| `llama_split_prefix` | yes | no |
 
 ### Vocab Functions
-- [x] `llama_detokenize`
-- [x] `llama_model_get_vocab`
-- [x] `llama_token_to_piece`
-- [x] `llama_tokenize`
-- [x] `llama_vocab_bos`
-- [x] `llama_vocab_eos`
-- [x] `llama_vocab_eot`
-- [x] `llama_vocab_fim_mid`
-- [x] `llama_vocab_fim_pad`
-- [x] `llama_vocab_fim_pre`
-- [x] `llama_vocab_fim_rep`
-- [x] `llama_vocab_fim_sep`
-- [x] `llama_vocab_fim_suf`
-- [x] `llama_vocab_get_add_bos`
-- [x] `llama_vocab_get_add_eos`
-- [x] `llama_vocab_get_add_sep`
-- [x] `llama_vocab_get_attr`
-- [x] `llama_vocab_get_score`
-- [x] `llama_vocab_get_suppress_tokens`
-- [x] `llama_vocab_get_text`
-- [x] `llama_vocab_is_control`
-- [x] `llama_vocab_is_eog`
-- [x] `llama_vocab_mask`
-- [x] `llama_vocab_n_tokens`
-- [x] `llama_vocab_nl`
-- [x] `llama_vocab_pad`
-- [x] `llama_vocab_sep`
-- [x] `llama_vocab_type`
+
+| Function | `yzma` | WebAssembly |
+| --- | :-: | :-: |
+| `llama_detokenize` | yes | partial |
+| `llama_model_get_vocab` | yes | yes |
+| `llama_token_to_piece` | yes | yes |
+| `llama_tokenize` | yes | yes |
+| `llama_vocab_bos` | yes | yes |
+| `llama_vocab_eos` | yes | yes |
+| `llama_vocab_eot` | yes | no |
+| `llama_vocab_fim_mid` | yes | no |
+| `llama_vocab_fim_pad` | yes | no |
+| `llama_vocab_fim_pre` | yes | no |
+| `llama_vocab_fim_rep` | yes | no |
+| `llama_vocab_fim_sep` | yes | no |
+| `llama_vocab_fim_suf` | yes | no |
+| `llama_vocab_get_add_bos` | yes | yes |
+| `llama_vocab_get_add_eos` | yes | no |
+| `llama_vocab_get_add_sep` | yes | no |
+| `llama_vocab_get_attr` | yes | no |
+| `llama_vocab_get_score` | yes | no |
+| `llama_vocab_get_suppress_tokens` | yes | no |
+| `llama_vocab_get_text` | yes | no |
+| `llama_vocab_is_control` | yes | no |
+| `llama_vocab_is_eog` | yes | yes |
+| `llama_vocab_mask` | yes | no |
+| `llama_vocab_n_tokens` | yes | yes |
+| `llama_vocab_nl` | yes | no |
+| `llama_vocab_pad` | yes | no |
+| `llama_vocab_sep` | yes | no |
+| `llama_vocab_type` | yes | no |
 
 ### Context Functions
-- [x] `llama_attach_threadpool`
-- [x] `llama_context_default_params`
-- [x] `llama_decode`
-- [x] `llama_detach_threadpool`
-- [x] `llama_encode`
-- [x] `llama_free`
-- [x] `llama_get_embeddings_ith`
-- [x] `llama_get_embeddings_seq`
-- [x] `llama_get_embeddings`
-- [x] `llama_get_logits_ith`
-- [x] `llama_get_logits`
-- [x] `llama_get_memory`
-- [x] `llama_get_model`
-- [x] `llama_n_batch`
-- [x] `llama_n_ctx_seq`
-- [x] `llama_n_ctx`
-- [x] `llama_n_rs_seq`
-- [x] `llama_n_seq_max`
-- [x] `llama_n_threads_batch`
-- [x] `llama_n_threads`
-- [x] `llama_n_ubatch`
-- [x] `llama_pooling_type`
-- [x] `llama_set_abort_callback`
-- [x] `llama_set_adapter_cvec`
-- [x] `llama_set_causal_attn`
-- [x] `llama_set_embeddings`
-- [x] `llama_set_n_threads`
-- [x] `llama_set_warmup`
-- [x] `llama_synchronize`
+
+| Function | `yzma` | WebAssembly |
+| --- | :-: | :-: |
+| `llama_attach_threadpool` | yes | no |
+| `llama_context_default_params` | yes | partial |
+| `llama_decode` | yes | yes |
+| `llama_detach_threadpool` | yes | no |
+| `llama_encode` | yes | yes |
+| `llama_free` | yes | yes |
+| `llama_get_embeddings_ith` | yes | no |
+| `llama_get_embeddings_seq` | yes | yes |
+| `llama_get_embeddings` | yes | no |
+| `llama_get_logits_ith` | yes | no |
+| `llama_get_logits` | yes | no |
+| `llama_get_memory` | yes | no |
+| `llama_get_model` | yes | no |
+| `llama_n_batch` | yes | no |
+| `llama_n_ctx_seq` | yes | no |
+| `llama_n_ctx` | yes | yes |
+| `llama_n_rs_seq` | yes | no |
+| `llama_n_seq_max` | yes | no |
+| `llama_n_threads_batch` | yes | no |
+| `llama_n_threads` | yes | no |
+| `llama_n_ubatch` | yes | no |
+| `llama_pooling_type` | yes | no |
+| `llama_set_abort_callback` | yes | no |
+| `llama_set_adapter_cvec` | yes | no |
+| `llama_set_causal_attn` | yes | no |
+| `llama_set_embeddings` | yes | no |
+| `llama_set_n_threads` | yes | no |
+| `llama_set_warmup` | yes | no |
+| `llama_synchronize` | yes | no |
 
 ### Backend Sampling Functions (Experimental)
-- [x] `llama_get_sampled_candidates_count_ith`
-- [x] `llama_get_sampled_candidates_ith`
-- [x] `llama_get_sampled_logits_count_ith`
-- [x] `llama_get_sampled_logits_ith`
-- [x] `llama_get_sampled_probs_count_ith`
-- [x] `llama_get_sampled_probs_ith`
-- [x] `llama_get_sampled_token_ith`
+
+| Function | `yzma` | WebAssembly |
+| --- | :-: | :-: |
+| `llama_get_sampled_candidates_count_ith` | yes | no |
+| `llama_get_sampled_candidates_ith` | yes | no |
+| `llama_get_sampled_logits_count_ith` | yes | no |
+| `llama_get_sampled_logits_ith` | yes | no |
+| `llama_get_sampled_probs_count_ith` | yes | no |
+| `llama_get_sampled_probs_ith` | yes | no |
+| `llama_get_sampled_token_ith` | yes | no |
 
 ### Memory Functions
-- [x] `llama_memory_can_shift`
-- [x] `llama_memory_clear`
-- [x] `llama_memory_seq_add`
-- [x] `llama_memory_seq_cp`
-- [x] `llama_memory_seq_div`
-- [x] `llama_memory_seq_keep`
-- [x] `llama_memory_seq_pos_max`
-- [x] `llama_memory_seq_pos_min`
-- [x] `llama_memory_seq_rm`
+
+| Function | `yzma` | WebAssembly |
+| --- | :-: | :-: |
+| `llama_memory_can_shift` | yes | no |
+| `llama_memory_clear` | yes | yes |
+| `llama_memory_seq_add` | yes | no |
+| `llama_memory_seq_cp` | yes | no |
+| `llama_memory_seq_div` | yes | no |
+| `llama_memory_seq_keep` | yes | no |
+| `llama_memory_seq_pos_max` | yes | no |
+| `llama_memory_seq_pos_min` | yes | no |
+| `llama_memory_seq_rm` | yes | no |
 
 ### Batch Functions
-- [x] `llama_batch_free`
-- [x] `llama_batch_get_one`
-- [x] `llama_batch_init`
+
+| Function | `yzma` | WebAssembly |
+| --- | :-: | :-: |
+| `llama_batch_free` | yes | no |
+| `llama_batch_get_one` | yes | yes |
+| `llama_batch_init` | yes | no |
 
 ### Sampling Functions
-- [x] `llama_sampler_accept`
-- [x] `llama_sampler_apply`
-- [x] `llama_sampler_chain_add`
-- [x] `llama_sampler_chain_default_params`
-- [x] `llama_sampler_chain_get`
-- [x] `llama_sampler_chain_init`
-- [x] `llama_sampler_chain_n`
-- [x] `llama_sampler_chain_remove`
-- [x] `llama_sampler_clone`
-- [x] `llama_sampler_free`
-- [x] `llama_sampler_get_seed`
-- [x] `llama_sampler_init_adaptive_p`
-- [x] `llama_sampler_init_dist`
-- [x] `llama_sampler_init_dry`
-- [x] `llama_sampler_init_grammar_lazy_patterns`
-- [x] `llama_sampler_init_grammar`
-- [x] `llama_sampler_init_greedy`
-- [x] `llama_sampler_init_infill`
-- [x] `llama_sampler_init_logit_bias`
-- [x] `llama_sampler_init_min_p`
-- [x] `llama_sampler_init_mirostat_v2`
-- [x] `llama_sampler_init_mirostat`
-- [x] `llama_sampler_init_penalties`
-- [x] `llama_sampler_init_temp_ext`
-- [x] `llama_sampler_init_top_k`
-- [x] `llama_sampler_init_top_n_sigma`
-- [x] `llama_sampler_init_top_p`
-- [x] `llama_sampler_init_typical`
-- [x] `llama_sampler_init_xtc`
-- [x] `llama_sampler_name`
-- [x] `llama_sampler_reset`
-- [x] `llama_sampler_sample`
-- [x] `llama_set_sampler`
+
+| Function | `yzma` | WebAssembly |
+| --- | :-: | :-: |
+| `llama_sampler_accept` | yes | yes |
+| `llama_sampler_apply` | yes | no |
+| `llama_sampler_chain_add` | yes | yes |
+| `llama_sampler_chain_default_params` | yes | yes |
+| `llama_sampler_chain_get` | yes | no |
+| `llama_sampler_chain_init` | yes | yes |
+| `llama_sampler_chain_n` | yes | no |
+| `llama_sampler_chain_remove` | yes | no |
+| `llama_sampler_clone` | yes | no |
+| `llama_sampler_free` | yes | yes |
+| `llama_sampler_get_seed` | yes | no |
+| `llama_sampler_init_adaptive_p` | yes | no |
+| `llama_sampler_init_dist` | yes | yes |
+| `llama_sampler_init_dry` | yes | no |
+| `llama_sampler_init_grammar_lazy_patterns` | yes | no |
+| `llama_sampler_init_grammar` | yes | no |
+| `llama_sampler_init_greedy` | yes | yes |
+| `llama_sampler_init_infill` | yes | no |
+| `llama_sampler_init_logit_bias` | yes | no |
+| `llama_sampler_init_min_p` | yes | yes |
+| `llama_sampler_init_mirostat_v2` | yes | no |
+| `llama_sampler_init_mirostat` | yes | no |
+| `llama_sampler_init_penalties` | yes | yes |
+| `llama_sampler_init_temp_ext` | yes | no |
+| `llama_sampler_init_top_k` | yes | yes |
+| `llama_sampler_init_top_n_sigma` | yes | no |
+| `llama_sampler_init_top_p` | yes | yes |
+| `llama_sampler_init_typical` | yes | no |
+| `llama_sampler_init_xtc` | yes | no |
+| `llama_sampler_name` | yes | no |
+| `llama_sampler_reset` | yes | yes |
+| `llama_sampler_sample` | yes | yes |
+| `llama_set_sampler` | yes | no |
 
 ### Logging Functions
-- [x] `llama_log_get`
-- [x] `llama_log_set`
+
+| Function | `yzma` | WebAssembly |
+| --- | :-: | :-: |
+| `llama_log_get` | yes | no |
+| `llama_log_set` | yes | partial |
 
 ### Performance Functions
-- [x] `llama_perf_context`
-- [x] `llama_perf_context_print`
-- [x] `llama_perf_context_reset`
-- [x] `llama_perf_sampler`
-- [x] `llama_perf_sampler_print`
-- [x] `llama_perf_sampler_reset`
+
+| Function | `yzma` | WebAssembly |
+| --- | :-: | :-: |
+| `llama_perf_context` | yes | no |
+| `llama_perf_context_print` | yes | no |
+| `llama_perf_context_reset` | yes | no |
+| `llama_perf_sampler` | yes | no |
+| `llama_perf_sampler_print` | yes | no |
+| `llama_perf_sampler_reset` | yes | no |
 
 ### Chat Functions
-- [x] `llama_chat_apply_template`
-- [x] `llama_chat_builtin_templates`
+
+| Function | `yzma` | WebAssembly |
+| --- | :-: | :-: |
+| `llama_chat_apply_template` | yes | partial |
+| `llama_chat_builtin_templates` | yes | no |
 
 ### State Functions
-- [x] `llama_state_get_data`
-- [x] `llama_state_get_size`
-- [x] `llama_state_load_file`
-- [x] `llama_state_save_file`
-- [x] `llama_state_seq_get_data_ext`
-- [x] `llama_state_seq_get_data`
-- [x] `llama_state_seq_get_size_ext`
-- [x] `llama_state_seq_get_size`
-- [x] `llama_state_seq_load_file`
-- [x] `llama_state_seq_save_file`
-- [x] `llama_state_seq_set_data_ext`
-- [x] `llama_state_seq_set_data`
-- [x] `llama_state_set_data`
+
+| Function | `yzma` | WebAssembly |
+| --- | :-: | :-: |
+| `llama_state_get_data` | yes | no |
+| `llama_state_get_size` | yes | no |
+| `llama_state_load_file` | yes | no |
+| `llama_state_save_file` | yes | no |
+| `llama_state_seq_get_data_ext` | yes | no |
+| `llama_state_seq_get_data` | yes | no |
+| `llama_state_seq_get_size_ext` | yes | no |
+| `llama_state_seq_get_size` | yes | no |
+| `llama_state_seq_load_file` | yes | no |
+| `llama_state_seq_save_file` | yes | no |
+| `llama_state_seq_set_data_ext` | yes | no |
+| `llama_state_seq_set_data` | yes | no |
+| `llama_state_set_data` | yes | no |
 
 ### LoRA Functions
-- [x] `llama_adapter_get_alora_invocation_tokens`
-- [x] `llama_adapter_get_alora_n_invocation_tokens`
-- [x] `llama_adapter_lora_free`
-- [x] `llama_adapter_lora_init`
-- [x] `llama_adapter_meta_count`
-- [x] `llama_adapter_meta_key_by_index`
-- [x] `llama_adapter_meta_val_str_by_index`
-- [x] `llama_adapter_meta_val_str`
-- [x] `llama_set_adapters_lora`
+
+| Function | `yzma` | WebAssembly |
+| --- | :-: | :-: |
+| `llama_adapter_get_alora_invocation_tokens` | yes | no |
+| `llama_adapter_get_alora_n_invocation_tokens` | yes | no |
+| `llama_adapter_lora_free` | yes | no |
+| `llama_adapter_lora_init` | yes | no |
+| `llama_adapter_meta_count` | yes | no |
+| `llama_adapter_meta_key_by_index` | yes | no |
+| `llama_adapter_meta_val_str_by_index` | yes | no |
+| `llama_adapter_meta_val_str` | yes | no |
+| `llama_set_adapters_lora` | yes | no |
 
 ### `mtmd` Functions
 
 Note that these functions are considered by `llama.cpp` to be experimental, and are subject to change.
 
-- [x] `mtmd_batch_add_chunk`
-- [x] `mtmd_batch_encode`
-- [x] `mtmd_batch_free`
-- [x] `mtmd_batch_get_output_embd`
-- [x] `mtmd_batch_init`
-- [x] `mtmd_bitmap_free`
-- [x] `mtmd_bitmap_get_data`
-- [x] `mtmd_bitmap_get_id`
-- [x] `mtmd_bitmap_get_n_bytes`
-- [x] `mtmd_bitmap_get_nx`
-- [x] `mtmd_bitmap_get_ny`
-- [x] `mtmd_bitmap_init_from_audio`
-- [x] `mtmd_bitmap_init`
-- [x] `mtmd_bitmap_is_audio`
-- [x] `mtmd_bitmap_set_id`
-- [x] `mtmd_context_params_default`
-- [x] `mtmd_decode_use_mrope`
-- [x] `mtmd_decode_use_non_causal`
-- [x] `mtmd_default_marker`
-- [x] `mtmd_encode_chunk`
-- [x] `mtmd_encode`
-- [x] `mtmd_free`
-- [x] `mtmd_get_audio_sample_rate`
-- [x] `mtmd_get_marker`
-- [x] `mtmd_get_output_embd`
-- [x] `mtmd_helper_bitmap_init_from_buf`
-- [x] `mtmd_helper_bitmap_init_from_file`
-- [x] `mtmd_helper_eval_chunks`
-- [x] `mtmd_helper_support_video`
-- [x] `mtmd_helper_video_free`
-- [x] `mtmd_helper_video_get_info`
-- [x] `mtmd_helper_video_init_from_buf`
-- [x] `mtmd_helper_video_init_params_default`
-- [x] `mtmd_helper_video_init`
-- [x] `mtmd_image_tokens_get_id`
-- [x] `mtmd_image_tokens_get_n_pos`
-- [x] `mtmd_image_tokens_get_n_tokens`
-- [x] `mtmd_image_tokens_get_nx`
-- [x] `mtmd_image_tokens_get_ny`
-- [x] `mtmd_init_from_file`
-- [x] `mtmd_input_chunk_copy`
-- [x] `mtmd_input_chunk_free`
-- [x] `mtmd_input_chunk_get_id`
-- [x] `mtmd_input_chunk_get_n_pos`
-- [x] `mtmd_input_chunk_get_n_tokens`
-- [x] `mtmd_input_chunk_get_tokens_image`
-- [x] `mtmd_input_chunk_get_tokens_text`
-- [x] `mtmd_input_chunk_get_type`
-- [x] `mtmd_input_chunks_free`
-- [x] `mtmd_input_chunks_get`
-- [x] `mtmd_input_chunks_init`
-- [x] `mtmd_input_chunks_size`
-- [x] `mtmd_log_set`
-- [x] `mtmd_support_audio`
-- [x] `mtmd_support_vision`
-- [x] `mtmd_tokenize`
+| Function | `yzma` | WebAssembly |
+| --- | :-: | :-: |
+| `mtmd_batch_add_chunk` | yes | no |
+| `mtmd_batch_encode` | yes | no |
+| `mtmd_batch_free` | yes | no |
+| `mtmd_batch_get_output_embd` | yes | no |
+| `mtmd_batch_init` | yes | no |
+| `mtmd_bitmap_free` | yes | yes |
+| `mtmd_bitmap_get_data` | yes | no |
+| `mtmd_bitmap_get_id` | yes | no |
+| `mtmd_bitmap_get_n_bytes` | yes | no |
+| `mtmd_bitmap_get_nx` | yes | no |
+| `mtmd_bitmap_get_ny` | yes | no |
+| `mtmd_bitmap_init_from_audio` | yes | no |
+| `mtmd_bitmap_init` | yes | yes |
+| `mtmd_bitmap_is_audio` | yes | no |
+| `mtmd_bitmap_set_id` | yes | no |
+| `mtmd_context_params_default` | yes | yes |
+| `mtmd_decode_use_mrope` | yes | no |
+| `mtmd_decode_use_non_causal` | yes | no |
+| `mtmd_default_marker` | yes | no |
+| `mtmd_encode_chunk` | yes | no |
+| `mtmd_encode` | yes | no |
+| `mtmd_free` | yes | yes |
+| `mtmd_get_audio_sample_rate` | yes | no |
+| `mtmd_get_marker` | yes | yes |
+| `mtmd_get_output_embd` | yes | no |
+| `mtmd_helper_bitmap_init_from_buf` | yes | no |
+| `mtmd_helper_bitmap_init_from_file` | yes | no |
+| `mtmd_helper_eval_chunks` | yes | yes |
+| `mtmd_helper_support_video` | yes | no |
+| `mtmd_helper_video_free` | yes | no |
+| `mtmd_helper_video_get_info` | yes | no |
+| `mtmd_helper_video_init_from_buf` | yes | no |
+| `mtmd_helper_video_init_params_default` | yes | no |
+| `mtmd_helper_video_init` | yes | no |
+| `mtmd_image_tokens_get_id` | yes | no |
+| `mtmd_image_tokens_get_n_pos` | yes | no |
+| `mtmd_image_tokens_get_n_tokens` | yes | no |
+| `mtmd_image_tokens_get_nx` | yes | no |
+| `mtmd_image_tokens_get_ny` | yes | no |
+| `mtmd_init_from_file` | yes | yes |
+| `mtmd_input_chunk_copy` | yes | no |
+| `mtmd_input_chunk_free` | yes | no |
+| `mtmd_input_chunk_get_id` | yes | no |
+| `mtmd_input_chunk_get_n_pos` | yes | no |
+| `mtmd_input_chunk_get_n_tokens` | yes | no |
+| `mtmd_input_chunk_get_tokens_image` | yes | no |
+| `mtmd_input_chunk_get_tokens_text` | yes | no |
+| `mtmd_input_chunk_get_type` | yes | no |
+| `mtmd_input_chunks_free` | yes | yes |
+| `mtmd_input_chunks_get` | yes | no |
+| `mtmd_input_chunks_init` | yes | yes |
+| `mtmd_input_chunks_size` | yes | yes |
+| `mtmd_log_set` | yes | no |
+| `mtmd_support_audio` | yes | yes |
+| `mtmd_support_vision` | yes | yes |
+| `mtmd_tokenize` | yes | yes |
 
 ---
 
@@ -295,17 +339,102 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 
 ### `llama` Functions
 
-- [ ] `llama_model_init_from_user`
-- [ ] `llama_model_load_from_file_ptr`
-- [ ] `llama_opt_epoch`
-- [ ] `llama_opt_init`
-- [ ] `llama_opt_param_filter_all`
-- [ ] `llama_sampler_init`
-- [ ] `llama_sampler_init_temp`
+| Function | `yzma` | WebAssembly |
+| --- | :-: | :-: |
+| `llama_model_init_from_user` | no | no |
+| `llama_model_load_from_file_ptr` | no | no |
+| `llama_opt_epoch` | no | no |
+| `llama_opt_init` | no | no |
+| `llama_opt_param_filter_all` | no | no |
+| `llama_sampler_init` | no | no |
+| `llama_sampler_init_temp` | no | yes |
 
 ### `mtmd` Functions
 
-- [ ] `mtmd_bitmap_init_lazy`
-- [ ] `mtmd_get_cap_from_file`
-- [ ] `mtmd_helper_video_read_next`
-- [ ] `mtmd_image_tokens_get_decoder_pos`
+| Function | `yzma` | WebAssembly |
+| --- | :-: | :-: |
+| `mtmd_bitmap_init_lazy` | no | no |
+| `mtmd_get_cap_from_file` | no | no |
+| `mtmd_helper_video_read_next` | no | no |
+| `mtmd_image_tokens_get_decoder_pos` | no | no |
+
+---
+
+## WebAssembly support
+
+The `pkg/llamawasm` package drives a build of `llama.cpp` for WebAssembly. It
+does not use the C API directly. A C shim in the
+[llama-cpp-builder](https://github.com/hybridgroup/llama-cpp-builder) repository
+gives it a small set of calls with a version, which is ABI 4 now. Thus a function
+of `llama.cpp` reaches the browser only after the shim exports it.
+
+The WebAssembly column of each table above gives the state of the wrapper.
+
+| Value | Meaning |
+| --- | --- |
+| yes | The WebAssembly build has this function. |
+| partial | The WebAssembly build has it with fewer options. See the notes. |
+| no | The shim does not export it. |
+
+56 functions reach WebAssembly, 51 complete and 5 partial. 55 of them are among
+the 252 that have a wrapper on a host, and `llama_sampler_init_temp` has one only
+here. That is sufficient for text generation, embeddings, images, chat templates,
+and tool calling.
+
+### Notes on the partial wrappers
+
+- `llama_detokenize` has no call in the shim. The Go side builds the text from
+  `llama_token_to_piece` of each token, and it ignores `removeSpecial`.
+- `llama_chat_apply_template` takes one message, which is sufficient for a
+  question about an image. Render the template that `llama_model_chat_template`
+  gives with the `template` package for a conversation with turns.
+- `llama_log_set` cannot take a Go function as a callback. The shim holds the
+  callback and the Go side only sets how much llama.cpp prints.
+- `llama_model_default_params` has `NGpuLayers` only.
+- `llama_context_default_params` has `NCtx`, `NBatch`, `NUbatch`, `NThreads`,
+  `PoolingType`, and `Embeddings`.
+
+### What WebAssembly still needs
+
+In order of the value that each one adds.
+
+1. **The end of turn token.** `llama_vocab_eot` and `llama_vocab_get_text`. Their
+   absence makes `message.StopMarkers` guess from the end of sequence token, which
+   is wrong for a model whose two tokens differ. See
+   [llama-cpp-builder#38](https://github.com/hybridgroup/llama-cpp-builder/issues/38).
+2. **Grammar samplers.** `llama_sampler_init_grammar` and
+   `llama_sampler_init_grammar_lazy_patterns`. With them a tool call can be forced
+   to be well formed, as it is on a host.
+3. **The rest of the samplers.** `llama_sampler_init_typical`,
+   `llama_sampler_init_xtc`, `llama_sampler_init_dry`,
+   `llama_sampler_init_top_n_sigma`, `llama_sampler_init_temp_ext`,
+   `llama_sampler_init_mirostat`, `llama_sampler_init_mirostat_v2`,
+   `llama_sampler_init_logit_bias`, `llama_sampler_init_adaptive_p`, and
+   `llama_sampler_init_infill`. The calls that examine a chain are also absent:
+   `llama_sampler_name`, `llama_sampler_clone`, `llama_sampler_apply`,
+   `llama_sampler_get_seed`, `llama_sampler_chain_get`, `llama_sampler_chain_n`,
+   and `llama_sampler_chain_remove`.
+4. **The rest of the vocabulary.** The six FIM tokens, `llama_vocab_sep`,
+   `llama_vocab_nl`, `llama_vocab_pad`, `llama_vocab_mask`,
+   `llama_vocab_get_add_eos`, `llama_vocab_get_add_sep`, `llama_vocab_get_attr`,
+   `llama_vocab_get_score`, `llama_vocab_get_suppress_tokens`,
+   `llama_vocab_is_control`, and `llama_vocab_type`.
+5. **Batches with positions.** `llama_batch_init` and `llama_batch_free`. Only
+   `llama_batch_get_one` is available, thus a program cannot put more than one
+   sequence in a batch.
+6. **The metadata of a model.** The `llama_model_meta_*` calls and the counts of
+   layers, heads, and parameters.
+7. **Memory with sequences.** The `llama_memory_seq_*` calls and
+   `llama_memory_can_shift`. Only `llama_memory_clear` is available.
+8. **The parts of `mtmd`.** The shim does the whole pipeline of an image in two
+   coarse calls, `mtmd_tokenize` and `mtmd_helper_eval_chunks`. Thus the calls
+   that build or examine one piece are absent: the getters of a bitmap, the
+   accessors of a chunk and of the tokens of an image, `mtmd_encode`,
+   `mtmd_get_output_embd`, and the batch calls. A program in a browser cannot
+   place the embeddings of an image itself.
+
+Audio, video, LoRA adapters, saved state, quantization, and the performance
+counters are not planned for WebAssembly.
+
+Note that `llama_sampler_init_temp` has a wrapper in WebAssembly and not on a
+host, which is the only function where WebAssembly is ahead.
