@@ -57,8 +57,8 @@
       const output = document.getElementById("output");
       const generateButton = document.getElementById("generate");
 
-      // ?mode=cpu on the page passes through to the worker, which lets a
-      // reader compare the GPU with the CPU.
+      // ?mode=cpu on the page goes to the worker, thus a reader can compare
+      // the GPU with the CPU.
       const mode = new URLSearchParams(location.search).get("mode");
       const worker = new Worker("./worker.js" + (mode ? "?mode=" + encodeURIComponent(mode) : ""));
 

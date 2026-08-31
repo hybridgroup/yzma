@@ -2,16 +2,16 @@
 
 // Vlm answers a question about an image in a browser.
 //
-// It is the same shape as examples/wasm/chat, with the multimodal calls of
-// pkg/llamawasm added: the page decodes the image and sends the pixels, and this
-// program turns them into a bitmap, puts them in the prompt beside the text, and
-// then runs the same loop of sampling and decoding.
+// It has the same structure as examples/wasm/chat and adds the multimodal calls
+// of pkg/llamawasm. The page decodes the image and sends the pixels. This
+// program makes a bitmap, puts it in the prompt with the text, and then runs the
+// same loop of sampling and decoding.
 //
-// Build it with TinyGo:
+// Build it with TinyGo.
 //
 //	tinygo build -target wasm -o build/wasm/yzma-vlm.wasm ./examples/wasm/vlm
 //
-// See wasm/README.md for how to serve the result.
+// See wasm/README.md for the method to serve the result.
 package main
 
 import (
@@ -35,8 +35,8 @@ var (
 	sampler llamawasm.Sampler
 	nBatch  int32 = 2048
 
-	// maxImageTokens bounds the tokens that one image becomes, for a model whose
-	// resolution changes with the image. 0 takes the bounds of the model.
+	// maxImageTokens limits the tokens of one image, for a model with a variable
+	// resolution. A value of 0 uses the limits of the model.
 	maxImageTokens int32
 )
 
@@ -98,9 +98,9 @@ func loadModel(this js.Value, args []js.Value) any {
 }
 
 // openModel(maxImageTokens) loads the files that are already in the filesystem
-// of the module. A test that has them puts them there itself.
+// of the module. A test puts them there itself.
 //
-// maxImageTokens is optional, and 0 takes the bounds of the model.
+// maxImageTokens is optional. A value of 0 uses the limits of the model.
 func openModel(this js.Value, args []js.Value) any {
 	if len(args) > 0 && args[0].Truthy() {
 		maxImageTokens = int32(args[0].Int())
@@ -125,8 +125,8 @@ func open() {
 		return
 	}
 
-	// A model with eyes needs room for the tokens of the image as well as the
-	// text, so the context is larger than the one the chat example uses.
+	// An image model needs space for the tokens of the image and of the text,
+	// thus the context is larger than in the chat example.
 	ctxParams := llamawasm.ContextDefaultParams()
 	ctxParams.NCtx = 4096
 	ctxParams.NBatch = uint32(nBatch)
@@ -140,9 +140,8 @@ func open() {
 
 	post("status", "loading the projector")
 
-	// The default takes every thread the module has, which matters: the
-	// projector is the slow part, and llama.cpp asks for only four threads
-	// unless it is told otherwise.
+	// The default uses each thread of the module. The projector is slow and
+	// llama.cpp asks for only four threads unless a caller changes it.
 	projectorParams := llamawasm.MtmdContextParamsDefault()
 	projectorParams.ImageMaxTokens = maxImageTokens
 
@@ -160,7 +159,7 @@ func open() {
 }
 
 // describe(prompt, width, height, rgba, maxTokens) answers a question about an
-// image. The pixels come from a canvas of the page, so they are RGBA.
+// image. The pixels come from a canvas of the page, thus they are RGBA.
 func describe(this js.Value, args []js.Value) any {
 	if len(args) < 4 {
 		post("error", "describe needs a prompt, a size, and the pixels")
@@ -219,9 +218,8 @@ func run(prompt string, width, height int32, rgba []byte, maxTokens int32) {
 		return
 	}
 
-	// This is where the image goes through the projector and into the model. It
-	// is the slow part, so it is timed on its own: putting it into the rate of
-	// the tokens would say nothing about either.
+	// Here the image goes through the projector and into the model. This step is
+	// slow, thus it has its own time and stays out of the token rate.
 	encodeStart := time.Now()
 
 	nPast, err := llamawasm.MtmdHelperEvalChunks(mctx, ctx, chunks, 0, 0, nBatch, true)
@@ -256,7 +254,7 @@ func run(prompt string, width, height int32, rgba []byte, maxTokens int32) {
 		}
 		count++
 
-		// The positions carry on from the chunks, which the module knows.
+		// The positions continue from the chunks, which the module knows.
 		if _, err := llamawasm.Decode(ctx, llamawasm.BatchGetOne([]llamawasm.Token{token})); err != nil {
 			post("error", err.Error())
 			return
@@ -272,8 +270,8 @@ func run(prompt string, width, height int32, rgba []byte, maxTokens int32) {
 	post("done", fmt.Sprintf("%d tokens, and %.1fs for the image", count, encode))
 }
 
-// buildPrompt puts the marker of the model and the question into the chat format
-// of the model. The marker is where the image goes.
+// buildPrompt puts the marker of the model and the question into the chat
+// format. The image goes at the marker.
 func buildPrompt(question string) string {
 	marker := llamawasm.MtmdMarker(mctx)
 	if marker == "" {
@@ -282,14 +280,14 @@ func buildPrompt(question string) string {
 
 	text := marker + "\n" + question
 
-	// A model with no chat template takes the text as it is.
+	// A model with no chat template uses the text without a change.
 	if formatted, err := llamawasm.ChatApplyTemplate(model, "user", text, true); err == nil && formatted != "" {
 		return formatted
 	}
 	return text
 }
 
-// dropAlpha turns the RGBA of a canvas into the RGB that a bitmap needs.
+// dropAlpha changes the RGBA of a canvas into the RGB that a bitmap needs.
 func dropAlpha(rgba []byte) []byte {
 	rgb := make([]byte, 0, len(rgba)/4*3)
 	for i := 0; i+3 < len(rgba); i += 4 {
@@ -305,7 +303,7 @@ func backendReport() string {
 	return fmt.Sprintf("backend: %s, %d threads", llamawasm.Backend(), llamawasm.Threads())
 }
 
-// post sends a message to whatever holds this module.
+// post sends a message to the container of this module.
 func post(kind, text string) {
 	message := map[string]any{"kind": kind, "text": text}
 

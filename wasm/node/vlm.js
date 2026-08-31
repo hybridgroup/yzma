@@ -1,17 +1,17 @@
 // vlm.js answers a question about an image in Node, with no browser.
 //
-// Node has no canvas, so this makes the pixels itself: a plain shape on a plain
-// ground. That is enough to prove the whole path works, from the pixels through
-// the projector to the tokens. Whether the answer is a good description of the
-// shape is a question for a real image in a browser.
+// Node has no canvas, thus this makes the pixels itself. A simple shape on a
+// simple ground is sufficient to test the full path, from the pixels through
+// the projector to the tokens. Use a browser and a real image to see if the
+// answer is a good description.
 //
-// Usage:
+// Usage.
 //   node wasm/node/vlm.js --dir build/wasm --model <model.gguf> \
 //       --mmproj <mmproj.gguf> [--tokens 24] [--ppm <file.ppm>] [--side 448]
 //       [--mt] [--webgpu] [--threads N] [--image-max-tokens N]
 //
 // --ppm takes a real image in the binary PPM format (P6), which needs no
-// decoder: convert one with "magick in.jpg out.ppm" or "ffmpeg -i in.jpg out.ppm".
+// decoder. Use "magick in.jpg out.ppm" or "ffmpeg -i in.jpg out.ppm".
 
 const fs = require("node:fs");
 const path = require("node:path");
@@ -38,8 +38,8 @@ if (!modelFile || !mmprojFile) {
   process.exit(2);
 }
 
-// This harness stands in for yzma-loader.js. Node has no WebGPU, so asking for
-// it must fall back the same way the loader does.
+// This harness replaces yzma-loader.js. Node has no WebGPU, thus a request for
+// it must fall back in the same way as the loader.
 let moduleName = "yzma_wasm.js";
 if (mt) {
   moduleName = "yzma_wasm_mt.js";
@@ -52,8 +52,8 @@ if (webgpu) {
   }
 }
 
-// makeImage draws a dark square in the middle of a light ground and gives the
-// RGBA that a canvas would give.
+// makeImage draws a dark square on a light ground and gives the same RGBA that
+// a canvas gives.
 function makeImage(width, height) {
   const rgba = new Uint8Array(width * height * 4);
   for (let y = 0; y < height; y++) {
@@ -71,7 +71,7 @@ function makeImage(width, height) {
   return { width, height, rgba };
 }
 
-// readPPM reads a binary PPM (P6), which is a header of plain text and then RGB.
+// readPPM reads a binary PPM (P6), which has a text header and then RGB.
 function readPPM(file) {
   const bytes = fs.readFileSync(file);
 
@@ -98,7 +98,7 @@ function readPPM(file) {
   const height = parseInt(h, 10);
   const rgb = bytes.subarray(i, i + width * height * 3);
 
-  // The program takes RGBA, the same as a canvas gives.
+  // The program takes RGBA, which is the format that a canvas gives.
   const rgba = new Uint8Array(width * height * 4);
   for (let p = 0; p < width * height; p++) {
     rgba[p * 4] = rgb[p * 3];
@@ -133,8 +133,8 @@ async function main() {
   globalThis.yzmaBase = dir;
 
   const factory = require(path.join(dir, moduleName));
-  // The same numbers the JavaScript glue would choose: a pool that follows the
-  // machine, and a thread count that the Go side reads.
+  // The same values that the JavaScript glue selects. The pool follows the
+  // machine and the Go side reads the thread count.
   const threads = threadsOverride > 0
     ? threadsOverride
     : mt ? Math.max(1, Math.min(require("node:os").cpus().length, 16)) : 1;
@@ -153,7 +153,7 @@ async function main() {
   globalThis.yzmaThreads = threads;
   globalThis.yzmaBackend = moduleName.includes("webgpu") ? "webgpu" : "cpu";
 
-  // A browser gets both files over the network. Here they go straight in.
+  // A browser gets both files from the network. Here they go in directly.
   llamaModule.FS.mkdirTree("/models");
   llamaModule.FS.writeFile("/models/model.gguf", fs.readFileSync(modelFile));
   llamaModule.FS.writeFile("/models/mmproj.gguf", fs.readFileSync(mmprojFile));
@@ -183,8 +183,8 @@ async function main() {
     };
   });
 
-  // The files are in place, so this only opens them. A browser gets them over
-  // the network with yzmaLoadModel instead.
+  // The files are in place, thus this only opens them. A browser instead gets
+  // them from the network with yzmaLoadModel.
   globalThis.yzmaOpenModel(imageMaxTokens);
 
   const last = await done;

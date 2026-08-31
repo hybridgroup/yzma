@@ -4,23 +4,23 @@ package llamawasm
 
 import "fmt"
 
-// The calls in this file follow the mtmd library of llama.cpp, which is what
-// gives a model its eyes. The names are the ones of the mtmd package with an
-// Mtmd prefix, because this package holds the llama calls as well:
+// The calls in this file follow the mtmd library of llama.cpp, which gives a
+// model the ability to read images. The names are the names of the mtmd package
+// with an Mtmd prefix, because this package also holds the llama calls.
 //
 //	mtmd.InitFromFile     -> llamawasm.MtmdInitFromFile
 //	mtmd.InputChunksInit  -> llamawasm.MtmdInputChunksInit
 //	mtmd.Tokenize         -> llamawasm.MtmdTokenize
 //	mtmd.HelperEvalChunks -> llamawasm.MtmdHelperEvalChunks
 //
-// The order of the calls is the same as in the examples/vlm program:
+// The order of the calls agrees with the examples/vlm program.
 //
 //	mctx, err := llamawasm.MtmdInitFromFile("mmproj.gguf", model, llamawasm.MtmdContextParamsDefault())
 //	bitmap, err := llamawasm.MtmdBitmapInit(width, height, rgb)
 //	chunks, err := llamawasm.MtmdInputChunksInit()
 //	llamawasm.MtmdTokenize(mctx, chunks, prompt, true, true, []MtmdBitmap{bitmap})
 //	nPast, err := llamawasm.MtmdHelperEvalChunks(mctx, ctx, chunks, 0, 0, nBatch, true)
-//	// then the same loop of SamplerSample and Decode as for text alone
+//	// then the usual loop of SamplerSample and Decode, as for text
 //
 // The prompt must hold one marker for each bitmap. [MtmdMarker] gives the
 // marker of the model.
@@ -41,25 +41,25 @@ type (
 //
 // It is the small part of mtmd.ContextParamsType that a browser can use.
 type MtmdContextParams struct {
-	// NThreads is the number of threads for the projector. Putting an image
-	// through one is the slowest part of an answer, so this matters more than
-	// the threads of the context do.
+	// NThreads is the number of threads for the projector. The projector is the
+	// slowest part of an answer, thus this value is more important than the
+	// threads of the context.
 	NThreads int32
 
-	// UseGPU puts the projector on the GPU where there is one.
+	// UseGPU puts the projector on the GPU if there is one.
 	UseGPU bool
 
-	// ImageMinTokens and ImageMaxTokens bound the number of tokens that one
-	// image becomes, for a model whose resolution changes with the image. 0
-	// takes the bounds of the model. Fewer tokens is less work and less detail.
+	// ImageMinTokens and ImageMaxTokens limit the number of tokens of one
+	// image, for a model with a variable resolution. A value of 0 uses the
+	// limits of the model. Fewer tokens give less work and less detail.
 	//
-	// A module of ABI version 3 takes no notice of these.
+	// A module of ABI version 3 ignores these values.
 	ImageMinTokens int32
 	ImageMaxTokens int32
 }
 
 // MtmdContextParamsDefault gives the parameters that a projector uses if the
-// program changes nothing: every thread the module has, and the GPU if
+// program changes nothing. These are each thread of the module and the GPU, if
 // llama.cpp found one.
 func MtmdContextParamsDefault() MtmdContextParams {
 	return MtmdContextParams{
@@ -68,17 +68,16 @@ func MtmdContextParamsDefault() MtmdContextParams {
 	}
 }
 
-// MtmdSupported tells if the module has the multimodal calls. A module from a
-// release before they came has none.
+// MtmdSupported tells if the module has the multimodal calls. A module from an
+// earlier release has none.
 func MtmdSupported() bool {
 	return has("_yzma_mtmd_init_from_file")
 }
 
-// MtmdInitFromFile loads the projector of a multimodal model. The file must be
-// in the filesystem of the module, the same as the model, and the model must be
-// loaded first.
+// MtmdInitFromFile loads the projector of a multimodal model. Put the file in
+// the filesystem of the module, as for the model, and load the model first.
 //
-// Pass [MtmdContextParamsDefault] unless there is a reason not to.
+// Use [MtmdContextParamsDefault] unless you have a reason for other values.
 func MtmdInitFromFile(mmprojPath string, model Model, params MtmdContextParams) (MtmdContext, error) {
 	if !Loaded() {
 		return 0, ErrNotLoaded
@@ -111,7 +110,7 @@ func MtmdFree(mctx MtmdContext) error {
 	return nil
 }
 
-// MtmdSupportVision tells if the projector takes images.
+// MtmdSupportVision tells if the projector accepts images.
 func MtmdSupportVision(mctx MtmdContext) bool {
 	if !Loaded() || !MtmdSupported() {
 		return false
@@ -119,8 +118,8 @@ func MtmdSupportVision(mctx MtmdContext) bool {
 	return call("_yzma_mtmd_support_vision", int(mctx)) == 1
 }
 
-// MtmdSupportAudio tells if the projector takes audio. This package has no way
-// to give it any, so this is here to report what the model is.
+// MtmdSupportAudio tells if the projector accepts audio. This package cannot
+// send audio, thus this call only gives a property of the model.
 func MtmdSupportAudio(mctx MtmdContext) bool {
 	if !Loaded() || !MtmdSupported() {
 		return false
@@ -128,8 +127,8 @@ func MtmdSupportAudio(mctx MtmdContext) bool {
 	return call("_yzma_mtmd_support_audio", int(mctx)) == 1
 }
 
-// MtmdMarker gives the marker that stands for a piece of media in the text of a
-// prompt, such as "<__media__>".
+// MtmdMarker gives the marker that replaces a media item in the text of a
+// prompt, for example "<__media__>".
 func MtmdMarker(mctx MtmdContext) string {
 	if !Loaded() || !MtmdSupported() {
 		return ""
@@ -150,9 +149,9 @@ func MtmdMarker(mctx MtmdContext) string {
 
 // MtmdBitmapInit makes a bitmap from the pixels of an image.
 //
-// The pixels must be RGB, three bytes for each one, with no padding between the
-// rows, so the length of rgb must be width*height*3. A page gets them from a
-// canvas: read the RGBA of the image and drop every fourth byte.
+// The pixels must be RGB, three bytes for each pixel, with no padding between
+// the rows. Thus the length of rgb must be width*height*3. A page reads the RGBA
+// of the image from a canvas and removes each fourth byte.
 func MtmdBitmapInit(width, height int32, rgb []byte) (MtmdBitmap, error) {
 	if !Loaded() {
 		return 0, ErrNotLoaded
@@ -166,8 +165,8 @@ func MtmdBitmapInit(width, height int32, rgb []byte) (MtmdBitmap, error) {
 		return 0, errBitmapSize(width, height, len(rgb), want)
 	}
 
-	// The image does not go in the scratch memory: it is large, and it stays
-	// only until the module copies it.
+	// The image is large and stays only until the module copies it, thus it
+	// does not go in the scratch memory.
 	ptr, err := malloc(len(rgb))
 	if err != nil {
 		return 0, err
@@ -183,7 +182,7 @@ func MtmdBitmapInit(width, height int32, rgb []byte) (MtmdBitmap, error) {
 	return MtmdBitmap(handle), nil
 }
 
-// errBitmapSize says what a bitmap of this size needs.
+// errBitmapSize gives the necessary length for a bitmap of this size.
 func errBitmapSize(width, height int32, got, want int) error {
 	return fmt.Errorf("llamawasm: an image of %d by %d needs %d bytes of RGB, got %d",
 		width, height, want, got)
@@ -197,7 +196,7 @@ func MtmdBitmapFree(bitmap MtmdBitmap) {
 	callVoid("_yzma_mtmd_bitmap_free", int(bitmap))
 }
 
-// MtmdInputChunksInit makes an empty list of chunks for MtmdTokenize to fill.
+// MtmdInputChunksInit makes an empty list of chunks for MtmdTokenize.
 func MtmdInputChunksInit() (MtmdInputChunks, error) {
 	if !Loaded() {
 		return 0, ErrNotLoaded
@@ -234,7 +233,7 @@ func MtmdInputChunksSize(chunks MtmdInputChunks) int32 {
 }
 
 // MtmdTokenize puts the text and the bitmaps into the list of chunks. The text
-// must hold one marker for each bitmap, and [MtmdMarker] gives the marker.
+// must hold one marker for each bitmap. [MtmdMarker] gives the marker.
 func MtmdTokenize(mctx MtmdContext, chunks MtmdInputChunks, text string,
 	addSpecial bool, parseSpecial bool, bitmaps []MtmdBitmap) error {
 	if !Loaded() {
@@ -250,8 +249,8 @@ func MtmdTokenize(mctx MtmdContext, chunks MtmdInputChunks, text string,
 	}
 	writeString(textPtr, text)
 
-	// The handles of the bitmaps go in their own memory, because the text is in
-	// the scratch already.
+	// The handles of the bitmaps go in their own memory, because the text is
+	// already in the scratch.
 	handlesPtr, err := tokenScratch.reserve(max(len(bitmaps), 1) * 4)
 	if err != nil {
 		return err
@@ -267,9 +266,9 @@ func MtmdTokenize(mctx MtmdContext, chunks MtmdInputChunks, text string,
 	return err
 }
 
-// MtmdHelperEvalChunks runs every chunk through the model: the text as tokens,
-// and each image through the projector first. It gives the position after the
-// last chunk, which the generation loop carries on from.
+// MtmdHelperEvalChunks runs each chunk through the model. The text goes as
+// tokens and each image goes through the projector first. It gives the position
+// after the last chunk, where the generation loop starts.
 func MtmdHelperEvalChunks(mctx MtmdContext, ctx Context, chunks MtmdInputChunks,
 	nPast Pos, seqID SeqId, nBatch int32, logitsLast bool) (Pos, error) {
 	if !Loaded() {

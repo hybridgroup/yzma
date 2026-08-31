@@ -75,8 +75,8 @@ func ModelChatTemplate(model Model, name string) string {
 	return modelString("_yzma_model_chat_template", model, 8192)
 }
 
-// modelString reads a string that the shim writes into a buffer, and takes a
-// larger buffer if the first one is too small.
+// modelString reads a string that the shim writes into a buffer. It uses a
+// larger buffer if the first buffer is too small.
 func modelString(name string, model Model, size int) string {
 	if !Loaded() {
 		return ""
@@ -101,18 +101,18 @@ func modelString(name string, model Model, size int) string {
 	}
 }
 
-// String gives the handle of the model as text, which helps while debugging.
+// String gives the handle of the model as text, which is an aid to debugging.
 func (m Model) String() string {
 	return fmt.Sprintf("model(%d)", int32(m))
 }
 
 // ChatApplyTemplate puts one message into the chat format of the model.
 //
-// One message is enough for a prompt with a question about an image. A chat with
-// turns needs the template of the model, which [ModelChatTemplate] gives.
+// One message is sufficient for a prompt with a question about an image. For a
+// chat with turns, use the template that [ModelChatTemplate] gives.
 //
-// addAssistant adds the opening of the turn of the assistant, which is what
-// makes the model answer instead of carrying on the message.
+// addAssistant adds the start of the turn of the assistant. This makes the model
+// answer and not continue the message.
 func ChatApplyTemplate(model Model, role, content string, addAssistant bool) (string, error) {
 	if !Loaded() {
 		return "", ErrNotLoaded

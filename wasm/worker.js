@@ -1,8 +1,7 @@
 // worker.js runs llama.cpp and the Go program in a Web Worker.
 //
-// Every call into llama.cpp is synchronous and one token takes milliseconds, so
-// this work cannot go on the main thread of the page: it would stop the page.
-// The worker sends each piece of text to the page as it comes.
+// Each call into llama.cpp is synchronous and one token takes milliseconds.
+// Thus this work cannot go on the main thread, because it would stop the page.
 //
 // The page sends these messages to the worker:
 //
@@ -18,9 +17,8 @@ const isThread = globalThis.name === "em-pthread";
 
 self.yzmaBase = ".";
 
-// The page can choose the backend with a query on the URL of this worker, such
-// as new Worker("./worker.js?mode=cpu"). The values are the ones that
-// yzma-loader.js takes: auto, webgpu, or cpu.
+// The page selects the backend with a query on the URL of this worker, for
+// example new Worker("./worker.js?mode=cpu"). yzma-loader.js has the values.
 const workerQuery = new URLSearchParams((self.location.search || "").slice(1));
 if (workerQuery.get("mode")) {
   self.yzmaMode = workerQuery.get("mode");
@@ -32,8 +30,8 @@ if (isThread) {
   self.yzmaMode = "cpu";
 }
 
-// Which Go program to run. The chat page takes the default, and the page for a
-// model with eyes asks for its own.
+// The Go program to run. The chat page uses the default and the image page
+// asks for its own.
 const program = workerQuery.get("program") || "yzma.wasm";
 
 importScripts("./yzma-loader.js");
@@ -45,8 +43,8 @@ if (!isThread) {
 
 // run starts llama.cpp and the Go program for the page.
 function run() {
-  // A failure with nobody to catch it must reach the page. Without this the page
-  // only sees that nothing more happens.
+  // A failure with no handler must reach the page. Without this the page only
+  // sees that nothing more occurs.
   self.onerror = (event) => {
     self.postMessage({ kind: "error", text: String((event && event.message) || event) });
   };
@@ -56,11 +54,8 @@ function run() {
 
   importScripts("./wasm_exec.js");
 
-  // The Go program says when it is ready by sending its first message, which is
-  // the one of kind "ready". Waiting for that is the only safe way to know that
-  // it has set its functions: starting the backend takes a moment with the CPU
-  // and much longer with WebGPU, where it has to find an adapter and make the
-  // shaders.
+  // The Go program sends a message of kind "ready" when it sets its functions.
+  // Wait for that message, because the backend can take a long time to start.
   let programIsReady;
   const programReady = new Promise((resolve) => {
     programIsReady = resolve;
@@ -81,8 +76,8 @@ function run() {
     const go = new Go();
     const result = await WebAssembly.instantiateStreaming(fetch("./" + program), go.importObject);
 
-    // The Go program blocks at the end of main, so it keeps running and the page
-    // can call into it. Do not wait for this promise.
+    // The Go program blocks at the end of main and continues to run, thus the
+    // page can call into it. Do not wait for this promise.
     go.run(result.instance);
 
     await programReady;

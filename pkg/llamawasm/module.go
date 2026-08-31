@@ -13,17 +13,17 @@ import (
 // The version of the interface of the shim, which is YZMA_ABI_VERSION in
 // wasm/yzma_wasm.cpp of the llama-cpp-builder repo.
 //
-// This package drives a module of any version from abiVersionMin to
-// abiVersion, so a new yzma still works with the modules of an older release.
-// A call that came with a later version is there only if the module has it, so
-// each one is tested for before it is used.
+// This package drives a module of each version from abiVersionMin to
+// abiVersion. Thus a new yzma operates with the modules of an older release.
+// A call from a later version is present only in a module that has it, thus
+// this package makes a test before each use.
 const (
 	abiVersionMin = 1 // 1 has the calls for text generation and embeddings
 	abiVersion    = 4 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
 	//                   bounds of the tokens of an image
 )
 
-// Error codes that the shim returns. These are the same as the values in
+// Error codes that the shim returns. These agree with the values in
 // wasm/yzma_wasm.cpp.
 const (
 	errGeneric  = -1
@@ -40,7 +40,7 @@ var (
 	// ErrNoModule says that the JavaScript glue did not run before Load.
 	ErrNoModule = errors.New("llamawasm: globalThis.yzmaReady is missing, load yzma-loader.js first")
 
-	// ErrNoMultimodal says that the module came from a release before the
+	// ErrNoMultimodal says that the module is from a release before the
 	// multimodal calls, which are in ABI version 3 and later.
 	ErrNoMultimodal = errors.New("llamawasm: this llama.cpp module has no multimodal calls, install a newer build")
 )
@@ -48,21 +48,20 @@ var (
 // mod is the Emscripten module instance of llama.cpp.
 var mod js.Value
 
-// threaded tells if the module that the page took uses more than one thread.
+// threaded tells if the module of the page uses more than one thread.
 var threaded bool
 
 // moduleABI is the version of the interface of the module that is loaded.
 var moduleABI int
 
 // gpuDevice is the name of the device of llama.cpp that is not the CPU, or an
-// empty string if there is none. Init fills it in.
+// empty string if there is none. Init sets it.
 var gpuDevice string
 
 // Load waits for the llama.cpp WebAssembly module and attaches to it.
 //
-// The path argument is not used. It is here to keep the same shape as
-// llama.Load, so that the same code can build for a native platform and for a
-// browser.
+// The path argument is not used. It keeps the same form as llama.Load, thus the
+// same code builds for a native platform and for a browser.
 //
 // The JavaScript glue must run first. It puts a promise in
 // globalThis.yzmaReady, and the value of that promise is the module.
@@ -71,7 +70,7 @@ func Load(path string) error {
 
 	ready := global.Get("yzmaReady")
 	if ready.IsUndefined() || ready.IsNull() {
-		// The glue may have put the instance in place without a promise.
+		// The glue can put the instance in place without a promise.
 		if m := global.Get("yzmaModule"); !m.IsUndefined() && !m.IsNull() {
 			return attach(m)
 		}
@@ -117,8 +116,7 @@ func Load(path string) error {
 	return attach(r.value)
 }
 
-// attach keeps the module and makes sure that it has the interface that this
-// package needs.
+// attach keeps the module and makes sure that it has the necessary interface.
 func attach(m js.Value) error {
 	if m.IsUndefined() || m.IsNull() {
 		return ErrNoModule
@@ -143,8 +141,8 @@ func attach(m js.Value) error {
 	return nil
 }
 
-// has tells if the module has a call. A module of an earlier version does not
-// have the calls that came later.
+// has tells if the module has a call. An earlier module does not have the calls
+// of a later version.
 func has(name string) bool {
 	return Loaded() && mod.Get(name).Type() == js.TypeFunction
 }
@@ -154,20 +152,19 @@ func Loaded() bool {
 	return !mod.IsUndefined() && !mod.IsNull()
 }
 
-// Threaded tells if the module that the page took uses more than one thread. A
-// browser gives more than one thread only to a page that sets the
-// Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy headers.
+// Threaded tells if the module of the page uses more than one thread. A browser
+// gives more than one thread only to a page with the Cross-Origin-Opener-Policy
+// and Cross-Origin-Embedder-Policy headers.
 func Threaded() bool {
 	return threaded
 }
 
 // Threads gives the number of threads that the module can use, which the
-// JavaScript glue takes from the machine. It is 1 for a build that uses one
-// thread, and for the WebGPU build, where the GPU does the work.
+// JavaScript glue reads from the machine. The value is 1 for a build with one
+// thread and for the WebGPU build, where the GPU does the work.
 //
-// llama.cpp asks for four threads unless it is told otherwise, whatever the
-// machine has, so [ContextDefaultParams] and [MtmdContextParamsDefault] pass
-// this instead.
+// llama.cpp asks for four threads unless a caller changes it. Thus
+// [ContextDefaultParams] and [MtmdContextParamsDefault] send this value.
 func Threads() int32 {
 	if !Loaded() {
 		return 0
@@ -187,8 +184,8 @@ func Init() {
 	}
 	callVoid("_yzma_backend_init")
 
-	// The devices of llama.cpp exist only after the backend starts, and asking
-	// for them is what makes the WebGPU backend look for an adapter.
+	// The devices of llama.cpp exist only after the backend starts. This request
+	// makes the WebGPU backend look for an adapter.
 	gpuDevice = readGPUDevice()
 }
 
@@ -214,15 +211,14 @@ func readGPUDevice() string {
 // GPUDevice gives the name of the device of llama.cpp that is not the CPU, or
 // an empty string if the computation is on the CPU. Call it after Init.
 //
-// A page can ask for WebGPU and still land on the CPU, because the backend
-// needs an adapter that supports f16 shaders. This says what llama.cpp really
-// has.
+// A page can ask for WebGPU and still get the CPU, because the backend needs an
+// adapter with f16 shaders. This gives the true condition of llama.cpp.
 func GPUDevice() string {
 	return gpuDevice
 }
 
-// Backend gives the name of what does the computation: "webgpu", "cpu-threads"
-// for the build on the CPU that uses more than one thread, or "cpu". Call it
+// Backend gives the name of the part that computes. The values are "webgpu",
+// "cpu-threads" for the CPU build with more than one thread, and "cpu". Call it
 // after Init.
 func Backend() string {
 	switch {
@@ -269,16 +265,15 @@ func callVoid(name string, args ...any) {
 
 // callValue runs a function of the shim and gives the result.
 //
-// A module with the WebGPU backend needs the GPU of the browser, and the calls
-// that ask for a GPU are asynchronous. Emscripten builds that module with JSPI,
-// so such a call gives a promise instead of a number. This waits for the
-// promise. A build for the CPU gives the number itself, which stays the fast
-// path.
+// A module with the WebGPU backend needs the GPU of the browser, and a request
+// for a GPU is asynchronous. Emscripten builds that module with JSPI, thus such
+// a call gives a promise and not a number. This function waits for the promise.
+// A CPU build gives the number directly, which is the fast path.
 func callValue(name string, args ...any) js.Value {
 	return settle(mod.Call(name, args...))
 }
 
-// settle waits for a promise, or gives back a value that is not one.
+// settle waits for a promise. It returns a value that is not a promise.
 func settle(v js.Value) js.Value {
 	if v.Type() != js.TypeObject || v.Get("then").Type() != js.TypeFunction {
 		return v
@@ -286,15 +281,15 @@ func settle(v js.Value) js.Value {
 
 	resolved, err := await(v)
 	if err != nil {
-		// The shim has no way to report this, so leave the value undefined and
-		// let the caller see a result that is not a number.
+		// The shim cannot report this. Leave the value undefined, thus the
+		// caller sees a result that is not a number.
 		return js.Undefined()
 	}
 	return resolved
 }
 
-// callErr runs a function of the shim and turns a negative result into an
-// error that holds the text from the shim.
+// callErr runs a function of the shim and changes a negative result into an
+// error with the text of the shim.
 func callErr(name string, args ...any) (int32, error) {
 	rc := call(name, args...)
 	if rc < 0 {
@@ -328,10 +323,10 @@ func lastError() string {
 //
 // memory of the module
 //
-// The two WebAssembly modules do not share memory, so every value that goes
+// The two WebAssembly modules do not share memory, thus each value that goes
 // into llama.cpp is a copy. ALLOW_MEMORY_GROWTH makes a new buffer each time
-// the memory of the module grows, and that leaves the old views detached, so
-// each read and write takes the view again.
+// the memory increases, which detaches the old views. Thus each read and write
+// gets the view again.
 //
 
 func heapU8() js.Value {
@@ -374,8 +369,8 @@ func readBytes(ptr, n int) []byte {
 	return b
 }
 
-// writeString writes s and a zero byte at ptr. The room at ptr must be at
-// least len(s)+1 bytes.
+// writeString writes s and a zero byte at ptr. The space at ptr must be a
+// minimum of len(s)+1 bytes.
 func writeString(ptr int, s string) {
 	b := make([]byte, len(s)+1)
 	copy(b, s)
@@ -412,8 +407,8 @@ func readFloats(ptr, n int) []float32 {
 // scratch memory
 //
 // The loop that makes tokens calls into the module many times for each token.
-// A scratch area that stays keeps the loop from allocating in the module, which
-// also keeps the memory of the module from growing during generation.
+// A permanent scratch area prevents an allocation in the module, which also
+// prevents an increase of the module memory during generation.
 //
 
 type scratch struct {
@@ -421,7 +416,7 @@ type scratch struct {
 	size int
 }
 
-// reserve gives a pointer to at least n bytes. The contents of an earlier
+// reserve gives a pointer to a minimum of n bytes. The contents of an earlier
 // reserve on the same scratch are lost.
 func (s *scratch) reserve(n int) (int, error) {
 	if !Loaded() {
@@ -431,8 +426,8 @@ func (s *scratch) reserve(n int) (int, error) {
 		return s.ptr, nil
 	}
 
-	// Take room for more than the request, so that a loop that grows a little
-	// each time does not allocate each time.
+	// Get more space than the request, thus a loop that increases by a small
+	// quantity does not allocate each time.
 	size := n * 2
 	ptr, err := malloc(size)
 	if err != nil {
@@ -444,15 +439,15 @@ func (s *scratch) reserve(n int) (int, error) {
 	return ptr, nil
 }
 
-// release gives the memory of the scratch back to the module.
+// release returns the memory of the scratch to the module.
 func (s *scratch) release() {
 	free(s.ptr)
 	s.ptr, s.size = 0, 0
 }
 
-// Each purpose has its own scratch, because more than one is in use at the
-// same time. tokenScratch holds tokens on the way in, textScratch holds a
-// string on the way in, and pieceScratch holds bytes on the way out.
+// Each purpose has its own scratch, because more than one is in use at the same
+// time. tokenScratch holds input tokens, textScratch holds an input string, and
+// pieceScratch holds output bytes.
 var (
 	tokenScratch scratch
 	textScratch  scratch
