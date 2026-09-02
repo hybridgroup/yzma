@@ -2,13 +2,15 @@ module github.com/hybridgroup/yzma
 
 go 1.26.0
 
+replace github.com/ardanlabs/jinja => github.com/hybridgroup/jinja v0.0.0-20260902173716-121cb6546be4
+
 require (
 	github.com/ardanlabs/jinja v1.1.0
 	github.com/ebitengine/purego v0.10.0
 	github.com/hashicorp/go-getter v1.8.6
 	github.com/jupiterrider/ffi v0.7.0
 	github.com/urfave/cli/v2 v2.27.7
-	golang.org/x/sys v0.42.0
+	golang.org/x/sys v0.43.0
 )
 
 require (
