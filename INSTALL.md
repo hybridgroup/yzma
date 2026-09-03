@@ -442,3 +442,34 @@ passes through lose their digests.
 The digests show that an archive is the archive that was published. They are not a
 signature, and a digest that comes from the same place as the asset does not show who
 built it.
+
+### Checking an installation later
+
+The archive is removed as soon as it is extracted, so a later check reads the files that
+are in place. `Install` writes `yzma-install.json` beside the libraries to say what it
+put there, and `VerifyInstall` checks them:
+
+```go
+report, err := download.VerifyInstall(context.Background(), libPath, "")
+if err != nil {
+	return err
+}
+if !report.OK() {
+	return fmt.Errorf("%d changed, %d missing", report.Changed, report.Missing)
+}
+```
+
+An empty tag takes the release from the record. Give a tag to say which release must be
+there. The record is beside the libraries, so anything that can change the libraries can
+change the record; a tag makes the check resolve the assets of that release itself
+instead of reading the tag from the record.
+
+A file that no asset of this install holds is reported as `FileUnexpected` and does not
+make `OK` false, because a directory can hold more than one install.
+
+The file digests come from the asset, so they are there only for the assets that
+`llama-cpp-builder` builds. An install from the `llama.cpp` release page gives
+`ErrNoFileDigests`.
+
+The `yzma verify` command does the same thing from a shell. See
+[the command documentation](./cmd/README.md).

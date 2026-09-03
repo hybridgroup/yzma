@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	getter "github.com/hashicorp/go-getter"
 )
@@ -364,10 +365,13 @@ func Install(ctx context.Context, target Target, dest string, progress getter.Pr
 		target.UpstreamVersion = upstream
 	}
 
-	err := installAssets(ctx, target, dest, progress, resolver, options)
+	assets, err := installAssets(ctx, target, dest, progress, resolver, options)
+	if err == nil {
+		return recordInstall(dest, target, assets)
+	}
 
 	// The newest release may still be building for this platform.
-	if err != nil && autoVersion && errors.Is(err, ErrFileNotFound) {
+	if autoVersion && errors.Is(err, ErrFileNotFound) {
 		previous, prevErr := LlamaPreviousVersion()
 		if prevErr != nil {
 			return err
@@ -380,16 +384,34 @@ func Install(ctx context.Context, target Target, dest string, progress getter.Pr
 				return err
 			}
 		}
-		return installAssets(ctx, target, dest, progress, resolver, options)
+		assets, err := installAssets(ctx, target, dest, progress, resolver, options)
+		if err != nil {
+			return err
+		}
+		return recordInstall(dest, target, assets)
 	}
 
 	return err
 }
 
-func installAssets(ctx context.Context, target Target, dest string, progress getter.ProgressTracker, resolver Resolver, options installOptions) error {
+// recordInstall leaves a record of what was installed, so [VerifyInstall] can check
+// the files later.
+func recordInstall(dest string, target Target, assets []Asset) error {
+	return WriteInstallRecord(dest, InstallRecord{
+		Tag:         target.Version,
+		UpstreamTag: target.UpstreamVersion,
+		Arch:        target.Arch.String(),
+		OS:          target.OS.String(),
+		Processor:   target.Processor.String(),
+		Installed:   time.Now().UTC(),
+		Assets:      assets,
+	})
+}
+
+func installAssets(ctx context.Context, target Target, dest string, progress getter.ProgressTracker, resolver Resolver, options installOptions) ([]Asset, error) {
 	assets, err := resolveAssets(target, resolver, options.verify)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, asset := range assets {
@@ -397,17 +419,17 @@ func installAssets(ctx context.Context, target Target, dest string, progress get
 		case options.verify == VerifyOff, asset.SHA256 != "":
 			// Nothing to say. A digest that is there is checked as it downloads.
 		case options.verify == VerifyRequired:
-			return fmt.Errorf("%w: %s", ErrDigestMissing, asset.URL)
+			return nil, fmt.Errorf("%w: %s", ErrDigestMissing, asset.URL)
 		case VerifyWarning != nil:
 			VerifyWarning(asset.URL)
 		}
 
 		if err := getFunc(ctx, asset, dest, progress); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return assets, nil
 }
 
 // resolveAssets asks a resolver for the assets to install. A resolver that reports

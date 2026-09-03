@@ -55,11 +55,11 @@ var VerifyWarning = func(url string) {
 // Asset is a release asset to install and, when it is known, the digest of its bytes.
 type Asset struct {
 	// URL is where the asset is downloaded from.
-	URL string
+	URL string `json:"url"`
 
 	// SHA256 is the expected digest of the asset, in hexadecimal. An empty value
 	// means the digest is not known.
-	SHA256 string
+	SHA256 string `json:"sha256,omitempty"`
 }
 
 // AssetResolver reports the assets to install for a Target with their expected
