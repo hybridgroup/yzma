@@ -181,10 +181,10 @@ func TestGetLinuxCPU(t *testing.T) {
 
 	// Override the get function to use our mock server
 	originalGet := getFunc
-	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+	getFunc = func(ctx context.Context, asset Asset, dest string, progress getter.ProgressTracker) error {
 		// Replace the real URL with our mock server URL
 		mockURL := server.URL + "/b7974/llama-b7974-bin-ubuntu-x64.tar.gz"
-		return downloadAndExtractTarGz(mockURL, dest, nil)
+		return downloadAndExtractTarGz(Asset{URL: mockURL}, dest, nil)
 	}
 	defer func() { getFunc = originalGet }()
 
@@ -810,9 +810,9 @@ func TestGet404Error(t *testing.T) {
 
 	// Override the get function to use our mock server
 	originalGet := getFunc
-	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+	getFunc = func(ctx context.Context, asset Asset, dest string, progress getter.ProgressTracker) error {
 		mockURL := server.URL + "/mock.tar.gz"
-		return get(ctx, mockURL, dest, nil)
+		return get(ctx, Asset{URL: mockURL}, dest, nil)
 	}
 	defer func() { getFunc = originalGet }()
 
@@ -864,14 +864,15 @@ func TestGetWithContext_FallbackToPreviousVersion(t *testing.T) {
 
 	// Override getFunc to use our test server
 	originalGet := getFunc
-	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+	getFunc = func(ctx context.Context, asset Asset, dest string, progress getter.ProgressTracker) error {
+		url := asset.URL
 		// Mock url rewriting to point to our test server
 		parts := strings.Split(url, "/")
 		filename := parts[len(parts)-1]
 		versionPart := parts[len(parts)-2]
 
 		mockURL := server.URL + "/" + versionPart + "/" + filename
-		err := downloadAndExtractTarGz(mockURL, dest, nil)
+		err := downloadAndExtractTarGz(Asset{URL: mockURL}, dest, nil)
 		if err != nil && strings.Contains(err.Error(), "404") {
 			return fmt.Errorf("%w: %s", ErrFileNotFound, url)
 		}
@@ -970,7 +971,7 @@ func TestExtractTarGzUpgradeRepointsSymlink(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if err := downloadAndExtractTarGz(server.URL+"/b10375/llama-b10375-bin-ubuntu-x64.tar.gz", dest, nil); err != nil {
+	if err := downloadAndExtractTarGz(Asset{URL: server.URL + "/b10375/llama-b10375-bin-ubuntu-x64.tar.gz"}, dest, nil); err != nil {
 		t.Fatalf("downloadAndExtractTarGz() failed: %v", err)
 	}
 

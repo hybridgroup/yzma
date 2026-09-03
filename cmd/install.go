@@ -49,6 +49,12 @@ var InstallCmd = &cli.Command{
 			Usage:   "suppress output during installation",
 			Value:   false,
 		},
+		&cli.StringFlag{
+			Name:    "verify",
+			Usage:   "how to check the digest of each download (available, require, off)",
+			EnvVars: []string{"YZMA_VERIFY"},
+			Value:   "available",
+		},
 	},
 	Action: func(c *cli.Context) error {
 		return runInstall(c)
@@ -111,7 +117,13 @@ func runInstall(c *cli.Context) error {
 		}
 	}
 
-	if err := download.Get(runtime.GOARCH, osInstall, processor, version, libPath); err != nil {
+	verify, err := download.ParseVerifyPolicy(c.String("verify"))
+	if err != nil {
+		return err
+	}
+
+	if err := download.Get(runtime.GOARCH, osInstall, processor, version, libPath,
+		download.WithVerify(verify)); err != nil {
 		return fmt.Errorf("failed to download llama.cpp: %w", err)
 	}
 

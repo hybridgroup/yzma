@@ -18,5 +18,21 @@
 // An empty [Target.Version] takes [DefaultVersion], the llama.cpp release this yzma
 // release was tested with. "latest" always gets the most recent nightly build.
 //
+// # Checking what comes down
+//
+// [Install] checks the SHA-256 of each asset before it writes anything, against the
+// digest manifest that llama-cpp-builder publishes for the release. An asset whose
+// bytes do not agree stops the install with [ErrDigestMismatch], and nothing is
+// extracted.
+//
+// The default policy is [VerifyIfAvailable]: an asset with no digest installs and
+// [VerifyWarning] says so. A deployment that must know what it loads asks for more:
+//
+//	err := download.Install(ctx, target, libPath, download.ProgressTracker, nil,
+//		download.WithVerify(download.VerifyRequired))
+//
+// A [Resolver] reports no digests, so [VerifyRequired] refuses one. Implement
+// [AssetResolver] to give a digest for each asset.
+//
 // See INSTALL.md for the longer version.
 package download

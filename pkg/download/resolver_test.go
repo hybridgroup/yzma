@@ -14,7 +14,8 @@ import (
 func TestInstallUsesResolver(t *testing.T) {
 	var got []string
 	originalGet := getFunc
-	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+	getFunc = func(ctx context.Context, asset Asset, dest string, progress getter.ProgressTracker) error {
+		url := asset.URL
 		got = append(got, url)
 		return nil
 	}
@@ -45,7 +46,7 @@ func TestInstallUsesResolver(t *testing.T) {
 
 func TestInstallResolverError(t *testing.T) {
 	originalGet := getFunc
-	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+	getFunc = func(ctx context.Context, asset Asset, dest string, progress getter.ProgressTracker) error {
 		t.Fatal("Install() downloaded despite a resolver error")
 		return nil
 	}
@@ -64,7 +65,8 @@ func TestInstallResolverError(t *testing.T) {
 func TestInstallNilResolverUsesDefault(t *testing.T) {
 	var got []string
 	originalGet := getFunc
-	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+	getFunc = func(ctx context.Context, asset Asset, dest string, progress getter.ProgressTracker) error {
+		url := asset.URL
 		got = append(got, url)
 		return nil
 	}
@@ -194,7 +196,7 @@ func TestInstallNightlyTagSkipsNightlyTagLookup(t *testing.T) {
 	defer func() { nightlyTagURL = originalURL }()
 
 	originalGet := getFunc
-	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+	getFunc = func(ctx context.Context, asset Asset, dest string, progress getter.ProgressTracker) error {
 		return nil
 	}
 	defer func() { getFunc = originalGet }()
@@ -223,7 +225,8 @@ func TestInstallUsesDefaultVersion(t *testing.T) {
 
 	var got []string
 	originalGet := getFunc
-	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+	getFunc = func(ctx context.Context, asset Asset, dest string, progress getter.ProgressTracker) error {
+		url := asset.URL
 		got = append(got, url)
 		return nil
 	}
@@ -248,7 +251,8 @@ func TestInstallExplicitVersionOverridesDefault(t *testing.T) {
 
 	var got []string
 	originalGet := getFunc
-	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+	getFunc = func(ctx context.Context, asset Asset, dest string, progress getter.ProgressTracker) error {
+		url := asset.URL
 		got = append(got, url)
 		return nil
 	}
@@ -283,7 +287,8 @@ func TestInstallLatestSkipsDefaultVersion(t *testing.T) {
 
 	var got []string
 	originalGet := getFunc
-	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+	getFunc = func(ctx context.Context, asset Asset, dest string, progress getter.ProgressTracker) error {
+		url := asset.URL
 		got = append(got, url)
 		return nil
 	}
@@ -323,7 +328,7 @@ func TestInstallDefaultVersionDoesNotFallBack(t *testing.T) {
 	defer func() { DefaultVersion = originalDefault }()
 
 	originalGet := getFunc
-	getFunc = func(ctx context.Context, url string, dest string, progress getter.ProgressTracker) error {
+	getFunc = func(ctx context.Context, asset Asset, dest string, progress getter.ProgressTracker) error {
 		return ErrFileNotFound
 	}
 	defer func() { getFunc = originalGet }()

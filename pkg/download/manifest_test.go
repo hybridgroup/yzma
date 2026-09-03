@@ -10,6 +10,7 @@
 package download
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -124,4 +125,72 @@ func TestDefaultResolverMatchesRelease(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestDigestManifestCoversResolvedAssets checks that the published digest manifest
+// names every asset the built-in table can ask for. An asset the manifest misses
+// installs with no check under the default policy, so this catches a manifest that
+// falls behind the table.
+func TestDigestManifestCoversResolvedAssets(t *testing.T) {
+	tag := os.Getenv("YZMA_TEST_LLAMA_TAG")
+	if tag == "" {
+		latest, err := LlamaLatestVersion()
+		if err != nil {
+			t.Fatalf("LlamaLatestVersion() failed: %v", err)
+		}
+		tag = latest
+	}
+
+	target := Target{Version: tag}
+	if IsTaggedRelease(tag) {
+		upstream, err := LlamaNightlyTag(tag)
+		if err != nil {
+			t.Fatalf("LlamaNightlyTag(%s) failed: %v", tag, err)
+		}
+		target.UpstreamVersion = upstream
+	}
+
+	m, err := fetchManifest(context.Background(), tag)
+	if err != nil {
+		t.Fatalf("fetching the digests of %s failed: %v", tag, err)
+	}
+
+	// Every combination the table accepts, so a new platform is covered as soon as
+	// the table names it.
+	oses := []OS{Linux, Bookworm, Trixie, Darwin, Windows, Wasm}
+	arches := []Arch{AMD64, ARM64}
+	processors := []Processor{CPU, CUDA, Metal, ROCm, Vulkan, WebGPU}
+
+	seen := make(map[string]bool)
+	for _, os := range oses {
+		for _, arch := range arches {
+			for _, processor := range processors {
+				candidate := target
+				candidate.Arch, candidate.OS, candidate.Processor = arch, os, processor
+
+				urls, err := DefaultResolver.Resolve(candidate)
+				if err != nil {
+					// The table does not build this combination.
+					continue
+				}
+
+				for _, url := range urls {
+					if seen[url] {
+						continue
+					}
+					seen[url] = true
+
+					if m.digestFor(url) == "" {
+						t.Errorf("the digests of %s do not name %s (%s/%s/%s)",
+							tag, url, os, arch, processor)
+					}
+				}
+			}
+		}
+	}
+
+	if len(seen) == 0 {
+		t.Fatal("no assets resolved")
+	}
+	t.Logf("checked %d assets for %s", len(seen), tag)
 }
