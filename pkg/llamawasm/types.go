@@ -28,6 +28,38 @@ type (
 	Sampler int32
 )
 
+// VocabType is the kind of the tokenizer of a vocabulary. The values agree with
+// llama.VocabType.
+type VocabType int32
+
+const (
+	VocabTypeNone VocabType = iota
+	VocabTypeSPM
+	VocabTypeBPE
+	VocabTypeWPM
+	VocabTypeUGM
+	VocabTypeRWKV
+	VocabTypePLAMO2
+)
+
+// TokenAttr holds the attributes of one token. The values agree with
+// llama.TokenAttr.
+type TokenAttr int32
+
+const (
+	TokenAttrUndefined  TokenAttr = 0
+	TokenAttrUnknown    TokenAttr = 1 << 0
+	TokenAttrUnused     TokenAttr = 1 << 1
+	TokenAttrNormal     TokenAttr = 1 << 2
+	TokenAttrControl    TokenAttr = 1 << 3
+	TokenAttrUserDef    TokenAttr = 1 << 4
+	TokenAttrByte       TokenAttr = 1 << 5
+	TokenAttrNormalized TokenAttr = 1 << 6
+	TokenAttrLstrip     TokenAttr = 1 << 7
+	TokenAttrRstrip     TokenAttr = 1 << 8
+	TokenAttrSingleWord TokenAttr = 1 << 9
+)
+
 // PoolingType is how the embeddings of the tokens of a sequence become one
 // embedding.
 type PoolingType int32
