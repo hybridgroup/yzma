@@ -190,16 +190,28 @@ func TestTokenizeFromParts(t *testing.T) {
 		t.Fatalf("TokenizeFromParts failed with result: %d", result)
 	}
 
-	if size := InputChunksSize(chunks); size != 3 {
-		t.Fatalf("TokenizeFromParts expected 3 chunks, got %d", size)
+	// A model that slices an image gives more than one image chunk, with text
+	// chunks between the slices, thus only the order of the parts is checked.
+	size := InputChunksSize(chunks)
+	if size < 3 {
+		t.Fatalf("TokenizeFromParts expected at least 3 chunks, got %d", size)
 	}
 
-	want := []InputChunkType{InputChunkTypeText, InputChunkTypeImage, InputChunkTypeText}
-	for i, wantType := range want {
-		gotType := InputChunkGetType(InputChunksGet(chunks, uint64(i)))
-		if gotType != wantType {
-			t.Errorf("chunk %d has type %d, expected %d", i, gotType, wantType)
+	if got := InputChunkGetType(InputChunksGet(chunks, 0)); got != InputChunkTypeText {
+		t.Errorf("first chunk has type %d, expected text", got)
+	}
+	if got := InputChunkGetType(InputChunksGet(chunks, size-1)); got != InputChunkTypeText {
+		t.Errorf("last chunk has type %d, expected text", got)
+	}
+
+	images := 0
+	for i := uint64(1); i < size-1; i++ {
+		if InputChunkGetType(InputChunksGet(chunks, i)) == InputChunkTypeImage {
+			images++
 		}
+	}
+	if images == 0 {
+		t.Error("TokenizeFromParts gave no image chunk between the text chunks")
 	}
 }
 
