@@ -155,7 +155,7 @@ There are three builds of `llama.cpp`, and the JavaScript glue takes the best on
 
 | Build | What the browser needs |
 |-------|------------------------|
-| WebGPU | WebGPU with f16 shaders, and JSPI: Chrome or Edge 137 and later |
+| WebGPU | WebGPU with f16 shaders, and JSPI: Chrome or Edge 137 and later, or Firefox 153 and later with two switches in `about:config` |
 | More threads | `SharedArrayBuffer`, so a page with the COOP and COEP headers |
 | One thread | Nothing. It works everywhere. |
 

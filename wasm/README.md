@@ -210,7 +210,7 @@ the browser can run.
 
 | Build | What it needs |
 | --- | --- |
-| `yzma_wasm_webgpu` | WebGPU with f16 shaders, and JSPI. Chrome and Edge 137 or later. |
+| `yzma_wasm_webgpu` | WebGPU with f16 shaders, and JSPI. Chrome and Edge 137 or later, or Firefox 153 or later with two switches. See below. |
 | `yzma_wasm_mt` | `SharedArrayBuffer`, thus a page with the COOP and COEP headers. |
 | `yzma_wasm` | Nothing. It operates in all browsers. |
 
@@ -242,6 +242,57 @@ gives two results.
   ```
 
 The fallback makes the page slow, but the page operates.
+
+### Firefox
+
+Firefox runs the WebGPU build, but WebGPU is not yet on by default. Set both of
+these in `about:config` and restart the browser.
+
+| Switch | Why |
+| --- | --- |
+| `dom.webgpu.enabled` | WebGPU on Linux is still behind this switch. |
+| `dom.webgpu.workers.enabled` | llama.cpp loads in the worker, thus WebGPU in a page is not sufficient. |
+
+JSPI came in Firefox 153, thus 153 or later gives `WebAssembly.Suspending` and
+`WebAssembly.promising` with no switch. A test in the console of the page does
+not answer the question, because the worker has its own switch. Test the worker.
+
+```js
+const w = new Worker(URL.createObjectURL(new Blob([`
+  (async () => {
+    const a = self.navigator.gpu && await navigator.gpu.requestAdapter();
+    postMessage({
+      gpu: !!self.navigator.gpu,
+      jspi: typeof WebAssembly.Suspending === "function",
+      f16: !!a && a.features.has("shader-f16"),
+      info: a && { ...a.info },
+    });
+  })();
+`], { type: "text/javascript" })));
+w.onmessage = (e) => console.log(e.data);
+```
+
+With `?mode=webgpu` the loader says which of the parts is missing, thus read the
+console of the worker first. Firefox 154 on Linux with the two switches gives
+`gpu`, `jspi`, and `f16` in the worker, and the page reports
+`backend: webgpu (WebGPU)`.
+
+Firefox gives an empty `adapter.info`, thus the loader has no name for the card
+and `globalThis.yzmaAdapter` holds the plain word `webgpu`. This is not a
+failure. `llamawasm.Backend()` still gives the true answer.
+
+Firefox uses wgpu and Chrome uses Dawn, so the two do not always give the same
+adapter or the same features on the same machine. A machine with two GPUs can
+give f16 with one and not with the other, and these variables select the card
+before Firefox starts.
+
+```
+__NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia firefox
+MESA_VK_DEVICE_SELECT=<vendor>:<device> firefox
+```
+
+Firefox gives no subgroups, thus llama.cpp takes the plain f16 shaders and the
+GPU is slower than the same card in Chrome.
 
 ## More than one thread
 
@@ -298,8 +349,9 @@ markers. The host build reads the token itself.
 
 ## Limits
 
-- WebGPU needs Chrome or Edge 137 or later, and an adapter with f16 shaders. All
-  other browsers use the CPU with SIMD.
+- WebGPU needs an adapter with f16 shaders, and Chrome or Edge 137 or later, or
+  Firefox 153 or later with two switches. All other browsers use the CPU with
+  SIMD.
 - A browser does not give the matrix instructions of a subgroup, which llama.cpp
   uses only outside a browser. Thus the GPU is slower in a page than the same
   backend on a desktop.
