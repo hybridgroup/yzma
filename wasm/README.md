@@ -210,14 +210,16 @@ the browser can run.
 
 | Build | What it needs |
 | --- | --- |
-| `yzma_wasm_webgpu` | WebGPU with f16 shaders, and JSPI. Chrome and Edge 137 or later, or Firefox 153 or later with two switches. See below. |
+| `yzma_wasm_webgpu` | WebGPU with f16 shaders, and JSPI. Chrome and Edge 137 or later. Firefox gives wrong values, thus auto mode does not use it there. See below. |
 | `yzma_wasm_mt` | `SharedArrayBuffer`, thus a page with the COOP and COEP headers. |
 | `yzma_wasm` | Nothing. It operates in all browsers. |
 
 A page can set the choice with `globalThis.yzmaMode`, which accepts `auto` (the
 default), `webgpu`, or `cpu`. With `webgpu` the loader still falls back to the
 CPU if the browser cannot run that build, because a slow page is better than a
-page that does not operate.
+page that does not operate. Auto mode takes the CPU in Firefox, because the
+WebGPU of that browser gives wrong values. Mode `webgpu` still selects the GPU
+there, thus a test of a repair is easy.
 
 `llamawasm.Backend()` gives the name of the part that computes and
 `llamawasm.GPUDevice()` gives the name of the GPU that llama.cpp found. Ask
@@ -242,6 +244,22 @@ gives two results.
   ```
 
 The fallback makes the page slow, but the page operates.
+
+### Vulkan in Chrome on Linux
+
+Chrome on Linux keeps Vulkan off. WebGPU then uses the OpenGL ES backend of
+ANGLE, which has no `shader-f16` on any card, thus llama.cpp reports no device
+and the loader takes the CPU. `chrome://gpu` shows this as `Vulkan: Disabled`
+and the first adapter of Dawn Info as an `OpenGLES backend` line. Start Chrome
+with both switches, and close every window of Chrome first.
+
+```
+google-chrome --enable-features=Vulkan \
+  --enable-dawn-features=vulkan_enable_f16_on_nvidia
+```
+
+`chrome://gpu` then says `Vulkan: Enabled` and the first adapter of Dawn Info
+is a `Vulkan backend` line with the name of the card.
 
 ### Firefox
 
@@ -294,6 +312,25 @@ MESA_VK_DEVICE_SELECT=<vendor>:<device> firefox
 Firefox gives no subgroups, thus llama.cpp takes the plain f16 shaders and the
 GPU is slower than the same card in Chrome.
 
+#### Firefox gives wrong values
+
+The WebGPU build operates in Firefox, but the numbers that come back are wrong.
+A model stops at the first token, thus a chat page shows a question and no
+answer. `Decode` reports no failure, thus the logits reach the sampler with
+values that make the first token an end of generation.
+
+The same page, the same model, and the same WebAssembly build give this.
+
+| Browser | Backend | Result |
+| --- | --- | --- |
+| Firefox 154 | webgpu, which is wgpu | no tokens |
+| Firefox 154 with `?mode=cpu` | cpu | a correct answer |
+| Chrome 152 | webgpu, which is Dawn | a correct answer |
+
+Thus `yzma-loader.js` takes the CPU in Firefox in auto mode. Set `yzmaMode` to
+`webgpu`, or add `?mode=webgpu` to a page of this directory, to test the GPU
+again when a new Firefox comes.
+
 ## More than one thread
 
 The faster build of llama.cpp needs `SharedArrayBuffer`. A browser gives that
@@ -307,6 +344,14 @@ Cross-Origin-Embedder-Policy: require-corp
 `wasm/serve` sets them. If a host does not set them, `yzma-loader.js` selects
 the build with one thread, which is slower but operates in all browsers.
 `llamawasm.Threaded()` gives the selection.
+
+A host such as GitHub Pages sends no headers, thus a page there gets them from a
+service worker such as `coi-serviceworker`. Such a worker must not send the
+download of the model through `respondWith`. Firefox stops a service worker that
+holds a response open for a long time, and the download then fails with
+`TypeError: Error in input stream`. Let the browser make the cross origin
+request, for example with `event.stopImmediatePropagation()` in a listener
+before the one of the worker.
 
 An isolated page can get a model from another origin only if that origin sends
 the CORS headers. Hugging Face sends them, thus the model in `index.html` comes
@@ -349,9 +394,10 @@ markers. The host build reads the token itself.
 
 ## Limits
 
-- WebGPU needs an adapter with f16 shaders, and Chrome or Edge 137 or later, or
-  Firefox 153 or later with two switches. All other browsers use the CPU with
-  SIMD.
+- WebGPU needs an adapter with f16 shaders, and Chrome or Edge 137 or later. All
+  other browsers use the CPU with SIMD.
+- The WebGPU of Firefox gives wrong values to llama.cpp, thus auto mode takes
+  the CPU there.
 - A browser does not give the matrix instructions of a subgroup, which llama.cpp
   uses only outside a browser. Thus the GPU is slower in a page than the same
   backend on a desktop.
