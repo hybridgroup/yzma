@@ -384,3 +384,92 @@ Notes:
   including `file://` and S3/GCS.
 
 See the [resolver example code](./examples/resolver/).
+
+### Checking what comes down
+
+`Install` checks the SHA-256 of each asset before it writes anything. The expected
+digests come from the manifest that `llama-cpp-builder` publishes for each release tag,
+next to the version files:
+
+```
+https://hybridgroup.github.io/llama-cpp-builder/digests/b10783.json
+```
+
+An asset whose bytes do not agree stops the install with `download.ErrDigestMismatch`,
+and nothing is extracted.
+
+The default is `VerifyIfAvailable`. An asset that has no digest still installs, and
+`download.VerifyWarning` prints a line about it. Set that to `nil` to say nothing.
+
+A deployment that must know which libraries it loads asks for more:
+
+```go
+err := download.Install(context.Background(), target, libPath, download.ProgressTracker, nil,
+	download.WithVerify(download.VerifyRequired))
+```
+
+`VerifyRequired` makes an asset with no digest an error, `download.ErrDigestMissing`.
+`VerifyOff` checks nothing.
+
+The `yzma install` command takes the same setting from the `YZMA_VERIFY` environment
+variable, which accepts `available` (the default), `require`, and `off`.
+
+#### Digests from your own resolver
+
+A `Resolver` returns URLs only, so it reports no digests and `VerifyRequired` refuses it.
+Implement `AssetResolver` as well to give a digest for each asset:
+
+```go
+type mirrorResolver struct{}
+
+func (mirrorResolver) Resolve(t download.Target) ([]string, error) {
+	return download.DefaultResolver.Resolve(t)
+}
+
+func (r mirrorResolver) ResolveAssets(t download.Target) ([]download.Asset, error) {
+	return []download.Asset{{
+		URL:    "https://mirror.example.com/llama/" + t.Version + "-cuda12-x64.tar.gz",
+		SHA256: mirrorDigest(t.Version),
+	}}, nil
+}
+```
+
+`Install` prefers `ResolveAssets` when a resolver has both. A resolver that wraps
+`DefaultResolver` should implement `AssetResolver` and delegate to
+`download.DefaultResolver.(download.AssetResolver).ResolveAssets(t)`, or the assets it
+passes through lose their digests.
+
+The digests show that an archive is the archive that was published. They are not a
+signature, and a digest that comes from the same place as the asset does not show who
+built it.
+
+### Checking an installation later
+
+The archive is removed as soon as it is extracted, so a later check reads the files that
+are in place. `Install` writes `yzma-install.json` beside the libraries to say what it
+put there, and `VerifyInstall` checks them:
+
+```go
+report, err := download.VerifyInstall(context.Background(), libPath, "")
+if err != nil {
+	return err
+}
+if !report.OK() {
+	return fmt.Errorf("%d changed, %d missing", report.Changed, report.Missing)
+}
+```
+
+An empty tag takes the release from the record. Give a tag to name the release that must
+be there. The record is beside the libraries, so anything that can change the libraries
+can change the record. A tag makes the check resolve the assets of that release itself
+instead of reading the tag from the record.
+
+A file that no asset of this install holds is reported as `FileUnexpected` and does not
+make `OK` false, because a directory can hold more than one install.
+
+The file digests come from the asset, so they are there only for the assets that
+`llama-cpp-builder` builds. An install from the `llama.cpp` release page gives
+`ErrNoFileDigests`.
+
+The `yzma verify` command does the same thing from a shell. See
+[the command documentation](./cmd/README.md).

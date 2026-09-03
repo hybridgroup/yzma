@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	getter "github.com/hashicorp/go-getter"
 )
@@ -40,8 +41,44 @@ type ResolverFunc func(target Target) ([]string, error)
 func (f ResolverFunc) Resolve(target Target) ([]string, error) { return f(target) }
 
 // DefaultResolver resolves the assets published on the llama.cpp and llama-cpp-builder
-// release pages. [Install] uses it when no resolver is given.
-var DefaultResolver Resolver = ResolverFunc(defaultResolve)
+// release pages. [Install] uses it when no resolver is given. It satisfies
+// [AssetResolver] as well, so it reports the expected digest of each asset.
+var DefaultResolver Resolver = defaultResolver{}
+
+// defaultResolver is the built-in resolver. It reads the digest manifest that
+// llama-cpp-builder publishes for each release tag.
+type defaultResolver struct{}
+
+// Resolve reports the assets to install as URLs.
+func (defaultResolver) Resolve(target Target) ([]string, error) {
+	return defaultResolve(target)
+}
+
+// ResolveAssets reports the assets to install with their expected digests. A manifest
+// that cannot be read gives assets with no digest, which [VerifyIfAvailable] permits
+// and [VerifyRequired] refuses.
+func (r defaultResolver) ResolveAssets(target Target) ([]Asset, error) {
+	urls, err := defaultResolve(target)
+	if err != nil {
+		return nil, err
+	}
+
+	assets := make([]Asset, len(urls))
+	for i, url := range urls {
+		assets[i] = Asset{URL: url}
+	}
+
+	m, err := fetchManifest(context.Background(), target.Version)
+	if err != nil {
+		return assets, nil
+	}
+
+	for i := range assets {
+		assets[i].SHA256 = m.digestFor(assets[i].URL)
+	}
+
+	return assets, nil
+}
 
 // llama.cpp renamed its ROCm assets at these two builds.
 const (
@@ -270,11 +307,33 @@ func defaultResolve(target Target) ([]string, error) {
 	return append(extra, fmt.Sprintf("%s/%s", location, filename)), nil
 }
 
+// InstallOption changes what [Install] does.
+type InstallOption func(*installOptions)
+
+// installOptions holds the settings that an [InstallOption] changes.
+type installOptions struct {
+	verify VerifyPolicy
+}
+
+// WithVerify sets what [Install] does about the digest of an asset. The default is
+// [VerifyIfAvailable].
+func WithVerify(policy VerifyPolicy) InstallOption {
+	return func(o *installOptions) { o.verify = policy }
+}
+
 // Install downloads the llama.cpp binaries for target into dest. A nil resolver means
 // [DefaultResolver]. An empty [Target.Version] takes [DefaultVersion].
-func Install(ctx context.Context, target Target, dest string, progress getter.ProgressTracker, resolver Resolver) error {
+//
+// Install checks the digest of each asset that has one, and stops before it writes
+// anything if the bytes do not agree. Use [WithVerify] to change that.
+func Install(ctx context.Context, target Target, dest string, progress getter.ProgressTracker, resolver Resolver, opts ...InstallOption) error {
 	if resolver == nil {
 		resolver = DefaultResolver
+	}
+
+	var options installOptions
+	for _, opt := range opts {
+		opt(&options)
 	}
 
 	// An empty version takes the release pinned by this yzma release. "latest" always
@@ -306,10 +365,13 @@ func Install(ctx context.Context, target Target, dest string, progress getter.Pr
 		target.UpstreamVersion = upstream
 	}
 
-	err := installAssets(ctx, target, dest, progress, resolver)
+	assets, err := installAssets(ctx, target, dest, progress, resolver, options)
+	if err == nil {
+		return recordInstall(dest, target, assets)
+	}
 
 	// The newest release may still be building for this platform.
-	if err != nil && autoVersion && errors.Is(err, ErrFileNotFound) {
+	if autoVersion && errors.Is(err, ErrFileNotFound) {
 		previous, prevErr := LlamaPreviousVersion()
 		if prevErr != nil {
 			return err
@@ -322,21 +384,72 @@ func Install(ctx context.Context, target Target, dest string, progress getter.Pr
 				return err
 			}
 		}
-		return installAssets(ctx, target, dest, progress, resolver)
+		assets, err := installAssets(ctx, target, dest, progress, resolver, options)
+		if err != nil {
+			return err
+		}
+		return recordInstall(dest, target, assets)
 	}
 
 	return err
 }
 
-func installAssets(ctx context.Context, target Target, dest string, progress getter.ProgressTracker, resolver Resolver) error {
-	urls, err := resolver.Resolve(target)
+// recordInstall leaves a record of what was installed, so [VerifyInstall] can check
+// the files later.
+func recordInstall(dest string, target Target, assets []Asset) error {
+	return WriteInstallRecord(dest, InstallRecord{
+		Tag:         target.Version,
+		UpstreamTag: target.UpstreamVersion,
+		Arch:        target.Arch.String(),
+		OS:          target.OS.String(),
+		Processor:   target.Processor.String(),
+		Installed:   time.Now().UTC(),
+		Assets:      assets,
+	})
+}
+
+func installAssets(ctx context.Context, target Target, dest string, progress getter.ProgressTracker, resolver Resolver, options installOptions) ([]Asset, error) {
+	assets, err := resolveAssets(target, resolver, options.verify)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for _, url := range urls {
-		if err := getFunc(ctx, url, dest, progress); err != nil {
-			return err
+
+	for _, asset := range assets {
+		switch {
+		case options.verify == VerifyOff, asset.SHA256 != "":
+			// Nothing to say. A digest that is there is checked as it downloads.
+		case options.verify == VerifyRequired:
+			return nil, fmt.Errorf("%w: %s", ErrDigestMissing, asset.URL)
+		case VerifyWarning != nil:
+			VerifyWarning(asset.URL)
+		}
+
+		if err := getFunc(ctx, asset, dest, progress); err != nil {
+			return nil, err
 		}
 	}
-	return nil
+
+	return assets, nil
+}
+
+// resolveAssets asks a resolver for the assets to install. A resolver that reports
+// digests is preferred, so a resolver that only has [Resolver] keeps working.
+// [VerifyOff] takes the plain [Resolver], because a digest that nothing reads is not
+// worth the fetch of a manifest.
+func resolveAssets(target Target, resolver Resolver, verify VerifyPolicy) ([]Asset, error) {
+	if assetResolver, ok := resolver.(AssetResolver); ok && verify != VerifyOff {
+		return assetResolver.ResolveAssets(target)
+	}
+
+	urls, err := resolver.Resolve(target)
+	if err != nil {
+		return nil, err
+	}
+
+	assets := make([]Asset, len(urls))
+	for i, url := range urls {
+		assets[i] = Asset{URL: url}
+	}
+
+	return assets, nil
 }

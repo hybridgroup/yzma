@@ -25,6 +25,7 @@ func main() {
 func buildCommands() []*cli.Command {
 	return []*cli.Command{
 		cmd.InstallCmd,
+		cmd.VerifyCmd,
 		cmd.SystemCmd,
 		cmd.LlamaCmd,
 		cmd.ModelCmd,

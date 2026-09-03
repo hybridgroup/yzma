@@ -170,7 +170,7 @@ func getDownloadLocationAndFilename(arch Arch, os OS, prcssr Processor, version 
 		return "", "", err
 	}
 	for _, url := range urls[:len(urls)-1] {
-		if err := get(context.Background(), url, dest, ProgressTracker); err != nil {
+		if err := get(context.Background(), Asset{URL: url}, dest, ProgressTracker); err != nil {
 			return "", "", err
 		}
 	}
@@ -191,8 +191,8 @@ var getFunc = get
 // string ("") or "latest" is provided, the latest release will be downloaded,
 // with an automatic fallback to the previous version if the latest is still building.
 // dest in the destination directory for the downloaded binaries.
-func Get(architecture string, operatingSystem string, processor string, version string, dest string) error {
-	return GetWithProgress(architecture, operatingSystem, processor, version, dest, ProgressTracker)
+func Get(architecture string, operatingSystem string, processor string, version string, dest string, opts ...InstallOption) error {
+	return GetWithProgress(architecture, operatingSystem, processor, version, dest, ProgressTracker, opts...)
 }
 
 // GetWithProgress downloads the llama.cpp precompiled binaries for the desired arch/OS/processor
@@ -205,8 +205,8 @@ func Get(architecture string, operatingSystem string, processor string, version 
 // string ("") or "latest" is provided, the latest release will be downloaded,
 // with an automatic fallback to the previous version if the latest is still building.
 // dest in the destination directory for the downloaded binaries.
-func GetWithProgress(architecture string, operatingSystem string, processor string, version string, dest string, progress getter.ProgressTracker) error {
-	return GetWithContext(context.Background(), architecture, operatingSystem, processor, version, dest, progress)
+func GetWithProgress(architecture string, operatingSystem string, processor string, version string, dest string, progress getter.ProgressTracker, opts ...InstallOption) error {
+	return GetWithContext(context.Background(), architecture, operatingSystem, processor, version, dest, progress, opts...)
 }
 
 // GetWithContext downloads the llama.cpp precompiled binaries for the desired arch/OS/processor
@@ -219,7 +219,7 @@ func GetWithProgress(architecture string, operatingSystem string, processor stri
 // string ("") or "latest" is provided, the latest release will be downloaded,
 // with an automatic fallback to the previous version if the latest is still building.
 // dest in the destination directory for the downloaded binaries.
-func GetWithContext(ctx context.Context, architecture string, operatingSystem string, processor string, version string, dest string, progress getter.ProgressTracker) error {
+func GetWithContext(ctx context.Context, architecture string, operatingSystem string, processor string, version string, dest string, progress getter.ProgressTracker, opts ...InstallOption) error {
 	arch, err := ParseArch(architecture)
 	if err != nil {
 		return ErrUnknownArch
@@ -235,23 +235,31 @@ func GetWithContext(ctx context.Context, architecture string, operatingSystem st
 		return ErrUnknownProcessor
 	}
 
-	return Install(ctx, Target{Arch: arch, OS: os, Processor: prcssr, Version: version}, dest, progress, nil)
+	return Install(ctx, Target{Arch: arch, OS: os, Processor: prcssr, Version: version}, dest, progress, nil, opts...)
 }
 
-func get(ctx context.Context, url, dest string, progress getter.ProgressTracker) error {
+func get(ctx context.Context, asset Asset, dest string, progress getter.ProgressTracker) error {
+	url := asset.URL
+
 	// Check if it's a .tar.gz file
 	if strings.HasSuffix(url, ".tar.gz") {
-		err := downloadAndExtractTarGz(url, dest, progress)
+		err := downloadAndExtractTarGz(asset, dest, progress)
 		if err != nil && strings.Contains(err.Error(), "404") {
 			return fmt.Errorf("%w: %s", ErrFileNotFound, url)
 		}
 		return err
 	}
 
-	// Use go-getter for other file types (e.g., .zip)
+	// Use go-getter for other file types (e.g., .zip). go-getter checks the digest
+	// itself and does not unpack an archive that does not agree.
+	src := url
+	if asset.SHA256 != "" {
+		src += "?checksum=sha256:" + asset.SHA256
+	}
+
 	client := &getter.Client{
 		Ctx:  ctx,
-		Src:  url,
+		Src:  src,
 		Dst:  dest,
 		Mode: getter.ClientModeAny,
 	}
@@ -271,7 +279,8 @@ func get(ctx context.Context, url, dest string, progress getter.ProgressTracker)
 }
 
 // downloadAndExtractTarGz downloads a .tar.gz file and extracts it to the destination directory.
-func downloadAndExtractTarGz(url, dest string, progress getter.ProgressTracker) error {
+func downloadAndExtractTarGz(asset Asset, dest string, progress getter.ProgressTracker) error {
+	url := asset.URL
 	downloadFile := filepath.Join(dest, filepath.Base(url))
 
 	client := &getter.Client{
@@ -293,6 +302,10 @@ func downloadAndExtractTarGz(url, dest string, progress getter.ProgressTracker) 
 		return err
 	}
 	defer os.Remove(downloadFile)
+
+	if err := verifyFile(downloadFile, asset.SHA256); err != nil {
+		return err
+	}
 
 	resp, err := os.Open(downloadFile)
 	if err != nil {
