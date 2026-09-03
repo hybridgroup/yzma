@@ -43,24 +43,47 @@ func (f ResolverFunc) Resolve(target Target) ([]string, error) { return f(target
 // release pages. [Install] uses it when no resolver is given.
 var DefaultResolver Resolver = ResolverFunc(defaultResolve)
 
-// rocmRenameBuild is the first llama.cpp nightly build that names its ROCm assets
-// after the ROCm version on both platforms. Builds before it publish
-// "ubuntu-rocm-7.2-x64.tar.gz" and "win-hip-radeon-x64.zip"; b10356 and newer
-// publish "ubuntu-rocm-7.14-x64.tar.gz" and "win-rocm-7.14-x64.zip".
-const rocmRenameBuild = 10356
+// llama.cpp renamed its ROCm assets at these two builds.
+const (
+	rocmRenameBuild = 10356
+	rocm10Build     = 10767
+)
 
-// legacyROCmNames tells whether tag is a nightly build old enough to carry the ROCm
-// asset names used before [rocmRenameBuild]. A tag that is not a nightly build, such
-// as a tagged release resolved without its upstream build, takes the current names.
-func legacyROCmNames(tag string) bool {
+// rocmVersionNames holds the ROCm asset names for one build range.
+type rocmVersionNames struct {
+	linux   string
+	windows string
+}
+
+// rocmNames reports the ROCm asset names that tag published. A tag that is not a
+// nightly build takes the newest names.
+func rocmNames(tag string) rocmVersionNames {
+	current := rocmVersionNames{
+		linux:   "llama-%s-bin-ubuntu-rocm-10.0-x64.tar.gz",
+		windows: "llama-%s-bin-win-rocm-10.0-x64.zip",
+	}
 	if !nightlyPattern.MatchString(tag) {
-		return false
+		return current
 	}
 	build, err := strconv.Atoi(tag[1:])
 	if err != nil {
-		return false
+		return current
 	}
-	return build < rocmRenameBuild
+
+	switch {
+	case build < rocmRenameBuild:
+		return rocmVersionNames{
+			linux:   "llama-%s-bin-ubuntu-rocm-7.2-x64.tar.gz",
+			windows: "llama-%s-bin-win-hip-radeon-x64.zip",
+		}
+	case build < rocm10Build:
+		return rocmVersionNames{
+			linux:   "llama-%s-bin-ubuntu-rocm-7.14-x64.tar.gz",
+			windows: "llama-%s-bin-win-rocm-7.14-x64.zip",
+		}
+	default:
+		return current
+	}
 }
 
 // defaultResolve is the built-in platform table.
@@ -109,11 +132,7 @@ func defaultResolve(target Target) ([]string, error) {
 			if arch != AMD64 {
 				return nil, errors.New("precompiled binaries for Linux ARM64 ROCm are not available")
 			}
-			if legacyROCmNames(tag) {
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-rocm-7.2-x64.tar.gz", tag)
-				break
-			}
-			filename = fmt.Sprintf("llama-%s-bin-ubuntu-rocm-7.14-x64.tar.gz", tag)
+			filename = fmt.Sprintf(rocmNames(tag).linux, tag)
 		default:
 			return nil, ErrUnknownProcessor
 		}
@@ -222,11 +241,7 @@ func defaultResolve(target Target) ([]string, error) {
 			if arch != AMD64 {
 				return nil, errors.New("precompiled binaries for Windows ARM64 ROCm are not available")
 			}
-			if legacyROCmNames(tag) {
-				filename = fmt.Sprintf("llama-%s-bin-win-hip-radeon-x64.zip", tag)
-				break
-			}
-			filename = fmt.Sprintf("llama-%s-bin-win-rocm-7.14-x64.zip", tag)
+			filename = fmt.Sprintf(rocmNames(tag).windows, tag)
 		default:
 			return nil, ErrUnknownProcessor
 		}
