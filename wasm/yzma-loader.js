@@ -17,10 +17,11 @@
 //   globalThis.yzmaMode      "auto" (the default), "webgpu", or "cpu"
 //
 // There are three builds of llama.cpp. The WebGPU build computes on the GPU and
-// needs a browser with WebGPU and JSPI, which is Chrome and Edge 137 or later.
-// The two CPU builds operate in all browsers. The build with more than one
-// thread needs an isolated page with the Cross-Origin-Opener-Policy and
-// Cross-Origin-Embedder-Policy headers.
+// needs a browser with WebGPU and JSPI, which is Chrome and Edge 137 or later,
+// or Firefox 153 or later with dom.webgpu.enabled and dom.webgpu.workers.enabled
+// set in about:config. The two CPU builds operate in all browsers. The build
+// with more than one thread needs an isolated page with the
+// Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy headers.
 //
 // In "auto" mode the loader selects the best build that the browser can run.
 
@@ -33,30 +34,48 @@
   const canThread =
     typeof SharedArrayBuffer !== "undefined" && globalThis.crossOriginIsolated === true;
 
-  // webgpuAdapter gives the name of a usable GPU, or an empty string. llama.cpp
-  // needs f16 shaders and JSPI, so navigator.gpu alone is not sufficient.
+  // webgpuAdapter gives the name of a usable GPU, or an empty string, and the
+  // reason for an empty result. llama.cpp needs f16 shaders and JSPI, so
+  // navigator.gpu alone is not sufficient.
   async function webgpuAdapter() {
     if (!globalThis.navigator || !navigator.gpu) {
-      return "";
+      // A worker has its own switch in Firefox, thus name it here. This code
+      // runs in the worker that holds llama.cpp.
+      return [
+        "",
+        "this worker has no navigator.gpu, in Firefox set dom.webgpu.enabled" +
+          " and dom.webgpu.workers.enabled",
+      ];
     }
-    if (typeof WebAssembly.Suspending !== "function") {
-      // Without JSPI the WebGPU build cannot run.
-      return "";
+
+    // The glue of the WebGPU build uses both parts of JSPI.
+    if (
+      typeof WebAssembly.Suspending !== "function" ||
+      typeof WebAssembly.promising !== "function"
+    ) {
+      return ["", "no JSPI, which needs Chrome or Edge 137, or Firefox 153, or later"];
     }
 
     try {
       const adapter = await navigator.gpu.requestAdapter();
-      if (!adapter || !adapter.features.has("shader-f16")) {
-        return "";
+      if (!adapter) {
+        return ["", "requestAdapter gave no adapter"];
+      }
+      if (!adapter.features.has("shader-f16")) {
+        return [
+          "",
+          "the adapter has no shader-f16, see the note on NVIDIA in wasm/README.md",
+        ];
       }
 
       // The browser does not always give the name of the GPU.
       const info = adapter.info || {};
-      return [info.vendor, info.architecture, info.device, info.description]
+      const name = [info.vendor, info.architecture, info.device, info.description]
         .filter((part) => part)
         .join(" ") || "webgpu";
-    } catch {
-      return "";
+      return [name, ""];
+    } catch (err) {
+      return ["", "requestAdapter failed: " + err];
     }
   }
 
@@ -79,9 +98,10 @@
     let name = "yzma_wasm";
     let backend = "cpu";
     let adapter = "";
+    let reason = "";
 
     if (mode !== "cpu") {
-      adapter = await webgpuAdapter();
+      [adapter, reason] = await webgpuAdapter();
     }
 
     if (adapter) {
@@ -90,7 +110,7 @@
     } else if (mode === "webgpu") {
       // The page asked for WebGPU, but the browser cannot give it. Continue
       // with the CPU, which is the result that "auto" gives.
-      console.warn("yzma: this browser has no WebGPU that llama.cpp can use, using the CPU");
+      console.warn("yzma: no WebGPU that llama.cpp can use, using the CPU: " + reason);
       if (canThread) {
         name = "yzma_wasm_mt";
         backend = "cpu-threads";
