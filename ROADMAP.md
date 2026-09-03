@@ -84,28 +84,28 @@ section at the end explains.
 | `llama_tokenize` | yes | yes |
 | `llama_vocab_bos` | yes | yes |
 | `llama_vocab_eos` | yes | yes |
-| `llama_vocab_eot` | yes | no |
-| `llama_vocab_fim_mid` | yes | no |
-| `llama_vocab_fim_pad` | yes | no |
-| `llama_vocab_fim_pre` | yes | no |
-| `llama_vocab_fim_rep` | yes | no |
-| `llama_vocab_fim_sep` | yes | no |
-| `llama_vocab_fim_suf` | yes | no |
+| `llama_vocab_eot` | yes | yes |
+| `llama_vocab_fim_mid` | yes | yes |
+| `llama_vocab_fim_pad` | yes | yes |
+| `llama_vocab_fim_pre` | yes | yes |
+| `llama_vocab_fim_rep` | yes | yes |
+| `llama_vocab_fim_sep` | yes | yes |
+| `llama_vocab_fim_suf` | yes | yes |
 | `llama_vocab_get_add_bos` | yes | yes |
-| `llama_vocab_get_add_eos` | yes | no |
-| `llama_vocab_get_add_sep` | yes | no |
-| `llama_vocab_get_attr` | yes | no |
-| `llama_vocab_get_score` | yes | no |
-| `llama_vocab_get_suppress_tokens` | yes | no |
-| `llama_vocab_get_text` | yes | no |
-| `llama_vocab_is_control` | yes | no |
+| `llama_vocab_get_add_eos` | yes | yes |
+| `llama_vocab_get_add_sep` | yes | yes |
+| `llama_vocab_get_attr` | yes | yes |
+| `llama_vocab_get_score` | yes | yes |
+| `llama_vocab_get_suppress_tokens` | yes | yes |
+| `llama_vocab_get_text` | yes | yes |
+| `llama_vocab_is_control` | yes | yes |
 | `llama_vocab_is_eog` | yes | yes |
-| `llama_vocab_mask` | yes | no |
+| `llama_vocab_mask` | yes | yes |
 | `llama_vocab_n_tokens` | yes | yes |
-| `llama_vocab_nl` | yes | no |
-| `llama_vocab_pad` | yes | no |
-| `llama_vocab_sep` | yes | no |
-| `llama_vocab_type` | yes | no |
+| `llama_vocab_nl` | yes | yes |
+| `llama_vocab_pad` | yes | yes |
+| `llama_vocab_sep` | yes | yes |
+| `llama_vocab_type` | yes | yes |
 
 ### Context Functions
 
@@ -183,32 +183,33 @@ section at the end explains.
 | `llama_sampler_apply` | yes | no |
 | `llama_sampler_chain_add` | yes | yes |
 | `llama_sampler_chain_default_params` | yes | yes |
-| `llama_sampler_chain_get` | yes | no |
+| `llama_sampler_chain_get` | yes | yes |
 | `llama_sampler_chain_init` | yes | yes |
-| `llama_sampler_chain_n` | yes | no |
-| `llama_sampler_chain_remove` | yes | no |
-| `llama_sampler_clone` | yes | no |
+| `llama_sampler_chain_n` | yes | yes |
+| `llama_sampler_chain_remove` | yes | yes |
+| `llama_sampler_clone` | yes | yes |
 | `llama_sampler_free` | yes | yes |
-| `llama_sampler_get_seed` | yes | no |
-| `llama_sampler_init_adaptive_p` | yes | no |
+| `llama_sampler_get_seed` | yes | yes |
+| `llama_sampler_init_adaptive_p` | yes | yes |
 | `llama_sampler_init_dist` | yes | yes |
-| `llama_sampler_init_dry` | yes | no |
-| `llama_sampler_init_grammar_lazy_patterns` | yes | no |
-| `llama_sampler_init_grammar` | yes | no |
+| `llama_sampler_init_dry` | yes | yes |
+| `llama_sampler_init_grammar_lazy_patterns` | yes | yes |
+| `llama_sampler_init_grammar` | yes | yes |
 | `llama_sampler_init_greedy` | yes | yes |
-| `llama_sampler_init_infill` | yes | no |
-| `llama_sampler_init_logit_bias` | yes | no |
+| `llama_sampler_init_infill` | yes | yes |
+| `llama_sampler_init_logit_bias` | yes | partial |
 | `llama_sampler_init_min_p` | yes | yes |
-| `llama_sampler_init_mirostat_v2` | yes | no |
-| `llama_sampler_init_mirostat` | yes | no |
+| `llama_sampler_init_mirostat_v2` | yes | yes |
+| `llama_sampler_init_mirostat` | yes | yes |
 | `llama_sampler_init_penalties` | yes | yes |
-| `llama_sampler_init_temp_ext` | yes | no |
+| `llama_sampler_init_temp` | yes | yes |
+| `llama_sampler_init_temp_ext` | yes | yes |
 | `llama_sampler_init_top_k` | yes | yes |
-| `llama_sampler_init_top_n_sigma` | yes | no |
+| `llama_sampler_init_top_n_sigma` | yes | yes |
 | `llama_sampler_init_top_p` | yes | yes |
-| `llama_sampler_init_typical` | yes | no |
-| `llama_sampler_init_xtc` | yes | no |
-| `llama_sampler_name` | yes | no |
+| `llama_sampler_init_typical` | yes | yes |
+| `llama_sampler_init_xtc` | yes | yes |
+| `llama_sampler_name` | yes | yes |
 | `llama_sampler_reset` | yes | yes |
 | `llama_sampler_sample` | yes | yes |
 | `llama_set_sampler` | yes | no |
@@ -347,7 +348,6 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 | `llama_opt_init` | no | no |
 | `llama_opt_param_filter_all` | no | no |
 | `llama_sampler_init` | no | no |
-| `llama_sampler_init_temp` | no | yes |
 
 ### `mtmd` Functions
 
@@ -365,7 +365,7 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 The `pkg/llamawasm` package drives a build of `llama.cpp` for WebAssembly. It
 does not use the C API directly. A C shim in the
 [llama-cpp-builder](https://github.com/hybridgroup/llama-cpp-builder) repository
-gives it a small set of calls with a version, which is ABI 4 now. Thus a function
+gives it a small set of calls with a version, which is ABI 5 now. Thus a function
 of `llama.cpp` reaches the browser only after the shim exports it.
 
 The WebAssembly column of each table above gives the state of the wrapper.
@@ -376,10 +376,10 @@ The WebAssembly column of each table above gives the state of the wrapper.
 | partial | The WebAssembly build has it with fewer options. See the notes. |
 | no | The shim does not export it. |
 
-56 functions reach WebAssembly, 51 complete and 5 partial. 55 of them are among
-the 252 that have a wrapper on a host, and `llama_sampler_init_temp` has one only
-here. That is sufficient for text generation, embeddings, images, chat templates,
-and tool calling.
+93 functions reach WebAssembly, 87 complete and 6 partial, all of them among the
+253 that have a wrapper on a host. That is sufficient for text generation,
+embeddings, images, chat templates, tool calling with a grammar, and every
+sampler that a host has.
 
 ### Notes on the partial wrappers
 
@@ -390,6 +390,9 @@ and tool calling.
   gives with the `template` package for a conversation with turns.
 - `llama_log_set` cannot take a Go function as a callback. The shim holds the
   callback and the Go side only sets how much llama.cpp prints.
+- `llama_sampler_init_logit_bias` takes two slices, the tokens and the biases,
+  and not a pointer to an array of `LogitBias`. A struct cannot cross the
+  boundary of the module.
 - `llama_model_default_params` has `NGpuLayers` only.
 - `llama_context_default_params` has `NCtx`, `NBatch`, `NUbatch`, `NThreads`,
   `PoolingType`, and `Embeddings`.
@@ -398,43 +401,23 @@ and tool calling.
 
 In order of the value that each one adds.
 
-1. **The end of turn token.** `llama_vocab_eot` and `llama_vocab_get_text`. Their
-   absence makes `message.StopMarkers` guess from the end of sequence token, which
-   is wrong for a model whose two tokens differ. See
-   [llama-cpp-builder#38](https://github.com/hybridgroup/llama-cpp-builder/issues/38).
-2. **Grammar samplers.** `llama_sampler_init_grammar` and
-   `llama_sampler_init_grammar_lazy_patterns`. With them a tool call can be forced
-   to be well formed, as it is on a host.
-3. **The rest of the samplers.** `llama_sampler_init_typical`,
-   `llama_sampler_init_xtc`, `llama_sampler_init_dry`,
-   `llama_sampler_init_top_n_sigma`, `llama_sampler_init_temp_ext`,
-   `llama_sampler_init_mirostat`, `llama_sampler_init_mirostat_v2`,
-   `llama_sampler_init_logit_bias`, `llama_sampler_init_adaptive_p`, and
-   `llama_sampler_init_infill`. The calls that examine a chain are also absent:
-   `llama_sampler_name`, `llama_sampler_clone`, `llama_sampler_apply`,
-   `llama_sampler_get_seed`, `llama_sampler_chain_get`, `llama_sampler_chain_n`,
-   and `llama_sampler_chain_remove`.
-4. **The rest of the vocabulary.** The six FIM tokens, `llama_vocab_sep`,
-   `llama_vocab_nl`, `llama_vocab_pad`, `llama_vocab_mask`,
-   `llama_vocab_get_add_eos`, `llama_vocab_get_add_sep`, `llama_vocab_get_attr`,
-   `llama_vocab_get_score`, `llama_vocab_get_suppress_tokens`,
-   `llama_vocab_is_control`, and `llama_vocab_type`.
-5. **Batches with positions.** `llama_batch_init` and `llama_batch_free`. Only
+1. **Batches with positions.** `llama_batch_init` and `llama_batch_free`. Only
    `llama_batch_get_one` is available, thus a program cannot put more than one
    sequence in a batch.
-6. **The metadata of a model.** The `llama_model_meta_*` calls and the counts of
+2. **The metadata of a model.** The `llama_model_meta_*` calls and the counts of
    layers, heads, and parameters.
-7. **Memory with sequences.** The `llama_memory_seq_*` calls and
+3. **Memory with sequences.** The `llama_memory_seq_*` calls and
    `llama_memory_can_shift`. Only `llama_memory_clear` is available.
-8. **The parts of `mtmd`.** The shim does the whole pipeline of an image in two
+4. **The parts of `mtmd`.** The shim does the whole pipeline of an image in two
    coarse calls, `mtmd_tokenize` and `mtmd_helper_eval_chunks`. Thus the calls
    that build or examine one piece are absent: the getters of a bitmap, the
    accessors of a chunk and of the tokens of an image, `mtmd_encode`,
    `mtmd_get_output_embd`, and the batch calls. A program in a browser cannot
    place the embeddings of an image itself.
 
+`llama_sampler_apply` is not planned. It takes a `llama_token_data_array`, and no
+struct crosses the boundary of the module. A program in a browser cannot reach
+the logits in any case, because `llama_get_logits_ith` is absent as well.
+
 Audio, video, LoRA adapters, saved state, quantization, and the performance
 counters are not planned for WebAssembly.
-
-Note that `llama_sampler_init_temp` has a wrapper in WebAssembly and not on a
-host, which is the only function where WebAssembly is ahead.
