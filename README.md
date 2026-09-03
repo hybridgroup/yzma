@@ -240,7 +240,8 @@ Here are some of the known compatible versions for the nightly builds of `llama.
 | b10105 - b10211  | v1.20.0 - v1.21.0   |
 | b10212 - b10257  | v1.22.0   |
 | b10273 - b10544  | v1.23.0   |
-| b10545+  | v1.24.0+   |
+| b10545 - b10779  | v1.24.0 - v1.25.0   |
+| b10780+  | v1.26.0+   |
 
 ## Benchmarks
 
