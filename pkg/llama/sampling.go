@@ -104,6 +104,9 @@ var (
 	// LLAMA_API struct llama_sampler * llama_sampler_init_xtc        (float   p, float   t,     size_t min_keep, uint32_t seed);
 	samplerInitXTCFunc ffi.Fun
 
+	// LLAMA_API struct llama_sampler * llama_sampler_init_temp       (float   t);
+	samplerInitTempFunc ffi.Fun
+
 	// LLAMA_API struct llama_sampler * llama_sampler_init_temp_ext   (float   t, float   delta, float exponent);
 	samplerInitTempExtFunc ffi.Fun
 
@@ -245,6 +248,10 @@ func loadSamplingFuncs(lib loader.Lib) error {
 
 	if samplerInitXTCFunc, err = lib.Prep("llama_sampler_init_xtc", &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeFloat, &ffiTypeSize, &ffi.TypeUint32); err != nil {
 		return loadError("llama_sampler_init_xtc", err)
+	}
+
+	if samplerInitTempFunc, err = lib.Prep("llama_sampler_init_temp", &ffi.TypePointer, &ffi.TypeFloat); err != nil {
+		return loadError("llama_sampler_init_temp", err)
 	}
 
 	if samplerInitTempExtFunc, err = lib.Prep("llama_sampler_init_temp_ext", &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat); err != nil {
@@ -497,6 +504,16 @@ func SamplerInitXTC(p float32, t float32, minKeep uint32, seed uint32) Sampler {
 	var s Sampler
 	keep := uint64(minKeep)
 	samplerInitXTCFunc.Call(unsafe.Pointer(&s), &p, &t, &keep, &seed)
+
+	return s
+}
+
+// SamplerInitTemp initializes a new temperature sampler. A value below 1.0
+// makes the output more sure, and a value above 1.0 makes it more varied. A
+// value of 0.0 or less keeps the largest logit and sets the rest to -inf.
+func SamplerInitTemp(t float32) Sampler {
+	var s Sampler
+	samplerInitTempFunc.Call(unsafe.Pointer(&s), &t)
 
 	return s
 }
