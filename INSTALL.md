@@ -459,9 +459,9 @@ if !report.OK() {
 }
 ```
 
-An empty tag takes the release from the record. Give a tag to say which release must be
-there. The record is beside the libraries, so anything that can change the libraries can
-change the record; a tag makes the check resolve the assets of that release itself
+An empty tag takes the release from the record. Give a tag to name the release that must
+be there. The record is beside the libraries, so anything that can change the libraries
+can change the record. A tag makes the check resolve the assets of that release itself
 instead of reading the tag from the record.
 
 A file that no asset of this install holds is reported as `FileUnexpected` and does not

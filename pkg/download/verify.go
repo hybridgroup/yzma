@@ -100,9 +100,8 @@ func (r *VerifyReport) OK() bool {
 // VerifyInstall checks the files in libPath against the digests that the publisher
 // recorded for the release installed there.
 //
-// An empty tag takes the tag from the install record. Give a tag to say which release
-// must be there, which does not trust the record: the record sits beside the libraries
-// and anything that can change one can change the other.
+// An empty tag takes the tag from the install record. Give a tag to name the release
+// that must be there, which does not trust the record.
 func VerifyInstall(ctx context.Context, libPath, tag string) (*VerifyReport, error) {
 	record, err := ReadInstallRecord(libPath)
 	if err != nil {

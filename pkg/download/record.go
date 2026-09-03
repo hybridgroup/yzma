@@ -15,9 +15,8 @@ const InstallRecordName = "yzma-install.json"
 // InstallRecord says which llama.cpp release is installed in a library directory, and
 // which assets it came from.
 //
-// The record is beside the libraries, so anything that can change the libraries can
-// change the record. It says what an install believed it did. It is not evidence on
-// its own, which is why [VerifyInstall] takes a tag to check against.
+// The record is beside the libraries, so anything that can change them can change it.
+// Give [VerifyInstall] a tag to check against instead.
 type InstallRecord struct {
 	Version int `json:"version"`
 

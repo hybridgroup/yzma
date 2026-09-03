@@ -16,8 +16,8 @@ import (
 	getter "github.com/hashicorp/go-getter"
 )
 
-// installedBundle is a small stand-in for an extracted llama.cpp bundle: a file, a
-// file in a subdirectory, and the symbolic link chain that the real bundles have.
+// installedBundle is a small stand-in for an extracted llama.cpp bundle. It has a
+// file, a file in a subdirectory, and the symbolic link chain the real bundles have.
 type installedBundle struct {
 	libPath string
 	files   map[string]string
