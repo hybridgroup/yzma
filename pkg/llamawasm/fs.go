@@ -109,7 +109,14 @@ func FetchModelFile(name, url string, progress func(done, total int64)) error {
 		return err
 	}
 
-	response, err := await(js.Global().Call("fetch", url))
+	// Firefox writes the response to its cache while the program reads the
+	// stream. A model is larger than the maximum size of a cache entry, thus the
+	// browser stops the stream with an error. no-store keeps the model out of
+	// the cache.
+	options := js.Global().Get("Object").New()
+	options.Set("cache", "no-store")
+
+	response, err := await(js.Global().Call("fetch", url, options))
 	if err != nil {
 		return fmt.Errorf("llamawasm: cannot fetch %s: %w", url, err)
 	}
