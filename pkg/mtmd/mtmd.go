@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
@@ -28,6 +29,16 @@ type InputText struct {
 	TextLen      uint64
 	AddSpecial   bool
 	ParseSpecial bool
+}
+
+//	struct mtmd_input_part {
+//	    // only text or bitmap can be set, not both
+//	    const struct mtmd_input_text * text;
+//	    const struct mtmd_bitmap * bitmap;
+//	};
+type InputPart struct {
+	Text   *InputText
+	Bitmap Bitmap
 }
 
 // Opaque types (represented as pointers)
@@ -111,6 +122,13 @@ var (
 	//                            size_t n_bitmaps);
 	tokenizeFunc ffi.Fun
 
+	// MTMD_API int32_t mtmd_tokenize_from_parts(mtmd_context * ctx,
+	//                                           mtmd_input_chunks * output,
+	//                                           const mtmd_input_part ** parts,
+	//                                           size_t n_parts,
+	//                                           bool add_special);
+	tokenizeFromPartsFunc ffi.Fun
+
 	// MTMD_API int32_t mtmd_helper_eval_chunks(mtmd_context * ctx,
 	//                                          struct llama_context * lctx,
 	//                                          const mtmd_input_chunks * chunks,
@@ -183,6 +201,10 @@ func loadFuncs(lib loader.Lib) error {
 
 	if tokenizeFunc, err = lib.Prep("mtmd_tokenize", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize); err != nil {
 		return loadError("mtmd_tokenize", err)
+	}
+
+	if tokenizeFromPartsFunc, err = lib.Prep("mtmd_tokenize_from_parts", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize, &ffi.TypeUint8); err != nil {
+		return loadError("mtmd_tokenize_from_parts", err)
 	}
 
 	if helperEvalChunksFunc, err = lib.Prep("mtmd_helper_eval_chunks", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer,
@@ -370,6 +392,40 @@ func NewInputText(text string, addSpecial, parseSpecial bool) *InputText {
 		AddSpecial:   addSpecial,
 		ParseSpecial: parseSpecial,
 	}
+}
+
+// NewInputTextPart creates an InputPart that holds text.
+func NewInputTextPart(text *InputText) *InputPart {
+	return &InputPart{Text: text}
+}
+
+// NewInputBitmapPart creates an InputPart that holds a bitmap.
+func NewInputBitmapPart(bitmap Bitmap) *InputPart {
+	return &InputPart{Bitmap: bitmap}
+}
+
+// TokenizeFromParts does the same as Tokenize, but it takes an ordered list of parts.
+// Each part must have either text or a bitmap, not both and not neither.
+// Use it when the prompt must not use media markers, or when each text part needs
+// its own ParseSpecial value. The AddSpecial value of each part is ignored, the
+// addSpecial parameter applies to all of the parts.
+// return values:
+//
+//	0 on success
+//	1 if a part has both text and bitmap set, or neither
+//	2 on media preprocessing error
+func TokenizeFromParts(ctx Context, out InputChunks, parts []*InputPart, addSpecial bool) int32 {
+	if ctx == 0 {
+		return 1
+	}
+	pt := unsafe.SliceData(parts)
+	nParts := uint64(len(parts))
+
+	var result ffi.Arg
+	tokenizeFromPartsFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&out), unsafe.Pointer(&pt), &nParts, &addSpecial)
+	runtime.KeepAlive(parts)
+
+	return int32(result)
 }
 
 // HelperEvalChunks is a helper function that automatically:

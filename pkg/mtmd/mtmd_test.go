@@ -146,6 +146,117 @@ func TestTokenize(t *testing.T) {
 	t.Log("Tokenize successfully tokenized the input text")
 }
 
+func TestTokenizeFromParts(t *testing.T) {
+	modelFile := testModelFileName(t)
+	mmprojFile := testMMProjFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer llama.ModelFree(model)
+
+	params := ContextParamsDefault()
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("InitFromFile failed: %v", err)
+	}
+	defer Free(ctx)
+
+	chunks := InputChunksInit()
+	defer InputChunksFree(chunks)
+
+	data, x, y, err := openImageFile("../../images/domestic_llama.jpg")
+	if err != nil {
+		t.Fatal("could not open image file")
+	}
+
+	bitmap := BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
+	defer BitmapFree(bitmap)
+
+	// an ordered sequence of text, media, and text, each text with its own
+	// ParseSpecial value and no media marker
+	parts := []*InputPart{
+		NewInputTextPart(NewInputText("Here is an image: ", true, false)),
+		NewInputBitmapPart(bitmap),
+		NewInputTextPart(NewInputText("\ndescribe it in detail.", true, true)),
+	}
+
+	result := TokenizeFromParts(ctx, chunks, parts, true)
+	if result != 0 {
+		t.Fatalf("TokenizeFromParts failed with result: %d", result)
+	}
+
+	if size := InputChunksSize(chunks); size != 3 {
+		t.Fatalf("TokenizeFromParts expected 3 chunks, got %d", size)
+	}
+
+	want := []InputChunkType{InputChunkTypeText, InputChunkTypeImage, InputChunkTypeText}
+	for i, wantType := range want {
+		gotType := InputChunkGetType(InputChunksGet(chunks, uint64(i)))
+		if gotType != wantType {
+			t.Errorf("chunk %d has type %d, expected %d", i, gotType, wantType)
+		}
+	}
+}
+
+func TestTokenizeFromPartsInvalidParts(t *testing.T) {
+	modelFile := testModelFileName(t)
+	mmprojFile := testMMProjFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer llama.ModelFree(model)
+
+	params := ContextParamsDefault()
+	ctx, err := InitFromFile(mmprojFile, model, params)
+	if err != nil {
+		t.Fatalf("InitFromFile failed: %v", err)
+	}
+	defer Free(ctx)
+
+	data, x, y, err := openImageFile("../../images/domestic_llama.jpg")
+	if err != nil {
+		t.Fatal("could not open image file")
+	}
+
+	bitmap := BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
+	defer BitmapFree(bitmap)
+
+	tests := []struct {
+		name string
+		part *InputPart
+	}{
+		{"both text and bitmap", &InputPart{Text: NewInputText("hello", true, true), Bitmap: bitmap}},
+		{"neither text nor bitmap", &InputPart{}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			chunks := InputChunksInit()
+			defer InputChunksFree(chunks)
+
+			if result := TokenizeFromParts(ctx, chunks, []*InputPart{tc.part}, true); result != 1 {
+				t.Fatalf("TokenizeFromParts expected result 1, got %d", result)
+			}
+		})
+	}
+}
+
+func TestTokenizeFromPartsZeroContext(t *testing.T) {
+	if result := TokenizeFromParts(0, 0, nil, true); result != 1 {
+		t.Fatalf("TokenizeFromParts expected result 1, got %d", result)
+	}
+}
+
 func TestHelperEvalChunks(t *testing.T) {
 	modelFile := testModelFileName(t)
 	mmprojFile := testMMProjFileName(t)

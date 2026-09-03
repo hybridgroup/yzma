@@ -333,6 +333,7 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 | `mtmd_support_audio` | yes | yes |
 | `mtmd_support_vision` | yes | yes |
 | `mtmd_tokenize` | yes | yes |
+| `mtmd_tokenize_from_parts` | yes | no |
 
 ---
 
