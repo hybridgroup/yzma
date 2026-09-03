@@ -395,6 +395,42 @@ func readTokens(ptr, n int) []Token {
 	return tokens
 }
 
+func writeFloats(ptr int, values []float32) {
+	b := make([]byte, len(values)*4)
+	for i, v := range values {
+		binary.LittleEndian.PutUint32(b[i*4:], math.Float32bits(v))
+	}
+	writeBytes(ptr, b)
+}
+
+// writeStrings writes each string with a zero byte after it and gives the
+// number of bytes that it wrote. The shim reads a list of strings in this
+// shape, because an array of pointers cannot cross the boundary.
+func writeStrings(ptr int, values []string) int {
+	n := 0
+	for _, s := range values {
+		n += len(s) + 1
+	}
+
+	b := make([]byte, 0, n)
+	for _, s := range values {
+		b = append(b, s...)
+		b = append(b, 0)
+	}
+	writeBytes(ptr, b)
+
+	return n
+}
+
+// stringsSize gives the number of bytes that writeStrings needs.
+func stringsSize(values []string) int {
+	n := 0
+	for _, s := range values {
+		n += len(s) + 1
+	}
+	return n
+}
+
 func readFloats(ptr, n int) []float32 {
 	b := readBytes(ptr, n*4)
 	values := make([]float32, n)
@@ -402,6 +438,69 @@ func readFloats(ptr, n int) []float32 {
 		values[i] = math.Float32frombits(binary.LittleEndian.Uint32(b[i*4:]))
 	}
 	return values
+}
+
+//
+// memory for one call
+//
+// A sampler that takes a grammar or a list of strings is made once, outside the
+// loop that generates the tokens. Thus each of these allocates and frees rather
+// than hold a permanent scratch area.
+//
+
+// allocString puts s with a zero byte after it in the module. The second result
+// frees the memory.
+func allocString(s string) (int, func(), error) {
+	ptr, err := malloc(len(s) + 1)
+	if err != nil {
+		return 0, func() {}, err
+	}
+	writeString(ptr, s)
+	return ptr, func() { free(ptr) }, nil
+}
+
+// allocStrings puts each string with a zero byte after it in the module, which
+// is the shape that the shim reads. An empty list gives a pointer of 0, which
+// the shim sees as a null pointer.
+func allocStrings(values []string) (int, func(), error) {
+	if len(values) == 0 {
+		return 0, func() {}, nil
+	}
+
+	ptr, err := malloc(stringsSize(values))
+	if err != nil {
+		return 0, func() {}, err
+	}
+	writeStrings(ptr, values)
+	return ptr, func() { free(ptr) }, nil
+}
+
+// allocTokens puts the tokens in the module. An empty list gives a pointer of 0.
+func allocTokens(tokens []Token) (int, func(), error) {
+	if len(tokens) == 0 {
+		return 0, func() {}, nil
+	}
+
+	ptr, err := malloc(len(tokens) * 4)
+	if err != nil {
+		return 0, func() {}, err
+	}
+	writeTokens(ptr, tokens)
+	return ptr, func() { free(ptr) }, nil
+}
+
+// allocFloats puts the values in the module. An empty list gives a pointer of 0.
+func allocFloats(values []float32) (int, func(), error) {
+	if len(values) == 0 {
+		return 0, func() {}, nil
+	}
+
+	ptr, err := malloc(len(values) * 4)
+	if err != nil {
+		return 0, func() {}, err
+	}
+	writeFloats(ptr, values)
+	return ptr, func() { free(ptr) }, nil
 }
 
 //
