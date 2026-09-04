@@ -443,6 +443,64 @@ The digests show that an archive is the archive that was published. They are not
 signature, and a digest that comes from the same place as the asset does not show who
 built it.
 
+#### Pinning the digests
+
+Every digest above comes from the same site that serves the asset. Anyone who can
+replace an asset can also replace the manifest that gives its digest. So the check
+finds a damaged download, but it does not find one that was put there on purpose.
+
+Keep the expected value where the release host cannot change it. Pin the digest of the
+manifest in the release that uses yzma. A version takes the digest as a suffix:
+
+```
+b10785
+b10785@sha256:<64 hexadecimal characters>
+```
+
+```go
+target := download.Target{
+	Arch: download.AMD64, OS: download.Linux, Processor: download.CUDA,
+	Version: "b10785@sha256:" + wantManifest,
+}
+err := download.Install(context.Background(), target, libPath, download.ProgressTracker, nil)
+```
+
+`Target.ManifestSHA256` holds the same value for a caller that does not want to build
+the string. `Get`, `GetWithProgress` and `GetWithContext` take the suffix form in their
+version argument, and so does the command line:
+
+```
+yzma install --version b10785@sha256:<digest> --lib /path/to/lib
+yzma verify --version b10785@sha256:<digest> --lib /path/to/lib
+```
+
+Only the tag is used for URLs, for the resolver, for the install record, and for the
+version that yzma reports. The pin is not part of any of them.
+
+What gets pinned is the manifest and not one archive. A version selects a different set
+of assets for each target, and some targets need more than one, so no single archive
+digest covers them all. The chain goes from the pin, to the manifest bytes, to the
+digest of every asset that the manifest names.
+
+A pin makes verification mandatory:
+
+- The manifest bytes are checked before they are decoded.
+- A manifest that cannot be read is an error, and not an install with no check. A
+  manifest that gives 404 can no longer turn the check off.
+- An asset that the manifest does not name stops the install with `ErrDigestMissing`.
+  So a pin also works with a plain `Resolver`, because `Install` reads the manifest
+  itself. A resolver that names assets the release does not publish, such as a mirror
+  with its own URLs, cannot be used with a pin.
+- A pin that comes with `VerifyOff` gives `download.ErrVerifyDisabled`.
+
+`latest` and an empty version name whichever release is newest at the time, so neither
+can carry a digest. An invalid tag, an algorithm that is not `sha256`, or a value that
+is not 64 hexadecimal characters gives `download.ErrInvalidDigest` or
+`download.ErrInvalidVersion` before anything comes down.
+
+A pin says that the manifest is the one you expected. It still is not a signature. It
+does not say who built the assets. Build provenance would.
+
 ### Checking an installation later
 
 The archive is removed as soon as it is extracted, so a later check reads the files that

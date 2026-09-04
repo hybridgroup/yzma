@@ -34,5 +34,38 @@
 // A [Resolver] reports no digests, so [VerifyRequired] refuses one. Implement
 // [AssetResolver] to give a digest for each asset.
 //
+// # Pinning the digests
+//
+// Every digest above comes from the same site that serves the asset. Anyone who can
+// replace an asset can also replace the manifest that gives its digest. So the check
+// finds a damaged download, but it does not find one that was put there on purpose.
+//
+// Keep the expected value where the release host cannot change it. Pin the digest of
+// the manifest in the release that uses yzma. The version takes the digest as a
+// suffix:
+//
+//	target := download.Target{Version: "b10785@sha256:" + wantManifest}
+//	err := download.Install(ctx, target, libPath, download.ProgressTracker, nil)
+//
+// [Target.ManifestSHA256] holds the same value for a caller that does not want to
+// build the string. [Get] and its variants take the suffix form in their version
+// argument, and so does "yzma install --version".
+//
+// What gets pinned is the manifest and not one archive. A version selects a different
+// set of assets for each target, and some targets need more than one, so no single
+// archive digest covers them all. The chain goes from the pin, to the manifest bytes,
+// to the digest of every asset.
+//
+// A pin makes verification mandatory. The manifest bytes are checked before they are
+// decoded. A manifest that cannot be read is an error, and not an install with no
+// check. An asset that the manifest does not name stops the install with
+// [ErrDigestMissing]. So a pin also works with a plain [Resolver], because [Install]
+// reads the manifest itself. A resolver that names assets the release does not
+// publish cannot be used with a pin. A pin that comes with [VerifyOff] gives
+// [ErrVerifyDisabled], because the two ask for opposite things.
+//
+// "latest" and an empty version name whichever release is newest at the time, so
+// neither can carry a digest.
+//
 // See INSTALL.md for the longer version.
 package download

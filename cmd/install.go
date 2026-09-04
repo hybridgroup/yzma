@@ -17,7 +17,7 @@ var InstallCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:    "version",
 			Aliases: []string{"v"},
-			Usage:   "version of llama.cpp to install (leave empty for the version this yzma release uses)",
+			Usage:   "version of llama.cpp to install, optionally as VERSION@sha256:DIGEST to pin the digests (leave empty for the version this yzma release uses)",
 			Value:   "",
 		},
 		&cli.StringFlag{
@@ -82,15 +82,25 @@ func runInstall(c *cli.Context) error {
 		}
 	}
 
+	// The digest comes off the version here as well, so bad input fails before
+	// anything is downloaded and the message names the tag rather than the pin.
+	tag, manifestDigest, err := download.ParsePinnedVersion(version)
+	if err != nil {
+		return err
+	}
+
 	quiet := c.Bool("quiet")
 	if !quiet {
 		switch {
-		case version == "" && download.DefaultVersion != "":
+		case tag == "" && download.DefaultVersion != "":
 			fmt.Println("installing llama.cpp version", download.DefaultVersion, "to", libPath)
-		case version == "" || version == "latest":
+		case tag == "" || tag == "latest":
 			fmt.Println("installing latest llama.cpp version to", libPath)
 		default:
-			fmt.Println("installing llama.cpp version", version, "to", libPath)
+			fmt.Println("installing llama.cpp version", tag, "to", libPath)
+		}
+		if manifestDigest != "" {
+			fmt.Println("digests pinned to sha256:" + manifestDigest)
 		}
 	} else {
 		download.ProgressTracker = nil

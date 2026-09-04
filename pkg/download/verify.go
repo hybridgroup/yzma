@@ -101,8 +101,15 @@ func (r *VerifyReport) OK() bool {
 // recorded for the release installed there.
 //
 // An empty tag takes the tag from the install record. Give a tag to name the release
-// that must be there, which does not trust the record.
+// that must be there, which does not trust the record. The tag may carry the expected
+// digest of the digest manifest, in the form "b10785@sha256:<digest>", which does not
+// trust the site that serves the manifest either.
 func VerifyInstall(ctx context.Context, libPath, tag string) (*VerifyReport, error) {
+	tag, manifestDigest, err := ParsePinnedVersion(tag)
+	if err != nil {
+		return nil, err
+	}
+
 	record, err := ReadInstallRecord(libPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -143,7 +150,7 @@ func VerifyInstall(ctx context.Context, libPath, tag string) (*VerifyReport, err
 		tag = record.Tag
 	}
 
-	m, err := fetchManifest(ctx, tag)
+	m, err := fetchManifest(ctx, tag, manifestDigest)
 	if err != nil {
 		return nil, err
 	}
