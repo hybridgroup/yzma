@@ -124,14 +124,14 @@ section at the end explains.
 | `llama_get_logits` | yes | no |
 | `llama_get_memory` | yes | no |
 | `llama_get_model` | yes | no |
-| `llama_n_batch` | yes | no |
-| `llama_n_ctx_seq` | yes | no |
+| `llama_n_batch` | yes | yes |
+| `llama_n_ctx_seq` | yes | yes |
 | `llama_n_ctx` | yes | yes |
 | `llama_n_rs_seq` | yes | no |
-| `llama_n_seq_max` | yes | no |
+| `llama_n_seq_max` | yes | yes |
 | `llama_n_threads_batch` | yes | no |
 | `llama_n_threads` | yes | no |
-| `llama_n_ubatch` | yes | no |
+| `llama_n_ubatch` | yes | yes |
 | `llama_pooling_type` | yes | no |
 | `llama_set_abort_callback` | yes | no |
 | `llama_set_adapter_cvec` | yes | no |
@@ -157,23 +157,23 @@ section at the end explains.
 
 | Function | `yzma` | WebAssembly |
 | --- | :-: | :-: |
-| `llama_memory_can_shift` | yes | no |
+| `llama_memory_can_shift` | yes | yes |
 | `llama_memory_clear` | yes | yes |
-| `llama_memory_seq_add` | yes | no |
-| `llama_memory_seq_cp` | yes | no |
-| `llama_memory_seq_div` | yes | no |
-| `llama_memory_seq_keep` | yes | no |
-| `llama_memory_seq_pos_max` | yes | no |
-| `llama_memory_seq_pos_min` | yes | no |
-| `llama_memory_seq_rm` | yes | no |
+| `llama_memory_seq_add` | yes | yes |
+| `llama_memory_seq_cp` | yes | yes |
+| `llama_memory_seq_div` | yes | yes |
+| `llama_memory_seq_keep` | yes | yes |
+| `llama_memory_seq_pos_max` | yes | yes |
+| `llama_memory_seq_pos_min` | yes | yes |
+| `llama_memory_seq_rm` | yes | yes |
 
 ### Batch Functions
 
 | Function | `yzma` | WebAssembly |
 | --- | :-: | :-: |
-| `llama_batch_free` | yes | no |
+| `llama_batch_free` | yes | yes |
 | `llama_batch_get_one` | yes | yes |
-| `llama_batch_init` | yes | no |
+| `llama_batch_init` | yes | partial |
 
 ### Sampling Functions
 
@@ -366,7 +366,7 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 The `pkg/llamawasm` package drives a build of `llama.cpp` for WebAssembly. It
 does not use the C API directly. A C shim in the
 [llama-cpp-builder](https://github.com/hybridgroup/llama-cpp-builder) repository
-gives it a small set of calls with a version, which is ABI 5 now. Thus a function
+gives it a small set of calls with a version, which is ABI 6 now. Thus a function
 of `llama.cpp` reaches the browser only after the shim exports it.
 
 The WebAssembly column of each table above gives the state of the wrapper.
@@ -377,10 +377,11 @@ The WebAssembly column of each table above gives the state of the wrapper.
 | partial | The WebAssembly build has it with fewer options. See the notes. |
 | no | The shim does not export it. |
 
-93 functions reach WebAssembly, 87 complete and 6 partial, all of them among the
-253 that have a wrapper on a host. That is sufficient for text generation,
-embeddings, images, chat templates, tool calling with a grammar, and every
-sampler that a host has.
+107 functions reach WebAssembly, 100 complete and 7 partial, all of them among
+the 253 that have a wrapper on a host. That is sufficient for text generation,
+embeddings, images, chat templates, tool calling with a grammar, every sampler
+that a host has, batches that carry more than one sequence, and a context that
+shifts when it becomes full.
 
 ### Notes on the partial wrappers
 
@@ -395,21 +396,19 @@ sampler that a host has.
   and not a pointer to an array of `LogitBias`. A struct cannot cross the
   boundary of the module.
 - `llama_model_default_params` has `NGpuLayers` only.
-- `llama_context_default_params` has `NCtx`, `NBatch`, `NUbatch`, `NThreads`,
-  `PoolingType`, and `Embeddings`.
+- `llama_context_default_params` has `NCtx`, `NBatch`, `NUbatch`, `NSeqMax`,
+  `NThreads`, `PoolingType`, and `Embeddings`.
+- `llama_batch_init` takes no `embd`. The shim has no call that puts an
+  embedding in a batch, thus a batch carries tokens only. `llama_batch_free`
+  does nothing, because the arrays of a batch belong to Go here.
 
 ### What WebAssembly still needs
 
 In order of the value that each one adds.
 
-1. **Batches with positions.** `llama_batch_init` and `llama_batch_free`. Only
-   `llama_batch_get_one` is available, thus a program cannot put more than one
-   sequence in a batch.
-2. **The metadata of a model.** The `llama_model_meta_*` calls and the counts of
+1. **The metadata of a model.** The `llama_model_meta_*` calls and the counts of
    layers, heads, and parameters.
-3. **Memory with sequences.** The `llama_memory_seq_*` calls and
-   `llama_memory_can_shift`. Only `llama_memory_clear` is available.
-4. **The parts of `mtmd`.** The shim does the whole pipeline of an image in two
+2. **The parts of `mtmd`.** The shim does the whole pipeline of an image in two
    coarse calls, `mtmd_tokenize` and `mtmd_helper_eval_chunks`. Thus the calls
    that build or examine one piece are absent: the getters of a bitmap, the
    accessors of a chunk and of the tokens of an image, `mtmd_encode`,

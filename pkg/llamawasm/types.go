@@ -99,6 +99,7 @@ type ContextParams struct {
 	NCtx        uint32      // size of the text context, 0 = from the model
 	NBatch      uint32      // largest logical batch, 0 = from llama.cpp
 	NUbatch     uint32      // largest physical batch, 0 = from llama.cpp
+	NSeqMax     uint32      // largest number of sequences, 0 = one
 	NThreads    int32       // number of threads, 0 = from the module
 	PoolingType PoolingType // how to pool embeddings
 	Embeddings  uint8       // 1 to compute embeddings
@@ -115,6 +116,7 @@ func ContextDefaultParams() ContextParams {
 		NCtx:        0,
 		NBatch:      0,
 		NUbatch:     0,
+		NSeqMax:     0,
 		NThreads:    Threads(),
 		PoolingType: PoolingTypeUnspecified,
 		Embeddings:  0,
@@ -136,10 +138,25 @@ func SamplerChainDefaultParams() SamplerChainParams {
 //
 // On a native platform llama.Batch is a C struct. Here it is an ordinary Go
 // struct, because the shim makes the C batch itself.
+//
+// [BatchGetOne] gives a batch that holds tokens only, and the context gives
+// each one its position. [BatchInit] gives a batch that also holds the
+// position, the sequences, and the logit flag of each token, which is what a
+// program needs to keep more than one sequence in one context.
 type Batch struct {
 	// NTokens is the number of tokens in the batch. A generation loop reads
 	// it to move the position forward.
 	NTokens int32
 
 	tokens []Token
+
+	// These are empty in a batch from BatchGetOne. seqIDs holds capSeq
+	// identifiers for each token, one after the other, because that is the
+	// shape that the shim takes.
+	pos       []Pos
+	nSeqID    []int32
+	seqIDs    []SeqId
+	logits    []int8
+	capTokens int32
+	capSeq    int32
 }
