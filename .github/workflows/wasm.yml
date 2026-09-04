@@ -27,6 +27,8 @@ jobs:
           go-version: '1.26'
       - name: Check the WebAssembly code
         run: make vet-wasm
+      - name: Test the WebAssembly code
+        run: make test-wasm-unit
       - name: Install TinyGo
         run: |
           set -e

@@ -103,6 +103,11 @@ vet-wasm:
 	GOOS=js GOARCH=wasm go vet ./pkg/llamawasm ./pkg/message ./pkg/template \
 		./examples/wasm/chat ./examples/wasm/vlm ./examples/wasm/tools
 
+# make test-wasm-unit to run the tests of pkg/llamawasm in Node. They cover the
+# part of the package that needs no llama.cpp module, such as a batch of tokens.
+test-wasm-unit:
+	PATH="$(PATH):$(shell go env GOROOT)/lib/wasm" GOOS=js GOARCH=wasm go test ./pkg/llamawasm
+
 # make test-wasm to run the WebAssembly build in Node, with no browser.
 test-wasm:
 	node wasm/node/run.js --dir $(WASM_DIR) --model $(MODELS_DIR)/SmolLM-135M.Q2_K.gguf --tokens 12

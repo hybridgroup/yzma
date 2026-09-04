@@ -19,9 +19,10 @@ import (
 // this package makes a test before each use.
 const (
 	abiVersionMin = 1 // 1 has the calls for text generation and embeddings
-	abiVersion    = 5 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
+	abiVersion    = 6 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
 	//                   bounds of the tokens of an image, 5 the rest of the
-	//                   vocabulary and of the samplers
+	//                   vocabulary and of the samplers, 6 batches with
+	//                   positions and the calls for the memory of a sequence
 )
 
 // Error codes that the shim returns. These agree with the values in
@@ -386,6 +387,23 @@ func writeTokens(ptr int, tokens []Token) {
 	writeBytes(ptr, b)
 }
 
+// writeInt32s writes a slice of any 32-bit type that a batch carries.
+func writeInt32s[T ~int32](ptr int, values []T) {
+	b := make([]byte, len(values)*4)
+	for i, v := range values {
+		binary.LittleEndian.PutUint32(b[i*4:], uint32(v))
+	}
+	writeBytes(ptr, b)
+}
+
+func writeInt8s(ptr int, values []int8) {
+	b := make([]byte, len(values))
+	for i, v := range values {
+		b[i] = byte(v)
+	}
+	writeBytes(ptr, b)
+}
+
 func readTokens(ptr, n int) []Token {
 	b := readBytes(ptr, n*4)
 	tokens := make([]Token, n)
@@ -548,10 +566,16 @@ func (s *scratch) release() {
 // Each purpose has its own scratch, because more than one is in use at the same
 // time. tokenScratch holds input tokens, textScratch holds an input string, and
 // pieceScratch holds output bytes.
+// posScratch, seqScratch, and logitScratch hold the other arrays of a batch,
+// which go into the module beside the tokens.
 var (
 	tokenScratch scratch
 	textScratch  scratch
 	pieceScratch scratch
 	embdScratch  scratch
 	errScratch   scratch
+	posScratch   scratch
+	nSeqScratch  scratch
+	seqScratch   scratch
+	logitScratch scratch
 )
