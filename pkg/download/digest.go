@@ -23,6 +23,14 @@ var (
 	// ErrDigestMissing means no digest was found for an asset and the policy is
 	// [VerifyRequired].
 	ErrDigestMissing = errors.New("no digest for asset")
+
+	// ErrInvalidDigest means a pinned digest does not have the form
+	// "sha256:" followed by 64 hexadecimal characters.
+	ErrInvalidDigest = errors.New("invalid digest")
+
+	// ErrVerifyDisabled means a pinned digest was given with [VerifyOff]. A pin asks
+	// for a check, so the two do not agree.
+	ErrVerifyDisabled = errors.New("a pinned digest needs verification, which is off")
 )
 
 // digestsURL is the URL of the digest manifest for a llama.cpp release tag. It is on
@@ -67,6 +75,48 @@ type Asset struct {
 // existing [Resolver] keeps working and gives no digests.
 type AssetResolver interface {
 	ResolveAssets(target Target) (assets []Asset, err error)
+}
+
+// sha256Pattern matches the hexadecimal form of a SHA-256 digest.
+var sha256Pattern = regexp.MustCompile(`^[0-9a-fA-F]{64}$`)
+
+// ParsePinnedVersion splits a version that carries the expected digest of its digest
+// manifest. It takes either form.
+//
+//	b10785
+//	b10785@sha256:<64 hexadecimal characters>
+//
+// A version with no digest gives an empty digest and no error, so a caller can pass
+// any version through this. What a digest pins is the manifest that names the digest
+// of every asset of the release. One version selects a different set of assets for
+// each target, so no single archive digest covers them all.
+//
+// "latest" and an empty version name whichever release is newest at the time, so
+// neither can carry a digest.
+func ParsePinnedVersion(version string) (tag string, digest string, err error) {
+	tag, rest, found := strings.Cut(version, "@")
+	if !found {
+		return version, "", nil
+	}
+
+	algorithm, value, found := strings.Cut(rest, ":")
+	switch {
+	case !found:
+		return "", "", fmt.Errorf("%w: %q names no algorithm, want sha256:<digest>", ErrInvalidDigest, rest)
+	case strings.ToLower(algorithm) != "sha256":
+		return "", "", fmt.Errorf("%w: unknown algorithm %q, want sha256", ErrInvalidDigest, algorithm)
+	case !sha256Pattern.MatchString(value):
+		return "", "", fmt.Errorf("%w: %q is not 64 hexadecimal characters", ErrInvalidDigest, value)
+	}
+
+	if tag == "" || tag == "latest" {
+		return "", "", fmt.Errorf("%w: a digest needs an exact version, not %q", ErrInvalidVersion, tag)
+	}
+	if err := VersionIsValid(tag); err != nil {
+		return "", "", fmt.Errorf("%w: %s", err, tag)
+	}
+
+	return tag, strings.ToLower(value), nil
 }
 
 // manifest holds the digests that a llama.cpp release publishes. The assets come from
@@ -124,8 +174,14 @@ func (m *manifest) assetFor(url string) (manifestAsset, bool) {
 	return asset, ok
 }
 
-// fetchManifest gets the digest manifest for a llama.cpp release tag.
-func fetchManifest(ctx context.Context, tag string) (*manifest, error) {
+// maxManifestSize is the largest digest manifest that fetchManifest reads. A release
+// names about twenty assets, so this is far more than enough.
+const maxManifestSize = 8 << 20
+
+// fetchManifest gets the digest manifest for a llama.cpp release tag. A want that is
+// not empty is the expected SHA-256 of the raw manifest bytes, in hexadecimal. The
+// bytes are checked before they are decoded.
+func fetchManifest(ctx context.Context, tag string, want string) (*manifest, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf(digestsURL, tag), nil)
 	if err != nil {
 		return nil, err
@@ -142,8 +198,24 @@ func fetchManifest(ctx context.Context, tag string) (*manifest, error) {
 		return nil, fmt.Errorf("received status code %d for the digests of %s", resp.StatusCode, tag)
 	}
 
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxManifestSize+1))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read the digests of %s: %w", tag, err)
+	}
+	if len(body) > maxManifestSize {
+		return nil, fmt.Errorf("the digests of %s are larger than %d bytes", tag, maxManifestSize)
+	}
+
+	if want != "" {
+		sum := sha256.Sum256(body)
+		got := hex.EncodeToString(sum[:])
+		if !strings.EqualFold(got, want) {
+			return nil, fmt.Errorf("%w for the digests of %s: expected %s, got %s", ErrDigestMismatch, tag, want, got)
+		}
+	}
+
 	var m manifest
-	if err := json.NewDecoder(resp.Body).Decode(&m); err != nil {
+	if err := json.Unmarshal(body, &m); err != nil {
 		return nil, err
 	}
 

@@ -24,7 +24,7 @@ var VerifyCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:    "version",
 			Aliases: []string{"v"},
-			Usage:   "the llama.cpp version that must be installed (leave empty to take the installed one)",
+			Usage:   "the llama.cpp version that must be installed, optionally as VERSION@sha256:DIGEST to pin the digests (leave empty to take the installed one)",
 			Value:   "",
 		},
 		&cli.BoolFlag{

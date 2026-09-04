@@ -138,7 +138,7 @@ func TestFetchManifest(t *testing.T) {
 	digestsURL = server.URL + "/digests/%s.json"
 	defer func() { digestsURL = original }()
 
-	m, err := fetchManifest(context.Background(), "b10783")
+	m, err := fetchManifest(context.Background(), "b10783", "")
 	if err != nil {
 		t.Fatalf("fetchManifest() failed: %v", err)
 	}
@@ -151,14 +151,16 @@ func TestFetchManifest(t *testing.T) {
 		t.Errorf("digestFor() = %q, want %q", got, want)
 	}
 
-	if _, err := fetchManifest(context.Background(), "b00000"); err == nil {
+	if _, err := fetchManifest(context.Background(), "b00000", ""); err == nil {
 		t.Error("fetchManifest() for a tag with no manifest returned no error")
 	}
 }
 
 // serveManifest starts a server that gives a manifest naming the assets in digests,
-// and points digestsURL at it for the length of the test.
-func serveManifest(t *testing.T, tag string, digests map[string]string) {
+// and points digestsURL at it for the length of the test. It gives back the SHA-256
+// of the manifest bytes, in hexadecimal, which a test pins with
+// [Target.ManifestSHA256].
+func serveManifest(t *testing.T, tag string, digests map[string]string) string {
 	t.Helper()
 
 	assets := make([]string, 0, len(digests))
@@ -178,6 +180,9 @@ func serveManifest(t *testing.T, tag string, digests map[string]string) {
 	original := digestsURL
 	digestsURL = server.URL + "/digests/%s.json"
 	t.Cleanup(func() { digestsURL = original })
+
+	sum := sha256.Sum256([]byte(body))
+	return hex.EncodeToString(sum[:])
 }
 
 func TestDefaultResolverReportsDigests(t *testing.T) {
@@ -227,7 +232,7 @@ func TestResolveAssetsFromAPlainResolver(t *testing.T) {
 		return []string{"https://example.com/a.tar.gz"}, nil
 	})
 
-	assets, err := resolveAssets(Target{Version: "b10783"}, resolver, VerifyIfAvailable)
+	assets, err := resolveAssets(context.Background(), Target{Version: "b10783"}, resolver, VerifyIfAvailable)
 	if err != nil {
 		t.Fatalf("resolveAssets() failed: %v", err)
 	}

@@ -43,7 +43,7 @@ USAGE:
    yzma install [command options]
 
 OPTIONS:
-   --version value, -v value    version of llama.cpp to install (leave empty for the version this yzma release uses)
+   --version value, -v value    version of llama.cpp to install, optionally as VERSION@sha256:DIGEST to pin the digests (leave empty for the version this yzma release uses)
    --lib value, -l value        path to llama.cpp compiled library files [$YZMA_LIB]
    --processor value, -p value  processor to use (cpu, cuda, metal, vulkan) (default: "cpu")
    --upgrade, -u                upgrade existing installation (default: false)
@@ -69,6 +69,9 @@ yzma install --lib /path/to/lib --upgrade
 
 # Using short flags
 yzma install -l /path/to/lib -v b1234 -p cuda -u
+
+# Install a version and pin the digests it must have
+yzma install --lib /path/to/lib --version b1234@sha256:<digest>
 ```
 
 ## Other commands
@@ -100,7 +103,7 @@ USAGE:
 
 OPTIONS:
    --lib value, -l value      path to llama.cpp compiled library files [$YZMA_LIB]
-   --version value, -v value  the llama.cpp version that must be installed (leave empty to take the installed one)
+   --version value, -v value  the llama.cpp version that must be installed, optionally as VERSION@sha256:DIGEST to pin the digests (leave empty to take the installed one)
    --strict                   also fail when a file in the directory is not part of the install (default: false)
    --json                     write the report as JSON (default: false)
    --help, -h                 show help
@@ -136,3 +139,8 @@ Notes:
 - Only the assets that `llama-cpp-builder` builds carry digests for the files in them.
   An install that came from the `llama.cpp` release page has an archive digest but no
   file digests, so `yzma verify` says so instead of passing.
+- `--version` also takes `VERSION@sha256:<digest>`, where the digest is the SHA-256 of
+  the digest manifest of the release. The expected value then comes from where you keep
+  it, and not from the site that serves the manifest. A pin makes the check mandatory,
+  so it does not go with `--verify off`. See [INSTALL.md](../INSTALL.md) for what a pin
+  does and does not show.

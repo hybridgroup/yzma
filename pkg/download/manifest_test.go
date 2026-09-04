@@ -150,7 +150,7 @@ func TestDigestManifestCoversResolvedAssets(t *testing.T) {
 		target.UpstreamVersion = upstream
 	}
 
-	m, err := fetchManifest(context.Background(), tag)
+	m, err := fetchManifest(context.Background(), tag, "")
 	if err != nil {
 		t.Fatalf("fetching the digests of %s failed: %v", tag, err)
 	}

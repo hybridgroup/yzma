@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	getter "github.com/hashicorp/go-getter"
@@ -25,6 +26,15 @@ type Target struct {
 	// Version. A tagged release has no binaries of its own, so [Install] fills this
 	// in with [LlamaNightlyTag]. Empty means use Version.
 	UpstreamVersion string
+
+	// ManifestSHA256 is the expected digest of the raw digest manifest of Version,
+	// in hexadecimal. Empty means the digest is not pinned, which is the usual case.
+	//
+	// A pin makes verification mandatory. The manifest bytes must agree, the
+	// manifest must name every resolved asset, and the bytes of each asset must
+	// agree with it. [Install] also takes the pin as a suffix on Version, in the
+	// form "b10785@sha256:<digest>", and moves it here.
+	ManifestSHA256 string
 }
 
 // Resolver reports the release assets to install for a Target, as URLs downloaded in
@@ -57,7 +67,17 @@ func (defaultResolver) Resolve(target Target) ([]string, error) {
 // ResolveAssets reports the assets to install with their expected digests. A manifest
 // that cannot be read gives assets with no digest, which [VerifyIfAvailable] permits
 // and [VerifyRequired] refuses.
+//
+// A [Target.ManifestSHA256] that is set makes the manifest mandatory. The bytes must
+// have that digest, and a manifest that cannot be read is an error rather than an
+// install with no check.
 func (r defaultResolver) ResolveAssets(target Target) ([]Asset, error) {
+	return r.resolveAssets(context.Background(), target)
+}
+
+// resolveAssets does the work of [defaultResolver.ResolveAssets] under a context.
+// [AssetResolver] takes no context, so [Install] calls this to pass its own.
+func (r defaultResolver) resolveAssets(ctx context.Context, target Target) ([]Asset, error) {
 	urls, err := defaultResolve(target)
 	if err != nil {
 		return nil, err
@@ -68,8 +88,11 @@ func (r defaultResolver) ResolveAssets(target Target) ([]Asset, error) {
 		assets[i] = Asset{URL: url}
 	}
 
-	m, err := fetchManifest(context.Background(), target.Version)
+	m, err := fetchManifest(ctx, target.Version, target.ManifestSHA256)
 	if err != nil {
+		if target.ManifestSHA256 != "" {
+			return nil, err
+		}
 		return assets, nil
 	}
 
@@ -326,6 +349,12 @@ func WithVerify(policy VerifyPolicy) InstallOption {
 //
 // Install checks the digest of each asset that has one, and stops before it writes
 // anything if the bytes do not agree. Use [WithVerify] to change that.
+//
+// [Target.Version] may carry the expected digest of the digest manifest of the
+// release, in the form "b10785@sha256:<digest>". Install moves it to
+// [Target.ManifestSHA256] and uses only the tag for URLs, for the resolver, for the
+// install record, and for the version it reports. A pin makes verification mandatory,
+// so it cannot be given with [VerifyOff].
 func Install(ctx context.Context, target Target, dest string, progress getter.ProgressTracker, resolver Resolver, opts ...InstallOption) error {
 	if resolver == nil {
 		resolver = DefaultResolver
@@ -334,6 +363,31 @@ func Install(ctx context.Context, target Target, dest string, progress getter.Pr
 	var options installOptions
 	for _, opt := range opts {
 		opt(&options)
+	}
+
+	// The digest comes off the version before anything validates the version or
+	// builds a URL from it.
+	tag, digest, err := ParsePinnedVersion(target.Version)
+	if err != nil {
+		return err
+	}
+	target.Version = tag
+	switch {
+	case digest == "":
+		// Nothing to say. The version carried no digest.
+	case target.ManifestSHA256 == "":
+		target.ManifestSHA256 = digest
+	case !strings.EqualFold(target.ManifestSHA256, digest):
+		return fmt.Errorf("%w: the version pins %s and ManifestSHA256 is %s", ErrInvalidDigest, digest, target.ManifestSHA256)
+	}
+
+	// A pin asks for a check, so it does not agree with a policy that checks nothing,
+	// and it makes an asset with no digest an error.
+	if target.ManifestSHA256 != "" {
+		if options.verify == VerifyOff {
+			return ErrVerifyDisabled
+		}
+		options.verify = VerifyRequired
 	}
 
 	// An empty version takes the release pinned by this yzma release. "latest" always
@@ -409,7 +463,7 @@ func recordInstall(dest string, target Target, assets []Asset) error {
 }
 
 func installAssets(ctx context.Context, target Target, dest string, progress getter.ProgressTracker, resolver Resolver, options installOptions) ([]Asset, error) {
-	assets, err := resolveAssets(target, resolver, options.verify)
+	assets, err := resolveAssets(ctx, target, resolver, options.verify)
 	if err != nil {
 		return nil, err
 	}
@@ -436,9 +490,21 @@ func installAssets(ctx context.Context, target Target, dest string, progress get
 // digests is preferred, so a resolver that only has [Resolver] keeps working.
 // [VerifyOff] takes the plain [Resolver], because a digest that nothing reads is not
 // worth the fetch of a manifest.
-func resolveAssets(target Target, resolver Resolver, verify VerifyPolicy) ([]Asset, error) {
-	if assetResolver, ok := resolver.(AssetResolver); ok && verify != VerifyOff {
-		return assetResolver.ResolveAssets(target)
+func resolveAssets(ctx context.Context, target Target, resolver Resolver, verify VerifyPolicy) ([]Asset, error) {
+	// A pinned manifest is the authority for every asset, whichever resolver named
+	// them, so it is read here instead of in the resolver.
+	if target.ManifestSHA256 != "" {
+		return pinnedAssets(ctx, target, resolver)
+	}
+
+	if verify != VerifyOff {
+		// The built-in resolver has a form that carries the context of the install.
+		if d, ok := resolver.(defaultResolver); ok {
+			return d.resolveAssets(ctx, target)
+		}
+		if assetResolver, ok := resolver.(AssetResolver); ok {
+			return assetResolver.ResolveAssets(target)
+		}
 	}
 
 	urls, err := resolver.Resolve(target)
@@ -449,6 +515,32 @@ func resolveAssets(target Target, resolver Resolver, verify VerifyPolicy) ([]Ass
 	assets := make([]Asset, len(urls))
 	for i, url := range urls {
 		assets[i] = Asset{URL: url}
+	}
+
+	return assets, nil
+}
+
+// pinnedAssets gives the assets to install when [Target.ManifestSHA256] pins the
+// digest manifest. The resolver names the assets and the pinned manifest gives the
+// digest of each one. An asset that the manifest does not name is an error.
+func pinnedAssets(ctx context.Context, target Target, resolver Resolver) ([]Asset, error) {
+	urls, err := resolver.Resolve(target)
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := fetchManifest(ctx, target.Version, target.ManifestSHA256)
+	if err != nil {
+		return nil, err
+	}
+
+	assets := make([]Asset, len(urls))
+	for i, url := range urls {
+		digest := m.digestFor(url)
+		if digest == "" {
+			return nil, fmt.Errorf("%w: %s is not in the pinned digests of %s", ErrDigestMissing, url, target.Version)
+		}
+		assets[i] = Asset{URL: url, SHA256: digest}
 	}
 
 	return assets, nil
