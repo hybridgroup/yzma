@@ -157,9 +157,9 @@ func TestFetchManifest(t *testing.T) {
 }
 
 // serveManifest starts a server that gives a manifest naming the assets in digests,
-// and points digestsURL at it for the length of the test. It gives back the SHA-256
-// of the manifest bytes, in hexadecimal, which a test pins with
-// [Target.ManifestSHA256].
+// and points both manifest URLs at it for the length of the test, as a release that
+// publishes both copies does. It gives back the SHA-256 of the manifest bytes, in
+// hexadecimal, which a test pins with [Target.ManifestSHA256].
 func serveManifest(t *testing.T, tag string, digests map[string]string) string {
 	t.Helper()
 
@@ -177,9 +177,10 @@ func serveManifest(t *testing.T, tag string, digests map[string]string) string {
 	}))
 	t.Cleanup(server.Close)
 
-	original := digestsURL
+	originalAsset, originalPages := manifestAssetURL, digestsURL
+	manifestAssetURL = server.URL + "/releases/download/%[1]s/%[1]s.json"
 	digestsURL = server.URL + "/digests/%s.json"
-	t.Cleanup(func() { digestsURL = original })
+	t.Cleanup(func() { manifestAssetURL, digestsURL = originalAsset, originalPages })
 
 	sum := sha256.Sum256([]byte(body))
 	return hex.EncodeToString(sum[:])
@@ -397,5 +398,185 @@ func TestVerifyOffDoesNotFetchAManifest(t *testing.T) {
 	// An air-gapped install that checks nothing must not wait on a manifest.
 	if fetched != 0 {
 		t.Errorf("fetched the manifest %d times, want 0", fetched)
+	}
+}
+
+func TestFetchManifestPrefersTheReleaseAsset(t *testing.T) {
+	// The two copies hold the same bytes in a real release. They differ here only so
+	// that the manifest says which one answered.
+	asset := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"version":1,"tag":"b10783","upstream_tag":"asset"}`)
+	}))
+	defer asset.Close()
+	pages := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"version":1,"tag":"b10783","upstream_tag":"pages"}`)
+	}))
+	defer pages.Close()
+
+	originalAsset, originalPages := manifestAssetURL, digestsURL
+	manifestAssetURL = asset.URL + "/releases/download/%[1]s/%[1]s.json"
+	digestsURL = pages.URL + "/digests/%s.json"
+	defer func() { manifestAssetURL, digestsURL = originalAsset, originalPages }()
+
+	m, err := fetchManifest(context.Background(), "b10783", "")
+	if err != nil {
+		t.Fatalf("fetchManifest() failed: %v", err)
+	}
+	if m.UpstreamTag != "asset" {
+		t.Errorf("the manifest came from %q, want the release asset", m.UpstreamTag)
+	}
+}
+
+func TestFetchManifestFallsBackToTheVersionSite(t *testing.T) {
+	// A release published before the manifest was an asset has only the site copy.
+	asset := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer asset.Close()
+	pages := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"version":1,"tag":"b10783","upstream_tag":"pages"}`)
+	}))
+	defer pages.Close()
+
+	originalAsset, originalPages := manifestAssetURL, digestsURL
+	manifestAssetURL = asset.URL + "/releases/download/%[1]s/%[1]s.json"
+	digestsURL = pages.URL + "/digests/%s.json"
+	defer func() { manifestAssetURL, digestsURL = originalAsset, originalPages }()
+
+	m, err := fetchManifest(context.Background(), "b10783", "")
+	if err != nil {
+		t.Fatalf("fetchManifest() failed: %v", err)
+	}
+	if m.UpstreamTag != "pages" {
+		t.Errorf("the manifest came from %q, want the version site", m.UpstreamTag)
+	}
+
+	// A manifest in neither place is an error, and only then.
+	digestsURL = asset.URL + "/digests/%s.json"
+	if _, err := fetchManifest(context.Background(), "b10783", ""); err == nil {
+		t.Error("fetchManifest() with no manifest anywhere returned no error")
+	}
+}
+
+// serveVersionFile points currentVersionURL and previousVersionURL at a server that
+// gives the two bodies for the length of the test.
+func serveVersionFile(t *testing.T, current, previous string) {
+	t.Helper()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body := current
+		if strings.Contains(r.URL.Path, "previous") {
+			body = previous
+		}
+		if body == "" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		fmt.Fprint(w, body)
+	}))
+	t.Cleanup(server.Close)
+
+	originalCurrent, originalPrevious := currentVersionURL, previousVersionURL
+	currentVersionURL = server.URL + "/version.json"
+	previousVersionURL = server.URL + "/previous.json"
+	t.Cleanup(func() { currentVersionURL, previousVersionURL = originalCurrent, originalPrevious })
+}
+
+func TestManifestDigestFromTheVersionFiles(t *testing.T) {
+	digest := strings.Repeat("ab", 32)
+
+	tests := []struct {
+		name     string
+		current  string
+		previous string
+		tag      string
+	}{
+		{
+			name:    "the digest field of the current version",
+			current: fmt.Sprintf(`{"tag_name":"b10783","manifest_sha256":%q}`, digest),
+			tag:     "b10783",
+		},
+		{
+			name:    "the pin of the current version, for a file with no digest field",
+			current: fmt.Sprintf(`{"tag_name":"b10783","pin":"b10783@sha256:%s"}`, digest),
+			tag:     "b10783",
+		},
+		{
+			name:     "the previous version",
+			current:  `{"tag_name":"b10784"}`,
+			previous: fmt.Sprintf(`{"tag_name":"b10783","manifest_sha256":%q}`, digest),
+			tag:      "b10783",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			serveVersionFile(t, tt.current, tt.previous)
+
+			got, err := ManifestDigest(context.Background(), tt.tag)
+			if err != nil {
+				t.Fatalf("ManifestDigest() failed: %v", err)
+			}
+			if got != digest {
+				t.Errorf("ManifestDigest() = %q, want %q", got, digest)
+			}
+
+			want := tt.tag + "@sha256:" + digest
+			if pin, err := PinnedVersion(context.Background(), tt.tag); err != nil || pin != want {
+				t.Errorf("PinnedVersion() = %q, %v, want %q", pin, err, want)
+			}
+		})
+	}
+}
+
+func TestManifestDigestFromTheRelease(t *testing.T) {
+	digest := strings.Repeat("cd", 32)
+
+	// The version files name another tag, so the release has the answer.
+	serveVersionFile(t, `{"tag_name":"b10784"}`, `{"tag_name":"b10782"}`)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, `{"assets":[
+			{"name":"llama-b10783-bin-ubuntu-cpu-arm64.tar.gz","digest":"sha256:%s"},
+			{"name":"b10783.json","digest":"sha256:%s"}]}`, strings.Repeat("ef", 32), digest)
+	}))
+	defer server.Close()
+
+	original := releaseAPIURL
+	releaseAPIURL = server.URL + "/releases/tags/%s"
+	defer func() { releaseAPIURL = original }()
+
+	got, err := ManifestDigest(context.Background(), "b10783")
+	if err != nil {
+		t.Fatalf("ManifestDigest() failed: %v", err)
+	}
+	if got != digest {
+		t.Errorf("ManifestDigest() = %q, want the digest of the manifest asset %q", got, digest)
+	}
+}
+
+func TestManifestDigestWithNoManifestPublished(t *testing.T) {
+	serveVersionFile(t, `{"tag_name":"b10784"}`, `{"tag_name":"b10782"}`)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// An asset that is still uploading has no digest yet, and an older release
+		// has no manifest asset at all.
+		fmt.Fprint(w, `{"assets":[
+			{"name":"llama-b10783-bin-ubuntu-cpu-arm64.tar.gz","digest":"sha256:abcd"},
+			{"name":"b10783.json","digest":null}]}`)
+	}))
+	defer server.Close()
+
+	original := releaseAPIURL
+	releaseAPIURL = server.URL + "/releases/tags/%s"
+	defer func() { releaseAPIURL = original }()
+
+	_, err := ManifestDigest(context.Background(), "b10783")
+	if !errors.Is(err, ErrNoManifestDigest) {
+		t.Errorf("ManifestDigest() = %v, want ErrNoManifestDigest", err)
+	}
+
+	if _, err := ManifestDigest(context.Background(), "not-a-version"); !errors.Is(err, ErrInvalidVersion) {
+		t.Errorf("ManifestDigest() with a bad tag = %v, want ErrInvalidVersion", err)
 	}
 }

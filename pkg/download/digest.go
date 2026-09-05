@@ -31,12 +31,28 @@ var (
 	// ErrVerifyDisabled means a pinned digest was given with [VerifyOff]. A pin asks
 	// for a check, so the two do not agree.
 	ErrVerifyDisabled = errors.New("a pinned digest needs verification, which is off")
+
+	// ErrNoManifestDigest means a release published no digest manifest, so there is no
+	// value to pin. The version still installs without a pin.
+	ErrNoManifestDigest = errors.New("no manifest digest is published")
 )
 
-// digestsURL is the URL of the digest manifest for a llama.cpp release tag. It is on
-// the same site as the version files, so it does not use the GitHub API, which rate
-// limits. See the llama-cpp-builder repo for how the manifests are made.
+// manifestAssetURL is the URL of the digest manifest for a llama.cpp release tag as an
+// asset of the release that it describes. GitHub publishes a SHA-256 for every release
+// asset, so this is the copy whose digest a caller can know before the download. The
+// tag names both the release and the asset.
+var manifestAssetURL = "https://github.com/hybridgroup/llama-cpp-builder/releases/download/%[1]s/%[1]s.json"
+
+// digestsURL is the same manifest on the site that serves the version files. It is the
+// fallback for a release that was published before the manifest was an asset, and it
+// does not use the GitHub API, which rate limits. See the llama-cpp-builder repo for
+// how the manifests are made.
 var digestsURL = "https://hybridgroup.github.io/llama-cpp-builder/digests/%s.json"
+
+// releaseAPIURL is the GitHub release for a tag. It gives the digest that GitHub
+// recorded for each asset, including the manifest. This rate limits, so it is only
+// read when the version files do not name the tag.
+var releaseAPIURL = "https://api.github.com/repos/hybridgroup/llama-cpp-builder/releases/tags/%s"
 
 // VerifyPolicy says what [Install] does about the digest of an asset.
 type VerifyPolicy int
@@ -181,29 +197,25 @@ const maxManifestSize = 8 << 20
 // fetchManifest gets the digest manifest for a llama.cpp release tag. A want that is
 // not empty is the expected SHA-256 of the raw manifest bytes, in hexadecimal. The
 // bytes are checked before they are decoded.
+//
+// The release asset comes first, because that is the copy whose digest GitHub
+// publishes. A release that has no manifest asset falls back to the site that serves
+// the version files. Both copies hold the same bytes, so a pin checks either one, and
+// a location that does not answer only costs the try.
 func fetchManifest(ctx context.Context, tag string, want string) (*manifest, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf(digestsURL, tag), nil)
-	if err != nil {
-		return nil, err
+	var body []byte
+	var errs []error
+	for _, url := range []string{fmt.Sprintf(manifestAssetURL, tag), fmt.Sprintf(digestsURL, tag)} {
+		read, err := fetchManifestBytes(ctx, url, tag)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		body = read
+		break
 	}
-
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("received status code %d for the digests of %s", resp.StatusCode, tag)
-	}
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxManifestSize+1))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read the digests of %s: %w", tag, err)
-	}
-	if len(body) > maxManifestSize {
-		return nil, fmt.Errorf("the digests of %s are larger than %d bytes", tag, maxManifestSize)
+	if body == nil {
+		return nil, errors.Join(errs...)
 	}
 
 	if want != "" {
@@ -220,6 +232,137 @@ func fetchManifest(ctx context.Context, tag string, want string) (*manifest, err
 	}
 
 	return &m, nil
+}
+
+// fetchManifestBytes reads a manifest from one URL.
+func fetchManifestBytes(ctx context.Context, url string, tag string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("received status code %d for the digests of %s at %s", resp.StatusCode, tag, url)
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxManifestSize+1))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read the digests of %s: %w", tag, err)
+	}
+	if len(body) > maxManifestSize {
+		return nil, fmt.Errorf("the digests of %s are larger than %d bytes", tag, maxManifestSize)
+	}
+
+	return body, nil
+}
+
+// ManifestDigest gives the SHA-256 of the digest manifest for a llama.cpp release tag,
+// in hexadecimal, so that a caller can pin the tag before it installs anything. See
+// [PinnedVersion] for the value that [Install] takes.
+//
+// It reads the version files first, because those are the two tags that most callers
+// ask for and they cost no GitHub API request. Any other tag comes from the release,
+// where GitHub publishes the digest of the manifest asset.
+//
+// A tag whose release published no manifest gives [ErrNoManifestDigest]. That is an
+// answer and not a failure: such a version still installs, without a pin.
+func ManifestDigest(ctx context.Context, tag string) (string, error) {
+	if err := VersionIsValid(tag); err != nil {
+		return "", fmt.Errorf("%w: %s", err, tag)
+	}
+
+	for _, url := range []string{currentVersionURL, previousVersionURL} {
+		file, err := getVersionFile(url)
+		if err != nil || file.TagName != tag {
+			continue
+		}
+		if digest := file.digest(); digest != "" {
+			return digest, nil
+		}
+	}
+
+	return releaseManifestDigest(ctx, tag)
+}
+
+// PinnedVersion gives the tag with the digest of its manifest, "<tag>@sha256:<digest>",
+// which is the form that [Target.Version] takes. It reports [ErrNoManifestDigest] when
+// the release published no manifest.
+func PinnedVersion(ctx context.Context, tag string) (string, error) {
+	digest, err := ManifestDigest(ctx, tag)
+	if err != nil {
+		return "", err
+	}
+
+	return tag + "@sha256:" + digest, nil
+}
+
+// digest gives the manifest digest that a version file names, or "" when it names
+// none. The pin is read when the digest field is absent, so either field is enough.
+func (f versionFile) digest() string {
+	if sha256Pattern.MatchString(f.ManifestSHA256) {
+		return strings.ToLower(f.ManifestSHA256)
+	}
+
+	tag, digest, err := ParsePinnedVersion(f.Pin)
+	if err != nil || tag != f.TagName {
+		return ""
+	}
+
+	return digest
+}
+
+// releaseManifestDigest reads the digest that GitHub recorded for the manifest asset of
+// a release.
+func releaseManifestDigest(ctx context.Context, tag string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf(releaseAPIURL, tag), nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("received status code %d for the release %s", resp.StatusCode, tag)
+	}
+
+	var release struct {
+		Assets []struct {
+			Name   string `json:"name"`
+			Digest string `json:"digest"`
+		} `json:"assets"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxManifestSize+1)).Decode(&release); err != nil {
+		return "", err
+	}
+
+	// GitHub gives the digest as "sha256:<hex>", and leaves it out while an asset is
+	// still uploading.
+	name := tag + ".json"
+	for _, asset := range release.Assets {
+		if asset.Name != name {
+			continue
+		}
+		value, ok := strings.CutPrefix(asset.Digest, "sha256:")
+		if !ok || !sha256Pattern.MatchString(value) {
+			break
+		}
+		return strings.ToLower(value), nil
+	}
+
+	return "", fmt.Errorf("%w for %s", ErrNoManifestDigest, tag)
 }
 
 // verifyFile checks that a file has the expected digest. An empty digest checks

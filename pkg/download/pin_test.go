@@ -383,3 +383,103 @@ func TestVerifyInstallRefusesABadPin(t *testing.T) {
 		t.Errorf("VerifyInstall() = %v, want ErrInvalidDigest", err)
 	}
 }
+
+func TestInstallTakesThePinOfTheDefaultVersion(t *testing.T) {
+	manifestDigest := serveManifest(t, "b10783", map[string]string{
+		"llama-b10783-bin-ubuntu-cpu-arm64.tar.gz": "abcd",
+	})
+	got := recordAssets(t)
+
+	original := DefaultVersion
+	DefaultVersion = "b10783@sha256:" + manifestDigest
+	defer func() { DefaultVersion = original }()
+
+	dest := t.TempDir()
+	err := Install(context.Background(), Target{
+		Arch: ARM64, OS: Linux, Processor: CPU,
+	}, dest, nil, nil)
+	if err != nil {
+		t.Fatalf("Install() with no version and a pinned default failed: %v", err)
+	}
+
+	if len(*got) != 1 || (*got)[0].SHA256 != "abcd" {
+		t.Fatalf("got %v, want one asset with the digest from the pinned manifest", *got)
+	}
+
+	// Only the tag reaches the URLs and the record.
+	if strings.Contains((*got)[0].URL, "@") {
+		t.Errorf("the URL %q holds the pin, want only the tag", (*got)[0].URL)
+	}
+	record, err := ReadInstallRecord(dest)
+	if err != nil {
+		t.Fatalf("ReadInstallRecord() failed: %v", err)
+	}
+	if record.Tag != "b10783" {
+		t.Errorf("record Tag = %q, want b10783", record.Tag)
+	}
+}
+
+func TestInstallWithNoPinAndNoManifest(t *testing.T) {
+	// Neither manifest URL answers, per TestMain. A version with no digest still
+	// installs, because only a pin makes the manifest mandatory.
+	got := recordAssets(t)
+
+	warned := 0
+	originalWarning := VerifyWarning
+	VerifyWarning = func(string) { warned++ }
+	defer func() { VerifyWarning = originalWarning }()
+
+	err := Install(context.Background(), Target{
+		Arch: ARM64, OS: Linux, Processor: CPU, Version: "b10783",
+	}, t.TempDir(), nil, nil)
+	if err != nil {
+		t.Fatalf("Install() of a version with no digest failed: %v", err)
+	}
+
+	if len(*got) != 1 || (*got)[0].SHA256 != "" {
+		t.Errorf("got %v, want one asset with no digest", *got)
+	}
+	if warned != 1 {
+		t.Errorf("VerifyWarning was called %d times, want 1", warned)
+	}
+}
+
+func TestInstallWithNoPinTakesTheDigestsItFinds(t *testing.T) {
+	serveManifest(t, "b10783", map[string]string{
+		"llama-b10783-bin-ubuntu-cpu-arm64.tar.gz": "abcd",
+	})
+	got := recordAssets(t)
+
+	err := Install(context.Background(), Target{
+		Arch: ARM64, OS: Linux, Processor: CPU, Version: "b10783",
+	}, t.TempDir(), nil, nil)
+	if err != nil {
+		t.Fatalf("Install() of a version with no digest failed: %v", err)
+	}
+
+	if len(*got) != 1 || (*got)[0].SHA256 != "abcd" {
+		t.Errorf("got %v, want one asset with the digest from the manifest", *got)
+	}
+}
+
+func TestDefaultTag(t *testing.T) {
+	original := DefaultVersion
+	defer func() { DefaultVersion = original }()
+
+	tests := []struct {
+		version string
+		want    string
+	}{
+		{version: "", want: ""},
+		{version: "b10783", want: "b10783"},
+		{version: "b10783@sha256:" + aDigest, want: "b10783"},
+		{version: "b10783@sha256:nonsense", want: ""},
+	}
+
+	for _, tt := range tests {
+		DefaultVersion = tt.version
+		if got := DefaultTag(); got != tt.want {
+			t.Errorf("DefaultTag() with DefaultVersion %q = %q, want %q", tt.version, got, tt.want)
+		}
+	}
+}

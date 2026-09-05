@@ -89,11 +89,18 @@ func runInstall(c *cli.Context) error {
 		return err
 	}
 
+	// An empty version installs the release that this yzma release pins, which carries
+	// its own digest, so the messages report that pin rather than nothing.
+	if tag == "" && download.DefaultVersion != "" {
+		tag, manifestDigest, err = download.ParsePinnedVersion(download.DefaultVersion)
+		if err != nil {
+			return err
+		}
+	}
+
 	quiet := c.Bool("quiet")
 	if !quiet {
 		switch {
-		case tag == "" && download.DefaultVersion != "":
-			fmt.Println("installing llama.cpp version", download.DefaultVersion, "to", libPath)
 		case tag == "" || tag == "latest":
 			fmt.Println("installing latest llama.cpp version to", libPath)
 		default:

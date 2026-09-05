@@ -51,6 +51,25 @@
 // build the string. [Get] and its variants take the suffix form in their version
 // argument, and so does "yzma install --version".
 //
+// # Where the manifest digest comes from
+//
+// llama-cpp-builder publishes the manifest for a release as an asset of that release,
+// named "<tag>.json". GitHub records the SHA-256 of every asset it stores, so that
+// value is the manifest digest. The release notes for the tag print the complete pin,
+// and https://hybridgroup.github.io/llama-cpp-builder/version.json carries it for the
+// newest build.
+//
+// The digest of a platform archive is not the manifest digest. Those digests are what
+// the manifest holds, one for each asset. The pin covers the file that names them.
+//
+// [ManifestDigest] and [PinnedVersion] read the value for a tag, so a program can
+// record the pin it is about to use:
+//
+//	pin, err := download.PinnedVersion(ctx, tag)
+//
+// [DefaultVersion] already holds the complete pin for the release that this yzma
+// release installs.
+//
 // What gets pinned is the manifest and not one archive. A version selects a different
 // set of assets for each target, and some targets need more than one, so no single
 // archive digest covers them all. The chain goes from the pin, to the manifest bytes,
@@ -66,6 +85,10 @@
 //
 // "latest" and an empty version name whichever release is newest at the time, so
 // neither can carry a digest.
+//
+// A version with no digest is not the same as no checking. It installs as it always
+// has, with whatever digests the manifest gives, under the policy above. What it does
+// not have is a value from outside the release host to check the manifest against.
 //
 // See INSTALL.md for the longer version.
 package download

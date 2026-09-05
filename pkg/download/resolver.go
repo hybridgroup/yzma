@@ -365,6 +365,13 @@ func Install(ctx context.Context, target Target, dest string, progress getter.Pr
 		opt(&options)
 	}
 
+	// An empty version takes the release pinned by this yzma release. That value can
+	// carry a digest of its own, so it goes in before the version is parsed. "latest"
+	// always asks for the newest build, so it skips the pin.
+	if target.Version == "" && DefaultVersion != "" {
+		target.Version = DefaultVersion
+	}
+
 	// The digest comes off the version before anything validates the version or
 	// builds a URL from it.
 	tag, digest, err := ParsePinnedVersion(target.Version)
@@ -388,12 +395,6 @@ func Install(ctx context.Context, target Target, dest string, progress getter.Pr
 			return ErrVerifyDisabled
 		}
 		options.verify = VerifyRequired
-	}
-
-	// An empty version takes the release pinned by this yzma release. "latest" always
-	// asks for the newest build, so it skips the pin.
-	if target.Version == "" && DefaultVersion != "" {
-		target.Version = DefaultVersion
 	}
 
 	autoVersion := target.Version == "" || target.Version == "latest"

@@ -74,6 +74,23 @@ yzma install -l /path/to/lib -v b1234 -p cuda -u
 yzma install --lib /path/to/lib --version b1234@sha256:<digest>
 ```
 
+A version with no digest keeps working exactly as before, so `--version b1234` and a
+bare `yzma install` need nothing new.
+
+The digest to pin is the SHA-256 of the digest manifest of the release, which
+`llama-cpp-builder` publishes with the release. The release notes for the tag print the
+complete pin, and the version file carries it for the newest build:
+
+```console
+$ curl -s https://hybridgroup.github.io/llama-cpp-builder/version.json
+{"tag_name":"b10816","manifest_sha256":"<digest>","pin":"b10816@sha256:<digest>"}
+
+$ yzma install --lib /path/to/lib --version b10816@sha256:<digest>
+```
+
+The digest of a platform archive is not this value. Those digests are what the manifest
+holds, one for each asset. See [INSTALL.md](../INSTALL.md) for the whole chain.
+
 ## Other commands
 
 See the `yzma help` command for more information about the other things you can do with the `yzma` CLI tool.

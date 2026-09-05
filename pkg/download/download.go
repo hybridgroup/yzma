@@ -75,9 +75,34 @@ func LlamaLatestVersion() (string, error) {
 }
 
 func getLatestVersion() (string, error) {
-	req, err := http.NewRequest("GET", currentVersionURL, nil)
+	file, err := getVersionFile(currentVersionURL)
 	if err != nil {
 		return "", err
+	}
+
+	return file.TagName, nil
+}
+
+// versionFile is what version.json and previous.json hold. Only the tag has always
+// been there, so a file with no digest is a file for a release that published none.
+type versionFile struct {
+	// TagName is the llama.cpp release tag.
+	TagName string `json:"tag_name"`
+
+	// ManifestSHA256 is the SHA-256 of the digest manifest for that tag, in
+	// hexadecimal. An empty value means the release published no manifest.
+	ManifestSHA256 string `json:"manifest_sha256"`
+
+	// Pin is the same thing ready to hand to [Install], "<tag>@sha256:<digest>".
+	Pin string `json:"pin"`
+}
+
+// getVersionFile reads one of the version files. The tag must be valid, because that
+// is the field every caller needs.
+func getVersionFile(url string) (versionFile, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return versionFile{}, err
 	}
 
 	client := &http.Client{
@@ -85,28 +110,25 @@ func getLatestVersion() (string, error) {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return versionFile{}, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("received status code %d from version URL: %s", resp.StatusCode, string(body))
+		return versionFile{}, fmt.Errorf("received status code %d from version URL: %s", resp.StatusCode, string(body))
 	}
 
-	var result struct {
-		TagName string `json:"tag_name"`
-	}
-
+	var result versionFile
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", err
+		return versionFile{}, err
 	}
 
 	if err := VersionIsValid(result.TagName); err != nil {
-		return "", fmt.Errorf("%w: %s", err, result.TagName)
+		return versionFile{}, fmt.Errorf("%w: %s", err, result.TagName)
 	}
 
-	return result.TagName, nil
+	return result, nil
 }
 
 // LlamaPreviousVersion fetches the previous release tag of llama.cpp from the version URL.
@@ -125,38 +147,12 @@ func LlamaPreviousVersion() (string, error) {
 }
 
 func getPreviousVersion() (string, error) {
-	req, err := http.NewRequest("GET", previousVersionURL, nil)
+	file, err := getVersionFile(previousVersionURL)
 	if err != nil {
 		return "", err
 	}
 
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("received status code %d from version URL: %s", resp.StatusCode, string(body))
-	}
-
-	var result struct {
-		TagName string `json:"tag_name"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", err
-	}
-
-	if err := VersionIsValid(result.TagName); err != nil {
-		return "", fmt.Errorf("%w: %s", err, result.TagName)
-	}
-
-	return result.TagName, nil
+	return file.TagName, nil
 }
 
 // getDownloadLocationAndFilename returns the download location and filename for the
