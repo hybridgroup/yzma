@@ -90,5 +90,15 @@
 // has, with whatever digests the manifest gives, under the policy above. What it does
 // not have is a value from outside the release host to check the manifest against.
 //
+// # The manifest of an install
+//
+// [Install] keeps the manifest it read in the library directory, as yzma-manifest.json,
+// and puts its digest in the install record. [VerifyInstall] reads that copy and checks
+// the bytes against the pin the operator gives, or against the recorded digest when
+// there is no pin. A check of an installed release therefore needs no network. An
+// install that has no manifest beside it, or one whose bytes do not agree, makes the
+// check fetch the manifest as before and keep what comes back.
+//
+
 // See INSTALL.md for the longer version.
 package download

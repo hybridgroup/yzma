@@ -148,6 +148,9 @@ Notes:
 - `yzma install` writes `yzma-install.json` beside the libraries to say what it put
   there. `yzma verify` needs it, so an installation made by an older yzma has to be
   installed again first.
+- `yzma install` also writes `yzma-manifest.json`, which holds the digests of the
+  release, so `yzma verify` needs no network. An installation that has no manifest beside
+  it makes the command fetch one and keep it, so only the first check needs a network.
 - The record is beside the libraries, so anything that can change the libraries can
   change the record. Give `--version` to say which release must be there. The check then
   resolves the assets of that release itself and does not read the tag from the record.

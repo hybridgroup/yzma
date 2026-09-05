@@ -566,7 +566,8 @@ llama.cpp release that is newer than the one this yzma release pins.
 
 The archive is removed as soon as it is extracted, so a later check reads the files that
 are in place. `Install` writes `yzma-install.json` beside the libraries to say what it
-put there, and `VerifyInstall` checks them:
+put there, and `yzma-manifest.json` to keep the digests of the release. `VerifyInstall`
+checks the files against them:
 
 ```go
 report, err := download.VerifyInstall(context.Background(), libPath, "")
@@ -584,7 +585,15 @@ can change the record. A tag makes the check resolve the assets of that release 
 instead of reading the tag from the record.
 
 A file that no asset of this install holds is reported as `FileUnexpected` and does not
-make `OK` false, because a directory can hold more than one install.
+make `OK` false, because a directory can hold more than one install. The record and the
+manifest belong to the install, so neither is counted.
+
+The check reads the manifest that the install kept, so it needs no network. The bytes are
+checked against the pin that the operator gives, or against the digest in the record when
+there is no pin, the same as at install time. A manifest that is not there, or that does
+not agree, makes the check fetch the manifest and keep what comes back. So an installation
+that an earlier release of yzma made needs one check with a network, and no check after
+that.
 
 The file digests come from the asset, so they are there only for the assets that
 `llama-cpp-builder` builds. An install from the `llama.cpp` release page gives

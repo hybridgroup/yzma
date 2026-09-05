@@ -12,6 +12,10 @@ import (
 // what it put there. [VerifyInstall] reads it.
 const InstallRecordName = "yzma-install.json"
 
+// InstallManifestName is the file that [Install] writes in the library directory to keep
+// the digest manifest of the release. [VerifyInstall] reads it in place of a fetch.
+const InstallManifestName = "yzma-manifest.json"
+
 // InstallRecord says which llama.cpp release is installed in a library directory, and
 // which assets it came from.
 //
@@ -33,14 +37,20 @@ type InstallRecord struct {
 	OS        string `json:"os"`
 	Processor string `json:"processor"`
 
+	// ManifestSHA256 is the digest of the manifest kept in [InstallManifestName], in
+	// hexadecimal. It is the pin when the install was pinned.
+	ManifestSHA256 string `json:"manifest_sha256,omitempty"`
+
 	Installed time.Time `json:"installed"`
 
 	// Assets are the assets that were downloaded, in the order they installed.
 	Assets []Asset `json:"assets"`
 }
 
-// recordVersion is the format of the records this release writes.
-const recordVersion = 1
+// recordVersion is the format of the records this release writes. Version 2 added the
+// manifest digest. A version 1 record has no digest and no manifest beside it, which
+// makes [VerifyInstall] fetch the manifest as before.
+const recordVersion = 2
 
 // WriteInstallRecord writes the record of an install into libPath.
 func WriteInstallRecord(libPath string, record InstallRecord) error {
@@ -73,6 +83,22 @@ func ReadInstallRecord(libPath string) (*InstallRecord, error) {
 	}
 
 	return &record, nil
+}
+
+// WriteInstallManifest keeps the raw digest manifest of a release in libPath. The bytes
+// are kept as they came, because a pin is the digest of those bytes.
+func WriteInstallManifest(libPath string, body []byte) error {
+	path := filepath.Join(libPath, InstallManifestName)
+	if err := os.WriteFile(path, body, 0644); err != nil {
+		return fmt.Errorf("failed to write the install manifest: %w", err)
+	}
+
+	return nil
+}
+
+// ReadInstallManifest reads the manifest that [Install] left in libPath.
+func ReadInstallManifest(libPath string) ([]byte, error) {
+	return os.ReadFile(filepath.Join(libPath, InstallManifestName))
 }
 
 // target rebuilds the [Target] that made an install.
