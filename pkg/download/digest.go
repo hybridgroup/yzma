@@ -203,6 +203,13 @@ const maxManifestSize = 8 << 20
 // the version files. Both copies hold the same bytes, so a pin checks either one, and
 // a location that does not answer only costs the try.
 func fetchManifest(ctx context.Context, tag string, want string) (*manifest, error) {
+	m, _, err := fetchManifestBody(ctx, tag, want)
+	return m, err
+}
+
+// fetchManifestBody does the work of [fetchManifest] and gives the raw bytes as well, so
+// a caller can keep them for a later check.
+func fetchManifestBody(ctx context.Context, tag string, want string) (*manifest, []byte, error) {
 	var body []byte
 	var errs []error
 	for _, url := range []string{fmt.Sprintf(manifestAssetURL, tag), fmt.Sprintf(digestsURL, tag)} {
@@ -215,9 +222,21 @@ func fetchManifest(ctx context.Context, tag string, want string) (*manifest, err
 		break
 	}
 	if body == nil {
-		return nil, errors.Join(errs...)
+		return nil, nil, errors.Join(errs...)
 	}
 
+	m, err := parseManifest(body, tag, want)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return m, body, nil
+}
+
+// parseManifest checks the bytes of a manifest against a digest and then decodes them. A
+// want that is not empty is the expected SHA-256, in hexadecimal. The check is on the
+// bytes as they came, because that is what a pin names.
+func parseManifest(body []byte, tag string, want string) (*manifest, error) {
 	if want != "" {
 		sum := sha256.Sum256(body)
 		got := hex.EncodeToString(sum[:])
@@ -232,6 +251,27 @@ func fetchManifest(ctx context.Context, tag string, want string) (*manifest, err
 	}
 
 	return &m, nil
+}
+
+// loadCachedManifest reads the manifest that an install left in libPath. It gives false
+// when there is no manifest there, when the bytes do not agree with want, or when the
+// manifest is for another release. A caller then fetches the manifest instead.
+func loadCachedManifest(libPath string, tag string, want string) (*manifest, []byte, bool) {
+	body, err := ReadInstallManifest(libPath)
+	if err != nil {
+		return nil, nil, false
+	}
+
+	m, err := parseManifest(body, tag, want)
+	if err != nil {
+		return nil, nil, false
+	}
+
+	if m.Tag != tag {
+		return nil, nil, false
+	}
+
+	return m, body, true
 }
 
 // fetchManifestBytes reads a manifest from one URL.

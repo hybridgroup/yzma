@@ -104,6 +104,10 @@ func (r *VerifyReport) OK() bool {
 // that must be there, which does not trust the record. The tag may carry the expected
 // digest of the digest manifest, in the form "b10785@sha256:<digest>", which does not
 // trust the site that serves the manifest either.
+//
+// An install keeps the manifest of its release beside the record, so a check needs no
+// network. The manifest is read again against the same digest, and a manifest that is
+// not there or does not agree is fetched as before.
 func VerifyInstall(ctx context.Context, libPath, tag string) (*VerifyReport, error) {
 	tag, manifestDigest, err := ParsePinnedVersion(tag)
 	if err != nil {
@@ -123,19 +127,34 @@ func VerifyInstall(ctx context.Context, libPath, tag string) (*VerifyReport, err
 		return nil, err
 	}
 
+	named := tag != ""
+	if !named {
+		tag = record.Tag
+	}
+
+	m, err := installManifest(ctx, libPath, record, tag, manifestDigest)
+	if err != nil {
+		return nil, err
+	}
+
 	// A caller that names a tag gets the assets of that tag, resolved again. The
 	// recorded URLs are never used then, because a record that says the wrong tag
 	// can name the wrong assets as easily.
 	assets := record.Assets
-	if tag != "" {
+	if named {
 		target.Version = tag
 		target.UpstreamVersion = ""
 		if IsTaggedRelease(tag) {
-			upstream, err := LlamaNightlyTag(tag)
-			if err != nil {
-				return nil, err
+			// The manifest names the nightly build that holds the binaries of a
+			// tagged release, so the release page is not necessary.
+			target.UpstreamVersion = m.UpstreamTag
+			if target.UpstreamVersion == "" {
+				upstream, err := LlamaNightlyTag(tag)
+				if err != nil {
+					return nil, err
+				}
+				target.UpstreamVersion = upstream
 			}
-			target.UpstreamVersion = upstream
 		}
 
 		urls, err := DefaultResolver.Resolve(target)
@@ -146,13 +165,6 @@ func VerifyInstall(ctx context.Context, libPath, tag string) (*VerifyReport, err
 		for i, url := range urls {
 			assets[i] = Asset{URL: url}
 		}
-	} else {
-		tag = record.Tag
-	}
-
-	m, err := fetchManifest(ctx, tag, manifestDigest)
-	if err != nil {
-		return nil, err
 	}
 
 	// Gather what the assets of this install should have put in the directory.
@@ -201,8 +213,8 @@ func VerifyInstall(ctx context.Context, libPath, tag string) (*VerifyReport, err
 		}
 		name = filepath.ToSlash(name)
 
-		// The record is not part of any asset.
-		if name == InstallRecordName {
+		// The record and the manifest are not part of any asset.
+		if name == InstallRecordName || name == InstallManifestName {
 			return nil
 		}
 
@@ -263,6 +275,51 @@ func VerifyInstall(ctx context.Context, libPath, tag string) (*VerifyReport, err
 	})
 
 	return report, nil
+}
+
+// installManifest gives the digest manifest of a release. The copy that the install left
+// beside the record comes first, so a check needs no network. A manifest that is not
+// there or does not agree with the digest is fetched, and what comes back is kept for the
+// next check.
+func installManifest(ctx context.Context, libPath string, record *InstallRecord, tag, want string) (*manifest, error) {
+	// A caller that gives no digest gets the one the install recorded, so a manifest
+	// that changed on disk is not trusted.
+	cached := want
+	if cached == "" {
+		cached = record.ManifestSHA256
+	}
+	if m, _, ok := loadCachedManifest(libPath, tag, cached); ok {
+		return m, nil
+	}
+
+	m, body, err := fetchManifestBody(ctx, tag, want)
+	if err != nil {
+		return nil, err
+	}
+
+	cacheManifest(libPath, record, tag, body)
+
+	return m, nil
+}
+
+// cacheManifest keeps a manifest beside the install record. It only makes the next check
+// faster, so a directory that cannot be written gives no error.
+func cacheManifest(libPath string, record *InstallRecord, tag string, body []byte) {
+	if record.Tag != tag {
+		return
+	}
+	if err := WriteInstallManifest(libPath, body); err != nil {
+		return
+	}
+
+	sum := sha256.Sum256(body)
+	digest := hex.EncodeToString(sum[:])
+	if strings.EqualFold(record.ManifestSHA256, digest) {
+		return
+	}
+
+	record.ManifestSHA256 = digest
+	_ = WriteInstallRecord(libPath, *record)
 }
 
 // add puts one result in the report and counts it.

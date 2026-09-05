@@ -2,6 +2,8 @@ package download
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
@@ -72,15 +74,17 @@ func (defaultResolver) Resolve(target Target) ([]string, error) {
 // have that digest, and a manifest that cannot be read is an error rather than an
 // install with no check.
 func (r defaultResolver) ResolveAssets(target Target) ([]Asset, error) {
-	return r.resolveAssets(context.Background(), target)
+	assets, _, err := r.resolveAssets(context.Background(), target)
+	return assets, err
 }
 
 // resolveAssets does the work of [defaultResolver.ResolveAssets] under a context.
-// [AssetResolver] takes no context, so [Install] calls this to pass its own.
-func (r defaultResolver) resolveAssets(ctx context.Context, target Target) ([]Asset, error) {
+// [AssetResolver] takes no context, so [Install] calls this to pass its own. It also
+// gives the raw manifest bytes, which the install keeps for a later check.
+func (r defaultResolver) resolveAssets(ctx context.Context, target Target) ([]Asset, []byte, error) {
 	urls, err := defaultResolve(target)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	assets := make([]Asset, len(urls))
@@ -88,19 +92,19 @@ func (r defaultResolver) resolveAssets(ctx context.Context, target Target) ([]As
 		assets[i] = Asset{URL: url}
 	}
 
-	m, err := fetchManifest(ctx, target.Version, target.ManifestSHA256)
+	m, body, err := fetchManifestBody(ctx, target.Version, target.ManifestSHA256)
 	if err != nil {
 		if target.ManifestSHA256 != "" {
-			return nil, err
+			return nil, nil, err
 		}
-		return assets, nil
+		return assets, nil, nil
 	}
 
 	for i := range assets {
 		assets[i].SHA256 = m.digestFor(assets[i].URL)
 	}
 
-	return assets, nil
+	return assets, body, nil
 }
 
 // llama.cpp renamed its ROCm assets at these two builds.
@@ -420,9 +424,9 @@ func Install(ctx context.Context, target Target, dest string, progress getter.Pr
 		target.UpstreamVersion = upstream
 	}
 
-	assets, err := installAssets(ctx, target, dest, progress, resolver, options)
+	assets, manifestBody, err := installAssets(ctx, target, dest, progress, resolver, options)
 	if err == nil {
-		return recordInstall(dest, target, assets)
+		return recordInstall(dest, target, assets, manifestBody)
 	}
 
 	// The newest release may still be building for this platform.
@@ -439,34 +443,44 @@ func Install(ctx context.Context, target Target, dest string, progress getter.Pr
 				return err
 			}
 		}
-		assets, err := installAssets(ctx, target, dest, progress, resolver, options)
+		assets, manifestBody, err := installAssets(ctx, target, dest, progress, resolver, options)
 		if err != nil {
 			return err
 		}
-		return recordInstall(dest, target, assets)
+		return recordInstall(dest, target, assets, manifestBody)
 	}
 
 	return err
 }
 
 // recordInstall leaves a record of what was installed, so [VerifyInstall] can check
-// the files later.
-func recordInstall(dest string, target Target, assets []Asset) error {
+// the files later. The manifest goes beside the record, so the check needs no network.
+func recordInstall(dest string, target Target, assets []Asset, manifestBody []byte) error {
+	var manifestDigest string
+	if len(manifestBody) > 0 {
+		if err := WriteInstallManifest(dest, manifestBody); err != nil {
+			return err
+		}
+		sum := sha256.Sum256(manifestBody)
+		manifestDigest = hex.EncodeToString(sum[:])
+	}
+
 	return WriteInstallRecord(dest, InstallRecord{
-		Tag:         target.Version,
-		UpstreamTag: target.UpstreamVersion,
-		Arch:        target.Arch.String(),
-		OS:          target.OS.String(),
-		Processor:   target.Processor.String(),
-		Installed:   time.Now().UTC(),
-		Assets:      assets,
+		Tag:            target.Version,
+		UpstreamTag:    target.UpstreamVersion,
+		Arch:           target.Arch.String(),
+		OS:             target.OS.String(),
+		Processor:      target.Processor.String(),
+		ManifestSHA256: manifestDigest,
+		Installed:      time.Now().UTC(),
+		Assets:         assets,
 	})
 }
 
-func installAssets(ctx context.Context, target Target, dest string, progress getter.ProgressTracker, resolver Resolver, options installOptions) ([]Asset, error) {
-	assets, err := resolveAssets(ctx, target, resolver, options.verify)
+func installAssets(ctx context.Context, target Target, dest string, progress getter.ProgressTracker, resolver Resolver, options installOptions) ([]Asset, []byte, error) {
+	assets, manifestBody, err := resolveAssets(ctx, target, resolver, options.verify)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	for _, asset := range assets {
@@ -474,24 +488,27 @@ func installAssets(ctx context.Context, target Target, dest string, progress get
 		case options.verify == VerifyOff, asset.SHA256 != "":
 			// Nothing to say. A digest that is there is checked as it downloads.
 		case options.verify == VerifyRequired:
-			return nil, fmt.Errorf("%w: %s", ErrDigestMissing, asset.URL)
+			return nil, nil, fmt.Errorf("%w: %s", ErrDigestMissing, asset.URL)
 		case VerifyWarning != nil:
 			VerifyWarning(asset.URL)
 		}
 
 		if err := getFunc(ctx, asset, dest, progress); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
-	return assets, nil
+	return assets, manifestBody, nil
 }
 
 // resolveAssets asks a resolver for the assets to install. A resolver that reports
 // digests is preferred, so a resolver that only has [Resolver] keeps working.
 // [VerifyOff] takes the plain [Resolver], because a digest that nothing reads is not
 // worth the fetch of a manifest.
-func resolveAssets(ctx context.Context, target Target, resolver Resolver, verify VerifyPolicy) ([]Asset, error) {
+//
+// It also gives the raw bytes of the manifest the digests came from, or none when no
+// manifest was read.
+func resolveAssets(ctx context.Context, target Target, resolver Resolver, verify VerifyPolicy) ([]Asset, []byte, error) {
 	// A pinned manifest is the authority for every asset, whichever resolver named
 	// them, so it is read here instead of in the resolver.
 	if target.ManifestSHA256 != "" {
@@ -504,13 +521,14 @@ func resolveAssets(ctx context.Context, target Target, resolver Resolver, verify
 			return d.resolveAssets(ctx, target)
 		}
 		if assetResolver, ok := resolver.(AssetResolver); ok {
-			return assetResolver.ResolveAssets(target)
+			assets, err := assetResolver.ResolveAssets(target)
+			return assets, nil, err
 		}
 	}
 
 	urls, err := resolver.Resolve(target)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	assets := make([]Asset, len(urls))
@@ -518,31 +536,31 @@ func resolveAssets(ctx context.Context, target Target, resolver Resolver, verify
 		assets[i] = Asset{URL: url}
 	}
 
-	return assets, nil
+	return assets, nil, nil
 }
 
 // pinnedAssets gives the assets to install when [Target.ManifestSHA256] pins the
 // digest manifest. The resolver names the assets and the pinned manifest gives the
 // digest of each one. An asset that the manifest does not name is an error.
-func pinnedAssets(ctx context.Context, target Target, resolver Resolver) ([]Asset, error) {
+func pinnedAssets(ctx context.Context, target Target, resolver Resolver) ([]Asset, []byte, error) {
 	urls, err := resolver.Resolve(target)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	m, err := fetchManifest(ctx, target.Version, target.ManifestSHA256)
+	m, body, err := fetchManifestBody(ctx, target.Version, target.ManifestSHA256)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	assets := make([]Asset, len(urls))
 	for i, url := range urls {
 		digest := m.digestFor(url)
 		if digest == "" {
-			return nil, fmt.Errorf("%w: %s is not in the pinned digests of %s", ErrDigestMissing, url, target.Version)
+			return nil, nil, fmt.Errorf("%w: %s is not in the pinned digests of %s", ErrDigestMissing, url, target.Version)
 		}
 		assets[i] = Asset{URL: url, SHA256: digest}
 	}
 
-	return assets, nil
+	return assets, body, nil
 }

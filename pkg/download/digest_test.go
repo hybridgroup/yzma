@@ -233,7 +233,7 @@ func TestResolveAssetsFromAPlainResolver(t *testing.T) {
 		return []string{"https://example.com/a.tar.gz"}, nil
 	})
 
-	assets, err := resolveAssets(context.Background(), Target{Version: "b10783"}, resolver, VerifyIfAvailable)
+	assets, _, err := resolveAssets(context.Background(), Target{Version: "b10783"}, resolver, VerifyIfAvailable)
 	if err != nil {
 		t.Fatalf("resolveAssets() failed: %v", err)
 	}
