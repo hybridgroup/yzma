@@ -91,6 +91,8 @@ $ go run ./examples/hello/
 
 You can use the convenient `yzma` command line tool to download the `llama.cpp` prebuilt libraries for your platform. You can also have your application self-download them automatically at installation time, including auto-detection for CUDA and ROCm.
 
+Each file that comes down is checked against the SHA-256 digest that the release publishes, and the `yzma verify` command checks an installation later. See [Checking what comes down](./INSTALL.md#checking-what-comes-down).
+
 See [INSTALL.md](./INSTALL.md) for installation instructions for [macOS](./INSTALL.md#macos), [Linux](./INSTALL.md#linux), and [Windows](./INSTALL.md#windows).
 
 We also have specific information on running `yzma` on [Raspberry Pi](./INSTALL.md#raspberry-pi), [NVIDIA Jetson Orin](./INSTALL.md#nvidia-jetson-orin), and the [Arduino UNO Q](./INSTALL.md#arduino-uno-q).
@@ -220,6 +222,7 @@ Sometimes there are breaking changes to `llama.cpp` that require an update to `y
 | llama.cpp | yzma    |
 | ------- | --------- |
 | v0.3.0 | v1.25.0   |
+| v0.4.0 | v1.26.0   |
 
 A tagged release of `yzma` installs its own `llama.cpp` release by default, so `yzma install` without the `-version` flag gets the version in this table. Use `-version latest` to get the most recent nightly build instead. A build from the `main` branch always uses the most recent nightly build.
 
