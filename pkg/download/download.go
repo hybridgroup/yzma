@@ -239,11 +239,7 @@ func get(ctx context.Context, asset Asset, dest string, progress getter.Progress
 
 	// Check if it's a .tar.gz file
 	if strings.HasSuffix(url, ".tar.gz") {
-		err := downloadAndExtractTarGz(asset, dest, progress)
-		if err != nil && strings.Contains(err.Error(), "404") {
-			return fmt.Errorf("%w: %s", ErrFileNotFound, url)
-		}
-		return err
+		return downloadAndExtractTarGz(asset, dest, progress)
 	}
 
 	// Use go-getter for other file types (e.g., .zip). go-getter checks the digest
@@ -265,13 +261,19 @@ func get(ctx context.Context, asset Asset, dest string, progress getter.Progress
 	}
 
 	if err := client.Get(); err != nil {
-		if strings.Contains(err.Error(), "404") {
+		if isNotFound(err) {
 			return fmt.Errorf("%w: %s", ErrFileNotFound, url)
 		}
 		return err
 	}
 
 	return nil
+}
+
+// isNotFound tells if go-getter stopped because the server answered 404. It reads the
+// message of go-getter, which gives no error value of its own.
+func isNotFound(err error) bool {
+	return strings.Contains(err.Error(), "bad response code: 404")
 }
 
 // downloadAndExtractTarGz downloads a .tar.gz file and extracts it to the destination directory.
@@ -291,9 +293,8 @@ func downloadAndExtractTarGz(asset Asset, dest string, progress getter.ProgressT
 	}
 
 	if err := client.Get(); err != nil {
-		// Check for 404 errors specifically
-		if strings.Contains(err.Error(), "404") {
-			return fmt.Errorf("404 not found: %s", url)
+		if isNotFound(err) {
+			return fmt.Errorf("%w: %s", ErrFileNotFound, url)
 		}
 		return err
 	}

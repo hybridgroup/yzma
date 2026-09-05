@@ -276,6 +276,36 @@ func TestInstallStopsOnADigestThatDoesNotAgree(t *testing.T) {
 	}
 }
 
+// A destination whose name holds "404" must not make a digest that does not agree
+// look like a file that is not there.
+func TestInstallStopsOnADigestThatDoesNotAgreeUnderA404Path(t *testing.T) {
+	body := createMockTarGz(t, "b10783")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/gzip")
+		w.Write(body)
+	}))
+	defer server.Close()
+
+	dest := filepath.Join(t.TempDir(), "build-404")
+	if err := os.MkdirAll(dest, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	asset := Asset{
+		URL:    server.URL + "/llama-b10783-bin-ubuntu-cpu-arm64.tar.gz",
+		SHA256: strings.Repeat("0", 64),
+	}
+
+	err := get(context.Background(), asset, dest, nil)
+	if !errors.Is(err, ErrDigestMismatch) {
+		t.Fatalf("get() = %v, want ErrDigestMismatch", err)
+	}
+	if errors.Is(err, ErrFileNotFound) {
+		t.Errorf("get() = %v, want no ErrFileNotFound", err)
+	}
+}
+
 func TestInstallAcceptsADigestThatAgrees(t *testing.T) {
 	body := createMockTarGz(t, "b10783")
 	sum := sha256.Sum256(body)
