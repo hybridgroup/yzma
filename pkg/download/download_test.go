@@ -862,6 +862,11 @@ func TestGetWithContext_FallbackToPreviousVersion(t *testing.T) {
 		previousVersionURL = originalPrev
 	}()
 
+	// An empty version must ask the version server, as a development build does.
+	originalDefault := DefaultVersion
+	DefaultVersion = ""
+	defer func() { DefaultVersion = originalDefault }()
+
 	// Override getFunc to use our test server
 	originalGet := getFunc
 	getFunc = func(ctx context.Context, asset Asset, dest string, progress getter.ProgressTracker) error {
