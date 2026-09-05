@@ -31,7 +31,7 @@ func main() {
 
 	switch {
 	case *version == "" && download.DefaultVersion != "":
-		fmt.Println("installing llama.cpp version", download.DefaultVersion, "to", *libPath)
+		fmt.Println("installing llama.cpp version", download.DefaultTag(), "to", *libPath)
 	case *version == "" || *version == "latest":
 		fmt.Println("installing latest llama.cpp version to", *libPath)
 	default:

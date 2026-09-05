@@ -388,12 +388,17 @@ See the [resolver example code](./examples/resolver/).
 ### Checking what comes down
 
 `Install` checks the SHA-256 of each asset before it writes anything. The expected
-digests come from the manifest that `llama-cpp-builder` publishes for each release tag,
-next to the version files:
+digests come from the manifest that `llama-cpp-builder` publishes for each release tag.
+The manifest is an asset of the release it describes, and there is a copy next to the
+version files:
 
 ```
+https://github.com/hybridgroup/llama-cpp-builder/releases/download/b10783/b10783.json
 https://hybridgroup.github.io/llama-cpp-builder/digests/b10783.json
 ```
+
+Both hold the same bytes. yzma reads the release asset first and falls back to the
+second, so a release published before the manifest was an asset still works.
 
 An asset whose bytes do not agree stops the install with `download.ErrDigestMismatch`,
 and nothing is extracted.
@@ -500,6 +505,62 @@ is not 64 hexadecimal characters gives `download.ErrInvalidDigest` or
 
 A pin says that the manifest is the one you expected. It still is not a signature. It
 does not say who built the assets. Build provenance would.
+
+#### Where to get the manifest digest
+
+The manifest is an asset of the release it describes, and GitHub records the SHA-256 of
+every asset it stores. That recorded value is the manifest digest. It is published in
+three places:
+
+- The release notes for the tag print the complete pin.
+- `https://hybridgroup.github.io/llama-cpp-builder/version.json` carries the pin for the
+  newest build, and `previous.json` for the one before it:
+
+  ```console
+  $ curl -s https://hybridgroup.github.io/llama-cpp-builder/version.json
+  {"tag_name":"b10816","manifest_sha256":"<digest>","pin":"b10816@sha256:<digest>"}
+  ```
+
+- The release itself, under the asset named `<tag>.json`:
+
+  ```console
+  $ gh api repos/hybridgroup/llama-cpp-builder/releases/tags/b10816 \
+      --jq '.assets[] | select(.name == "b10816.json") | .digest'
+  sha256:<digest>
+  ```
+
+The digest of a platform archive is **not** the manifest digest. Those digests are what
+the manifest holds, one for each asset of the release. The pin covers the file that
+names them.
+
+`ManifestDigest` and `PinnedVersion` read the value for a tag, so a program can record
+the pin it is about to use. They read the version files first and only fall back to the
+GitHub API, which rate limits:
+
+```go
+pin, err := download.PinnedVersion(context.Background(), "b10816")
+```
+
+A tag whose release published no manifest gives `download.ErrNoManifestDigest`. That is
+an answer and not a failure: the version still installs, without a pin.
+
+`download.DefaultVersion` already holds the complete pin for the release that this yzma
+release installs, so an application that wants the same libraries can pass it straight
+to `Install`.
+
+#### A version with no digest
+
+A version with no digest is not the same as no checking:
+
+```
+yzma install --version v0.4.0 --lib /path/to/lib
+```
+
+That installs as it always has. The manifest still gives a digest for each asset, and
+the policy above still decides what happens to an asset that has none. What it does not
+have is a value from outside the release host to check the manifest against. Nothing in
+a pinned setup makes an unpinned version stop working, so an application can install a
+llama.cpp release that is newer than the one this yzma release pins.
 
 ### Checking an installation later
 
