@@ -12,6 +12,8 @@
 - `yzma` uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed.
 - Works with the newest `llama.cpp` releases so you can use the latest features, performance improvements, and bugfixes.
 
+The documentation is at **[yzma.ai](https://yzma.ai)**.
+
 This example uses the [SmolLM2-135M-GGUF](https://huggingface.co/QuantFactory/SmolLM2-135M-GGUF) model:
 
 ```go
@@ -72,7 +74,7 @@ func main() {
 }
 ```
 
-[Install `yzma`](./INSTALL.md), then download the model using the `yzma` command line tool:
+[Install `yzma`](https://yzma.ai/getting-started/install/), then download the model using the `yzma` command line tool:
 
 ```shell
 $ yzma model get -u https://huggingface.co/QuantFactory/SmolLM2-135M-GGUF/resolve/main/SmolLM2-135M.Q4_K_M.gguf
@@ -89,13 +91,17 @@ $ go run ./examples/hello/
 
 ## Installation
 
-You can use the convenient `yzma` command line tool to download the `llama.cpp` prebuilt libraries for your platform. You can also have your application self-download them automatically at installation time, including auto-detection for CUDA and ROCm.
+```shell
+go install github.com/hybridgroup/yzma@latest
+yzma install --lib /path/to/lib
+export YZMA_LIB=/path/to/lib
+```
 
-Each file that comes down is checked against the SHA-256 digest that the release publishes, and the `yzma verify` command checks an installation later. See [Checking what comes down](./INSTALL.md#checking-what-comes-down).
+The `yzma` command line tool downloads the `llama.cpp` prebuilt libraries for your platform. Your application can also download them itself, with auto-detection for CUDA and ROCm.
 
-See [INSTALL.md](./INSTALL.md) for installation instructions for [macOS](./INSTALL.md#macos), [Linux](./INSTALL.md#linux), and [Windows](./INSTALL.md#windows).
+Each file that comes down is checked against the SHA-256 digest that the release publishes, and the `yzma verify` command checks an installation later.
 
-We also have specific information on running `yzma` on [Raspberry Pi](./INSTALL.md#raspberry-pi), [NVIDIA Jetson Orin](./INSTALL.md#nvidia-jetson-orin), and the [Arduino UNO Q](./INSTALL.md#arduino-uno-q).
+See **[yzma.ai/getting-started/install](https://yzma.ai/getting-started/install/)** for the instructions for [macOS](https://yzma.ai/getting-started/install/macos/), [Linux](https://yzma.ai/getting-started/install/linux/), [Windows](https://yzma.ai/getting-started/install/windows/), [Raspberry Pi](https://yzma.ai/getting-started/install/raspberry-pi/), [NVIDIA Jetson Orin](https://yzma.ai/getting-started/install/jetson-orin/), the [Arduino UNO Q](https://yzma.ai/getting-started/install/arduino-uno-q/), and a [browser](https://yzma.ai/getting-started/install/browser/).
 
 ## Examples
 
@@ -175,7 +181,7 @@ See the [examples](./examples/) directory for more examples of how to use `yzma`
 
 ## yzma in action
 
-Who is using `yzma`? Check out some of the [tools](./PROJECTS.md#tools-and-frameworks), [applications](./PROJECTS.md#applications), [examples](./PROJECTS.md#examples-and-tutorials), and [blog posts and videos](./PROJECTS.md#blog-postsvideo)!
+Who is using `yzma`? Check out some of the [tools](https://yzma.ai/projects/tools/), [applications](https://yzma.ai/projects/applications/), [examples](https://yzma.ai/projects/tutorials/), and [blog posts and videos](https://yzma.ai/projects/media/)!
 
 ## Models
 
@@ -191,7 +197,7 @@ For example, this downloads the `gemma-3-1b-it-GGUF` model:
 $ yzma model get -u https://huggingface.co/ggml-org/gemma-3-1b-it-GGUF/resolve/main/gemma-3-1b-it-Q4_K_M.gguf
 ```
 
-Check out the [Model Usage](./MODELS.md) page for more information.
+Check out the [Models](https://yzma.ai/docs/guides/models/) page for the download command and the run command for each model.
 
 ## Support
 

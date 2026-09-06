@@ -100,5 +100,5 @@
 // check fetch the manifest as before and keep what comes back.
 //
 
-// See INSTALL.md for the longer version.
+// See https://yzma.ai/docs/guides/programmatic-install/ for the longer version.
 package download

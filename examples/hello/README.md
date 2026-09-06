@@ -4,7 +4,7 @@ The "hello, world" of `yzma`.
 
 ## Install yzma
 
-Make sure you have installed `yzma` as described in [INSTALL.md](../../INSTALL.md)
+Make sure you have installed `yzma` as described in the [install guide](https://yzma.ai/getting-started/install/).
 
 Once installed, follow the instructions from your installer to set the `YZMA_LIB` environment variable.
 

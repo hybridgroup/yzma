@@ -7,6 +7,10 @@ Worker that holds the program, a page, a static server, and a test for Node.
 The Go code is in [`pkg/llamawasm`](../pkg/llamawasm) and the example is in
 [`examples/wasm/chat`](../examples/wasm/chat).
 
+This page is for the people who work on this code. If you want to use yzma in a
+browser, read [Run yzma in a browser](https://yzma.ai/docs/tutorials/browser/)
+and [Build for a browser](https://yzma.ai/docs/guides/browser/).
+
 ## How it works
 
 There are two WebAssembly modules.

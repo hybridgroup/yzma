@@ -89,7 +89,8 @@ $ yzma install --lib /path/to/lib --version b10816@sha256:<digest>
 ```
 
 The digest of a platform archive is not this value. Those digests are what the manifest
-holds, one for each asset. See [INSTALL.md](../INSTALL.md) for the whole chain.
+holds, one for each asset. See [Verify an installation](https://yzma.ai/docs/guides/verifying/)
+for the whole chain.
 
 ## Other commands
 
@@ -162,5 +163,5 @@ Notes:
 - `--version` also takes `VERSION@sha256:<digest>`, where the digest is the SHA-256 of
   the digest manifest of the release. The expected value then comes from where you keep
   it, and not from the site that serves the manifest. A pin makes the check mandatory,
-  so it does not go with `--verify off`. See [INSTALL.md](../INSTALL.md) for what a pin
-  does and does not show.
+  so it does not go with `--verify off`. See [Verify an installation](https://yzma.ai/docs/guides/verifying/)
+  for what a pin does and does not show.
