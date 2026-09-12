@@ -311,6 +311,7 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 | `mtmd_helper_video_init_from_buf` | yes | no |
 | `mtmd_helper_video_init_params_default` | yes | no |
 | `mtmd_helper_video_init` | yes | no |
+| `mtmd_image_tokens_get_decoder_pos` | yes | no |
 | `mtmd_image_tokens_get_id` | yes | no |
 | `mtmd_image_tokens_get_n_pos` | yes | no |
 | `mtmd_image_tokens_get_n_tokens` | yes | no |
@@ -357,7 +358,6 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 | `mtmd_bitmap_init_lazy` | no | no |
 | `mtmd_get_cap_from_file` | no | no |
 | `mtmd_helper_video_read_next` | no | no |
-| `mtmd_image_tokens_get_decoder_pos` | no | no |
 
 ---
 

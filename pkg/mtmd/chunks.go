@@ -18,6 +18,22 @@ const (
 	InputChunkTypeAudio
 )
 
+//	struct mtmd_decoder_pos {
+//	    uint32_t t;
+//	    uint32_t x;
+//	    uint32_t y;
+//	    uint32_t z;
+//	};
+type DecoderPos struct {
+	T uint32
+	X uint32
+	Y uint32
+	Z uint32 // reserved for future use
+}
+
+// ffiTypeDecoderPos mirrors struct mtmd_decoder_pos
+var ffiTypeDecoderPos = ffi.NewType(&ffi.TypeUint32, &ffi.TypeUint32, &ffi.TypeUint32, &ffi.TypeUint32)
+
 var (
 	// MTMD_API mtmd_input_chunks *      mtmd_input_chunks_init(void);
 	inputChunksInitFunc ffi.Fun
@@ -70,6 +86,9 @@ var (
 	// number of temporal positions (always 1 for M-RoPE, n_tokens otherwise)
 	// MTMD_API llama_pos    mtmd_image_tokens_get_n_pos   (const mtmd_image_tokens * image_tokens); // TODO: deprecate
 	inputImageTokensGetNPosFunc ffi.Fun
+
+	// MTMD_API struct mtmd_decoder_pos mtmd_image_tokens_get_decoder_pos(const mtmd_image_tokens * image_tokens, llama_pos pos_0, size_t i);
+	inputImageTokensGetDecoderPosFunc ffi.Fun
 )
 
 func loadChunkFuncs(lib loader.Lib) error {
@@ -141,6 +160,10 @@ func loadChunkFuncs(lib loader.Lib) error {
 
 	if inputImageTokensGetNPosFunc, err = lib.Prep("mtmd_image_tokens_get_n_pos", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
 		return loadError("mtmd_image_tokens_get_n_pos", err)
+	}
+
+	if inputImageTokensGetDecoderPosFunc, err = lib.Prep("mtmd_image_tokens_get_decoder_pos", &ffiTypeDecoderPos, &ffi.TypePointer, &ffi.TypeSint32, &ffiTypeSize); err != nil {
+		return loadError("mtmd_image_tokens_get_decoder_pos", err)
 	}
 
 	return nil
@@ -284,7 +307,10 @@ func ImageTokensGetNTokens(imageTokens ImageTokens) uint64 {
 	return uint64(result)
 }
 
-// ImageTokensGetX returns the x size of the image tokens.
+// ImageTokensGetNX returns the x size of the image tokens.
+//
+// Deprecated: use [ImageTokensGetDecoderPos] instead. A rectangular grid cannot
+// show all of the layouts that a projector makes.
 func ImageTokensGetNX(imageTokens ImageTokens) uint64 {
 	if imageTokens == 0 {
 		return 0
@@ -294,7 +320,10 @@ func ImageTokensGetNX(imageTokens ImageTokens) uint64 {
 	return uint64(result)
 }
 
-// ImageTokensGetY returns the y size of the image tokens.
+// ImageTokensGetNY returns the y size of the image tokens.
+//
+// Deprecated: use [ImageTokensGetDecoderPos] instead. A rectangular grid cannot
+// show all of the layouts that a projector makes.
 func ImageTokensGetNY(imageTokens ImageTokens) uint64 {
 	if imageTokens == 0 {
 		return 0
@@ -327,4 +356,19 @@ func ImageTokensGetNPos(imageTokens ImageTokens) llama.Pos {
 	var result ffi.Arg
 	inputImageTokensGetNPosFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&imageTokens))
 	return llama.Pos(result)
+}
+
+// ImageTokensGetDecoderPos returns the decoder attention position of image token i,
+// relative to the absolute position pos0. M-RoPE models need these positions.
+// Index i must be less than ImageTokensGetNTokens(imageTokens).
+//
+// The result keeps the field order of the C struct. A caller that fills a llama
+// batch must transpose (T, X, Y, Z) into the plane order (T, Y, X, Z).
+func ImageTokensGetDecoderPos(imageTokens ImageTokens, pos0 llama.Pos, i uint64) DecoderPos {
+	var pos DecoderPos
+	if imageTokens == 0 || i >= ImageTokensGetNTokens(imageTokens) {
+		return pos
+	}
+	inputImageTokensGetDecoderPosFunc.Call(unsafe.Pointer(&pos), unsafe.Pointer(&imageTokens), unsafe.Pointer(&pos0), unsafe.Pointer(&i))
+	return pos
 }
