@@ -145,11 +145,12 @@ jobs:
           for i in $(seq 1 10); do
             echo "attempt $i"
             lldb -b -o run -o 'bt all' -o 'image lookup -a $pc' -- \
-              $RUNNER_TEMP/batchcompare -mode full -model "$MODEL" > $RUNNER_TEMP/lldb.log 2>&1
+              $RUNNER_TEMP/batchcompare -mode full -model "$MODEL" > $RUNNER_TEMP/lldb.log 2>&1 || true
 
             if grep -q "stop reason" $RUNNER_TEMP/lldb.log; then
               echo "the trap occurred on attempt $i"
-              grep -v "^ggml_\|^llama_\|^load_\|^print_\|^create_tensor" $RUNNER_TEMP/lldb.log | tail -150
+              # The Metal compiler writes many warnings, so start at the trap.
+              sed -n '/stop reason/,$p' $RUNNER_TEMP/lldb.log | head -200
               exit 0
             fi
           done
