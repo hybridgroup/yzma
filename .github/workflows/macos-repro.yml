@@ -59,6 +59,8 @@ jobs:
           curl -sL -o upstream.tar.gz https://github.com/ggml-org/llama.cpp/releases/download/${{ matrix.version }}/llama-${{ matrix.version }}-bin-macos-arm64.tar.gz
           mkdir -p upstream
           tar xzf upstream.tar.gz -C upstream
+          # Stop now if the binary is absent, so a broken control cannot look like a failure.
+          test -n "$(find upstream -type f -name 'llama-cli')" || { echo "llama-cli not found"; exit 1; }
       - name: Repeat the tests
         run: |
           N=${{ inputs.runs || '5' }}
@@ -66,7 +68,7 @@ jobs:
           export YZMA_TEST_MODEL=$MODEL
 
           # The upstream binary gives a result that does not use the yzma FFI layer.
-          UPSTREAM=$(find upstream -type f -name 'llama-embedding' | head -1)
+          UPSTREAM=$(find upstream -type f -name 'llama-cli' | head -1)
           export DYLD_LIBRARY_PATH=$(dirname "$UPSTREAM")
 
           unit=0
@@ -86,7 +88,7 @@ jobs:
               echo "run $i: example failed"
             fi
 
-            if ! "$UPSTREAM" -m "$MODEL" -p "Hello World"; then
+            if ! "$UPSTREAM" -m "$MODEL" -p "Hello World" -n 16 -no-cnv; then
               upstream=$((upstream + 1))
               echo "run $i: upstream binary failed"
             fi
@@ -101,7 +103,7 @@ jobs:
             echo "| --- | --- |"
             echo "| TestGetSampledTokenIth | $unit / $N |"
             echo "| examples/embeddings | $example / $N |"
-            echo "| upstream llama-embedding | $upstream / $N |"
+            echo "| upstream llama-cli | $upstream / $N |"
           } >> $GITHUB_STEP_SUMMARY
 
           echo "failures: unit=$unit example=$example upstream=$upstream out of $N"
