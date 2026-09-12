@@ -170,6 +170,47 @@ jobs:
           } >> $GITHUB_STEP_SUMMARY
 
           echo "checker: fails=$fails marks=$marks out of $N"
+      - name: Find the write with guard malloc
+        run: |
+          MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf
+
+          go build -o $RUNNER_TEMP/batchcompare ./_repro/batchcompare
+
+          # libgmalloc stops at the write that goes out of bounds, not at the
+          # next allocation. It gives every block its own guarded page, so it
+          # is slow and can run out of memory. The second set of variables is
+          # the lighter fallback.
+          run_guard() {
+            lldb -b \
+              -o "settings set target.env-vars $1" \
+              -o run -k 'bt all' -k 'image lookup -a $pc' -- \
+              $RUNNER_TEMP/batchcompare -mode full -model "$MODEL" > $RUNNER_TEMP/guard.log 2>&1 || true
+
+            if grep -q "stop reason" $RUNNER_TEMP/guard.log; then
+              echo "guard malloc stopped with: $1"
+              sed -n '/stop reason/,$p' $RUNNER_TEMP/guard.log | head -120
+              return 0
+            fi
+
+            return 1
+          }
+
+          for i in $(seq 1 3); do
+            echo "libgmalloc attempt $i"
+            if run_guard "DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib"; then
+              exit 0
+            fi
+          done
+
+          for i in $(seq 1 5); do
+            echo "MallocGuardEdges attempt $i"
+            if run_guard "MallocScribble=1 MallocGuardEdges=1 MallocErrorAbort=1"; then
+              exit 0
+            fi
+          done
+
+          echo "guard malloc found no write"
+          tail -20 $RUNNER_TEMP/guard.log
       - name: Get a backtrace of the trap
         run: |
           MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf
