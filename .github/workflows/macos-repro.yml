@@ -144,7 +144,9 @@ jobs:
           # The trap does not occur on every run, so try until it does.
           for i in $(seq 1 10); do
             echo "attempt $i"
-            lldb -b -o run -o 'bt all' -o 'image lookup -a $pc' -- \
+            # -k runs on a crash. In batch mode lldb quits at the stop, so -o
+            # commands after run never execute.
+            lldb -b -o run -k 'bt all' -k 'image lookup -a $pc' -k 'register read' -- \
               $RUNNER_TEMP/batchcompare -mode full -model "$MODEL" > $RUNNER_TEMP/lldb.log 2>&1 || true
 
             if grep -q "stop reason" $RUNNER_TEMP/lldb.log; then
