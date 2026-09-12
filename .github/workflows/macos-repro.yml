@@ -1,0 +1,100 @@
+name: macOS repro
+
+# Temporary workflow to find the cause of the macOS SIGTRAP in llama_decode.
+# Delete it when the cause is known.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'llama.cpp version to test. Use b10909 for the last good build.'
+        required: true
+        default: 'b10919'
+      runs:
+        description: 'Number of times to repeat each test'
+        required: true
+        default: '5'
+
+jobs:
+  repro:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 'stable'
+      - name: Install yzma command
+        run: go install .
+      - name: Install llama.cpp binaries
+        run: |
+          set -e
+          yzma install -lib $GITHUB_WORKSPACE/lib -version ${{ inputs.version }} -p metal
+      - name: Add llama.cpp libs to path
+        run: |
+          echo "YZMA_LIB=$GITHUB_WORKSPACE/lib" >> "$GITHUB_ENV"
+      - name: Restore test models
+        id: cache-models
+        uses: actions/cache/restore@v4
+        with:
+          path: models
+          key: ${{ runner.os }}-models-v5
+      - name: Download test model
+        if: steps.cache-models.outputs.cache-hit != 'true'
+        run: |
+          set -e
+          mkdir -p ./models
+          yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf
+      - name: Get the upstream llama.cpp binaries
+        run: |
+          set -e
+          curl -sL -o upstream.tar.gz https://github.com/ggml-org/llama.cpp/releases/download/${{ inputs.version }}/llama-${{ inputs.version }}-bin-macos-arm64.tar.gz
+          mkdir -p upstream
+          tar xzf upstream.tar.gz -C upstream
+      - name: Repeat the tests
+        run: |
+          N=${{ inputs.runs }}
+          MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf
+          export YZMA_TEST_MODEL=$MODEL
+
+          # The upstream binary gives a result that does not use the yzma FFI layer.
+          UPSTREAM=$(find upstream -type f -name 'llama-embedding' | head -1)
+          export DYLD_LIBRARY_PATH=$(dirname "$UPSTREAM")
+
+          unit=0
+          example=0
+          upstream=0
+
+          for i in $(seq 1 $N); do
+            echo "::group::run $i of $N"
+
+            if ! go test -run TestGetSampledTokenIth -count=1 ./pkg/llama/; then
+              unit=$((unit + 1))
+              echo "run $i: unit test failed"
+            fi
+
+            if ! go run ./examples/embeddings -model "$MODEL" -p "Hello World"; then
+              example=$((example + 1))
+              echo "run $i: example failed"
+            fi
+
+            if ! "$UPSTREAM" -m "$MODEL" -p "Hello World"; then
+              upstream=$((upstream + 1))
+              echo "run $i: upstream binary failed"
+            fi
+
+            echo "::endgroup::"
+          done
+
+          {
+            echo "## llama.cpp ${{ inputs.version }}, $N runs"
+            echo ""
+            echo "| Test | Failures |"
+            echo "| --- | --- |"
+            echo "| TestGetSampledTokenIth | $unit / $N |"
+            echo "| examples/embeddings | $example / $N |"
+            echo "| upstream llama-embedding | $upstream / $N |"
+          } >> $GITHUB_STEP_SUMMARY
+
+          echo "failures: unit=$unit example=$example upstream=$upstream out of $N"
