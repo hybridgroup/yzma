@@ -135,6 +135,41 @@ jobs:
           } >> $GITHUB_STEP_SUMMARY
 
           echo "batch failures: getone=$getone full=$full out of $N"
+      - name: Run with the collector checker
+        run: |
+          N=${{ inputs.runs || '5' }}
+          MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf
+
+          go build -o $RUNNER_TEMP/batchcompare ./_repro/batchcompare
+
+          # gccheckmark makes the collector report a pointer that it did not
+          # mark. GOGC=1 keeps a mark phase running almost all of the time, so
+          # a Go lifetime fault gives a higher rate than the default does.
+          fails=0
+          marks=0
+
+          for i in $(seq 1 $N); do
+            if ! GODEBUG=gccheckmark=1 GOGC=1 $RUNNER_TEMP/batchcompare -mode full -model "$MODEL" > $RUNNER_TEMP/gc.log 2>&1; then
+              fails=$((fails + 1))
+            fi
+
+            if grep -q "unmarked object" $RUNNER_TEMP/gc.log; then
+              marks=$((marks + 1))
+              echo "run $i: the collector checker found an unmarked object"
+              sed -n '/unmarked object/,$p' $RUNNER_TEMP/gc.log | head -40
+            fi
+          done
+
+          {
+            echo "### Collector checker, ${{ matrix.version }}"
+            echo ""
+            echo "| Result | Count |"
+            echo "| --- | --- |"
+            echo "| Failures | $fails / $N |"
+            echo "| Unmarked objects | $marks / $N |"
+          } >> $GITHUB_STEP_SUMMARY
+
+          echo "checker: fails=$fails marks=$marks out of $N"
       - name: Get a backtrace of the trap
         run: |
           MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf
