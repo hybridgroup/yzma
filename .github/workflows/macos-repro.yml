@@ -141,6 +141,17 @@ jobs:
 
           go build -o $RUNNER_TEMP/batchcompare ./_repro/batchcompare
 
-          # lldb resolves the address of the trap to a symbol.
-          lldb -b -o run -o 'bt all' -o 'image lookup -a $pc' -- \
-            $RUNNER_TEMP/batchcompare -mode getone -model "$MODEL" -v 2>&1 | tail -120
+          # The trap does not occur on every run, so try until it does.
+          for i in $(seq 1 10); do
+            echo "attempt $i"
+            lldb -b -o run -o 'bt all' -o 'image lookup -a $pc' -- \
+              $RUNNER_TEMP/batchcompare -mode full -model "$MODEL" > $RUNNER_TEMP/lldb.log 2>&1
+
+            if grep -q "stop reason" $RUNNER_TEMP/lldb.log; then
+              echo "the trap occurred on attempt $i"
+              grep -v "^ggml_\|^llama_\|^load_\|^print_\|^create_tensor" $RUNNER_TEMP/lldb.log | tail -150
+              exit 0
+            fi
+          done
+
+          echo "no trap in 10 attempts"
