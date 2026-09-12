@@ -107,3 +107,40 @@ jobs:
           } >> $GITHUB_STEP_SUMMARY
 
           echo "failures: unit=$unit example=$example upstream=$upstream out of $N"
+      - name: Compare the batch paths
+        run: |
+          N=${{ inputs.runs || '5' }}
+          MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf
+
+          getone=0
+          full=0
+
+          for i in $(seq 1 $N); do
+            if ! go run ./_repro/batchcompare -mode getone -model "$MODEL"; then
+              getone=$((getone + 1))
+            fi
+
+            if ! go run ./_repro/batchcompare -mode full -model "$MODEL"; then
+              full=$((full + 1))
+            fi
+          done
+
+          {
+            echo "### Batch paths, ${{ matrix.version }}"
+            echo ""
+            echo "| Batch | Failures |"
+            echo "| --- | --- |"
+            echo "| BatchGetOne | $getone / $N |"
+            echo "| BatchInit and Add | $full / $N |"
+          } >> $GITHUB_STEP_SUMMARY
+
+          echo "batch failures: getone=$getone full=$full out of $N"
+      - name: Get a backtrace of the trap
+        run: |
+          MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf
+
+          go build -o $RUNNER_TEMP/batchcompare ./_repro/batchcompare
+
+          # lldb resolves the address of the trap to a symbol.
+          lldb -b -o run -o 'bt all' -o 'image lookup -a $pc' -- \
+            $RUNNER_TEMP/batchcompare -mode getone -model "$MODEL" -v 2>&1 | tail -120
