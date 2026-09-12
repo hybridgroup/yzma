@@ -14,10 +14,17 @@ on:
         description: 'Number of times to repeat each test'
         required: true
         default: '5'
+  push:
+    branches:
+      - macos-metal-repro
 
 jobs:
   repro:
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ${{ fromJSON(inputs.version && format('["{0}"]', inputs.version) || '["b10909","b10919"]') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -30,7 +37,7 @@ jobs:
       - name: Install llama.cpp binaries
         run: |
           set -e
-          yzma install -lib $GITHUB_WORKSPACE/lib -version ${{ inputs.version }} -p metal
+          yzma install -lib $GITHUB_WORKSPACE/lib -version ${{ matrix.version }} -p metal
       - name: Add llama.cpp libs to path
         run: |
           echo "YZMA_LIB=$GITHUB_WORKSPACE/lib" >> "$GITHUB_ENV"
@@ -49,12 +56,12 @@ jobs:
       - name: Get the upstream llama.cpp binaries
         run: |
           set -e
-          curl -sL -o upstream.tar.gz https://github.com/ggml-org/llama.cpp/releases/download/${{ inputs.version }}/llama-${{ inputs.version }}-bin-macos-arm64.tar.gz
+          curl -sL -o upstream.tar.gz https://github.com/ggml-org/llama.cpp/releases/download/${{ matrix.version }}/llama-${{ matrix.version }}-bin-macos-arm64.tar.gz
           mkdir -p upstream
           tar xzf upstream.tar.gz -C upstream
       - name: Repeat the tests
         run: |
-          N=${{ inputs.runs }}
+          N=${{ inputs.runs || '5' }}
           MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf
           export YZMA_TEST_MODEL=$MODEL
 
@@ -88,7 +95,7 @@ jobs:
           done
 
           {
-            echo "## llama.cpp ${{ inputs.version }}, $N runs"
+            echo "## llama.cpp ${{ matrix.version }}, $N runs"
             echo ""
             echo "| Test | Failures |"
             echo "| --- | --- |"
