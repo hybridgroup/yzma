@@ -388,3 +388,28 @@ jobs:
 
           echo "guard malloc found no write in 3 attempts"
           echo "| guard malloc | no stop in 3 attempts |" >> $GITHUB_STEP_SUMMARY
+      - name: Find the write with the upstream binary
+        run: |
+          MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf
+          BIN=$YZMA_LIB/llama-completion
+          test -x "$BIN" || { echo "llama-completion not built"; exit 1; }
+
+          # The binary offloads every layer to Metal by default, so the cpu rope
+          # kernel never runs. -ngl 0 keeps the work on the cpu.
+          for i in $(seq 1 5); do
+            echo "attempt $i"
+            lldb -b \
+              -o "settings set target.env-vars DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib" \
+              -o run -k 'bt all' -k 'image lookup -a $pc' -- \
+              "$BIN" -m "$MODEL" -p "Hello World" -n 16 -ngl 0 -no-cnv > $RUNNER_TEMP/up.log 2>&1 || true
+
+            if grep -q "stop reason" $RUNNER_TEMP/up.log; then
+              echo "the upstream binary stopped on attempt $i"
+              sed -n '/stop reason/,$p' $RUNNER_TEMP/up.log | head -120
+              echo "| upstream binary, guard malloc | stopped on attempt $i |" >> $GITHUB_STEP_SUMMARY
+              exit 0
+            fi
+          done
+
+          echo "the upstream binary gave no stop in 5 attempts"
+          echo "| upstream binary, guard malloc | no stop in 5 attempts |" >> $GITHUB_STEP_SUMMARY
