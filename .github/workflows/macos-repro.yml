@@ -298,6 +298,7 @@ jobs:
             -DCMAKE_INSTALL_RPATH='@loader_path' \
             -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
             -DLLAMA_BUILD_SERVER=OFF \
+            -DLLAMA_BUILD_APP=OFF \
             -DLLAMA_BUILD_TESTS=OFF \
             -DLLAMA_CURL=OFF \
             $EXTRA
