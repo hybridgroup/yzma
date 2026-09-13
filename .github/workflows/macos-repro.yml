@@ -411,5 +411,8 @@ jobs:
             fi
           done
 
+          # The last log shows if the binary inferred or stopped early, so a
+          # run that fails to start cannot look like a clean result.
           echo "the upstream binary gave no stop in 5 attempts"
+          tail -40 $RUNNER_TEMP/up.log
           echo "| upstream binary, guard malloc | no stop in 5 attempts |" >> $GITHUB_STEP_SUMMARY
