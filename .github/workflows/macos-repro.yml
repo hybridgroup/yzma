@@ -394,14 +394,14 @@ jobs:
           BIN=$YZMA_LIB/llama-completion
           test -x "$BIN" || { echo "llama-completion not built"; exit 1; }
 
-          # The binary offloads every layer to Metal by default, so the cpu rope
-          # kernel never runs. -ngl 0 keeps the work on the cpu.
+          # The flags make the binary agree with yzma. -ngl 0 keeps the work on
+          # the cpu, and -c 512 with 4 threads is what the library defaults give.
           for i in $(seq 1 5); do
             echo "attempt $i"
             lldb -b \
               -o "settings set target.env-vars DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib" \
               -o run -k 'bt all' -k 'image lookup -a $pc' -- \
-              "$BIN" -m "$MODEL" -p "Hello World" -n 16 -ngl 0 -no-cnv > $RUNNER_TEMP/up.log 2>&1 || true
+              "$BIN" -m "$MODEL" -p "Hello World" -n 16 -ngl 0 -c 512 -t 4 -tb 4 -no-cnv > $RUNNER_TEMP/up.log 2>&1 || true
 
             if grep -q "stop reason" $RUNNER_TEMP/up.log; then
               echo "the upstream binary stopped on attempt $i"
