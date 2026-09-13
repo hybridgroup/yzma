@@ -250,7 +250,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pch: ['on', 'off']
+        pch: ['on', 'off', 'ggml-cpu']
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -282,6 +282,16 @@ jobs:
         uses: ggml-org/ccache-action@v1.2.24
         with:
           key: pch-${{ matrix.pch }}
+      - name: Remove the ggml-cpu header
+        if: ${{ matrix.pch == 'ggml-cpu' }}
+        working-directory: llama.cpp
+        run: |
+          set -e
+          # Removes only the one line of 3bcfeb70, so the headers of llama and
+          # common stay. An empty else branch is correct cmake.
+          F=ggml/src/ggml-cpu/CMakeLists.txt
+          sed -i '' 's|target_precompile_headers(${GGML_CPU_NAME} PRIVATE ggml-impl.h)||' $F
+          grep -c 'target_precompile_headers' $F && { echo "the line is still there"; exit 1; } || true
       - name: Build llama.cpp
         working-directory: llama.cpp
         run: |
@@ -314,14 +324,18 @@ jobs:
 
           # The count is the proof that the flag did what we expect. It is zero
           # for the off arm and more than zero for the on arm.
-          PCH=$(find llama.cpp/build/ggml/src -name 'cmake_pch.hxx*' | wc -l | tr -d ' ')
-          echo "cmake_pch files in ggml: $PCH"
+          # The two counts tell the three arms apart. Only the ggml-cpu arm has
+          # zero in ggml and more than zero in the other targets.
+          PCH=$(find llama.cpp/build/ggml -name 'cmake_pch.hxx*' | wc -l | tr -d ' ')
+          ALL=$(find llama.cpp/build -name 'cmake_pch.hxx*' | wc -l | tr -d ' ')
+          echo "cmake_pch files, ggml: $PCH, all: $ALL"
           {
             echo "### PCH ${{ matrix.pch }}, ${{ inputs.version || 'b10919' }}"
             echo ""
             echo "| Item | Value |"
             echo "| --- | --- |"
             echo "| cmake_pch files in ggml | $PCH |"
+            echo "| cmake_pch files in all targets | $ALL |"
           } >> $GITHUB_STEP_SUMMARY
       - name: Repeat the decode test
         run: |
