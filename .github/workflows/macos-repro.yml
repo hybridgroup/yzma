@@ -14,12 +14,19 @@ on:
         description: 'Number of times to repeat each test'
         required: true
         default: '5'
+      mode:
+        description: 'Which job to run'
+        required: true
+        default: 'pch'
+        type: choice
+        options: ['pch', 'repro', 'both']
   push:
     branches:
       - macos-metal-repro
 
 jobs:
   repro:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode != 'pch' }}
     runs-on: macos-latest
     strategy:
       fail-fast: false
@@ -234,3 +241,135 @@ jobs:
           done
 
           echo "no trap in 10 attempts"
+
+  # Tests if the precompiled header of 3bcfeb70 causes the out of bounds write.
+  # Both arms build the same source, with one cmake flag of difference.
+  pch:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode != 'repro' }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pch: ['on', 'off']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Checkout llama.cpp
+        uses: actions/checkout@v5
+        with:
+          repository: ggml-org/llama.cpp
+          path: llama.cpp
+          ref: ${{ inputs.version || 'b10919' }}
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 'stable'
+      - name: Install yzma command
+        run: go install .
+      - name: Restore test models
+        id: cache-models
+        uses: actions/cache/restore@v4
+        with:
+          path: models
+          key: ${{ runner.os }}-models-v5
+      - name: Download test model
+        if: steps.cache-models.outputs.cache-hit != 'true'
+        run: |
+          set -e
+          mkdir -p ./models
+          yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf
+      - name: ccache
+        uses: ggml-org/ccache-action@v1.2.24
+        with:
+          key: pch-${{ matrix.pch }}
+      - name: Build llama.cpp
+        working-directory: llama.cpp
+        run: |
+          set -e
+          # The flags are those of the upstream macos-arm64 release job, less
+          # the server and its UI, which this test does not need.
+          EXTRA=
+          if [ "${{ matrix.pch }}" = "off" ]; then
+            EXTRA=-DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON
+          fi
+          cmake -B build \
+            -DGGML_METAL_EMBED_LIBRARY=ON \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3 \
+            -DCMAKE_INSTALL_RPATH='@loader_path' \
+            -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+            -DLLAMA_BUILD_SERVER=OFF \
+            -DLLAMA_BUILD_TESTS=OFF \
+            -DLLAMA_CURL=OFF \
+            $EXTRA
+          cmake --build build --config Release -j $(sysctl -n hw.logicalcpu)
+          echo "YZMA_LIB=$GITHUB_WORKSPACE/llama.cpp/build/bin" >> "$GITHUB_ENV"
+      - name: Check the library files
+        run: |
+          set -e
+          # A build that half failed must not look like a clean arm.
+          for f in libllama.dylib libggml-cpu.dylib; do
+            test -f "$YZMA_LIB/$f" || { echo "$f not found"; exit 1; }
+          done
+
+          # The count is the proof that the flag did what we expect. It is zero
+          # for the off arm and more than zero for the on arm.
+          PCH=$(find llama.cpp/build/ggml/src -name 'cmake_pch.hxx*' | wc -l | tr -d ' ')
+          echo "cmake_pch files in ggml: $PCH"
+          {
+            echo "### PCH ${{ matrix.pch }}, ${{ inputs.version || 'b10919' }}"
+            echo ""
+            echo "| Item | Value |"
+            echo "| --- | --- |"
+            echo "| cmake_pch files in ggml | $PCH |"
+          } >> $GITHUB_STEP_SUMMARY
+      - name: Repeat the decode test
+        run: |
+          N=${{ inputs.runs || '20' }}
+          MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf
+
+          go build -o $RUNNER_TEMP/batchcompare ./_repro/batchcompare
+
+          fails=0
+          for i in $(seq 1 $N); do
+            if ! $RUNNER_TEMP/batchcompare -mode full -model "$MODEL"; then
+              fails=$((fails + 1))
+              echo "run $i: decode failed"
+            fi
+          done
+
+          {
+            echo "| batchcompare full | $fails / $N |"
+          } >> $GITHUB_STEP_SUMMARY
+
+          echo "failures: $fails out of $N"
+      - name: Find the write with guard malloc
+        run: |
+          MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf
+
+          go build -o $RUNNER_TEMP/batchcompare ./_repro/batchcompare
+
+          run_guard() {
+            lldb -b \
+              -o "settings set target.env-vars $1" \
+              -o run -k 'bt all' -k 'image lookup -a $pc' -- \
+              $RUNNER_TEMP/batchcompare -mode full -model "$MODEL" > $RUNNER_TEMP/guard.log 2>&1 || true
+
+            if grep -q "stop reason" $RUNNER_TEMP/guard.log; then
+              echo "guard malloc stopped with: $1"
+              sed -n '/stop reason/,$p' $RUNNER_TEMP/guard.log | head -120
+              return 0
+            fi
+
+            return 1
+          }
+
+          for i in $(seq 1 3); do
+            echo "libgmalloc attempt $i"
+            if run_guard "DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib"; then
+              echo "| guard malloc | stopped on attempt $i |" >> $GITHUB_STEP_SUMMARY
+              exit 0
+            fi
+          done
+
+          echo "guard malloc found no write in 3 attempts"
+          echo "| guard malloc | no stop in 3 attempts |" >> $GITHUB_STEP_SUMMARY
