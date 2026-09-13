@@ -388,6 +388,36 @@ jobs:
 
           echo "guard malloc found no write in 3 attempts"
           echo "| guard malloc | no stop in 3 attempts |" >> $GITHUB_STEP_SUMMARY
+      - name: Find the write with the C++ program
+        run: |
+          set -e
+          MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf
+          SRC=$GITHUB_WORKSPACE/llama.cpp
+
+          clang++ -std=c++17 -O2 -o $RUNNER_TEMP/decode _repro/decode/main.cpp \
+            -I$SRC/include -I$SRC/ggml/include \
+            -L$YZMA_LIB -lllama -Wl,-rpath,$YZMA_LIB
+
+          # The program makes the same calls as the Go one, so a stop here
+          # shows that the write needs no Go and no FFI layer.
+          for i in $(seq 1 5); do
+            echo "attempt $i"
+            lldb -b \
+              -o "settings set target.env-vars DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib" \
+              -o run -k 'bt all' -k 'image lookup -a $pc' -- \
+              $RUNNER_TEMP/decode -mode full -model "$MODEL" > $RUNNER_TEMP/cpp.log 2>&1 || true
+
+            if grep -q "stop reason" $RUNNER_TEMP/cpp.log; then
+              echo "the C++ program stopped on attempt $i"
+              sed -n '/stop reason/,$p' $RUNNER_TEMP/cpp.log | head -120
+              echo "| C++ program, guard malloc | stopped on attempt $i |" >> $GITHUB_STEP_SUMMARY
+              exit 0
+            fi
+          done
+
+          echo "the C++ program gave no stop in 5 attempts"
+          tail -30 $RUNNER_TEMP/cpp.log
+          echo "| C++ program, guard malloc | no stop in 5 attempts |" >> $GITHUB_STEP_SUMMARY
       - name: Find the write with the upstream binary
         run: |
           MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf
