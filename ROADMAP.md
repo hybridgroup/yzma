@@ -153,6 +153,18 @@ section at the end explains.
 | `llama_get_sampled_probs_ith` | yes | no |
 | `llama_get_sampled_token_ith` | yes | no |
 
+### Speculative Decoding Functions (Experimental)
+
+These come from the `src/llama-ext.h` staging header of `llama.cpp`, not from
+the public API. The [`exp/speculative`](./exp/speculative) package has them.
+
+| Function | `yzma` | WebAssembly |
+| --- | :-: | :-: |
+| `llama_get_embeddings_nextn` | yes | no |
+| `llama_get_embeddings_nextn_ith` | yes | no |
+| `llama_set_embeddings_nextn` | yes | no |
+| `llama_set_nextn_layer_offset` | yes | no |
+
 ### Memory Functions
 
 | Function | `yzma` | WebAssembly |
