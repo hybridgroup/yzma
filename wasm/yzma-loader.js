@@ -10,6 +10,7 @@
 //   globalThis.yzmaThreads   the number of threads that the build can use
 //   globalThis.yzmaBackend   "webgpu", "cpu-threads", or "cpu"
 //   globalThis.yzmaAdapter   the name of the GPU, if there is one
+//   globalThis.yzmaGPUReject the reason the GPU build went away, if it did
 //
 // Set these globals before this file to change the result.
 //
@@ -26,6 +27,12 @@
 // In "auto" mode the loader selects the best build that the browser can run.
 // Firefox is the one exception. Its WebGPU gives wrong values to llama.cpp,
 // thus auto mode takes the CPU there. Mode "webgpu" still selects the GPU.
+//
+// Some drivers give an adapter that llama.cpp accepts and that then computes
+// wrong values, which makes a model answer with random tokens. The loader
+// therefore tests the GPU build against the CPU before it gives the module
+// away, and takes a CPU build if the test fails. The test needs no model, thus
+// it costs a few milliseconds.
 
 (function () {
   const base = globalThis.yzmaBase || ".";
@@ -142,13 +149,47 @@
     // llama.cpp uses four threads unless a caller changes it, which is slow on
     // a machine with many cores. The Go side reads this value.
     const cores = Math.max(1, Math.min(globalThis.navigator?.hardwareConcurrency || 4, 16));
-    const threads = backend === "cpu-threads" ? cores : 1;
+    let threads = backend === "cpu-threads" ? cores : 1;
 
     globalThis.yzmaThreaded = backend === "cpu-threads";
     globalThis.yzmaBackend = backend;
     globalThis.yzmaAdapter = adapter;
     globalThis.yzmaThreads = threads;
 
+    let instance = await instantiate(name, threads);
+
+    // A build on the GPU is worth nothing if the driver computes wrong values,
+    // so ask llama.cpp before the page downloads a model. The shim compares one
+    // small matrix multiply on the GPU against the same one on the CPU.
+    if (backend === "webgpu") {
+      const trouble = await badBackend(instance);
+      if (trouble) {
+        console.warn("yzma: " + trouble + ", using the CPU");
+        globalThis.yzmaGPUReject = trouble;
+
+        backend = canThread ? "cpu-threads" : "cpu";
+        name = canThread ? "yzma_wasm_mt" : "yzma_wasm";
+        adapter = "";
+        threads = backend === "cpu-threads" ? cores : 1;
+
+        globalThis.yzmaThreaded = backend === "cpu-threads";
+        globalThis.yzmaBackend = backend;
+        globalThis.yzmaAdapter = adapter;
+        globalThis.yzmaThreads = threads;
+
+        instance = await instantiate(name, threads);
+      }
+    }
+
+    // From here yzmaModule is the instance, which the Go code uses.
+    globalThis.yzmaModule = instance;
+    return instance;
+  })();
+
+  // instantiate loads one build and gives the module of it.
+  async function instantiate(name, threads) {
+    // A second build needs the factory of that build and not the one before it.
+    globalThis.yzmaModule = undefined;
     await loadScript(base + "/" + name + ".js");
 
     // MODULARIZE with EXPORT_NAME=yzmaModule makes yzmaModule a function that
@@ -158,7 +199,7 @@
       throw new Error("yzmaModule is not there, check the build of llama.cpp");
     }
 
-    const instance = await factory({
+    return factory({
       locateFile: (path) => base + "/" + path,
       print: (text) => console.log(text),
       printErr: (text) => console.warn(text),
@@ -167,9 +208,24 @@
       // start, because the thread that starts them is busy.
       pthreadPoolSize: threads,
     });
+  }
 
-    // From here yzmaModule is the instance, which the Go code uses.
-    globalThis.yzmaModule = instance;
-    return instance;
-  })();
+  // badBackend gives the reason that the device of a module is not usable, or
+  // an empty string if the device agrees with the CPU. A build from before ABI
+  // version 8 has no such test, thus it passes.
+  async function badBackend(instance) {
+    if (typeof instance._yzma_backend_check !== "function") {
+      return "";
+    }
+    try {
+      // Both calls reach the GPU, thus JSPI makes each one give a promise.
+      await instance._yzma_backend_init();
+      if ((await instance._yzma_backend_check()) === 1) {
+        return "llama.cpp computes wrong values on this GPU";
+      }
+    } catch (e) {
+      return "the test of this GPU failed: " + e;
+    }
+    return "";
+  }
 })();

@@ -19,12 +19,12 @@ import (
 // this package makes a test before each use.
 const (
 	abiVersionMin = 1 // 1 has the calls for text generation and embeddings
-	abiVersion    = 7 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
+	abiVersion    = 8 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
 	//                   bounds of the tokens of an image, 5 the rest of the
 	//                   vocabulary and of the samplers, 6 batches with
 	//                   positions and the calls for the memory of a sequence,
 	//                   7 the calls that read the logits and the
-	//                   embeddings of a batch
+	//                   embeddings of a batch, 8 yzma_backend_check
 )
 
 // Error codes that the shim returns. These agree with the values in
@@ -76,6 +76,9 @@ var moduleABI int
 // gpuDevice is the name of the device of llama.cpp that is not the CPU, or an
 // empty string if there is none. Init sets it.
 var gpuDevice string
+
+// backendOK tells if the device of llama.cpp agrees with the CPU. Init sets it.
+var backendOK = true
 
 // Load waits for the llama.cpp WebAssembly module and attaches to it.
 //
@@ -206,6 +209,33 @@ func Init() {
 	// The devices of llama.cpp exist only after the backend starts. This request
 	// makes the WebGPU backend look for an adapter.
 	gpuDevice = readGPUDevice()
+
+	backendOK = readBackendCheck()
+}
+
+// readBackendCheck asks the shim to compare the device that is not the CPU
+// against the CPU. A module from before ABI version 8 has no such call, thus
+// the answer is that nothing is known to be wrong.
+func readBackendCheck() bool {
+	if !has("_yzma_backend_check") {
+		return true
+	}
+	return call("_yzma_backend_check") == 0
+}
+
+// BackendOK says if the device of llama.cpp agrees with the CPU. Call it after
+// Init.
+//
+// Some drivers give a WebGPU adapter that llama.cpp accepts and that then
+// computes wrong values. A model on such a device answers with random tokens of
+// the vocabulary. Init runs one small matrix multiply on the device and the
+// same one on the CPU and compares the results, thus a page can warn or take
+// the CPU instead of showing nonsense.
+//
+// The answer is true for a build that has only the CPU, and for a module from
+// before ABI version 8, which has no such test.
+func BackendOK() bool {
+	return backendOK
 }
 
 // readGPUDevice asks the shim for the name of the device that is not the CPU.

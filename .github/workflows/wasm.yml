@@ -29,6 +29,8 @@ jobs:
         run: make vet-wasm
       - name: Test the WebAssembly code
         run: make test-wasm-unit
+      - name: Test the choice of the loader
+        run: make test-wasm-loader
       - name: Install TinyGo
         run: |
           set -e

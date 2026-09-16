@@ -108,6 +108,12 @@ vet-wasm:
 test-wasm-unit:
 	PATH="$(PATH):$(shell go env GOROOT)/lib/wasm" GOOS=js GOARCH=wasm go test ./pkg/llamawasm
 
+# make test-wasm-loader to test the choice that yzma-loader.js makes. It needs
+# no llama.cpp module and no browser, so it covers the GPU that computes wrong
+# values, which no test with a real module can reach.
+test-wasm-loader:
+	node wasm/node/loader-test.js
+
 # make test-wasm to run the WebAssembly build in Node, with no browser.
 test-wasm:
 	node wasm/node/run.js --dir $(WASM_DIR) --model $(MODELS_DIR)/SmolLM-135M.Q2_K.gguf --tokens 12
