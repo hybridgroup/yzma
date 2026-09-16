@@ -52,6 +52,11 @@ var (
 	// that read the logits and the embeddings of a batch, which are in ABI
 	// version 7 and later.
 	ErrNoOutputs = errors.New("llamawasm: this llama.cpp module has no calls for the logits and the embeddings of a batch, install a newer build")
+
+	// ErrNoBackendSampling says that the module is from a release before the
+	// calls for the sampling of the backend, which are in ABI version 7 and
+	// later.
+	ErrNoBackendSampling = errors.New("llamawasm: this llama.cpp module has no calls for the sampling of the backend, install a newer build")
 )
 
 // mod is the Emscripten module instance of llama.cpp.
