@@ -28,6 +28,10 @@ type (
 	Sampler int32
 )
 
+// TokenNull is the value of a token that is not there. It agrees with
+// llama.TokenNull.
+const TokenNull Token = -1
+
 // VocabType is the kind of the tokenizer of a vocabulary. The values agree with
 // llama.VocabType.
 type VocabType int32
