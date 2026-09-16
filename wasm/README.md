@@ -287,16 +287,23 @@ This path gives two results, and neither is good.
   feature of the adapter tells it apart from a device that operates, thus the
   loader measures it. See the self test of the backend above.
 
-Start Chrome with both switches to get the Vulkan backend instead, and close
-every window of Chrome first.
+These switches ask Chrome for the Vulkan backend. Close every window of Chrome
+first.
 
 ```
 google-chrome --enable-features=Vulkan \
   --enable-dawn-features=vulkan_enable_f16_on_nvidia
 ```
 
-`chrome://gpu` then says `Vulkan: Enabled` and the first adapter of Dawn Info
-is a `Vulkan backend` line with the name of the card.
+`chrome://gpu` must then say `Vulkan: Enabled` and the first adapter of Dawn
+Info must be a `Vulkan backend` line with the name of the card.
+
+This does not always operate. On Ubuntu 22.04 with Mesa 23.2.1 the feature
+status says `Vulkan: Enabled` and Dawn still gives the OpenGLES adapter in
+compatibility mode, thus the page still computes wrong values. Issue #341 has
+the pictures. The switches are worth a test, but they are not a repair. A
+machine in this condition has no GPU path that operates, and the self test
+takes the CPU.
 
 ### Firefox
 
