@@ -112,9 +112,9 @@ func TestSampledCounts(t *testing.T) {
 		name string
 		call func(Context, int32) (int32, error)
 	}{
-		{"SampledProbsCountIth", SampledProbsCountIth},
-		{"SampledLogitsCountIth", SampledLogitsCountIth},
-		{"SampledCandidatesCountIth", SampledCandidatesCountIth},
+		{"GetSampledProbsCountIth", GetSampledProbsCountIth},
+		{"GetSampledLogitsCountIth", GetSampledLogitsCountIth},
+		{"GetSampledCandidatesCountIth", GetSampledCandidatesCountIth},
 	} {
 		got, err := test.call(Context(1), 0)
 		if err != nil || got != 3 {
@@ -191,8 +191,8 @@ func TestSampledOldModule(t *testing.T) {
 	if _, err := GetSampledTokenIth(Context(1), 0); !errors.Is(err, ErrNoBackendSampling) {
 		t.Errorf("GetSampledTokenIth gave %v, want ErrNoBackendSampling", err)
 	}
-	if _, err := SampledProbsCountIth(Context(1), 0); !errors.Is(err, ErrNoBackendSampling) {
-		t.Errorf("SampledProbsCountIth gave %v, want ErrNoBackendSampling", err)
+	if _, err := GetSampledProbsCountIth(Context(1), 0); !errors.Is(err, ErrNoBackendSampling) {
+		t.Errorf("GetSampledProbsCountIth gave %v, want ErrNoBackendSampling", err)
 	}
 	if _, err := GetSampledProbsIth(Context(1), 0, 3); !errors.Is(err, ErrNoBackendSampling) {
 		t.Errorf("GetSampledProbsIth gave %v, want ErrNoBackendSampling", err)

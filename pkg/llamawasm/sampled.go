@@ -42,38 +42,38 @@ func GetSampledTokenIth(ctx Context, i int32) (Token, error) {
 	return Token(rc), nil
 }
 
-// SampledProbsCountIth gives the number of probabilities that the backend
+// GetSampledProbsCountIth gives the number of probabilities that the backend
 // sampler made for the output at i.
-func SampledProbsCountIth(ctx Context, i int32) (int32, error) {
+func GetSampledProbsCountIth(ctx Context, i int32) (int32, error) {
 	return sampledCount("_yzma_get_sampled_probs_count_ith", ctx, i)
 }
 
-// SampledLogitsCountIth gives the number of logits that the backend sampler
+// GetSampledLogitsCountIth gives the number of logits that the backend sampler
 // made for the output at i.
-func SampledLogitsCountIth(ctx Context, i int32) (int32, error) {
+func GetSampledLogitsCountIth(ctx Context, i int32) (int32, error) {
 	return sampledCount("_yzma_get_sampled_logits_count_ith", ctx, i)
 }
 
-// SampledCandidatesCountIth gives the number of candidates that the backend
+// GetSampledCandidatesCountIth gives the number of candidates that the backend
 // sampler made for the output at i.
-func SampledCandidatesCountIth(ctx Context, i int32) (int32, error) {
+func GetSampledCandidatesCountIth(ctx Context, i int32) (int32, error) {
 	return sampledCount("_yzma_get_sampled_candidates_count_ith", ctx, i)
 }
 
 // GetSampledProbsIth gives the probabilities of the output at i. The n
-// argument is SampledProbsCountIth of the same output.
+// argument is GetSampledProbsCountIth of the same output.
 func GetSampledProbsIth(ctx Context, i, n int32) ([]float32, error) {
 	return sampledFloats("_yzma_get_sampled_probs_ith", ctx, i, n)
 }
 
 // GetSampledLogitsIth gives the logits of the output at i. The n argument is
-// SampledLogitsCountIth of the same output.
+// GetSampledLogitsCountIth of the same output.
 func GetSampledLogitsIth(ctx Context, i, n int32) ([]float32, error) {
 	return sampledFloats("_yzma_get_sampled_logits_ith", ctx, i, n)
 }
 
 // GetSampledCandidatesIth gives the tokens that the backend sampler kept for
-// the output at i. The n argument is SampledCandidatesCountIth of the same
+// the output at i. The n argument is GetSampledCandidatesCountIth of the same
 // output.
 func GetSampledCandidatesIth(ctx Context, i, n int32) ([]Token, error) {
 	if !Loaded() {
