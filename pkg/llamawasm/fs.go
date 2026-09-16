@@ -98,6 +98,9 @@ func fsCall(fs js.Value, name string, args ...any) (result js.Value, err error) 
 // point and the total number of bytes. The total is 0 if the server gives no
 // length.
 //
+// A body that stops before the length that the server gives is an error,
+// because llama.cpp can load a model file that is not complete.
+//
 // One JavaScript ArrayBuffer holds a maximum of 2 GB, thus a larger model must
 // be in splits.
 func FetchModelFile(name, url string, progress func(done, total int64)) error {
@@ -123,6 +126,10 @@ func FetchModelFile(name, url string, progress func(done, total int64)) error {
 	if !response.Get("ok").Bool() {
 		return fmt.Errorf("llamawasm: cannot fetch %s: status %d", url, response.Get("status").Int())
 	}
+
+	// A body that the server compresses gives a content-length of the
+	// compressed size, which is not the number of bytes that arrive here.
+	encoded := response.Get("headers").Call("get", "content-encoding").Truthy()
 
 	var total int64
 	if length := response.Get("headers").Call("get", "content-length"); length.Truthy() {
@@ -165,6 +172,12 @@ func FetchModelFile(name, url string, progress func(done, total int64)) error {
 		if progress != nil {
 			progress(done, total)
 		}
+	}
+
+	// A body that stops early leaves a file that is not complete. llama.cpp
+	// can load such a file and then compute wrong values, thus fail here.
+	if total > 0 && !encoded && done != total {
+		return fmt.Errorf("llamawasm: %s gave %d bytes of %d", url, done, total)
 	}
 
 	return nil
