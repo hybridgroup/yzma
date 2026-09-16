@@ -182,3 +182,72 @@ func GetEmbeddingsSeq(ctx Context, seqID SeqId, n int32) ([]float32, error) {
 	}
 	return readFloats(ptr, int(n)), nil
 }
+
+// GetEmbeddingsIth gives the embedding of one token of the last batch. An i of
+// -1 takes the last token that has an embedding. The n argument is the number
+// of values to read, which is ModelNEmbd of the model.
+//
+// The values belong to the context and the next Decode replaces them.
+func GetEmbeddingsIth(ctx Context, i, n int32) ([]float32, error) {
+	return floats("_yzma_get_embeddings_ith", n, int(ctx), int(i))
+}
+
+// GetEmbeddings gives the embedding of every token of the last batch that has
+// one. The values of the tokens follow each other, thus the result holds
+// nOutputs times nEmbd values.
+//
+// nEmbd is ModelNEmbd of the model. The values belong to the context and the
+// next Decode replaces them.
+func GetEmbeddings(ctx Context, nOutputs, nEmbd int32) ([]float32, error) {
+	if nOutputs <= 0 {
+		return nil, nil
+	}
+	return floats("_yzma_get_embeddings", nOutputs*nEmbd, int(ctx))
+}
+
+// GetLogitsIth gives the logits of one token of the last batch. An i of -1
+// takes the last token that has logits. The nVocab argument is the number of
+// values to read, which is VocabNTokens of the vocabulary.
+//
+// The values belong to the context and the next Decode replaces them.
+func GetLogitsIth(ctx Context, i, nVocab int32) ([]float32, error) {
+	return floats("_yzma_get_logits_ith", nVocab, int(ctx), int(i))
+}
+
+// GetLogits gives the logits of every token of the last batch that has them.
+// The values of the tokens follow each other, thus the result holds nTokens
+// times nVocab values.
+//
+// nVocab is VocabNTokens of the vocabulary. The values belong to the context
+// and the next Decode replaces them.
+func GetLogits(ctx Context, nTokens, nVocab int32) ([]float32, error) {
+	if nTokens <= 0 {
+		return nil, nil
+	}
+	return floats("_yzma_get_logits", nTokens*nVocab, int(ctx))
+}
+
+// floats runs a call that gives an array of float values and reads the result.
+// The count is the number of values, and the args come before the pointer and
+// the count that every such call takes last.
+func floats(name string, count int32, args ...any) ([]float32, error) {
+	if !Loaded() {
+		return nil, ErrNotLoaded
+	}
+	if !has(name) {
+		return nil, ErrNoOutputs
+	}
+	if count <= 0 {
+		return nil, nil
+	}
+
+	ptr, err := outScratch.reserve(int(count) * 4)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := callErr(name, append(args, ptr, int(count))...); err != nil {
+		return nil, err
+	}
+	return readFloats(ptr, int(count)), nil
+}

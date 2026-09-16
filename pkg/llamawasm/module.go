@@ -19,10 +19,12 @@ import (
 // this package makes a test before each use.
 const (
 	abiVersionMin = 1 // 1 has the calls for text generation and embeddings
-	abiVersion    = 6 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
+	abiVersion    = 7 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
 	//                   bounds of the tokens of an image, 5 the rest of the
 	//                   vocabulary and of the samplers, 6 batches with
-	//                   positions and the calls for the memory of a sequence
+	//                   positions and the calls for the memory of a sequence,
+	//                   7 the calls that read the logits and the
+	//                   embeddings of a batch
 )
 
 // Error codes that the shim returns. These agree with the values in
@@ -45,6 +47,11 @@ var (
 	// ErrNoMultimodal says that the module is from a release before the
 	// multimodal calls, which are in ABI version 3 and later.
 	ErrNoMultimodal = errors.New("llamawasm: this llama.cpp module has no multimodal calls, install a newer build")
+
+	// ErrNoOutputs says that the module is from a release before the calls
+	// that read the logits and the embeddings of a batch, which are in ABI
+	// version 7 and later.
+	ErrNoOutputs = errors.New("llamawasm: this llama.cpp module has no calls for the logits and the embeddings of a batch, install a newer build")
 )
 
 // mod is the Emscripten module instance of llama.cpp.
@@ -567,7 +574,8 @@ func (s *scratch) release() {
 // time. tokenScratch holds input tokens, textScratch holds an input string, and
 // pieceScratch holds output bytes.
 // posScratch, seqScratch, and logitScratch hold the other arrays of a batch,
-// which go into the module beside the tokens.
+// which go into the module beside the tokens. outScratch is different and holds
+// the logits and the embeddings that come out of the module.
 var (
 	tokenScratch scratch
 	textScratch  scratch
@@ -578,4 +586,5 @@ var (
 	nSeqScratch  scratch
 	seqScratch   scratch
 	logitScratch scratch
+	outScratch   scratch
 )
