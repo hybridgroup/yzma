@@ -1,0 +1,5 @@
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+--- FAIL: BenchmarkInference
+FAIL

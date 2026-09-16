@@ -274,7 +274,10 @@ PASS
 ok  	github.com/hybridgroup/yzma/pkg/mtmd	76.644s
 ```
 
-Want to see more benchmarks? Take a look at the [BENCHMARKS.md](./BENCHMARKS.md) document.
+Want to see more benchmarks? Take a look at the [BENCHMARKS.md](./BENCHMARKS.md)
+document, which has one file for each platform. To make these numbers again on
+your own machine, run `./benchmarks/run.sh`. See
+[how to run the benchmarks](./benchmarks/README.md).
 
 ## More Info
 

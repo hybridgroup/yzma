@@ -48,6 +48,7 @@ for each token, as in the `examples/hello` program.
 | `node/run.js` | Runs the same build in Node with no browser. CI uses this test. |
 | `node/vlm.js` | The same test for an image model. It makes its own pixels, because Node has no canvas. |
 | `node/tools.js` | The same test for tool calling. |
+| `node/bench.js` | Measures the tokens a second of a build in Node. `benchmarks/run.sh --backend wasm` calls it. |
 
 ## Build and run
 
@@ -122,29 +123,19 @@ image fast, not the CPU.
 
 ## Speed
 
-Measured in Chrome on one machine, an RTX 4070 with an Intel integrated GPU,
-with the greedy sampler.
-
-| Model | Backend | Tokens a second |
-| --- | --- | --- |
-| SmolLM-135M Q2_K | one thread | 10.8 |
-| SmolLM-135M Q2_K | more threads | 63.3 |
-| SmolLM-135M Q2_K | WebGPU | 63.3 |
-| Gemma 3 1B Q2_K | more threads | 18.5 |
-| Gemma 3 1B Q2_K | WebGPU | 38.7 |
+The numbers are in
+[benchmarks/webassembly.md](../benchmarks/webassembly.md). Run
+`./benchmarks/run.sh --backend wasm` for the builds in Node, and paste
+[benchmarks/browser-bench.js](../benchmarks/browser-bench.js) in the console of
+the page for a browser, which WebGPU needs.
 
 The GPU is faster on the larger model. On the smaller model the two results
 agree, because each operation is too small to justify the transfer to the GPU.
 Test both with `?mode=cpu` and `?mode=webgpu`.
 
-An image gives a different result. This is the same photo of 960 by 720 through
-the projector of SmolVLM-256M Q8_0, and then 32 tokens of answer.
-
-| Backend | Time for the image | Tokens a second |
-| --- | --- | --- |
-| more threads, in Chrome | 42.7 s | 96.9 |
-| WebGPU, in Chrome | 1.6 s | 64.4 |
-| one thread, in Node | 80 s | 17.4 |
+An image gives a different result. A photo of 960 by 720 through the projector
+of SmolVLM-256M Q8_0 takes 42.7 seconds on the CPU with more threads and 1.6
+seconds with WebGPU.
 
 A projector computes many numbers at the same time, which is the function of a
 GPU. Thus the GPU is 25 times faster. On the CPU the reader waits for the image

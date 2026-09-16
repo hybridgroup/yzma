@@ -20,6 +20,13 @@ download-models:
 	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/split/stories15M-q8_0-00002-of-00003.gguf
 	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/split/stories15M-q8_0-00003-of-00003.gguf
 
+# make download-benchmark-models to download the models that the benchmarks use.
+download-benchmark-models:
+	mkdir -p $(MODELS_DIR)
+	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf
+	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/mradermacher/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3-VL-2B-Instruct.Q4_K_M.gguf
+	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/mradermacher/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3-VL-2B-Instruct.mmproj-Q8_0.gguf
+
 clean-llama.cpp:
 	rm -rf $(YZMA_LIB)/*
 
@@ -164,3 +171,19 @@ roadmap:
 	@grep -E '^\s*[-*]\s*\[ \]' ROADMAP.md | wc -l
 	@echo "Total checklist items:"
 	@grep -E '^\s*[-*]\s*\[(x| )\]' ROADMAP.md | wc -l
+
+# make benchmarks to run the benchmarks of this machine and put the result in
+# benchmarks/. Run make download-benchmark-models first. On Windows use
+# benchmarks/run.ps1.
+benchmarks:
+	./benchmarks/run.sh
+
+# make benchmarks-wasm to run the WebAssembly benchmarks in Node. Run
+# make download-llama.cpp-wasm and make wasm-example first.
+benchmarks-wasm:
+	./benchmarks/run.sh --backend wasm
+
+# make check-benchmarks to verify that each table agrees with its sections.
+check-benchmarks:
+	go run ./cmd/yzma-bench check benchmarks/linux.md benchmarks/macos.md \
+		benchmarks/windows.md benchmarks/webassembly.md
