@@ -617,39 +617,39 @@ The code is [pkg/mtmd/benchmark_test.go](../pkg/mtmd/benchmark_test.go).
 <!-- yzma:bench table multimodal -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
-| CPU | amd64 | Intel Core i9-13900HX | - | 26.1 | unknown | unknown |
+| CPU | amd64 | Intel Core i9-13900HX | - | 67.5 | b10964 | 2026-09-16 |
 | CPU | arm64 | Jetson Orin Nano Developer Kit 8GB | - | 15.4 | unknown | unknown |
 | CPU | arm64 | Raspberry Pi 4 Model B Rev 1.4 8GB | - | 5.9 | unknown | unknown |
 | CUDA | amd64 | Intel Core i9-13900HX | CUDA0 | 1114.0 | unknown | unknown |
 | CUDA | arm64 | Jetson Orin Nano Developer Kit 8GB | CUDA0 | 127.6 | unknown | unknown |
 | ROCm | amd64 | AMD EPYC 7443P | ROCm0 | 961.5 | unknown | unknown |
 | Vulkan | amd64 | AMD EPYC 7443P | Vulkan0 | 1179.0 | unknown | unknown |
-| Vulkan | amd64 | Intel Core i9-13900HX | Vulkan0 | 78.3 | unknown | unknown |
-| Vulkan | amd64 | Intel Core i9-13900HX | Vulkan1 | 929.1 | unknown | unknown |
+| Vulkan | amd64 | Intel Core i9-13900HX | Vulkan0 | 62.5 | b10964 | 2026-09-16 |
+| Vulkan | amd64 | Intel Core i9-13900HX | Vulkan1 | 754.9 | b10964 | 2026-09-16 |
 | Vulkan | arm64 | Jetson Orin Nano Developer Kit 8GB | Vulkan0 | 82.4 | unknown | unknown |
 <!-- yzma:bench table end multimodal -->
 
 <!-- yzma:bench start multimodal/cpu/amd64/i9-13900hx -->
 ### CPU, amd64, Intel Core i9-13900HX
-<!-- yzma:bench meta {"suite":"multimodal","backend":"cpu","arch":"amd64","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":26.08} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"cpu","arch":"amd64","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":67.46,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 26.1 tokens a second.
+13th Gen Intel(R) Core(TM) i9-13900HX. 67.5 tokens a second.
 
 <details><summary>The output of go test</summary>
 
 ```
-$ go test -benchtime=10s -count=5 -run=nada -bench . -nctx=8192
+$ cd pkg/mtmd && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkMultimodalInference -nctx=8192 -device=CPU
 goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkMultimodalInference-32                1        47402263232 ns/op               26.16 tokens/s
-BenchmarkMultimodalInference-32                1        42673907034 ns/op               26.08 tokens/s
-BenchmarkMultimodalInference-32                1        42432080672 ns/op               25.81 tokens/s
-BenchmarkMultimodalInference-32                1        46803510445 ns/op               26.15 tokens/s
-BenchmarkMultimodalInference-32                1        45700830384 ns/op               25.91 tokens/s
+BenchmarkMultimodalInference-32    	       1	15340603536 ns/op	        71.97 tokens/s
+BenchmarkMultimodalInference-32    	       1	16647937836 ns/op	        67.46 tokens/s
+BenchmarkMultimodalInference-32    	       1	20618641014 ns/op	        60.43 tokens/s
+BenchmarkMultimodalInference-32    	       1	16358869871 ns/op	        67.98 tokens/s
+BenchmarkMultimodalInference-32    	       1	20431101072 ns/op	        59.86 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/mtmd    226.685s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	92.132s
 ```
 
 </details>
@@ -927,9 +927,9 @@ ok  	github.com/hybridgroup/yzma/pkg/mtmd	71.331s
 
 <!-- yzma:bench start multimodal/vulkan/amd64/i9-13900hx/vulkan0 -->
 ### Vulkan, amd64, Intel Core i9-13900HX, Vulkan0
-<!-- yzma:bench meta {"suite":"multimodal","backend":"vulkan","arch":"amd64","machine":"i9-13900hx","device":"Vulkan0","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":78.34} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"vulkan","arch":"amd64","machine":"i9-13900hx","device":"Vulkan0","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":62.49,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 78.3 tokens a second.
+13th Gen Intel(R) Core(TM) i9-13900HX. 62.5 tokens a second.
 
 <details><summary>The device</summary>
 
@@ -940,34 +940,83 @@ VULKANINFO
 
 Vulkan Instance Version: 1.3.275
 
+
+Instance Extensions: count = 24
+-------------------------------
+VK_EXT_acquire_drm_display             : extension revision 1
+VK_EXT_acquire_xlib_display            : extension revision 1
+VK_EXT_debug_report                    : extension revision 10
+VK_EXT_debug_utils                     : extension revision 2
+VK_EXT_direct_mode_display             : extension revision 1
+VK_EXT_display_surface_counter         : extension revision 1
+VK_EXT_headless_surface                : extension revision 1
+VK_EXT_surface_maintenance1            : extension revision 1
+VK_EXT_swapchain_colorspace            : extension revision 5
+VK_KHR_device_group_creation           : extension revision 1
+VK_KHR_display                         : extension revision 23
+VK_KHR_external_fence_capabilities     : extension revision 1
+VK_KHR_external_memory_capabilities    : extension revision 1
+VK_KHR_external_semaphore_capabilities : extension revision 1
+VK_KHR_get_display_properties2         : extension revision 1
+VK_KHR_get_physical_device_properties2 : extension revision 2
+VK_KHR_get_surface_capabilities2       : extension revision 1
+VK_KHR_portability_enumeration         : extension revision 1
+VK_KHR_surface                         : extension revision 25
+VK_KHR_surface_protected_capabilities  : extension revision 1
+VK_KHR_wayland_surface                 : extension revision 6
+VK_KHR_xcb_surface                     : extension revision 6
+VK_KHR_xlib_surface                    : extension revision 6
+VK_LUNARG_direct_driver_loading        : extension revision 1
+
+Instance Layers: count = 5
+--------------------------
+VK_LAYER_INTEL_nullhw       INTEL NULL HW                1.1.73   version 1
+VK_LAYER_MESA_device_select Linux device selection layer 1.4.303  version 1
+VK_LAYER_MESA_overlay       Mesa Overlay layer           1.4.303  version 1
+VK_LAYER_NV_optimus         NVIDIA Optimus layer         1.4.329  version 1
+VK_LAYER_NV_present         NVIDIA Presentation Layer    1.4.329  version 1
+
 Devices:
 ========
 GPU0:
-        apiVersion         = 1.4.318
-        driverVersion      = 25.2.8
-        vendorID           = 0x8086
-        deviceID           = 0xa788
-        deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
-        deviceName         = Intel(R) Graphics (RPL-S)
-        driverID           = DRIVER_ID_INTEL_OPEN_SOURCE_MESA
-        driverName         = Intel open-source Mesa driver
-        driverInfo         = Mesa 25.2.8-0ubuntu0.24.04.1
-        conformanceVersion = 1.4.0.0
-        deviceUUID         = 868088a7-0400-0000-0002-000000000000
-        driverUUID         = 032fbbbb-ddee-3516-8477-c17071969177
+	apiVersion         = 1.4.318
+	driverVersion      = 25.2.8
+	vendorID           = 0x8086
+	deviceID           = 0xa788
+	deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
+	deviceName         = Intel(R) Graphics (RPL-S)
+	driverID           = DRIVER_ID_INTEL_OPEN_SOURCE_MESA
+	driverName         = Intel open-source Mesa driver
+	driverInfo         = Mesa 25.2.8-0ubuntu0.24.04.2
+	conformanceVersion = 1.4.0.0
+	deviceUUID         = 868088a7-0400-0000-0002-000000000000
+	driverUUID         = ee99561e-45e1-e718-c612-1d36d8345582
 GPU1:
-        apiVersion         = 1.4.312
-        driverVersion      = 580.95.5.0
-        vendorID           = 0x10de
-        deviceID           = 0x2860
-        deviceType         = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
-        deviceName         = NVIDIA GeForce RTX 4070 Laptop GPU
-        driverID           = DRIVER_ID_NVIDIA_PROPRIETARY
-        driverName         = NVIDIA
-        driverInfo         = 580.95.05
-        conformanceVersion = 1.4.1.3
-        deviceUUID         = 7e611089-1272-699d-8985-ab84fef4311e
-        driverUUID         = b92269a1-b525-5615-ab8a-e2095ee37192
+	apiVersion         = 1.4.329
+	driverVersion      = 595.84.0.0
+	vendorID           = 0x10de
+	deviceID           = 0x2860
+	deviceType         = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+	deviceName         = NVIDIA GeForce RTX 4070 Laptop GPU
+	driverID           = DRIVER_ID_NVIDIA_PROPRIETARY
+	driverName         = NVIDIA
+	driverInfo         = 595.84
+	conformanceVersion = 1.4.3.3
+	deviceUUID         = 7e611089-1272-699d-8985-ab84fef4311e
+	driverUUID         = 027cbdd1-c478-513e-af69-ebc9eaa7de87
+GPU2:
+	apiVersion         = 1.4.318
+	driverVersion      = 25.2.8
+	vendorID           = 0x10005
+	deviceID           = 0x0000
+	deviceType         = PHYSICAL_DEVICE_TYPE_CPU
+	deviceName         = llvmpipe (LLVM 20.1.2, 256 bits)
+	driverID           = DRIVER_ID_MESA_LLVMPIPE
+	driverName         = llvmpipe
+	driverInfo         = Mesa 25.2.8-0ubuntu0.24.04.2 (LLVM 20.1.2)
+	conformanceVersion = 1.3.1.1
+	deviceUUID         = 6d657361-3235-2e32-2e38-2d3075627500
+	driverUUID         = 6c6c766d-7069-7065-5555-494400000000
 ```
 
 </details>
@@ -975,18 +1024,18 @@ GPU1:
 <details><summary>The output of go test</summary>
 
 ```
-$ go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="VULKAN0"
+$ cd pkg/mtmd && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkMultimodalInference -nctx=32000 -device=Vulkan0
 goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkMultimodalInference-32                1        14578268628 ns/op               78.34 tokens/s
-BenchmarkMultimodalInference-32                1        22073783877 ns/op               55.59 tokens/s
-BenchmarkMultimodalInference-32                1        11278156188 ns/op               97.62 tokens/s
-BenchmarkMultimodalInference-32                1        14723860691 ns/op               77.43 tokens/s
-BenchmarkMultimodalInference-32                1        11996066619 ns/op               92.45 tokens/s
+BenchmarkMultimodalInference-32    	       1	29325408518 ns/op	        45.59 tokens/s
+BenchmarkMultimodalInference-32    	       1	19091432501 ns/op	        65.47 tokens/s
+BenchmarkMultimodalInference-32    	       1	20340714964 ns/op	        62.49 tokens/s
+BenchmarkMultimodalInference-32    	       1	19056191976 ns/op	        65.54 tokens/s
+BenchmarkMultimodalInference-32    	       1	22343760148 ns/op	        58.27 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/mtmd    79.922s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	114.592s
 ```
 
 </details>
@@ -994,9 +1043,9 @@ ok      github.com/hybridgroup/yzma/pkg/mtmd    79.922s
 
 <!-- yzma:bench start multimodal/vulkan/amd64/i9-13900hx/vulkan1 -->
 ### Vulkan, amd64, Intel Core i9-13900HX, Vulkan1
-<!-- yzma:bench meta {"suite":"multimodal","backend":"vulkan","arch":"amd64","machine":"i9-13900hx","device":"Vulkan1","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":929.1} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"vulkan","arch":"amd64","machine":"i9-13900hx","device":"Vulkan1","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":754.9,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 929.1 tokens a second.
+13th Gen Intel(R) Core(TM) i9-13900HX. 754.9 tokens a second.
 
 <details><summary>The device</summary>
 
@@ -1007,34 +1056,83 @@ VULKANINFO
 
 Vulkan Instance Version: 1.3.275
 
+
+Instance Extensions: count = 24
+-------------------------------
+VK_EXT_acquire_drm_display             : extension revision 1
+VK_EXT_acquire_xlib_display            : extension revision 1
+VK_EXT_debug_report                    : extension revision 10
+VK_EXT_debug_utils                     : extension revision 2
+VK_EXT_direct_mode_display             : extension revision 1
+VK_EXT_display_surface_counter         : extension revision 1
+VK_EXT_headless_surface                : extension revision 1
+VK_EXT_surface_maintenance1            : extension revision 1
+VK_EXT_swapchain_colorspace            : extension revision 5
+VK_KHR_device_group_creation           : extension revision 1
+VK_KHR_display                         : extension revision 23
+VK_KHR_external_fence_capabilities     : extension revision 1
+VK_KHR_external_memory_capabilities    : extension revision 1
+VK_KHR_external_semaphore_capabilities : extension revision 1
+VK_KHR_get_display_properties2         : extension revision 1
+VK_KHR_get_physical_device_properties2 : extension revision 2
+VK_KHR_get_surface_capabilities2       : extension revision 1
+VK_KHR_portability_enumeration         : extension revision 1
+VK_KHR_surface                         : extension revision 25
+VK_KHR_surface_protected_capabilities  : extension revision 1
+VK_KHR_wayland_surface                 : extension revision 6
+VK_KHR_xcb_surface                     : extension revision 6
+VK_KHR_xlib_surface                    : extension revision 6
+VK_LUNARG_direct_driver_loading        : extension revision 1
+
+Instance Layers: count = 5
+--------------------------
+VK_LAYER_INTEL_nullhw       INTEL NULL HW                1.1.73   version 1
+VK_LAYER_MESA_device_select Linux device selection layer 1.4.303  version 1
+VK_LAYER_MESA_overlay       Mesa Overlay layer           1.4.303  version 1
+VK_LAYER_NV_optimus         NVIDIA Optimus layer         1.4.329  version 1
+VK_LAYER_NV_present         NVIDIA Presentation Layer    1.4.329  version 1
+
 Devices:
 ========
 GPU0:
-        apiVersion         = 1.4.318
-        driverVersion      = 25.2.8
-        vendorID           = 0x8086
-        deviceID           = 0xa788
-        deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
-        deviceName         = Intel(R) Graphics (RPL-S)
-        driverID           = DRIVER_ID_INTEL_OPEN_SOURCE_MESA
-        driverName         = Intel open-source Mesa driver
-        driverInfo         = Mesa 25.2.8-0ubuntu0.24.04.1
-        conformanceVersion = 1.4.0.0
-        deviceUUID         = 868088a7-0400-0000-0002-000000000000
-        driverUUID         = 032fbbbb-ddee-3516-8477-c17071969177
+	apiVersion         = 1.4.318
+	driverVersion      = 25.2.8
+	vendorID           = 0x8086
+	deviceID           = 0xa788
+	deviceType         = PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
+	deviceName         = Intel(R) Graphics (RPL-S)
+	driverID           = DRIVER_ID_INTEL_OPEN_SOURCE_MESA
+	driverName         = Intel open-source Mesa driver
+	driverInfo         = Mesa 25.2.8-0ubuntu0.24.04.2
+	conformanceVersion = 1.4.0.0
+	deviceUUID         = 868088a7-0400-0000-0002-000000000000
+	driverUUID         = ee99561e-45e1-e718-c612-1d36d8345582
 GPU1:
-        apiVersion         = 1.4.312
-        driverVersion      = 580.95.5.0
-        vendorID           = 0x10de
-        deviceID           = 0x2860
-        deviceType         = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
-        deviceName         = NVIDIA GeForce RTX 4070 Laptop GPU
-        driverID           = DRIVER_ID_NVIDIA_PROPRIETARY
-        driverName         = NVIDIA
-        driverInfo         = 580.95.05
-        conformanceVersion = 1.4.1.3
-        deviceUUID         = 7e611089-1272-699d-8985-ab84fef4311e
-        driverUUID         = b92269a1-b525-5615-ab8a-e2095ee37192
+	apiVersion         = 1.4.329
+	driverVersion      = 595.84.0.0
+	vendorID           = 0x10de
+	deviceID           = 0x2860
+	deviceType         = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+	deviceName         = NVIDIA GeForce RTX 4070 Laptop GPU
+	driverID           = DRIVER_ID_NVIDIA_PROPRIETARY
+	driverName         = NVIDIA
+	driverInfo         = 595.84
+	conformanceVersion = 1.4.3.3
+	deviceUUID         = 7e611089-1272-699d-8985-ab84fef4311e
+	driverUUID         = 027cbdd1-c478-513e-af69-ebc9eaa7de87
+GPU2:
+	apiVersion         = 1.4.318
+	driverVersion      = 25.2.8
+	vendorID           = 0x10005
+	deviceID           = 0x0000
+	deviceType         = PHYSICAL_DEVICE_TYPE_CPU
+	deviceName         = llvmpipe (LLVM 20.1.2, 256 bits)
+	driverID           = DRIVER_ID_MESA_LLVMPIPE
+	driverName         = llvmpipe
+	driverInfo         = Mesa 25.2.8-0ubuntu0.24.04.2 (LLVM 20.1.2)
+	conformanceVersion = 1.3.1.1
+	deviceUUID         = 6d657361-3235-2e32-2e38-2d3075627500
+	driverUUID         = 6c6c766d-7069-7065-5555-494400000000
 ```
 
 </details>
@@ -1042,18 +1140,18 @@ GPU1:
 <details><summary>The output of go test</summary>
 
 ```
-$ go test -benchtime=10s -count=5 -run=nada -bench . -nctx=32000 -device="VULKAN1"
+$ cd pkg/mtmd && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkMultimodalInference -nctx=32000 -device=Vulkan1
 goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkMultimodalInference-32                8        1339951138 ns/op               891.1 tokens/s
-BenchmarkMultimodalInference-32               10        1172385505 ns/op               997.5 tokens/s
-BenchmarkMultimodalInference-32               13        1276183643 ns/op               929.1 tokens/s
-BenchmarkMultimodalInference-32               18        1122849292 ns/op              1035 tokens/s
-BenchmarkMultimodalInference-32                7        1471154871 ns/op               825.9 tokens/s
+BenchmarkMultimodalInference-32    	       1	16223066476 ns/op	        68.85 tokens/s
+BenchmarkMultimodalInference-32    	      16	1565100628 ns/op	       784.4 tokens/s
+BenchmarkMultimodalInference-32    	       7	1630751597 ns/op	       754.9 tokens/s
+BenchmarkMultimodalInference-32    	       7	1558894683 ns/op	       783.6 tokens/s
+BenchmarkMultimodalInference-32    	       6	2056770062 ns/op	       629.6 tokens/s
 PASS
-ok      github.com/hybridgroup/yzma/pkg/mtmd    76.276s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	79.713s
 ```
 
 </details>
