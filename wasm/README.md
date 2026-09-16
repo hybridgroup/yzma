@@ -214,7 +214,7 @@ the browser can run.
 
 | Build | What it needs |
 | --- | --- |
-| `yzma_wasm_webgpu` | WebGPU with f16 shaders, and JSPI. Chrome and Edge 137 or later. Firefox gives wrong values, thus auto mode does not use it there. See below. |
+| `yzma_wasm_webgpu` | WebGPU with f16 shaders, and JSPI. Chrome and Edge 137 or later. Firefox gives wrong values, thus auto mode does not use it there. See below. The loader also drops this build if the self test of the backend fails. |
 | `yzma_wasm_mt` | `SharedArrayBuffer`, thus a page with the COOP and COEP headers. |
 | `yzma_wasm` | Nothing. It operates in all browsers. |
 
@@ -229,6 +229,28 @@ there, thus a test of a repair is easy.
 `llamawasm.GPUDevice()` gives the name of the GPU that llama.cpp found. Ask
 llama.cpp and not the browser, because a page can have WebGPU while llama.cpp
 has no device.
+
+### The self test of the backend
+
+An adapter that llama.cpp accepts can still compute wrong values. The answer of
+a model is then random tokens of the vocabulary, and nothing in that text tells
+it apart from a weak model, so the loader measures the device instead.
+
+`yzma_backend_check` in the shim runs one small matrix multiply of f16 weights
+by f32 activations on the device and the same one on the CPU, then compares the
+two results with the normalized mean squared error. A device that operates
+gives about 3e-8. Noise gives about 1. The limit is 1e-2, which is far from
+both, so a slow or an unusual but correct driver raises no false alarm. The
+test needs no model and costs a few milliseconds.
+
+`yzma-loader.js` runs the test before it gives the module away. A GPU build
+that fails goes away, the loader takes a CPU build, and
+`globalThis.yzmaGPUReject` holds the reason. `llamawasm.BackendOK()` gives the
+same answer to a Go program.
+
+`make test-wasm-loader` covers this choice. It gives the loader false builds,
+so it can test a GPU that computes wrong values, which a test with a real
+module cannot reach.
 
 ### f16 shaders and NVIDIA
 
@@ -252,10 +274,21 @@ The fallback makes the page slow, but the page operates.
 ### Vulkan in Chrome on Linux
 
 Chrome on Linux keeps Vulkan off. WebGPU then uses the OpenGL ES backend of
-ANGLE, which has no `shader-f16` on any card, thus llama.cpp reports no device
-and the loader takes the CPU. `chrome://gpu` shows this as `Vulkan: Disabled`
-and the first adapter of Dawn Info as an `OpenGLES backend` line. Start Chrome
-with both switches, and close every window of Chrome first.
+ANGLE, in the compatibility mode of Dawn. `chrome://gpu` shows this as
+`Vulkan: Disabled` and the first adapter of Dawn Info as an `OpenGLES backend`
+line with `(Compatibility Mode)` at the end.
+
+This path gives two results, and neither is good.
+
+- On many cards the adapter has no `shader-f16`, thus llama.cpp reports no
+  device and the loader takes the CPU. The page is slow but correct.
+- On an Intel Xe with Mesa the adapter does have `shader-f16`, llama.cpp takes
+  the device, and the device computes wrong values. Issue #341 is this case. No
+  feature of the adapter tells it apart from a device that operates, thus the
+  loader measures it. See the self test of the backend above.
+
+Start Chrome with both switches to get the Vulkan backend instead, and close
+every window of Chrome first.
 
 ```
 google-chrome --enable-features=Vulkan \
@@ -402,6 +435,9 @@ markers. The host build reads the token itself.
   other browsers use the CPU with SIMD.
 - The WebGPU of Firefox gives wrong values to llama.cpp, thus auto mode takes
   the CPU there.
+- Some drivers give an adapter that llama.cpp accepts and that then computes
+  wrong values. The loader measures the device against the CPU and takes a CPU
+  build if the two do not agree.
 - A browser does not give the matrix instructions of a subgroup, which llama.cpp
   uses only outside a browser. Thus the GPU is slower in a page than the same
   backend on a desktop.
