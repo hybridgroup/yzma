@@ -57,6 +57,11 @@ var (
 	// calls for the sampling of the backend, which are in ABI version 7 and
 	// later.
 	ErrNoBackendSampling = errors.New("llamawasm: this llama.cpp module has no calls for the sampling of the backend, install a newer build")
+
+	// ErrNoContextFlags says that the module is from a release before the
+	// calls that change a context after it is made, which are in ABI version 7
+	// and later.
+	ErrNoContextFlags = errors.New("llamawasm: this llama.cpp module cannot change a context after it is made, install a newer build")
 )
 
 // mod is the Emscripten module instance of llama.cpp.

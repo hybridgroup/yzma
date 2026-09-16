@@ -91,6 +91,61 @@ func contextSize(ctx Context, name string) uint32 {
 	return uint32(n)
 }
 
+// GetPoolingType gives how the context pools the embeddings of the tokens of a
+// sequence into one. It gives PoolingTypeUnspecified when the module has no
+// such call.
+func GetPoolingType(ctx Context) PoolingType {
+	if !has("_yzma_context_pooling_type") {
+		return PoolingTypeUnspecified
+	}
+
+	// A pooling type can be -1, thus only the value of a bad handle is a
+	// failure.
+	rc := call("_yzma_context_pooling_type", int(ctx))
+	if rc <= errBadHandle {
+		return PoolingTypeUnspecified
+	}
+	return PoolingType(rc)
+}
+
+// SetEmbeddings says if a Decode gives the embeddings in place of the logits.
+// ContextParams sets the same thing when the context is made.
+func SetEmbeddings(ctx Context, embeddings bool) error {
+	return setContextFlag("_yzma_set_embeddings", ctx, embeddings)
+}
+
+// SetCausalAttn says if the attention is causal. An embedding model needs the
+// attention of every token to every other one, thus it takes false.
+func SetCausalAttn(ctx Context, causal bool) error {
+	return setContextFlag("_yzma_set_causal_attn", ctx, causal)
+}
+
+// setContextFlag sends one true or false value to the context.
+func setContextFlag(name string, ctx Context, on bool) error {
+	if !Loaded() {
+		return ErrNotLoaded
+	}
+	if !has(name) {
+		return ErrNoContextFlags
+	}
+	_, err := callErr(name, int(ctx), boolToInt(on))
+	return err
+}
+
+// Synchronize waits for the computation of the context to end. A backend that
+// computes without waiting, such as WebGPU, needs this before a measurement of
+// the time.
+func Synchronize(ctx Context) error {
+	if !Loaded() {
+		return ErrNotLoaded
+	}
+	if !has("_yzma_synchronize") {
+		return ErrNoContextFlags
+	}
+	_, err := callErr("_yzma_synchronize", int(ctx))
+	return err
+}
+
 // Decode runs a batch of tokens through the model.
 //
 // A batch from [BatchGetOne] takes its positions from the state of the
