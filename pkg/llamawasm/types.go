@@ -32,6 +32,63 @@ type (
 // llama.TokenNull.
 const TokenNull Token = -1
 
+// Ftype is the kind of the quantization of a model. The values agree with
+// llama.Ftype.
+type Ftype int32
+
+const (
+	FtypeAllF32          Ftype = 0
+	FtypeMostlyF16       Ftype = 1
+	FtypeMostlyQ4_0      Ftype = 2
+	FtypeMostlyQ4_1      Ftype = 3
+	FtypeMostlyQ8_0      Ftype = 7
+	FtypeMostlyQ5_0      Ftype = 8
+	FtypeMostlyQ5_1      Ftype = 9
+	FtypeMostlyQ2_K      Ftype = 10
+	FtypeMostlyQ3_K_S    Ftype = 11
+	FtypeMostlyQ3_K_M    Ftype = 12
+	FtypeMostlyQ3_K_L    Ftype = 13
+	FtypeMostlyQ4_K_S    Ftype = 14
+	FtypeMostlyQ4_K_M    Ftype = 15
+	FtypeMostlyQ5_K_S    Ftype = 16
+	FtypeMostlyQ5_K_M    Ftype = 17
+	FtypeMostlyQ6_K      Ftype = 18
+	FtypeMostlyIQ2_XXS   Ftype = 19
+	FtypeMostlyIQ2_XS    Ftype = 20
+	FtypeMostlyQ2_K_S    Ftype = 21
+	FtypeMostlyIQ3_XS    Ftype = 22
+	FtypeMostlyIQ3_XXS   Ftype = 23
+	FtypeMostlyIQ1_S     Ftype = 24
+	FtypeMostlyIQ4_NL    Ftype = 25
+	FtypeMostlyIQ3_S     Ftype = 26
+	FtypeMostlyIQ3_M     Ftype = 27
+	FtypeMostlyIQ2_S     Ftype = 28
+	FtypeMostlyIQ2_M     Ftype = 29
+	FtypeMostlyIQ4_XS    Ftype = 30
+	FtypeMostlyIQ1_M     Ftype = 31
+	FtypeMostlyBF16      Ftype = 32
+	FtypeMostlyTQ1_0     Ftype = 36
+	FtypeMostlyTQ2_0     Ftype = 37
+	FtypeMostlyMXFP4_MOE Ftype = 38
+	FtypeMostlyNVFP4     Ftype = 39
+	FtypeMostlyQ1_0      Ftype = 40
+	FtypeMostlyQ2_0      Ftype = 41
+	FtypeGUESSED         Ftype = 1024
+)
+
+// RopeScalingType is how a model scales the positions of RoPE. The values
+// agree with llama.RopeScalingType.
+type RopeScalingType int32
+
+const (
+	RopeScalingTypeUnspecified RopeScalingType = -1
+	RopeScalingTypeNone        RopeScalingType = 0
+	RopeScalingTypeLinear      RopeScalingType = 1
+	RopeScalingTypeYARN        RopeScalingType = 2
+	RopeScalingTypeLongROPE    RopeScalingType = 3
+	RopeScalingTypeMaxValue    RopeScalingType = RopeScalingTypeLongROPE
+)
+
 // VocabType is the kind of the tokenizer of a vocabulary. The values agree with
 // llama.VocabType.
 type VocabType int32
