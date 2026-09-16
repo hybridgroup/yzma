@@ -407,3 +407,66 @@ func TestDefaultResolverROCmTaggedRelease(t *testing.T) {
 		})
 	}
 }
+
+// llama.cpp changed the CUDA version of its Windows builds at build b10977. Both
+// the runtime archive and the llama.cpp build must follow the requested build.
+func TestDefaultResolverWindowsCUDANaming(t *testing.T) {
+	tests := []struct {
+		name    string
+		version string
+		cuda    string
+	}{
+		{"before the change", "b10976", "13.3"},
+		{"at the change", "b10977", "13.4"},
+		{"after the change", "b11005", "13.4"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			urls, err := DefaultResolver.Resolve(Target{
+				Arch: AMD64, OS: Windows, Processor: CUDA, Version: tt.version,
+			})
+			if err != nil {
+				t.Fatalf("Resolve() failed: %v", err)
+			}
+			location := "https://github.com/ggml-org/llama.cpp/releases/download/" + tt.version + "/"
+			want := []string{
+				location + "cudart-llama-bin-win-cuda-" + tt.cuda + "-x64.zip",
+				location + "llama-" + tt.version + "-bin-win-cuda-" + tt.cuda + "-x64.zip",
+			}
+			if len(urls) != 2 || urls[0] != want[0] || urls[1] != want[1] {
+				t.Fatalf("Resolve() = %v, want %v", urls, want)
+			}
+		})
+	}
+}
+
+// A tagged release keeps its binaries under a nightly build tag. That tag decides
+// the CUDA version in the Windows asset names.
+func TestDefaultResolverWindowsCUDATaggedRelease(t *testing.T) {
+	tests := []struct {
+		name     string
+		upstream string
+		cuda     string
+	}{
+		{"before the change", "b10976", "13.3"},
+		{"at the change", "b10977", "13.4"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			urls, err := DefaultResolver.Resolve(Target{
+				Arch: AMD64, OS: Windows, Processor: CUDA, Version: "v0.3.0", UpstreamVersion: tt.upstream,
+			})
+			if err != nil {
+				t.Fatalf("Resolve() failed: %v", err)
+			}
+			location := "https://github.com/ggml-org/llama.cpp/releases/download/" + tt.upstream + "/"
+			want := []string{
+				location + "cudart-llama-bin-win-cuda-" + tt.cuda + "-x64.zip",
+				location + "llama-" + tt.upstream + "-bin-win-cuda-" + tt.cuda + "-x64.zip",
+			}
+			if len(urls) != 2 || urls[0] != want[0] || urls[1] != want[1] {
+				t.Fatalf("Resolve() = %v, want %v", urls, want)
+			}
+		})
+	}
+}

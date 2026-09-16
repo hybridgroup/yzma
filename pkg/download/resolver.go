@@ -107,6 +107,26 @@ func (r defaultResolver) resolveAssets(ctx context.Context, target Target) ([]As
 	return assets, body, nil
 }
 
+// llama.cpp changed the CUDA version of its Windows builds at this build.
+const cuda134Build = 10977
+
+// windowsCUDAVersion reports the CUDA version in the Windows asset names of tag. A
+// tag that is not a nightly build takes the newest version.
+func windowsCUDAVersion(tag string) string {
+	const current = "13.4"
+	if !nightlyPattern.MatchString(tag) {
+		return current
+	}
+	build, err := strconv.Atoi(tag[1:])
+	if err != nil {
+		return current
+	}
+	if build < cuda134Build {
+		return "13.3"
+	}
+	return current
+}
+
 // llama.cpp renamed its ROCm assets at these two builds.
 const (
 	rocmRenameBuild = 10356
@@ -293,9 +313,9 @@ func defaultResolve(target Target) ([]string, error) {
 				return nil, errors.New("precompiled binaries for Windows ARM64 CUDA are not available")
 			}
 			// also requires the CUDA RT files
-			cudart := "cudart-llama-bin-win-cuda-13.3-x64.zip"
-			extra = append(extra, fmt.Sprintf("%s/%s", location, cudart))
-			filename = fmt.Sprintf("llama-%s-bin-win-cuda-13.3-x64.zip", tag)
+			cuda := windowsCUDAVersion(tag)
+			extra = append(extra, fmt.Sprintf("%s/cudart-llama-bin-win-cuda-%s-x64.zip", location, cuda))
+			filename = fmt.Sprintf("llama-%s-bin-win-cuda-%s-x64.zip", tag, cuda)
 		case Vulkan:
 			if arch == ARM64 {
 				return nil, errors.New("precompiled binaries for Windows ARM64 Vulkan are not available")
