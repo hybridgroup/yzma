@@ -1,0 +1,12 @@
+$ go test -benchtime=10s -count=5 -run=nada -bench BenchmarkInference -nctx=32000 -device="CUDA0" ./pkg/llama
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
+BenchmarkInference-32                332          35746370 ns/op               839.2 tokens/s
+BenchmarkInference-32                338          35529926 ns/op               844.4 tokens/s
+BenchmarkInference-32                336          35614579 ns/op               842.4 tokens/s
+BenchmarkInference-32                336          35609522 ns/op               842.5 tokens/s
+BenchmarkInference-32                337          35550352 ns/op               843.9 tokens/s
+PASS
+ok      github.com/hybridgroup/yzma/pkg/llama   67.491s
