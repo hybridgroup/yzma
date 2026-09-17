@@ -2,6 +2,11 @@
 # benchmarks/windows.md. See benchmarks/README.md.
 #
 #   .\benchmarks\run.ps1 -Machine ryzen-9-7950x -Label "AMD Ryzen 9 7950X"
+#
+# PowerShell does not run a script until the policy of the machine permits it.
+# Start the script from a PowerShell prompt in the directory of the repository.
+#
+#   powershell -ExecutionPolicy Bypass -File .\benchmarks\run.ps1
 
 [CmdletBinding()]
 param(
@@ -27,19 +32,24 @@ if (-not $env:YZMA_BENCHMARK_MODEL) {
   $env:YZMA_BENCHMARK_MODEL = Join-Path $modelsDir "SmolLM-135M.Q2_K.gguf"
 }
 if (-not $env:YZMA_BENCHMARK_MMMODEL) {
-  $env:YZMA_BENCHMARK_MMMODEL = Join-Path $modelsDir "Qwen3-VL-2B-Instruct.Q4_K_M.gguf"
+  $env:YZMA_BENCHMARK_MMMODEL = Join-Path $modelsDir "SmolVLM-256M-Instruct-Q8_0.gguf"
 }
 if (-not $env:YZMA_BENCHMARK_MMPROJ) {
-  $env:YZMA_BENCHMARK_MMPROJ = Join-Path $modelsDir "Qwen3-VL-2B-Instruct.mmproj-Q8_0.gguf"
+  $env:YZMA_BENCHMARK_MMPROJ = Join-Path $modelsDir "mmproj-SmolVLM-256M-Instruct-Q8_0.gguf"
 }
 
 if (-not (Test-Path $env:YZMA_BENCHMARK_MODEL)) {
   throw "no model at $($env:YZMA_BENCHMARK_MODEL), run make download-benchmark-models"
 }
 
+# A nightly build has no upstream_tag, because its own tag names the assets.
 $install = Join-Path $env:YZMA_LIB "yzma-install.json"
 if (-not $LlamaCpp -and (Test-Path $install)) {
-  $LlamaCpp = (Get-Content $install -Raw | ConvertFrom-Json).upstream_tag
+  $record = Get-Content $install -Raw | ConvertFrom-Json
+  $LlamaCpp = if ($record.upstream_tag) { $record.upstream_tag } else { $record.tag }
+}
+if (-not $LlamaCpp) {
+  throw "no tag of the llama.cpp build, run make download-llama.cpp or give -LlamaCpp"
 }
 
 if (-not $Machine) {
@@ -57,8 +67,10 @@ function Test-Wanted($name) {
 }
 
 # Write-Lines writes a file with no byte order mark, which the tool expects.
+# An empty list gives an empty file, because a pipeline with no output is null.
 function Write-Lines($path, $lines) {
-  [System.IO.File]::WriteAllLines($path, [string[]]($lines | ForEach-Object { "$_" }))
+  $text = [string[]]@(@($lines) | Where-Object { $null -ne $_ } | ForEach-Object { "$_" })
+  [System.IO.File]::WriteAllLines($path, $text)
 }
 
 # Get-DeviceInfo collects what the machine says about the device of a backend.
@@ -76,8 +88,11 @@ function Get-DeviceInfo($backend, $path) {
 
 function Update-Section($suiteName, $backend, $device, $output, $info) {
   $argv = @("run", "./cmd/yzma-bench", "update", "--file", $file, "--suite", $suiteName,
-    "--backend", $backend, "--device", $device, "--machine", $Machine, "--label", $Label,
+    "--backend", $backend, "--machine", $Machine, "--label", $Label,
     "--llamacpp", $LlamaCpp, "--yzma", $yzmaVersion, "--output", $output)
+  # PowerShell removes an empty argument, thus --device would take the name of
+  # the next flag as its value.
+  if ($device) { $argv += @("--device", $device) }
   if ((Test-Path $info) -and (Get-Item $info).Length -gt 0) { $argv += @("--device-info", $info) }
   if ($DryRun) { $argv += "--dry-run" }
   & go @argv
@@ -104,22 +119,30 @@ function Invoke-Suites($backend, $device, $record, $info) {
     $out = Join-Path $work "$suiteName-$backend-$device.txt"
     Write-Host "==> $suiteName, $backend ($device)"
 
-    $flag = "-device=$device"
-    $command = "> cd $pkg; go test -benchtime=$BenchTime -count=$Count -run=nada -bench $bench -nctx=$ctx $flag"
+    # Each argument is one string, because PowerShell can divide a bare
+    # argument that has a dash and a variable.
+    $argv = @("test", "-benchtime=$BenchTime", "-count=$Count", "-run=nada",
+      "-bench", "$bench", "-nctx=$ctx")
+    if ($device) { $argv += "-device=$device" }
+    $command = "> cd $pkg; go " + ($argv -join " ")
+    Write-Host $command
+    # Show each line when it comes. A suite takes many minutes.
     Push-Location (Join-Path $root $pkg)
-    $result = & go test -benchtime=$BenchTime -count=$Count -run=nada -bench $bench -nctx=$ctx $flag 2>&1
+    & go @argv 2>&1 | Tee-Object -Variable result | Out-Host
     Pop-Location
 
     Write-Lines $out (@($command) + $result)
-    $result | Write-Host
 
     Update-Section $suiteName $backend $record $out $info
   }
 }
 
-# The device list of llama.cpp says which backends this machine has.
+# The device list of llama.cpp says which backends this machine has. The first
+# go command builds the packages, thus it is slow.
+Write-Host "==> the devices of this machine"
 $devices = Join-Path $work "devices.txt"
 Write-Lines $devices (& go run . system -lib $env:YZMA_LIB)
+Get-Content $devices | Write-Host
 
 $lines = Get-Content $devices
 if (-not $Label) {
@@ -127,6 +150,9 @@ if (-not $Label) {
     if ($lines[$i] -match "Backend:\s*CPU") {
       $description = $lines | Select-Object -Skip $i | Where-Object { $_ -match "Description:" } | Select-Object -First 1
       if ($description) { $Label = ($description -replace ".*Description:\s*", "") }
+      # Some builds give "CPU" as the description, which is no name for a
+      # machine.
+      if ($Label -eq "CPU") { $Label = "" }
       break
     }
   }
@@ -138,17 +164,19 @@ $ranCPU = $false
 foreach ($line in $lines) {
   if ($line -match "^Device \d+:\s*(.*)$") { $device = $Matches[1].Trim() }
   elseif ($line -match "Backend:\s*(.*)$") {
-    $backend = $Matches[1].Trim().ToLower()
-    $info = Join-Path $work "$backend-$device.txt"
-    if ($backend -eq "cpu") {
+    # A name of a variable has no case in PowerShell. The name $backend here
+    # would write on the $Backend parameter and stop each device.
+    $devBackend = $Matches[1].Trim().ToLower()
+    $info = Join-Path $work "$devBackend-$device.txt"
+    if ($devBackend -eq "cpu") {
       if ((Test-Wanted "cpu") -and -not $ranCPU) {
         Write-Lines $info @()
         Invoke-Suites "cpu" $device "" $info
         $ranCPU = $true
       }
-    } elseif (Test-Wanted $backend) {
-      Get-DeviceInfo $backend $info
-      Invoke-Suites $backend $device $device $info
+    } elseif (Test-Wanted $devBackend) {
+      Get-DeviceInfo $devBackend $info
+      Invoke-Suites $devBackend $device $device $info
     }
   }
 }

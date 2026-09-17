@@ -5,12 +5,13 @@
 // Change model and mode below. The modes are auto, cpu and webgpu, which
 // yzma-loader.js reads.
 //
-// The output has the same shape as go test -bench, thus you can give it to
+// The output has the same shape as go test -bench, and it gives the llama.cpp
+// build, which the page reads from yzma-install.json. Thus you can give it to
 // cmd/yzma-bench:
 //
 //   go run ./cmd/yzma-bench update --file benchmarks/webassembly.md \
 //     --suite browser --backend webgpu --arch wasm --machine <name> \
-//     --label "<machine and browser>" --llamacpp <tag> --output run.txt
+//     --label "<machine and browser>" --output run.txt
 (async () => {
   const model =
     "https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf";
@@ -18,6 +19,17 @@
   const prompt = "Are you ready to go?";
   const maxTokens = 64;
   const count = 5;
+
+  // installTag gives the llama.cpp build of the files that the page serves. A
+  // nightly build has no upstream_tag, because its own tag names the assets.
+  const installTag = async () => {
+    try {
+      const record = await (await fetch("./yzma-install.json")).json();
+      return record.upstream_tag || record.tag || "";
+    } catch {
+      return "";
+    }
+  };
 
   const worker = new Worker("./worker.js?mode=" + mode);
   let backend = "";
@@ -72,6 +84,12 @@
     "cpu: " + navigator.userAgent,
     backend,
   ];
+  const tag = await installTag();
+  if (tag) {
+    lines.push("llama.cpp: " + tag);
+  } else {
+    console.warn("no yzma-install.json, give the tag with --llamacpp");
+  }
   for (const run of runs) {
     lines.push(
       [

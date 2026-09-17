@@ -20,6 +20,8 @@ func main() {
 	switch os.Args[1] {
 	case "update":
 		err = runUpdate(os.Args[2:])
+	case "remove":
+		err = runRemove(os.Args[2:])
 	case "check":
 		err = runCheck(os.Args[2:])
 	case "-h", "--help", "help":
@@ -39,9 +41,11 @@ func main() {
 func usage() {
 	fmt.Fprint(os.Stderr, `usage:
   yzma-bench update --file FILE --suite SUITE --backend BACKEND --machine NAME [flags]
+  yzma-bench remove --file FILE KEY...
   yzma-bench check FILE...
 
 update puts one result in the file of the platform and makes the tables again.
+remove deletes the sections of the given keys and makes the tables again.
 check verifies that the tables agree with the sections.
 `)
 }
@@ -77,8 +81,7 @@ func runUpdate(args []string) error {
 		return fmt.Errorf("--machine is needed")
 	}
 
-	// A date that the flag does not give is today. The old results that came
-	// from BENCHMARKS.md give "", which the table shows as unknown.
+	// A date that the flag does not give is today.
 	if !isSet(fs, "date") {
 		*date = time.Now().Format("2006-01-02")
 	}
@@ -111,7 +114,7 @@ func runUpdate(args []string) error {
 		Label:           firstOf(*label, *machine),
 		CPU:             result.cpu,
 		TokensPerSecond: result.tokensPerSecond,
-		LlamaCPP:        *llamacpp,
+		LlamaCPP:        firstOf(*llamacpp, result.llamaCPP),
 		Yzma:            *yzma,
 		Date:            *date,
 	}
@@ -127,6 +130,45 @@ func runUpdate(args []string) error {
 	body := renderSection(m, *notes, deviceText, raw)
 	if err := doc.put(m, body); err != nil {
 		return err
+	}
+	if err := doc.buildTables(); err != nil {
+		return err
+	}
+
+	if *dryRun {
+		fmt.Print(doc.String())
+		return nil
+	}
+
+	return doc.save()
+}
+
+// runRemove deletes one section or more. Use it when a result is not
+// comparable with the others, for example after a change of the model.
+func runRemove(args []string) error {
+	fs := flag.NewFlagSet("remove", flag.ExitOnError)
+	file := fs.String("file", "", "markdown file of the platform")
+	dryRun := fs.Bool("dry-run", false, "print the result and change no file")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	if *file == "" {
+		return fmt.Errorf("--file is needed")
+	}
+	if fs.NArg() == 0 {
+		return fmt.Errorf("give one key or more, as the markers of the file show them")
+	}
+
+	doc, err := loadDocument(*file)
+	if err != nil {
+		return err
+	}
+
+	for _, key := range fs.Args() {
+		if !doc.remove(key) {
+			return fmt.Errorf("%s has no section with the key %q", *file, key)
+		}
 	}
 	if err := doc.buildTables(); err != nil {
 		return err

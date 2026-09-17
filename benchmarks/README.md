@@ -27,19 +27,25 @@ On Linux and macOS.
 ./benchmarks/run.sh
 ```
 
-On Windows.
+On Windows. Use a PowerShell prompt in the directory of the repository. A
+Command Prompt opens the file in an editor and does not run it. PowerShell does
+not run a script until the policy of the machine permits it. This command gives
+the policy for one run.
 
 ```powershell
-.\benchmarks\run.ps1
+powershell -ExecutionPolicy Bypass -File .\benchmarks\run.ps1
 ```
+
+A full run is long. The first go command builds the packages, and each suite
+takes many minutes. The script shows each command and each line of the
+benchmarks when they come.
 
 The script asks llama.cpp which devices the machine has, runs the text
 benchmark and the multimodal benchmark for each one, and puts each result in the
 file of the platform. The tag of the llama.cpp build comes from
 `yzma-install.json` of the library directory.
 
-Useful flags. The PowerShell script takes the same names, as `-Machine`,
-`-Backend` and so on.
+Useful flags.
 
 ```shell
 ./benchmarks/run.sh --backend vulkan        # one backend only
@@ -47,6 +53,14 @@ Useful flags. The PowerShell script takes the same names, as `-Machine`,
 ./benchmarks/run.sh --machine jetson-orin-nano --label "Jetson Orin Nano 8GB"
 ./benchmarks/run.sh --llamacpp b10964       # when the library came from elsewhere
 ./benchmarks/run.sh --dry-run               # print the result, change no file
+```
+
+The PowerShell script takes the same names with one dash and a capital, as
+`-Machine`, `-Backend`, `-DryRun` and so on. The flags go after the name of the
+file.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\benchmarks\run.ps1 -Backend vulkan -DryRun
 ```
 
 The machine name is part of the key of a section. Give the same name each time,
@@ -64,13 +78,14 @@ make wasm-example
 
 WebGPU needs a browser, which no script here can drive. Serve the example, open
 the page, paste [browser-bench.js](browser-bench.js) in the console, and give
-the result to the tool.
+the result to the tool. The output gives the llama.cpp build, which the page
+reads from `yzma-install.json` of the build directory.
 
 ```shell
 make serve-wasm
 go run ./cmd/yzma-bench update --file benchmarks/webassembly.md \
   --suite browser --backend webgpu --arch wasm \
-  --machine <name> --label "<machine and browser>" --llamacpp <tag> --output run.txt
+  --machine <name> --label "<machine and browser>" --output run.txt
 ```
 
 ## How a file is made
@@ -87,8 +102,16 @@ Do not edit a table by hand. To check a file after an edit:
 go run ./cmd/yzma-bench check benchmarks/*.md
 ```
 
-Sections that say `unknown` came from the old BENCHMARKS.md, which did not
-record the llama.cpp build or the date. A run on that machine replaces them.
+Each section must say which llama.cpp build made it. The tool refuses a result
+that has no tag, thus the numbers of a table always compare the same thing.
+
+To delete a result that is not comparable any more, for example after a change
+of the model, give its key to `remove`.
+
+```shell
+go run ./cmd/yzma-bench remove --file benchmarks/linux.md \
+  multimodal/cuda/amd64/i9-13900hx/cuda0
+```
 
 ## What is measured
 
@@ -98,7 +121,7 @@ gives the median of the runs.
 | Suite | Code | Model |
 | --- | --- | --- |
 | text | [pkg/llama/benchmark_test.go](../pkg/llama/benchmark_test.go) | SmolLM-135M Q2_K |
-| multimodal | [pkg/mtmd/benchmark_test.go](../pkg/mtmd/benchmark_test.go) | Qwen3-VL-2B-Instruct Q4_K_M with its projector |
+| multimodal | [pkg/mtmd/benchmark_test.go](../pkg/mtmd/benchmark_test.go) | SmolVLM-256M-Instruct Q8_0 with its projector |
 | node, browser | [examples/wasm/chat](../examples/wasm/chat) | SmolLM-135M Q2_K |
 
 The WebAssembly numbers come from the generation loop of the example, thus they

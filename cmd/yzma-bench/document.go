@@ -57,6 +57,11 @@ func (m meta) validate() error {
 	if strings.ContainsAny(m.Device, "/ ") {
 		return fmt.Errorf("the device %q must have no space and no slash", m.Device)
 	}
+	// Each result must say which build made it, or the table cannot compare it
+	// with the others.
+	if m.LlamaCPP == "" {
+		return fmt.Errorf("the section needs the tag of the llama.cpp build, give --llamacpp")
+	}
 
 	return nil
 }
@@ -164,6 +169,26 @@ func (d *document) put(m meta, body string) error {
 	d.replace(at, at, append(lines, ""))
 
 	return nil
+}
+
+// remove deletes the section of a key and says if it found one.
+func (d *document) remove(key string) bool {
+	for _, s := range d.sections() {
+		if s.key != key {
+			continue
+		}
+
+		last := s.last + 1
+		// A section has one empty line after it, which goes away with it.
+		if last < len(d.lines) && strings.TrimSpace(d.lines[last]) == "" {
+			last++
+		}
+		d.replace(s.first, last, nil)
+
+		return true
+	}
+
+	return false
 }
 
 // insertPoint gives the line where a new section of the suite goes.

@@ -99,8 +99,9 @@ func benchmarkSetupOnce(b *testing.B) {
 	}
 	benchCtx = ctx
 
+	// The projector decides the count of tokens of an image. A minimum here
+	// makes a projector with a fixed count fail.
 	mprms := ContextParamsDefault()
-	mprms.ImageMinTokens = 1024
 
 	mtmdCtx, err := InitFromFile(projectFile, model, mprms)
 	if err != nil {

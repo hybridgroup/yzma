@@ -180,6 +180,56 @@ func TestBuildTablesIsStable(t *testing.T) {
 	}
 }
 
+func TestRemoveDeletesTheSectionAndTheRow(t *testing.T) {
+	doc := newDocument(t)
+	put(t, doc, cudaMeta())
+
+	cpu := cudaMeta()
+	cpu.Backend = "cpu"
+	cpu.Label = "Intel i9-13900HX"
+	cpu.TokensPerSecond = 270.5
+	put(t, doc, cpu)
+
+	if !doc.remove("text/cuda/amd64/rtx-4070") {
+		t.Fatal("remove did not find the section")
+	}
+	if err := doc.buildTables(); err != nil {
+		t.Fatal(err)
+	}
+
+	out := doc.String()
+	if strings.Contains(out, "text/cuda/amd64/rtx-4070") {
+		t.Errorf("the section is still there:\n%s", out)
+	}
+	if strings.Contains(out, "842.5") {
+		t.Errorf("the row is still there:\n%s", out)
+	}
+	if rows := tableRowsOf(out); len(rows) != 1 || !strings.HasPrefix(rows[0], "| CPU |") {
+		t.Errorf("the other row went away too: %v", rows)
+	}
+	if doc.remove("text/cuda/amd64/rtx-4070") {
+		t.Error("remove found a section that is not there")
+	}
+}
+
+func TestParseBenchmarkTakesTheLlamaCppTag(t *testing.T) {
+	result, err := parseBenchmark("goarch: wasm\nllama.cpp: b10964\nBenchmarkInference-1\t1\t1 ns/op\t13.8 tokens/s\nPASS\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.llamaCPP != "b10964" {
+		t.Errorf("llama.cpp = %q, want b10964", result.llamaCPP)
+	}
+}
+
+func TestMetaNeedsTheLlamaCppTag(t *testing.T) {
+	m := cudaMeta()
+	m.LlamaCPP = ""
+	if err := m.validate(); err == nil {
+		t.Error("a section without the tag of the build must give an error")
+	}
+}
+
 func TestMetaNeedsEveryPartOfTheKey(t *testing.T) {
 	m := cudaMeta()
 	m.Machine = ""
