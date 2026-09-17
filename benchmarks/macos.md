@@ -15,17 +15,16 @@ The code is [pkg/llama/benchmark_test.go](../pkg/llama/benchmark_test.go).
 <!-- yzma:bench table text -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
-| CPU | arm64 | Apple M4 Pro | - | 774.2 | b10964 | 2026-09-16 |
-| Metal | arm64 | Apple M4 Max with 128 GB RAM | - | 577.1 | unknown | unknown |
-| blas | arm64 | Apple M4 Pro | BLAS | 505.6 | b10964 | 2026-09-16 |
-| mtl | arm64 | Apple M4 Pro | MTL0 | 511.4 | b10964 | 2026-09-16 |
+| CPU | arm64 | Apple M4 Pro | - | 779.0 | b10964 | 2026-09-17 |
+| blas | arm64 | Apple M4 Pro | BLAS | 505.0 | b10964 | 2026-09-17 |
+| mtl | arm64 | Apple M4 Pro | MTL0 | 513.3 | b10964 | 2026-09-17 |
 <!-- yzma:bench table end text -->
 
 <!-- yzma:bench start text/cpu/arm64/rons-macbook-pro -->
 ### CPU, arm64, Apple M4 Pro
-<!-- yzma:bench meta {"suite":"text","backend":"cpu","arch":"arm64","machine":"rons-macbook-pro","label":"Apple M4 Pro","cpu":"Apple M4 Pro","tokens_per_second":774.2,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-16"} -->
+<!-- yzma:bench meta {"suite":"text","backend":"cpu","arch":"arm64","machine":"rons-macbook-pro","label":"Apple M4 Pro","cpu":"Apple M4 Pro","tokens_per_second":779,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-17"} -->
 
-Apple M4 Pro. 774.2 tokens a second.
+Apple M4 Pro. 779.0 tokens a second.
 
 <details><summary>The output of go test</summary>
 
@@ -35,49 +34,23 @@ goos: darwin
 goarch: arm64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: Apple M4 Pro
-BenchmarkInference-14    	     304	  38703800 ns/op	       775.1 tokens/s
-BenchmarkInference-14    	     308	  38747342 ns/op	       774.2 tokens/s
-BenchmarkInference-14    	     290	  40030109 ns/op	       749.4 tokens/s
-BenchmarkInference-14    	     312	  39050762 ns/op	       768.2 tokens/s
-BenchmarkInference-14    	     312	  38369717 ns/op	       781.9 tokens/s
+BenchmarkInference-14    	     310	  38499938 ns/op	       779.2 tokens/s
+BenchmarkInference-14    	     310	  38483170 ns/op	       779.6 tokens/s
+BenchmarkInference-14    	     309	  38537063 ns/op	       778.5 tokens/s
+BenchmarkInference-14    	     307	  38666246 ns/op	       775.9 tokens/s
+BenchmarkInference-14    	     310	  38509962 ns/op	       779.0 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	75.340s
+ok  	github.com/hybridgroup/yzma/pkg/llama	61.601s
 ```
 
 </details>
 <!-- yzma:bench end text/cpu/arm64/rons-macbook-pro -->
 
-<!-- yzma:bench start text/metal/arm64/m4-max -->
-### Metal, arm64, Apple M4 Max with 128 GB RAM
-<!-- yzma:bench meta {"suite":"text","backend":"metal","arch":"arm64","machine":"m4-max","label":"Apple M4 Max with 128 GB RAM","cpu":"Apple M4 Max","tokens_per_second":577.1} -->
-
-Apple M4 Max. 577.1 tokens a second.
-
-<details><summary>The output of go test</summary>
-
-```
-$ go test -run none -benchtime=10s -count=5 -bench BenchmarkInference -nctx=16000
-goos: darwin
-goarch: arm64
-pkg: github.com/hybridgroup/yzma/pkg/llama
-cpu: Apple M4 Max
-BenchmarkInference-16	  230		52168178 ns/op	575.1 tokens/s
-BenchmarkInference-16	  234		51482815 ns/op	582.7 tokens/s
-BenchmarkInference-16	  230		51729562 ns/op	579.9 tokens/s
-BenchmarkInference-16	  230		52075140 ns/op	576.1 tokens/s
-BenchmarkInference-16	  230		51981549 ns/op	577.1 tokens/s
-PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	62.042s
-```
-
-</details>
-<!-- yzma:bench end text/metal/arm64/m4-max -->
-
 <!-- yzma:bench start text/blas/arm64/rons-macbook-pro/blas -->
 ### blas, arm64, Apple M4 Pro, BLAS
-<!-- yzma:bench meta {"suite":"text","backend":"blas","arch":"arm64","machine":"rons-macbook-pro","device":"BLAS","label":"Apple M4 Pro","cpu":"Apple M4 Pro","tokens_per_second":505.6,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-16"} -->
+<!-- yzma:bench meta {"suite":"text","backend":"blas","arch":"arm64","machine":"rons-macbook-pro","device":"BLAS","label":"Apple M4 Pro","cpu":"Apple M4 Pro","tokens_per_second":505,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-17"} -->
 
-Apple M4 Pro. 505.6 tokens a second.
+Apple M4 Pro. 505.0 tokens a second.
 
 <details><summary>The output of go test</summary>
 
@@ -87,13 +60,13 @@ goos: darwin
 goarch: arm64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: Apple M4 Pro
-BenchmarkInference-14    	     201	  59307228 ns/op	       505.8 tokens/s
-BenchmarkInference-14    	     201	  59297460 ns/op	       505.9 tokens/s
-BenchmarkInference-14    	     200	  59531441 ns/op	       503.9 tokens/s
-BenchmarkInference-14    	     201	  59513729 ns/op	       504.1 tokens/s
-BenchmarkInference-14    	     201	  59336192 ns/op	       505.6 tokens/s
+BenchmarkInference-14    	     201	  59410262 ns/op	       505.0 tokens/s
+BenchmarkInference-14    	     201	  59402231 ns/op	       505.0 tokens/s
+BenchmarkInference-14    	     201	  59387807 ns/op	       505.2 tokens/s
+BenchmarkInference-14    	     200	  59606867 ns/op	       503.3 tokens/s
+BenchmarkInference-14    	     201	  59414071 ns/op	       504.9 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	63.289s
+ok  	github.com/hybridgroup/yzma/pkg/llama	63.428s
 ```
 
 </details>
@@ -101,9 +74,9 @@ ok  	github.com/hybridgroup/yzma/pkg/llama	63.289s
 
 <!-- yzma:bench start text/mtl/arm64/rons-macbook-pro/mtl0 -->
 ### mtl, arm64, Apple M4 Pro, MTL0
-<!-- yzma:bench meta {"suite":"text","backend":"mtl","arch":"arm64","machine":"rons-macbook-pro","device":"MTL0","label":"Apple M4 Pro","cpu":"Apple M4 Pro","tokens_per_second":511.4,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-16"} -->
+<!-- yzma:bench meta {"suite":"text","backend":"mtl","arch":"arm64","machine":"rons-macbook-pro","device":"MTL0","label":"Apple M4 Pro","cpu":"Apple M4 Pro","tokens_per_second":513.3,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-17"} -->
 
-Apple M4 Pro. 511.4 tokens a second.
+Apple M4 Pro. 513.3 tokens a second.
 
 <details><summary>The output of go test</summary>
 
@@ -113,13 +86,13 @@ goos: darwin
 goarch: arm64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: Apple M4 Pro
-BenchmarkInference-14    	     195	  59304356 ns/op	       505.9 tokens/s
-BenchmarkInference-14    	     204	  58668166 ns/op	       511.4 tokens/s
-BenchmarkInference-14    	     204	  58475187 ns/op	       513.0 tokens/s
-BenchmarkInference-14    	     205	  58465505 ns/op	       513.1 tokens/s
-BenchmarkInference-14    	     204	  58811355 ns/op	       510.1 tokens/s
+BenchmarkInference-14    	     204	  58431832 ns/op	       513.4 tokens/s
+BenchmarkInference-14    	     205	  58444535 ns/op	       513.3 tokens/s
+BenchmarkInference-14    	     205	  58494539 ns/op	       512.9 tokens/s
+BenchmarkInference-14    	     205	  58190734 ns/op	       515.5 tokens/s
+BenchmarkInference-14    	     204	  58708515 ns/op	       511.0 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	75.849s
+ok  	github.com/hybridgroup/yzma/pkg/llama	75.834s
 ```
 
 </details>
@@ -128,25 +101,24 @@ ok  	github.com/hybridgroup/yzma/pkg/llama	75.849s
 ## Multimodal model benchmarks
 
 The model is
-[Qwen3-VL-2B-Instruct.Q4_K_M.gguf](https://huggingface.co/mradermacher/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3-VL-2B-Instruct.Q4_K_M.gguf)
+[SmolVLM-256M-Instruct-Q8_0.gguf](https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF/resolve/main/SmolVLM-256M-Instruct-Q8_0.gguf)
 with its
-[projector](https://huggingface.co/mradermacher/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3-VL-2B-Instruct.mmproj-Q8_0.gguf).
+[projector](https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF/resolve/main/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf).
 The code is [pkg/mtmd/benchmark_test.go](../pkg/mtmd/benchmark_test.go).
 
 <!-- yzma:bench table multimodal -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
-| CPU | arm64 | Apple M4 Pro | - | 102.4 | b10964 | 2026-09-16 |
-| Metal | arm64 | Apple M4 Max with 128 GB RAM | - | 771.9 | unknown | unknown |
-| blas | arm64 | Apple M4 Pro | BLAS | 159.9 | b10964 | 2026-09-16 |
-| mtl | arm64 | Apple M4 Pro | MTL0 | 472.5 | b10964 | 2026-09-16 |
+| CPU | arm64 | Apple M4 Pro | - | 799.4 | b10964 | 2026-09-17 |
+| blas | arm64 | Apple M4 Pro | BLAS | 701.1 | b10964 | 2026-09-17 |
+| mtl | arm64 | Apple M4 Pro | MTL0 | 1085.0 | b10964 | 2026-09-17 |
 <!-- yzma:bench table end multimodal -->
 
 <!-- yzma:bench start multimodal/cpu/arm64/rons-macbook-pro -->
 ### CPU, arm64, Apple M4 Pro
-<!-- yzma:bench meta {"suite":"multimodal","backend":"cpu","arch":"arm64","machine":"rons-macbook-pro","label":"Apple M4 Pro","cpu":"Apple M4 Pro","tokens_per_second":102.4,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-16"} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"cpu","arch":"arm64","machine":"rons-macbook-pro","label":"Apple M4 Pro","cpu":"Apple M4 Pro","tokens_per_second":799.4,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-17"} -->
 
-Apple M4 Pro. 102.4 tokens a second.
+Apple M4 Pro. 799.4 tokens a second.
 
 <details><summary>The output of go test</summary>
 
@@ -156,49 +128,23 @@ goos: darwin
 goarch: arm64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: Apple M4 Pro
-BenchmarkMultimodalInference-14    	       2	10843545958 ns/op	       106.5 tokens/s
-BenchmarkMultimodalInference-14    	       1	11664156459 ns/op	       103.9 tokens/s
-BenchmarkMultimodalInference-14    	       1	12752652167 ns/op	        99.82 tokens/s
-BenchmarkMultimodalInference-14    	       1	12370603583 ns/op	       101.1 tokens/s
-BenchmarkMultimodalInference-14    	       1	12070906000 ns/op	       102.4 tokens/s
+BenchmarkMultimodalInference-14    	      40	 291283828 ns/op	       802.0 tokens/s
+BenchmarkMultimodalInference-14    	      37	 291033359 ns/op	       800.2 tokens/s
+BenchmarkMultimodalInference-14    	      38	 292351040 ns/op	       799.4 tokens/s
+BenchmarkMultimodalInference-14    	      37	 292761112 ns/op	       797.2 tokens/s
+BenchmarkMultimodalInference-14    	      40	 292947904 ns/op	       798.5 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/mtmd	76.389s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	62.001s
 ```
 
 </details>
 <!-- yzma:bench end multimodal/cpu/arm64/rons-macbook-pro -->
 
-<!-- yzma:bench start multimodal/metal/arm64/m4-max -->
-### Metal, arm64, Apple M4 Max with 128 GB RAM
-<!-- yzma:bench meta {"suite":"multimodal","backend":"metal","arch":"arm64","machine":"m4-max","label":"Apple M4 Max with 128 GB RAM","cpu":"Apple M4 Max","tokens_per_second":771.9} -->
-
-Apple M4 Max. 771.9 tokens a second.
-
-<details><summary>The output of go test</summary>
-
-```
-$ go test -run none -benchtime=10s -count=5 -bench BenchmarkMultimodalInference -nctx=16000
-goos: darwin
-goarch: arm64
-pkg: github.com/hybridgroup/yzma/pkg/mtmd
-cpu: Apple M4 Max
-BenchmarkMultimodalInference-16		10		1577948683 ns/op	788.9 tokens/s
-BenchmarkMultimodalInference-16		12		1243692014 ns/op	910.8 tokens/s
-BenchmarkMultimodalInference-16		 7		1654741804 ns/op	737.2 tokens/s
-BenchmarkMultimodalInference-16		 7		1568106947 ns/op	771.9 tokens/s
-BenchmarkMultimodalInference-16		10		1704669371 ns/op	706.1 tokens/s
-PASS
-ok  	github.com/hybridgroup/yzma/pkg/mtmd	76.644s
-```
-
-</details>
-<!-- yzma:bench end multimodal/metal/arm64/m4-max -->
-
 <!-- yzma:bench start multimodal/blas/arm64/rons-macbook-pro/blas -->
 ### blas, arm64, Apple M4 Pro, BLAS
-<!-- yzma:bench meta {"suite":"multimodal","backend":"blas","arch":"arm64","machine":"rons-macbook-pro","device":"BLAS","label":"Apple M4 Pro","cpu":"Apple M4 Pro","tokens_per_second":159.9,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-16"} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"blas","arch":"arm64","machine":"rons-macbook-pro","device":"BLAS","label":"Apple M4 Pro","cpu":"Apple M4 Pro","tokens_per_second":701.1,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-17"} -->
 
-Apple M4 Pro. 159.9 tokens a second.
+Apple M4 Pro. 701.1 tokens a second.
 
 <details><summary>The output of go test</summary>
 
@@ -208,13 +154,13 @@ goos: darwin
 goarch: arm64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: Apple M4 Pro
-BenchmarkMultimodalInference-14    	       2	8038776146 ns/op	       149.6 tokens/s
-BenchmarkMultimodalInference-14    	       2	8820003708 ns/op	       138.8 tokens/s
-BenchmarkMultimodalInference-14    	       2	7393613646 ns/op	       159.9 tokens/s
-BenchmarkMultimodalInference-14    	       2	7075656958 ns/op	       165.5 tokens/s
-BenchmarkMultimodalInference-14    	       2	6736491521 ns/op	       172.0 tokens/s
+BenchmarkMultimodalInference-14    	      34	 331062126 ns/op	       701.1 tokens/s
+BenchmarkMultimodalInference-14    	      32	 329820315 ns/op	       702.0 tokens/s
+BenchmarkMultimodalInference-14    	      32	 322404771 ns/op	       708.9 tokens/s
+BenchmarkMultimodalInference-14    	      31	 331453765 ns/op	       701.0 tokens/s
+BenchmarkMultimodalInference-14    	      32	 332634116 ns/op	       700.8 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/mtmd	82.167s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	59.361s
 ```
 
 </details>
@@ -222,9 +168,9 @@ ok  	github.com/hybridgroup/yzma/pkg/mtmd	82.167s
 
 <!-- yzma:bench start multimodal/mtl/arm64/rons-macbook-pro/mtl0 -->
 ### mtl, arm64, Apple M4 Pro, MTL0
-<!-- yzma:bench meta {"suite":"multimodal","backend":"mtl","arch":"arm64","machine":"rons-macbook-pro","device":"MTL0","label":"Apple M4 Pro","cpu":"Apple M4 Pro","tokens_per_second":472.5,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-16"} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"mtl","arch":"arm64","machine":"rons-macbook-pro","device":"MTL0","label":"Apple M4 Pro","cpu":"Apple M4 Pro","tokens_per_second":1085,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-17"} -->
 
-Apple M4 Pro. 472.5 tokens a second.
+Apple M4 Pro. 1085.0 tokens a second.
 
 <details><summary>The output of go test</summary>
 
@@ -234,13 +180,13 @@ goos: darwin
 goarch: arm64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: Apple M4 Pro
-BenchmarkMultimodalInference-14    	       4	2853429073 ns/op	       431.6 tokens/s
-BenchmarkMultimodalInference-14    	       4	2597057125 ns/op	       466.4 tokens/s
-BenchmarkMultimodalInference-14    	       6	2253171528 ns/op	       516.7 tokens/s
-BenchmarkMultimodalInference-14    	       6	1960910243 ns/op	       572.8 tokens/s
-BenchmarkMultimodalInference-14    	       4	2549525906 ns/op	       472.5 tokens/s
+BenchmarkMultimodalInference-14    	      55	 216544326 ns/op	      1077 tokens/s
+BenchmarkMultimodalInference-14    	      49	 210986187 ns/op	      1099 tokens/s
+BenchmarkMultimodalInference-14    	      48	 215437464 ns/op	      1085 tokens/s
+BenchmarkMultimodalInference-14    	      49	 210890504 ns/op	      1100 tokens/s
+BenchmarkMultimodalInference-14    	      49	 217819764 ns/op	      1077 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/mtmd	63.945s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	59.926s
 ```
 
 </details>
