@@ -24,8 +24,8 @@ download-models:
 download-benchmark-models:
 	mkdir -p $(MODELS_DIR)
 	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf
-	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/mradermacher/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3-VL-2B-Instruct.Q4_K_M.gguf
-	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/mradermacher/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3-VL-2B-Instruct.mmproj-Q8_0.gguf
+	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF/resolve/main/SmolVLM-256M-Instruct-Q8_0.gguf
+	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF/resolve/main/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf
 
 clean-llama.cpp:
 	rm -rf $(YZMA_LIB)/*

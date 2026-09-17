@@ -54,8 +54,8 @@ done
 MODELS_DIR=${MODELS_DIR:-$HOME/models}
 export YZMA_LIB=${YZMA_LIB:-$root/lib}
 export YZMA_BENCHMARK_MODEL=${YZMA_BENCHMARK_MODEL:-$MODELS_DIR/SmolLM-135M.Q2_K.gguf}
-export YZMA_BENCHMARK_MMMODEL=${YZMA_BENCHMARK_MMMODEL:-$MODELS_DIR/Qwen3-VL-2B-Instruct.Q4_K_M.gguf}
-export YZMA_BENCHMARK_MMPROJ=${YZMA_BENCHMARK_MMPROJ:-$MODELS_DIR/Qwen3-VL-2B-Instruct.mmproj-Q8_0.gguf}
+export YZMA_BENCHMARK_MMMODEL=${YZMA_BENCHMARK_MMMODEL:-$MODELS_DIR/SmolVLM-256M-Instruct-Q8_0.gguf}
+export YZMA_BENCHMARK_MMPROJ=${YZMA_BENCHMARK_MMPROJ:-$MODELS_DIR/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf}
 
 WASM_DIR=${WASM_DIR:-$root/build/wasm}
 work=$(mktemp -d)
@@ -70,6 +70,22 @@ esac
 # jsonValue takes one value of a flat JSON file, thus the script needs no jq.
 jsonValue() {
   sed -n 's/.*"'"$2"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$1" 2>/dev/null | head -1
+}
+
+# installTag gives the llama.cpp build of a library directory. A nightly build
+# has no upstream_tag, because its own tag names the assets.
+installTag() {
+  local record=$1/yzma-install.json
+  if [ ! -f "$record" ]; then
+    return 0
+  fi
+
+  local tag
+  tag=$(jsonValue "$record" upstream_tag)
+  if [ -z "$tag" ]; then
+    tag=$(jsonValue "$record" tag)
+  fi
+  echo "$tag"
 }
 
 if [ -z "$machine" ]; then
@@ -164,8 +180,12 @@ runWasm() {
   file=benchmarks/webassembly.md
   # The WebAssembly modules come from their own install, thus the tag of the
   # native library does not apply here.
-  if [ -z "$llamacpp" ] && [ -f "$WASM_DIR/yzma-install.json" ]; then
-    llamacpp=$(jsonValue "$WASM_DIR/yzma-install.json" upstream_tag)
+  if [ -z "$llamacpp" ]; then
+    llamacpp=$(installTag "$WASM_DIR")
+  fi
+  if [ -z "$llamacpp" ]; then
+    echo "no tag of the llama.cpp build, run make download-llama.cpp-wasm or give --llamacpp" >&2
+    exit 2
   fi
   if [ ! -f "$WASM_DIR/yzma.wasm" ]; then
     echo "no build in $WASM_DIR, run make download-llama.cpp-wasm and make wasm-example" >&2
@@ -200,8 +220,12 @@ if [ "$backends" = wasm ]; then
   exit 0
 fi
 
-if [ -z "$llamacpp" ] && [ -f "$YZMA_LIB/yzma-install.json" ]; then
-  llamacpp=$(jsonValue "$YZMA_LIB/yzma-install.json" upstream_tag)
+if [ -z "$llamacpp" ]; then
+  llamacpp=$(installTag "$YZMA_LIB")
+fi
+if [ -z "$llamacpp" ]; then
+  echo "no tag of the llama.cpp build, run make download-llama.cpp or give --llamacpp" >&2
+  exit 2
 fi
 
 if [ ! -f "$YZMA_BENCHMARK_MODEL" ]; then
@@ -215,6 +239,11 @@ go run . system -lib "$YZMA_LIB" > "$devices"
 
 if [ -z "$label" ]; then
   label=$(awk '/Backend:[[:space:]]*CPU/{found=1} found && /Description:/{sub(/.*Description:[[:space:]]*/,""); print; exit}' "$devices")
+  # Some builds give "CPU" as the description, which is no name for a machine.
+  # A board gives its name in the device tree.
+  if [ -z "$label" ] || [ "$label" = CPU ]; then
+    label=$(tr -d '\000' < /proc/device-tree/model 2>/dev/null || true)
+  fi
   if [ -z "$label" ]; then
     label=$machine
   fi

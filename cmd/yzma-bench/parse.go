@@ -11,6 +11,7 @@ import (
 type benchmarkResult struct {
 	arch            string
 	cpu             string
+	llamaCPP        string
 	runs            []float64
 	tokensPerSecond float64
 }
@@ -28,6 +29,10 @@ func parseBenchmark(raw string) (benchmarkResult, error) {
 			result.arch = strings.TrimSpace(strings.TrimPrefix(line, "goarch:"))
 		case strings.HasPrefix(line, "cpu:"):
 			result.cpu = strings.TrimSpace(strings.TrimPrefix(line, "cpu:"))
+		// The WebAssembly benchmarks put the tag of their build in the output,
+		// because it does not come from the library directory of the machine.
+		case strings.HasPrefix(line, "llama.cpp:"):
+			result.llamaCPP = strings.TrimSpace(strings.TrimPrefix(line, "llama.cpp:"))
 		case strings.HasPrefix(line, "PASS"):
 			passed = true
 		case strings.HasPrefix(line, "Benchmark"):

@@ -11,7 +11,8 @@
 // WebGPU build, which Node does not have, thus it falls back to the CPU.
 //
 // The tokens a second come from the Go side, which times the loop of decode
-// and sample. A browser shows the same value.
+// and sample. A browser shows the same value. The output also gives the
+// llama.cpp build, which comes from yzma-install.json of the directory.
 
 const fs = require("node:fs");
 const os = require("node:os");
@@ -46,6 +47,19 @@ if (webgpu) {
 if (!modelFile) {
   console.error("give a model with --model");
   process.exit(2);
+}
+
+// installTag gives the llama.cpp build of the WebAssembly install. A nightly
+// build has no upstream_tag, because its own tag names the assets.
+function installTag(dir) {
+  try {
+    const record = JSON.parse(
+      fs.readFileSync(path.join(dir, "yzma-install.json"), "utf8"),
+    );
+    return record.upstream_tag || record.tag || "";
+  } catch {
+    return "";
+  }
 }
 
 let programIsReady;
@@ -168,6 +182,10 @@ async function main() {
     "cpu: " + os.cpus()[0].model,
     "backend: " + globalThis.yzmaBackend + ", " + threads + " thread(s)",
   ];
+  const tag = installTag(dir);
+  if (tag) {
+    lines.push("llama.cpp: " + tag);
+  }
   for (const run of runs) {
     const nsPerOp = Math.round((run.tokens / run.rate) * 1e9);
     lines.push(
