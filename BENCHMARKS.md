@@ -9,6 +9,12 @@ yzma benchmarks, one file for each platform.
 | Windows | [benchmarks/windows.md](benchmarks/windows.md) |
 | WebAssembly | [benchmarks/webassembly.md](benchmarks/webassembly.md) |
 
+yzma against a model server, on one machine.
+
+| Comparison | Numbers |
+| --- | --- |
+| yzma, ollama, Docker Model Runner | [benchmarks/comparison.md](benchmarks/comparison.md) |
+
 Each file has a table for each suite, with the median of five runs, and the
 output of each run below the tables.
 
@@ -21,5 +27,6 @@ make download-benchmark-models
 ```
 
 The benchmark code is in
-[pkg/llama/benchmark_test.go](pkg/llama/benchmark_test.go) and
-[pkg/mtmd/benchmark_test.go](pkg/mtmd/benchmark_test.go).
+[pkg/llama/benchmark_test.go](pkg/llama/benchmark_test.go),
+[pkg/mtmd/benchmark_test.go](pkg/mtmd/benchmark_test.go) and
+[benchmarks/compare](benchmarks/compare).

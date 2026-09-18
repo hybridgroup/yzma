@@ -20,11 +20,24 @@ func renderSection(m meta, notes, device, output string) string {
 	if m.Device != "" {
 		heading += ", " + m.Device
 	}
+	if m.Model != "" {
+		heading += ", " + m.Model
+	}
 	fmt.Fprintf(&b, "%s\n", heading)
 	fmt.Fprintf(&b, "%s%s%s\n\n", markerMeta, encoded, markerClose)
 
 	if m.CPU != "" {
-		fmt.Fprintf(&b, "%s. %s tokens a second.\n\n", m.CPU, formatRate(m.TokensPerSecond))
+		fmt.Fprintf(&b, "%s. %s tokens a second.", m.CPU, formatRate(m.TokensPerSecond))
+		if m.TTFTMs != 0 {
+			fmt.Fprintf(&b, " %s ms to the first token.", formatRate(m.TTFTMs))
+		}
+		if m.TotalMs != 0 {
+			fmt.Fprintf(&b, " %s ms for a request.", formatRate(m.TotalMs))
+		}
+		if m.PromptTokens != 0 {
+			fmt.Fprintf(&b, " %s prompt tokens.", formatCount(m.PromptTokens))
+		}
+		b.WriteString("\n\n")
 	}
 	if notes != "" {
 		fmt.Fprintf(&b, "%s\n\n", notes)

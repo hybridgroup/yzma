@@ -53,13 +53,15 @@ check verifies that the tables agree with the sections.
 func runUpdate(args []string) error {
 	fs := flag.NewFlagSet("update", flag.ExitOnError)
 	file := fs.String("file", "", "markdown file of the platform")
-	suite := fs.String("suite", "", "suite of the benchmark (text, multimodal)")
-	backend := fs.String("backend", "", "backend (cpu, cuda, rocm, vulkan, metal, webgpu)")
+	suite := fs.String("suite", "", "suite of the benchmark (text, multimodal, compare)")
+	backend := fs.String("backend", "", "backend (cpu, cuda, rocm, vulkan, metal, webgpu) or engine (yzma, ollama, dmr)")
 	arch := fs.String("arch", "", "architecture, empty to take goarch from the output")
 	machine := fs.String("machine", "", "short name of the machine, used in the key")
 	device := fs.String("device", "", "device of the run, as go test takes it (CUDA0, VULKAN1)")
+	model := fs.String("model", "", "short name of the model, needed by the comparison suite")
 	label := fs.String("label", "", "name of the machine to show, empty to take the short name")
 	llamacpp := fs.String("llamacpp", "", "tag of the llama.cpp build")
+	engineVersion := fs.String("engine-version", "", "release of the engine, for the comparison suite")
 	yzma := fs.String("yzma", "", "version of yzma")
 	date := fs.String("date", "", "date of the run, today when the flag is not there")
 	output := fs.String("output", "-", "file with the output of go test, - for stdin")
@@ -111,10 +113,15 @@ func runUpdate(args []string) error {
 		Arch:            firstOf(*arch, result.arch),
 		Machine:         *machine,
 		Device:          *device,
+		Model:           *model,
 		Label:           firstOf(*label, *machine),
 		CPU:             result.cpu,
 		TokensPerSecond: result.tokensPerSecond,
+		TTFTMs:          result.ttftMs,
+		TotalMs:         result.totalMs,
+		PromptTokens:    result.promptTokens,
 		LlamaCPP:        firstOf(*llamacpp, result.llamaCPP),
+		EngineVersion:   *engineVersion,
 		Yzma:            *yzma,
 		Date:            *date,
 	}

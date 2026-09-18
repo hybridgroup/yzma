@@ -14,6 +14,9 @@ var backendNames = map[string]string{
 	"rocm":        "ROCm",
 	"vulkan":      "Vulkan",
 	"webgpu":      "WebGPU",
+	"yzma":        "yzma, in process",
+	"ollama":      "ollama, REST",
+	"dmr":         "Docker Model Runner, REST",
 }
 
 func backendName(backend string) string {
@@ -87,6 +90,13 @@ func (d *document) tableRows(suite string) []string {
 		"| Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |",
 		"| --- | --- | --- | --- | --- | --- | --- |",
 	}
+	if isCompare(suite) {
+		rows = []string{
+			"| Engine | Arch | Machine | Model | Prompt tokens | Tokens a second | First token ms | Request ms | Version | Date |",
+			"| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+		}
+	}
+
 	for _, s := range d.sections() {
 		if s.meta.Suite != suite {
 			continue
@@ -103,6 +113,14 @@ func tableRow(m meta) string {
 		label = m.Machine
 	}
 
+	if isCompare(m.Suite) {
+		return fmt.Sprintf("| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |",
+			backendName(m.Backend), m.Arch, label, orUnknown(m.Model),
+			formatCount(m.PromptTokens),
+			formatRate(m.TokensPerSecond), formatRate(m.TTFTMs), formatRate(m.TotalMs),
+			orUnknown(m.version()), orUnknown(m.Date))
+	}
+
 	device := m.Device
 	if device == "" {
 		device = "-"
@@ -111,6 +129,15 @@ func tableRow(m meta) string {
 	return fmt.Sprintf("| %s | %s | %s | %s | %s | %s | %s |",
 		backendName(m.Backend), m.Arch, label, device,
 		formatRate(m.TokensPerSecond), orUnknown(m.LlamaCPP), orUnknown(m.Date))
+}
+
+// formatCount shows a count of tokens, which is a whole number.
+func formatCount(value float64) string {
+	if value == 0 {
+		return "unknown"
+	}
+
+	return fmt.Sprintf("%.0f", value)
 }
 
 func formatRate(value float64) string {
