@@ -247,10 +247,129 @@ func TestMetaNeedsEveryPartOfTheKey(t *testing.T) {
 func tableRowsOf(out string) []string {
 	var rows []string
 	for _, line := range strings.Split(out, "\n") {
-		if strings.HasPrefix(line, "| ") && !strings.HasPrefix(line, "| Backend") && !strings.HasPrefix(line, "| ---") {
+		if strings.HasPrefix(line, "| ") && !strings.HasPrefix(line, "| Backend") &&
+			!strings.HasPrefix(line, "| Engine") && !strings.HasPrefix(line, "| ---") {
 			rows = append(rows, line)
 		}
 	}
 
 	return rows
+}
+
+func compareMeta() meta {
+	return meta{
+		Suite: suiteCompareMultimodal, Backend: "yzma", Arch: "amd64", Machine: "rtx-4070",
+		Model: "qwen3-vl-4b", Label: "NVIDIA GeForce RTX 4070", CPU: "Intel i9-13900HX",
+		TokensPerSecond: 212.4, TTFTMs: 31.2, TotalMs: 144.9, PromptTokens: 706,
+		LlamaCPP: "b10964", Yzma: "1.27.0", Date: "2026-09-18",
+	}
+}
+
+func TestParseBenchmarkTakesEveryMetric(t *testing.T) {
+	result, err := parseBenchmark(readTestdata(t, "compare-ollama.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.tokensPerSecond != 58.3 {
+		t.Errorf("tokens/s = %v, want 58.3", result.tokensPerSecond)
+	}
+	if result.ttftMs != 93.6 {
+		t.Errorf("ttft_ms = %v, want 93.6", result.ttftMs)
+	}
+	if result.totalMs != 411.6 {
+		t.Errorf("total_ms = %v, want 411.6", result.totalMs)
+	}
+	// The count of the prompt tokens says if the engines do the same work.
+	if result.promptTokens != 215 {
+		t.Errorf("prompt_tokens = %v, want 215", result.promptTokens)
+	}
+}
+
+// The suites that came before report tokens/s only, thus the new metrics stay
+// empty and the parser must not fail.
+func TestParseBenchmarkWithoutTheNewMetrics(t *testing.T) {
+	result, err := parseBenchmark(readTestdata(t, "text-cuda.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.ttftMs != 0 || result.totalMs != 0 {
+		t.Errorf("ttft_ms = %v, total_ms = %v, want 0 and 0", result.ttftMs, result.totalMs)
+	}
+}
+
+func TestCompareSuiteWritesItsOwnTable(t *testing.T) {
+	doc := newDocument(t)
+	put(t, doc, compareMeta())
+
+	out := doc.String()
+	if !strings.Contains(out, markerStart+"compare-multimodal/yzma/amd64/rtx-4070/qwen3-vl-4b"+markerClose) {
+		t.Errorf("the section is not there:\n%s", out)
+	}
+
+	want := "| yzma, in process | amd64 | NVIDIA GeForce RTX 4070 | qwen3-vl-4b | 706 | 212.4 | 31.2 | 144.9 | b10964 | 2026-09-18 |"
+	if !strings.Contains(out, want) {
+		t.Errorf("the table row is not there:\n%s", out)
+	}
+	if !strings.Contains(out, "| Engine | Arch | Machine | Model | Prompt tokens |") {
+		t.Errorf("the comparison table has the wrong header:\n%s", out)
+	}
+}
+
+func TestCompareSuitePutsTheEnginesOfOneModelTogether(t *testing.T) {
+	doc := newDocument(t)
+
+	dmr := compareMeta()
+	dmr.Backend = "dmr"
+	dmr.EngineVersion = "v0.1.44"
+	dmr.LlamaCPP = ""
+	dmr.TokensPerSecond = 51.0
+	put(t, doc, dmr)
+
+	put(t, doc, compareMeta())
+
+	other := compareMeta()
+	other.Model = "gemma4-e4b"
+	other.TokensPerSecond = 180.2
+	put(t, doc, other)
+
+	rows := tableRowsOf(doc.String())
+	if len(rows) != 3 {
+		t.Fatalf("the table has %d rows, want 3: %v", len(rows), rows)
+	}
+	if !strings.Contains(rows[0], "gemma4-e4b") {
+		t.Errorf("the models are in the wrong order: %v", rows)
+	}
+	// yzma comes before dmr inside one model.
+	if !strings.Contains(rows[1], "yzma") || !strings.Contains(rows[2], "Docker Model Runner") {
+		t.Errorf("the engines are in the wrong order: %v", rows)
+	}
+}
+
+// A model server has no llama.cpp tag of ours, thus the release of the engine
+// takes that place.
+func TestCompareSuiteTakesTheReleaseOfTheEngine(t *testing.T) {
+	m := compareMeta()
+	m.Backend = "ollama"
+	m.LlamaCPP = ""
+	if err := m.validate(); err == nil {
+		t.Error("a comparison section without a version must give an error")
+	}
+
+	m.EngineVersion = "0.17.2"
+	if err := m.validate(); err != nil {
+		t.Errorf("the release of the engine must be enough: %v", err)
+	}
+	if !strings.Contains(tableRow(m), "0.17.2") {
+		t.Errorf("the table does not show the release: %s", tableRow(m))
+	}
+}
+
+func TestCompareSuiteNeedsAModel(t *testing.T) {
+	m := compareMeta()
+	m.Model = ""
+	if err := m.validate(); err == nil {
+		t.Error("a comparison section without a model must give an error")
+	}
 }

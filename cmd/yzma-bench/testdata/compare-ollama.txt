@@ -1,0 +1,12 @@
+$ go test -benchtime=10x -count=5 -run=nada -bench BenchmarkCompare -engine=ollama -suite=multimodal ./benchmarks/compare
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/benchmarks/compare
+cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
+BenchmarkCompare-32           10         412183940 ns/op              58.2 tokens/s            94.4 ttft_ms           412.2 total_ms           215 prompt_tokens
+BenchmarkCompare-32           10         409911204 ns/op              58.6 tokens/s            92.1 ttft_ms           409.9 total_ms           215 prompt_tokens
+BenchmarkCompare-32           10         414002118 ns/op              57.9 tokens/s            95.8 ttft_ms           414.0 total_ms           215 prompt_tokens
+BenchmarkCompare-32           10         410774553 ns/op              58.4 tokens/s            93.0 ttft_ms           410.8 total_ms           215 prompt_tokens
+BenchmarkCompare-32           10         411558201 ns/op              58.3 tokens/s            93.6 ttft_ms           411.6 total_ms           215 prompt_tokens
+PASS
+ok      github.com/hybridgroup/yzma/benchmarks/compare  22.104s

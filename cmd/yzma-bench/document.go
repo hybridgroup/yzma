@@ -17,6 +17,20 @@ const (
 	markerClose    = " -->"
 )
 
+// The suites that measure yzma against a model server. Their backend field
+// holds the engine, and they report more than one metric.
+const (
+	suiteCompareText       = "compare-text"
+	suiteCompareMultimodal = "compare-multimodal"
+	suiteCompareEmbeddings = "compare-embeddings"
+)
+
+// isCompare says if a suite compares the engines with each other.
+func isCompare(suite string) bool {
+	return suite == suiteCompareText || suite == suiteCompareMultimodal ||
+		suite == suiteCompareEmbeddings
+}
+
 // meta is the machine readable part of a section. The tables come from it.
 type meta struct {
 	Suite           string  `json:"suite"`
@@ -24,23 +38,41 @@ type meta struct {
 	Arch            string  `json:"arch"`
 	Machine         string  `json:"machine"`
 	Device          string  `json:"device,omitempty"`
+	Model           string  `json:"model,omitempty"`
 	Label           string  `json:"label,omitempty"`
 	CPU             string  `json:"cpu,omitempty"`
 	TokensPerSecond float64 `json:"tokens_per_second"`
+	TTFTMs          float64 `json:"ttft_ms,omitempty"`
+	TotalMs         float64 `json:"total_ms,omitempty"`
+	PromptTokens    float64 `json:"prompt_tokens,omitempty"`
 	LlamaCPP        string  `json:"llamacpp,omitempty"`
+	EngineVersion   string  `json:"engine_version,omitempty"`
 	Yzma            string  `json:"yzma,omitempty"`
 	Date            string  `json:"date,omitempty"`
 }
 
 // key names the section. The device is part of it, because one machine can
-// have more than one device of the same backend.
+// have more than one device of the same backend. The model is part of it,
+// because the comparison suite runs more than one model on one machine.
 func (m meta) key() string {
 	parts := []string{m.Suite, m.Backend, m.Arch, m.Machine}
 	if m.Device != "" {
 		parts = append(parts, strings.ToLower(m.Device))
 	}
+	if m.Model != "" {
+		parts = append(parts, strings.ToLower(m.Model))
+	}
 
 	return strings.Join(parts, "/")
+}
+
+// version gives the build or release that made the result.
+func (m meta) version() string {
+	if isCompare(m.Suite) && m.EngineVersion != "" {
+		return m.EngineVersion
+	}
+
+	return m.LlamaCPP
 }
 
 func (m meta) validate() error {
@@ -57,8 +89,22 @@ func (m meta) validate() error {
 	if strings.ContainsAny(m.Device, "/ ") {
 		return fmt.Errorf("the device %q must have no space and no slash", m.Device)
 	}
+	if strings.ContainsAny(m.Model, "/ ") {
+		return fmt.Errorf("the model %q must have no space and no slash", m.Model)
+	}
 	// Each result must say which build made it, or the table cannot compare it
-	// with the others.
+	// with the others. A model server has no llama.cpp tag of ours, thus the
+	// comparison suite takes the release of the engine instead.
+	if isCompare(m.Suite) {
+		if m.Model == "" {
+			return fmt.Errorf("the comparison suite needs a model, give --model")
+		}
+		if m.version() == "" {
+			return fmt.Errorf("the section needs the release of the engine, give --engine-version")
+		}
+
+		return nil
+	}
 	if m.LlamaCPP == "" {
 		return fmt.Errorf("the section needs the tag of the llama.cpp build, give --llamacpp")
 	}
@@ -68,7 +114,10 @@ func (m meta) validate() error {
 
 // backendOrder is the order of the backends in a file. A backend that is not
 // here goes last, in alphabetical order.
-var backendOrder = []string{"cpu", "cpu-threads", "metal", "cuda", "rocm", "vulkan", "webgpu"}
+var backendOrder = []string{
+	"cpu", "cpu-threads", "metal", "cuda", "rocm", "vulkan", "webgpu",
+	"yzma", "ollama", "dmr",
+}
 
 func (m meta) rank() (int, string, string) {
 	i := slices.Index(backendOrder, m.Backend)
@@ -76,12 +125,32 @@ func (m meta) rank() (int, string, string) {
 		i = len(backendOrder)
 	}
 
-	return i, m.Backend + "/" + m.Arch, m.Machine + "/" + m.Device
+	// The comparison suite puts the engines of one model together, because the
+	// table compares them with each other.
+	if isCompare(m.Suite) {
+		return i, m.Model + "/" + m.Machine, m.Arch
+	}
+
+	return i, m.Backend + "/" + m.Arch, m.Machine + "/" + m.Device + "/" + m.Model
 }
 
 func (m meta) less(other meta) bool {
 	ai, ab, am := m.rank()
 	bi, bb, bm := other.rank()
+
+	// The comparison suite sorts by model first, thus one model gives one group
+	// of rows and the engines line up inside it.
+	if isCompare(m.Suite) && isCompare(other.Suite) {
+		switch {
+		case ab != bb:
+			return ab < bb
+		case ai != bi:
+			return ai < bi
+		default:
+			return am < bm
+		}
+	}
+
 	switch {
 	case ai != bi:
 		return ai < bi

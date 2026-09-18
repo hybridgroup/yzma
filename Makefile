@@ -172,6 +172,16 @@ roadmap:
 	@echo "Total checklist items:"
 	@grep -E '^\s*[-*]\s*\[(x| )\]' ROADMAP.md | wc -l
 
+# make download-compare-models to download the models that the comparison
+# benchmarks use. The servers get the same files, see benchmarks/README.md.
+download-compare-models:
+	mkdir -p $(MODELS_DIR)
+	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3VL-2B-Instruct-Q4_K_M.gguf
+	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct-GGUF/resolve/main/mmproj-Qwen3VL-2B-Instruct-Q8_0.gguf
+	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_K_M.gguf
+	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/mmproj-F16.gguf
+	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/ggml-org/bge-small-en-v1.5-Q8_0-GGUF/resolve/main/bge-small-en-v1.5-q8_0.gguf
+
 # make benchmarks to run the benchmarks of this machine and put the result in
 # benchmarks/. Run make download-benchmark-models first. On Windows use
 # benchmarks/run.ps1.
@@ -183,7 +193,12 @@ benchmarks:
 benchmarks-wasm:
 	./benchmarks/run.sh --backend wasm
 
+# make benchmarks-compare to measure yzma against ollama and Docker Model
+# Runner. Run make download-compare-models first, and start both servers.
+benchmarks-compare:
+	./benchmarks/compare.sh
+
 # make check-benchmarks to verify that each table agrees with its sections.
 check-benchmarks:
 	go run ./cmd/yzma-bench check benchmarks/linux.md benchmarks/macos.md \
-		benchmarks/windows.md benchmarks/webassembly.md
+		benchmarks/windows.md benchmarks/webassembly.md benchmarks/comparison.md
