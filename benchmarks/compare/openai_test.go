@@ -22,7 +22,9 @@ data: [DONE]
 `
 
 func TestReadStream(t *testing.T) {
-	result, err := readStream(strings.NewReader(stream), time.Now())
+	// The clock of Windows has a low resolution, thus a start in the past
+	// keeps the times above zero.
+	result, err := readStream(strings.NewReader(stream), time.Now().Add(-time.Second))
 	if err != nil {
 		t.Fatal(err)
 	}
