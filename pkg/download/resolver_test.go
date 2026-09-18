@@ -137,9 +137,9 @@ func TestDefaultResolverWasm(t *testing.T) {
 	}
 }
 
-// CUDA, Metal, ROCm and Vulkan have no meaning in a browser.
+// CUDA, Metal, OpenVINO, ROCm and Vulkan have no meaning in a browser.
 func TestDefaultResolverWasmUnknownProcessor(t *testing.T) {
-	for _, prcssr := range []Processor{CUDA, Metal, ROCm, Vulkan} {
+	for _, prcssr := range []Processor{CUDA, Metal, OpenVINO, ROCm, Vulkan} {
 		if _, err := DefaultResolver.Resolve(Target{Arch: AMD64, OS: Wasm, Processor: prcssr, Version: "b7974"}); err == nil {
 			t.Errorf("Resolve() accepted a wasm target with the %s processor", prcssr)
 		}
@@ -403,6 +403,99 @@ func TestDefaultResolverROCmTaggedRelease(t *testing.T) {
 			want := "https://github.com/ggml-org/llama.cpp/releases/download/" + tt.upstream + "/" + tt.want
 			if len(urls) != 1 || urls[0] != want {
 				t.Fatalf("Resolve() = %v, want [%s]", urls, want)
+			}
+		})
+	}
+}
+
+// llama.cpp changed the OpenVINO version in its asset names at build b11024.
+func TestDefaultResolverOpenVINONaming(t *testing.T) {
+	tests := []struct {
+		name    string
+		os      OS
+		version string
+		want    string
+	}{
+		{"linux before 2026.4", Linux, "b11022", "llama-b11022-bin-ubuntu-openvino-2026.3.1-x64.tar.gz"},
+		{"linux at 2026.4", Linux, "b11024", "llama-b11024-bin-ubuntu-openvino-2026.4-x64.tar.gz"},
+		{"linux after 2026.4", Linux, "b11029", "llama-b11029-bin-ubuntu-openvino-2026.4-x64.tar.gz"},
+		{"windows before 2026.4", Windows, "b11022", "llama-b11022-bin-win-openvino-2026.3.1-x64.zip"},
+		{"windows at 2026.4", Windows, "b11024", "llama-b11024-bin-win-openvino-2026.4-x64.zip"},
+		{"windows after 2026.4", Windows, "b11029", "llama-b11029-bin-win-openvino-2026.4-x64.zip"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			urls, err := DefaultResolver.Resolve(Target{
+				Arch: AMD64, OS: tt.os, Processor: OpenVINO, Version: tt.version,
+			})
+			if err != nil {
+				t.Fatalf("Resolve() failed: %v", err)
+			}
+			want := "https://github.com/ggml-org/llama.cpp/releases/download/" + tt.version + "/" + tt.want
+			if len(urls) != 1 || urls[0] != want {
+				t.Fatalf("Resolve() = %v, want [%s]", urls, want)
+			}
+		})
+	}
+}
+
+// A tagged release keeps its binaries under a nightly build tag, so that tag decides
+// the OpenVINO asset names.
+func TestDefaultResolverOpenVINOTaggedRelease(t *testing.T) {
+	tests := []struct {
+		name     string
+		os       OS
+		upstream string
+		want     string
+	}{
+		{"linux before 2026.4", Linux, "b11022", "llama-b11022-bin-ubuntu-openvino-2026.3.1-x64.tar.gz"},
+		{"linux at 2026.4", Linux, "b11024", "llama-b11024-bin-ubuntu-openvino-2026.4-x64.tar.gz"},
+		{"windows at 2026.4", Windows, "b11024", "llama-b11024-bin-win-openvino-2026.4-x64.zip"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			urls, err := DefaultResolver.Resolve(Target{
+				Arch: AMD64, OS: tt.os, Processor: OpenVINO, Version: "v0.3.0", UpstreamVersion: tt.upstream,
+			})
+			if err != nil {
+				t.Fatalf("Resolve() failed: %v", err)
+			}
+			want := "https://github.com/ggml-org/llama.cpp/releases/download/" + tt.upstream + "/" + tt.want
+			if len(urls) != 1 || urls[0] != want {
+				t.Fatalf("Resolve() = %v, want [%s]", urls, want)
+			}
+		})
+	}
+}
+
+// Only Linux and Windows on amd64 have OpenVINO builds.
+func TestDefaultResolverOpenVINOUnsupported(t *testing.T) {
+	tests := []struct {
+		name string
+		arch Arch
+		os   OS
+		want error
+	}{
+		{"linux arm64", ARM64, Linux, nil},
+		{"windows arm64", ARM64, Windows, nil},
+		{"bookworm", AMD64, Bookworm, ErrUnknownProcessor},
+		{"trixie", AMD64, Trixie, ErrUnknownProcessor},
+		{"darwin", ARM64, Darwin, ErrUnknownProcessor},
+		{"wasm", AMD64, Wasm, ErrUnknownProcessor},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := DefaultResolver.Resolve(Target{
+				Arch: tt.arch, OS: tt.os, Processor: OpenVINO, Version: "b11024",
+			})
+			if err == nil {
+				t.Fatal("Resolve() accepted a target with no OpenVINO build")
+			}
+			if tt.want != nil && !errors.Is(err, tt.want) {
+				t.Errorf("Resolve() error = %v, want %v", err, tt.want)
 			}
 		})
 	}

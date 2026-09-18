@@ -24,7 +24,7 @@ done.
   -lib string
         path to llama.cpp compiled library files (leave empty to use YZMA_LIB env var)
   -processor string
-        processor to use (cpu, cuda, metal, vulkan) (default "cpu")
+        processor to use (cpu, cuda, metal, openvino, rocm, vulkan) (default "cpu")
   -upgrade
         upgrade existing installation
   -version string

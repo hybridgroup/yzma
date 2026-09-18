@@ -4,11 +4,12 @@ import "fmt"
 
 // The set of processors that can be used.
 var (
-	CPU    = newProcessor("cpu")
-	CUDA   = newProcessor("cuda")
-	Metal  = newProcessor("metal")
-	ROCm   = newProcessor("rocm")
-	Vulkan = newProcessor("vulkan")
+	CPU      = newProcessor("cpu")
+	CUDA     = newProcessor("cuda")
+	Metal    = newProcessor("metal")
+	OpenVINO = newProcessor("openvino")
+	ROCm     = newProcessor("rocm")
+	Vulkan   = newProcessor("vulkan")
 
 	// WebGPU is the GPU of a browser. It goes with the Wasm target only.
 	WebGPU = newProcessor("webgpu")

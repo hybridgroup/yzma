@@ -170,6 +170,26 @@ func rocmNames(tag string) rocmVersionNames {
 	}
 }
 
+// llama.cpp changed the OpenVINO version in its asset names at this build.
+const openvino20264Build = 11024
+
+// openvinoVersion reports the OpenVINO version in the asset names of tag. A tag that
+// is not a nightly build takes the newest version.
+func openvinoVersion(tag string) string {
+	const current = "2026.4"
+	if !nightlyPattern.MatchString(tag) {
+		return current
+	}
+	build, err := strconv.Atoi(tag[1:])
+	if err != nil {
+		return current
+	}
+	if build < openvino20264Build {
+		return "2026.3.1"
+	}
+	return current
+}
+
 // defaultResolve is the built-in platform table.
 func defaultResolve(target Target) ([]string, error) {
 	arch, os, prcssr, version := target.Arch, target.OS, target.Processor, target.Version
@@ -217,6 +237,11 @@ func defaultResolve(target Target) ([]string, error) {
 				return nil, errors.New("precompiled binaries for Linux ARM64 ROCm are not available")
 			}
 			filename = fmt.Sprintf(rocmNames(tag).linux, tag)
+		case OpenVINO:
+			if arch != AMD64 {
+				return nil, errors.New("precompiled binaries for Linux ARM64 OpenVINO are not available")
+			}
+			filename = fmt.Sprintf("llama-%s-bin-ubuntu-openvino-%s-x64.tar.gz", tag, openvinoVersion(tag))
 		default:
 			return nil, ErrUnknownProcessor
 		}
@@ -326,6 +351,11 @@ func defaultResolve(target Target) ([]string, error) {
 				return nil, errors.New("precompiled binaries for Windows ARM64 ROCm are not available")
 			}
 			filename = fmt.Sprintf(rocmNames(tag).windows, tag)
+		case OpenVINO:
+			if arch != AMD64 {
+				return nil, errors.New("precompiled binaries for Windows ARM64 OpenVINO are not available")
+			}
+			filename = fmt.Sprintf("llama-%s-bin-win-openvino-%s-x64.zip", tag, openvinoVersion(tag))
 		default:
 			return nil, ErrUnknownProcessor
 		}

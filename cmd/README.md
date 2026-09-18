@@ -45,7 +45,7 @@ USAGE:
 OPTIONS:
    --version value, -v value    version of llama.cpp to install, optionally as VERSION@sha256:DIGEST to pin the digests (leave empty for the version this yzma release uses)
    --lib value, -l value        path to llama.cpp compiled library files [$YZMA_LIB]
-   --processor value, -p value  processor to use (cpu, cuda, metal, vulkan) (default: "cpu")
+   --processor value, -p value  processor to use (cpu, cuda, metal, openvino, rocm, vulkan) (default: "cpu")
    --upgrade, -u                upgrade existing installation (default: false)
    --quiet, -q                  suppress output during installation (default: false)
    --verify value               how to check the digest of each download (available, require, off) (default: "available") [$YZMA_VERIFY]
