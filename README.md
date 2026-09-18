@@ -7,7 +7,7 @@
 `yzma` lets you write Go applications that directly integrate [`llama.cpp`](https://github.com/ggml-org/llama.cpp) for fully local inference using hardware acceleration.
 
 - Run the latest Vision Language Models (VLM) and Large/Small/Tiny Language Models (LLM) on Linux, macOS, or Windows.
-- Use any available hardware acceleration such as [CUDA](https://en.wikipedia.org/wiki/CUDA), [Metal](https://en.wikipedia.org/wiki/Metal_(API)), or [Vulkan](https://en.wikipedia.org/wiki/Vulkan) for maximum performance.
+- Use any available hardware acceleration such as [CUDA](https://en.wikipedia.org/wiki/CUDA), [Metal](https://en.wikipedia.org/wiki/Metal_(API)), [OpenVINO](https://en.wikipedia.org/wiki/OpenVINO), or [Vulkan](https://en.wikipedia.org/wiki/Vulkan) for maximum performance.
 - Run in a browser as well, with [TinyGo](https://tinygo.org) and WebAssembly, on the CPU or on the GPU with [WebGPU](https://en.wikipedia.org/wiki/WebGPU).
 - `yzma` uses the [`purego`](https://github.com/ebitengine/purego) and [`ffi`](https://github.com/JupiterRider/ffi) packages so CGo is not needed.
 - Works with the newest `llama.cpp` releases so you can use the latest features, performance improvements, and bugfixes.
@@ -205,11 +205,11 @@ Check out the [Models](https://yzma.ai/docs/guides/models/) page for the downloa
 
 You can use multimodal models (image/audio) and text language models with full hardware acceleration on Linux, macOS, and Windows.
 
-| OS      | CPU          | GPU                             |
-| ------- | ------------ | ------------------------------- |
-| Linux   | amd64, arm64 | CUDA, Vulkan, HIP, ROCm, SYCL   |
-| macOS   | arm64        | Metal                           |
-| Windows | amd64        | CUDA, Vulkan, HIP, SYCL, OpenCL |
+| OS      | CPU          | GPU                                       |
+| ------- | ------------ | ----------------------------------------- |
+| Linux   | amd64, arm64 | CUDA, Vulkan, HIP, ROCm, SYCL, OpenVINO   |
+| macOS   | arm64        | Metal                                     |
+| Windows | amd64        | CUDA, Vulkan, HIP, SYCL, OpenCL, OpenVINO |
 
 A browser is also a target:
 

@@ -181,7 +181,7 @@ var getFunc = get
 // Get downloads the llama.cpp precompiled binaries for the desired arch/OS/processor.
 // arch can be one of the following values: "amd64", "arm64".
 // os can be one of the following values: "linux", "darwin", "windows", "bookworm", "trixie".
-// processor can be one of the following values: "cpu", "cuda", "metal", "rocm", "vulkan".
+// processor can be one of the following values: "cpu", "cuda", "metal", "openvino", "rocm", "vulkan".
 // version should be the desired llama.cpp version, either a `b1234` nightly build
 // or a `v1.2.3` tagged release. If an empty
 // string ("") or "latest" is provided, the latest release will be downloaded,
@@ -195,7 +195,7 @@ func Get(architecture string, operatingSystem string, processor string, version 
 // using the provided progress tracker.
 // arch can be one of the following values: "amd64", "arm64".
 // os can be one of the following values: "linux", "darwin", "windows", "bookworm", "trixie".
-// processor can be one of the following values: "cpu", "cuda", "metal", "rocm", "vulkan".
+// processor can be one of the following values: "cpu", "cuda", "metal", "openvino", "rocm", "vulkan".
 // version should be the desired llama.cpp version, either a `b1234` nightly build
 // or a `v1.2.3` tagged release. If an empty
 // string ("") or "latest" is provided, the latest release will be downloaded,
@@ -209,7 +209,7 @@ func GetWithProgress(architecture string, operatingSystem string, processor stri
 // using the provided context and progress tracker.
 // arch can be one of the following values: "amd64", "arm64".
 // os can be one of the following values: "linux", "darwin", "windows", "bookworm", "trixie".
-// processor can be one of the following values: "cpu", "cuda", "metal", "rocm", "vulkan".
+// processor can be one of the following values: "cpu", "cuda", "metal", "openvino", "rocm", "vulkan".
 // version should be the desired llama.cpp version, either a `b1234` nightly build
 // or a `v1.2.3` tagged release. If an empty
 // string ("") or "latest" is provided, the latest release will be downloaded,

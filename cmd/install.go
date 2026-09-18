@@ -29,7 +29,7 @@ var InstallCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:    "processor",
 			Aliases: []string{"p"},
-			Usage:   "processor to use (cpu, cuda, metal, rocm, vulkan)",
+			Usage:   "processor to use (cpu, cuda, metal, openvino, rocm, vulkan)",
 			Value:   "",
 		},
 		&cli.StringFlag{

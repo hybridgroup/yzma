@@ -18,8 +18,8 @@ export YZMA_LIB=/path/to/lib
 | --- | --- |
 | [Quick install](https://yzma.ai/getting-started/install/) | The two steps, and the `YZMA_LIB` variable |
 | [macOS](https://yzma.ai/getting-started/install/macos/) | Metal |
-| [Linux](https://yzma.ai/getting-started/install/linux/) | CPU, CUDA, ROCm, Vulkan |
-| [Windows](https://yzma.ai/getting-started/install/windows/) | CPU, CUDA, ROCm, Vulkan |
+| [Linux](https://yzma.ai/getting-started/install/linux/) | CPU, CUDA, OpenVINO, ROCm, Vulkan |
+| [Windows](https://yzma.ai/getting-started/install/windows/) | CPU, CUDA, OpenVINO, ROCm, Vulkan |
 | [Raspberry Pi](https://yzma.ai/getting-started/install/raspberry-pi/) | Raspberry Pi 4 and 5 |
 | [NVIDIA Jetson Orin](https://yzma.ai/getting-started/install/jetson-orin/) | Jetpack, CUDA, Vulkan |
 | [Arduino UNO Q](https://yzma.ai/getting-started/install/arduino-uno-q/) | The UNO Q board |

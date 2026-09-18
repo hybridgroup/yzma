@@ -60,6 +60,17 @@ func llamaReleaseAssets(tag string) (map[string]bool, error) {
 	return names, nil
 }
 
+// releaseHasOpenVINO reports if a release publishes an OpenVINO asset. A few builds
+// publish none, and then there is nothing to check.
+func releaseHasOpenVINO(assets map[string]bool) bool {
+	for name := range assets {
+		if strings.Contains(name, "-openvino-") {
+			return true
+		}
+	}
+	return false
+}
+
 // TestDefaultResolverMatchesRelease catches upstream filename drift, which tests that
 // only assert hard-coded strings cannot see. It checks every target the built-in table
 // sends to the llama.cpp release page; the targets served by llama-cpp-builder are
@@ -103,6 +114,12 @@ func TestDefaultResolverMatchesRelease(t *testing.T) {
 		{Arch: AMD64, OS: Windows, Processor: CUDA},
 		{Arch: AMD64, OS: Windows, Processor: Vulkan},
 		{Arch: AMD64, OS: Windows, Processor: ROCm},
+	}
+	if releaseHasOpenVINO(assets) {
+		targets = append(targets,
+			Target{Arch: AMD64, OS: Linux, Processor: OpenVINO},
+			Target{Arch: AMD64, OS: Windows, Processor: OpenVINO},
+		)
 	}
 
 	const releasePrefix = "https://github.com/ggml-org/llama.cpp/releases/download/"
@@ -160,6 +177,19 @@ func TestDigestManifestCoversResolvedAssets(t *testing.T) {
 	oses := []OS{Linux, Bookworm, Trixie, Darwin, Windows, Wasm}
 	arches := []Arch{AMD64, ARM64}
 	processors := []Processor{CPU, CUDA, Metal, ROCm, Vulkan, WebGPU}
+
+	// A build that publishes no OpenVINO asset has nothing for the digests to name.
+	upstream := tag
+	if target.UpstreamVersion != "" {
+		upstream = target.UpstreamVersion
+	}
+	assets, err := llamaReleaseAssets(upstream)
+	if err != nil {
+		t.Fatalf("listing the assets of %s failed: %v", upstream, err)
+	}
+	if releaseHasOpenVINO(assets) {
+		processors = append(processors, OpenVINO)
+	}
 
 	seen := make(map[string]bool)
 	for _, os := range oses {
