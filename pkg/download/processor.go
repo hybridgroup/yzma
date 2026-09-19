@@ -4,8 +4,14 @@ import "fmt"
 
 // The set of processors that can be used.
 var (
-	CPU      = newProcessor("cpu")
-	CUDA     = newProcessor("cuda")
+	CPU  = newProcessor("cpu")
+	CUDA = newProcessor("cuda")
+
+	// CUDA12 and CUDA13 name a CUDA release. CUDA alone follows the CUDA version
+	// that the machine reports, or the default of the platform if it reports none.
+	CUDA12 = newProcessor("cuda-12")
+	CUDA13 = newProcessor("cuda-13")
+
 	Metal    = newProcessor("metal")
 	OpenVINO = newProcessor("openvino")
 	ROCm     = newProcessor("rocm")

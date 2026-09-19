@@ -21,11 +21,20 @@ func main() {
 		}
 	}
 
-	if *processor == "" {
-		*processor = "cpu"
-		if cudaInstalled, cudaVersion := download.HasCUDA(); cudaInstalled {
-			fmt.Printf("CUDA detected (version %s), using CUDA build\n", cudaVersion)
-			*processor = "cuda"
+	// The CUDA version selects the CUDA build, so it is read for a CUDA install that
+	// was asked for as well as for one that is found here.
+	var cudaVersion string
+	if *processor == "" || *processor == download.CUDA.String() {
+		cudaInstalled, detected := download.HasCUDA()
+		switch {
+		case cudaInstalled:
+			cudaVersion = detected
+			if *processor == "" {
+				fmt.Printf("CUDA detected (version %s), using CUDA build\n", cudaVersion)
+				*processor = download.CUDA.String()
+			}
+		case *processor == "":
+			*processor = download.CPU.String()
 		}
 	}
 
@@ -37,7 +46,8 @@ func main() {
 	default:
 		fmt.Println("installing llama.cpp version", *version, "to", *libPath)
 	}
-	if err := download.Get(runtime.GOARCH, runtime.GOOS, *processor, *version, *libPath); err != nil {
+	if err := download.Get(runtime.GOARCH, runtime.GOOS, *processor, *version, *libPath,
+		download.WithCUDAVersion(cudaVersion)); err != nil {
 		fmt.Println("failed to download llama.cpp:", err.Error())
 		return
 	}
