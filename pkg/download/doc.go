@@ -3,8 +3,8 @@
 //
 // [Get] and its variants install the build the built-in table picks for a platform.
 // [Install] takes a [Target] plus an optional [Resolver], so an application can install
-// builds the table does not name — an internal mirror, a local file, its own llama.cpp
-// build, or another CUDA major version:
+// builds the table does not name — an internal mirror, a local file, or its own
+// llama.cpp build:
 //
 //	resolver := download.ResolverFunc(func(t download.Target) ([]string, error) {
 //		if t.OS == download.Linux && t.Processor == download.CUDA {
@@ -17,6 +17,11 @@
 //
 // An empty [Target.Version] takes [DefaultVersion], the llama.cpp release this yzma
 // release was tested with. "latest" always gets the most recent nightly build.
+//
+// A Linux CUDA install follows [Target.CUDAVersion], which [WithCUDAVersion] sets for
+// the callers that pass strings, and which [HasCUDA] reports for the machine. An
+// empty value takes CUDA 12 on ARM64 and CUDA 13 on AMD64. The processors [CUDA12]
+// and [CUDA13] name a CUDA release instead.
 //
 // # Checking what comes down
 //

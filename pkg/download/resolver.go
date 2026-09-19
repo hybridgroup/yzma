@@ -37,6 +37,11 @@ type Target struct {
 	// agree with it. [Install] also takes the pin as a suffix on Version, in the
 	// form "b10785@sha256:<digest>", and moves it here.
 	ManifestSHA256 string
+
+	// CUDAVersion is the CUDA version of the machine, e.g. "13.0". It selects the
+	// Linux CUDA build when [Target.Processor] is [CUDA]. Empty means unknown, which
+	// takes the default of the platform. [CUDA12] and [CUDA13] ignore it.
+	CUDAVersion string
 }
 
 // Resolver reports the release assets to install for a Target, as URLs downloaded in
@@ -190,6 +195,52 @@ func openvinoVersion(tag string) string {
 	return current
 }
 
+// The CUDA release that a Linux build takes when the machine reports no CUDA
+// version. ARM64 assumes a Jetson Orin, which runs CUDA 12.
+const (
+	defaultCUDAMajorARM64 = 12
+	defaultCUDAMajorAMD64 = 13
+)
+
+// cudaMajor reports the major CUDA version in version, for example 13 for "13.0". It
+// gives 0 when version says nothing usable.
+func cudaMajor(version string) int {
+	major, _, _ := strings.Cut(version, ".")
+	n, err := strconv.Atoi(major)
+	if err != nil {
+		return 0
+	}
+	return n
+}
+
+// linuxCUDAName reports the Linux asset name pattern for a CUDA build. The processor
+// names the CUDA release, or, for [CUDA], the version of the machine does, and the
+// default of the arch applies when that is unknown.
+func linuxCUDAName(arch Arch, prcssr Processor, cudaVersion string) string {
+	major := cudaMajor(cudaVersion)
+	switch {
+	case prcssr == CUDA12:
+		major = 12
+	case prcssr == CUDA13:
+		major = 13
+	case major == 0 && arch == ARM64:
+		major = defaultCUDAMajorARM64
+	case major == 0:
+		major = defaultCUDAMajorAMD64
+	}
+
+	suffix := "x64"
+	if arch == ARM64 {
+		suffix = "arm64"
+	}
+
+	// llama.cpp keeps the unnumbered name for its CUDA 12 builds.
+	if major <= 12 {
+		return "llama-%s-bin-ubuntu-cuda-" + suffix + ".tar.gz"
+	}
+	return "llama-%s-bin-ubuntu-cuda-13-" + suffix + ".tar.gz"
+}
+
 // defaultResolve is the built-in platform table.
 func defaultResolve(target Target) ([]string, error) {
 	arch, os, prcssr, version := target.Arch, target.OS, target.Processor, target.Version
@@ -217,14 +268,9 @@ func defaultResolve(target Target) ([]string, error) {
 				break
 			}
 			filename = fmt.Sprintf("llama-%s-bin-ubuntu-x64.tar.gz", tag)
-		case CUDA:
+		case CUDA, CUDA12, CUDA13:
 			location, tag = builderLocation, version
-			if arch == ARM64 {
-				// defaults to CUDA 12 assuming that is running Jetson Orin.
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-arm64.tar.gz", tag)
-			} else {
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-13-x64.tar.gz", tag)
-			}
+			filename = fmt.Sprintf(linuxCUDAName(arch, prcssr, target.CUDAVersion), tag)
 		case Vulkan:
 			if arch == ARM64 {
 				location, tag = builderLocation, version
@@ -257,11 +303,11 @@ func defaultResolve(target Target) ([]string, error) {
 
 			// no AMD64 for bookworm
 			return nil, ErrUnknownProcessor
-		case CUDA:
+		case CUDA, CUDA12, CUDA13:
 			location, tag = builderLocation, version
 			if arch == ARM64 {
 				// Jetson Orin.
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-arm64.tar.gz", tag)
+				filename = fmt.Sprintf(linuxCUDAName(arch, prcssr, target.CUDAVersion), tag)
 				break
 			}
 
@@ -289,14 +335,13 @@ func defaultResolve(target Target) ([]string, error) {
 				break
 			}
 			filename = fmt.Sprintf("llama-%s-bin-ubuntu-x64.tar.gz", tag)
-		case CUDA:
+		case CUDA, CUDA12, CUDA13:
 			location, tag = builderLocation, version
 			if arch == ARM64 {
 				// not yet
 				return nil, ErrUnknownProcessor
-			} else {
-				filename = fmt.Sprintf("llama-%s-bin-ubuntu-cuda-13-x64.tar.gz", tag)
 			}
+			filename = fmt.Sprintf(linuxCUDAName(arch, prcssr, target.CUDAVersion), tag)
 		case Vulkan:
 			if arch == ARM64 {
 				location, tag = builderLocation, version
@@ -333,7 +378,7 @@ func defaultResolve(target Target) ([]string, error) {
 			} else {
 				filename = fmt.Sprintf("llama-%s-bin-win-cpu-x64.zip", tag)
 			}
-		case CUDA:
+		case CUDA, CUDA12, CUDA13:
 			if arch == ARM64 {
 				return nil, errors.New("precompiled binaries for Windows ARM64 CUDA are not available")
 			}
@@ -389,13 +434,21 @@ type InstallOption func(*installOptions)
 
 // installOptions holds the settings that an [InstallOption] changes.
 type installOptions struct {
-	verify VerifyPolicy
+	verify      VerifyPolicy
+	cudaVersion string
 }
 
 // WithVerify sets what [Install] does about the digest of an asset. The default is
 // [VerifyIfAvailable].
 func WithVerify(policy VerifyPolicy) InstallOption {
 	return func(o *installOptions) { o.verify = policy }
+}
+
+// WithCUDAVersion gives the CUDA version of the machine, for example "13.0", which
+// selects the CUDA build. It sets [Target.CUDAVersion], and it is how the callers
+// that pass strings rather than a [Target] reach that field.
+func WithCUDAVersion(version string) InstallOption {
+	return func(o *installOptions) { o.cudaVersion = version }
 }
 
 // Install downloads the llama.cpp binaries for target into dest. A nil resolver means
@@ -417,6 +470,10 @@ func Install(ctx context.Context, target Target, dest string, progress getter.Pr
 	var options installOptions
 	for _, opt := range opts {
 		opt(&options)
+	}
+
+	if options.cudaVersion != "" {
+		target.CUDAVersion = options.cudaVersion
 	}
 
 	// An empty version takes the release pinned by this yzma release. That value can

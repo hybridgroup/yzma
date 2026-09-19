@@ -29,7 +29,7 @@ var InstallCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:    "processor",
 			Aliases: []string{"p"},
-			Usage:   "processor to use (cpu, cuda, metal, openvino, rocm, vulkan)",
+			Usage:   "processor to use (cpu, cuda, cuda-12, cuda-13, metal, openvino, rocm, vulkan)",
 			Value:   "",
 		},
 		&cli.StringFlag{
@@ -118,19 +118,28 @@ func runInstall(c *cli.Context) error {
 		processor = download.CPU.String()
 	}
 
-	if processor == "" {
-		processor = "cpu"
-
-		if cudaInstalled, cudaVersion := download.HasCUDA(); cudaInstalled {
-			if !quiet {
-				fmt.Printf("CUDA detected (version %s), using CUDA build\n", cudaVersion)
+	// The CUDA version selects the CUDA build, so it is read for a CUDA install that
+	// was asked for as well as for one that is found here.
+	var cudaVersion string
+	if processor == "" || processor == download.CUDA.String() {
+		cudaInstalled, detected := download.HasCUDA()
+		switch {
+		case cudaInstalled:
+			cudaVersion = detected
+			if processor == "" {
+				processor = download.CUDA.String()
+				if !quiet {
+					fmt.Printf("CUDA detected (version %s), using CUDA build\n", cudaVersion)
+				}
 			}
-			processor = "cuda"
-		} else if rocmInstalled, rocmVersion := download.HasROCm(); rocmInstalled {
-			if !quiet {
-				fmt.Printf("ROCm detected (version %s), using ROCm build\n", rocmVersion)
+		case processor == "":
+			processor = download.CPU.String()
+			if rocmInstalled, rocmVersion := download.HasROCm(); rocmInstalled {
+				if !quiet {
+					fmt.Printf("ROCm detected (version %s), using ROCm build\n", rocmVersion)
+				}
+				processor = download.ROCm.String()
 			}
-			processor = "rocm"
 		}
 	}
 
@@ -140,7 +149,7 @@ func runInstall(c *cli.Context) error {
 	}
 
 	if err := download.Get(runtime.GOARCH, osInstall, processor, version, libPath,
-		download.WithVerify(verify)); err != nil {
+		download.WithVerify(verify), download.WithCUDAVersion(cudaVersion)); err != nil {
 		return fmt.Errorf("failed to download llama.cpp: %w", err)
 	}
 

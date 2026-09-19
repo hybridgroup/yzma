@@ -563,3 +563,76 @@ func TestDefaultResolverWindowsCUDATaggedRelease(t *testing.T) {
 		})
 	}
 }
+
+// The CUDA version of the machine selects the Linux CUDA build. A machine that
+// reports none keeps the default of the arch.
+func TestDefaultResolverLinuxCUDAVersion(t *testing.T) {
+	tests := []struct {
+		name        string
+		arch        Arch
+		processor   Processor
+		cudaVersion string
+		want        string
+	}{
+		{"arm64 with no version", ARM64, CUDA, "", "llama-b11053-bin-ubuntu-cuda-arm64.tar.gz"},
+		{"arm64 with CUDA 12", ARM64, CUDA, "12.6", "llama-b11053-bin-ubuntu-cuda-arm64.tar.gz"},
+		{"arm64 with CUDA 13", ARM64, CUDA, "13.0", "llama-b11053-bin-ubuntu-cuda-13-arm64.tar.gz"},
+		{"amd64 with no version", AMD64, CUDA, "", "llama-b11053-bin-ubuntu-cuda-13-x64.tar.gz"},
+		{"amd64 with CUDA 12", AMD64, CUDA, "12.8", "llama-b11053-bin-ubuntu-cuda-x64.tar.gz"},
+		{"amd64 with CUDA 13", AMD64, CUDA, "13.1", "llama-b11053-bin-ubuntu-cuda-13-x64.tar.gz"},
+		{"arm64 asks for CUDA 13", ARM64, CUDA13, "12.6", "llama-b11053-bin-ubuntu-cuda-13-arm64.tar.gz"},
+		{"arm64 asks for CUDA 12", ARM64, CUDA12, "13.0", "llama-b11053-bin-ubuntu-cuda-arm64.tar.gz"},
+		{"amd64 asks for CUDA 12", AMD64, CUDA12, "13.0", "llama-b11053-bin-ubuntu-cuda-x64.tar.gz"},
+		{"amd64 asks for CUDA 13", AMD64, CUDA13, "12.8", "llama-b11053-bin-ubuntu-cuda-13-x64.tar.gz"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			urls, err := DefaultResolver.Resolve(Target{
+				Arch: tt.arch, OS: Linux, Processor: tt.processor,
+				Version: "b11053", CUDAVersion: tt.cudaVersion,
+			})
+			if err != nil {
+				t.Fatalf("Resolve() failed: %v", err)
+			}
+			want := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b11053/" + tt.want
+			if len(urls) != 1 || urls[0] != want {
+				t.Fatalf("Resolve() = %v, want %v", urls, []string{want})
+			}
+		})
+	}
+}
+
+// Bookworm ARM64 takes the CUDA build of the machine as well.
+func TestDefaultResolverBookwormCUDAVersion(t *testing.T) {
+	urls, err := DefaultResolver.Resolve(Target{
+		Arch: ARM64, OS: Bookworm, Processor: CUDA, Version: "b11053", CUDAVersion: "13.0",
+	})
+	if err != nil {
+		t.Fatalf("Resolve() failed: %v", err)
+	}
+	want := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b11053/llama-b11053-bin-ubuntu-cuda-13-arm64.tar.gz"
+	if len(urls) != 1 || urls[0] != want {
+		t.Fatalf("Resolve() = %v, want %v", urls, []string{want})
+	}
+}
+
+// WithCUDAVersion sets the field for the callers that pass strings.
+func TestInstallWithCUDAVersion(t *testing.T) {
+	var got []string
+	originalGet := getFunc
+	getFunc = func(ctx context.Context, asset Asset, dest string, progress getter.ProgressTracker) error {
+		got = append(got, asset.URL)
+		return nil
+	}
+	defer func() { getFunc = originalGet }()
+
+	err := GetWithContext(context.Background(), "arm64", "linux", "cuda", "b11053", t.TempDir(), nil,
+		WithCUDAVersion("13.0"))
+	if err != nil {
+		t.Fatalf("GetWithContext() failed: %v", err)
+	}
+	want := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/b11053/llama-b11053-bin-ubuntu-cuda-13-arm64.tar.gz"
+	if len(got) != 1 || got[0] != want {
+		t.Fatalf("downloaded %v, want %v", got, []string{want})
+	}
+}
