@@ -27,15 +27,14 @@ func benchmarkInference(b *testing.B, ctx Context, model Model, text string) int
 
 	batch := BatchGetOne(tokens)
 
+	// The loop runs to the end and does not stop at an end of generation
+	// token, thus each run does the same work with any model.
 	sampler := SamplerChainInit(SamplerChainDefaultParams())
 	SamplerChainAdd(sampler, SamplerInitGreedy())
 
 	for pos := int32(0); pos < 24; pos += batch.NTokens {
 		Decode(ctx, batch)
 		token := SamplerSample(sampler, ctx, -1)
-		if VocabIsEOG(vocab, token) {
-			break
-		}
 
 		total++
 		buf := make([]byte, 36)
