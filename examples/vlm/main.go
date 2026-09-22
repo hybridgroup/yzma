@@ -33,6 +33,9 @@ func main() {
 	}
 
 	mctxParams := mtmd.ContextParamsDefault()
+	if *threads > 0 {
+		mctxParams.Threads = int32(*threads)
+	}
 	if !*verbose {
 		llama.LogSet(llama.LogSilent())
 		mtmd.LogSet(llama.LogSilent())
@@ -59,6 +62,10 @@ func main() {
 	ctxParams := llama.ContextDefaultParams()
 	ctxParams.NCtx = 4096
 	ctxParams.NBatch = 2048
+	if *threads > 0 {
+		ctxParams.NThreads = int32(*threads)
+		ctxParams.NThreadsBatch = int32(*threads)
+	}
 
 	lctx, err := llama.InitFromModel(model, ctxParams)
 	if err != nil {

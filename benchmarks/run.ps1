@@ -16,6 +16,7 @@ param(
   [string]$Suite = "text,multimodal",
   [string]$LlamaCpp = "",
   [int]$NCtx = 0,
+  [int]$Threads = 0,
   [int]$Count = 5,
   [string]$BenchTime = "10s",
   [switch]$DryRun
@@ -123,6 +124,7 @@ function Invoke-Suites($backend, $device, $record, $info) {
     # argument that has a dash and a variable.
     $argv = @("test", "-benchtime=$BenchTime", "-count=$Count", "-run=nada",
       "-bench", "$bench", "-nctx=$ctx")
+    if ($Threads -gt 0) { $argv += "-threads=$Threads" }
     if ($device) { $argv += "-device=$device" }
     $command = "> cd $pkg; go " + ($argv -join " ")
     Write-Host $command

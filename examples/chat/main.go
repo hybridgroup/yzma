@@ -79,6 +79,10 @@ func main() {
 	ctxParams.NCtx = uint32(*contextSize)
 	ctxParams.NBatch = uint32(*batchSize)
 	ctxParams.NUbatch = uint32(*uBatchSize)
+	if *threads > 0 {
+		ctxParams.NThreads = int32(*threads)
+		ctxParams.NThreadsBatch = int32(*threads)
+	}
 
 	lctx, err = llama.InitFromModel(model, ctxParams)
 	if err != nil {

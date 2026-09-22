@@ -1,0 +1,32 @@
+package llama
+
+import "runtime"
+
+// Threads gives a good number of threads for inference on the CPU of this
+// machine. It counts the cores that do the arithmetic well, which is one
+// thread for each physical core, and only the performance cores of a machine
+// that has two kinds. The count comes from the operating system, and a machine
+// that tells nothing gets half of its logical CPUs.
+//
+// llama.cpp asks for four threads unless a caller changes it, which is slow on
+// a machine with many cores. Thus [ContextDefaultParams] sends this value.
+func Threads() int32 {
+	if n := mathCores(); n > 0 {
+		return int32(n)
+	}
+	return int32(defaultThreads())
+}
+
+// defaultThreads is the count that llama.cpp uses when it can read nothing
+// about the cores. Half of the logical CPUs is one thread for each physical
+// core of a machine with SMT.
+func defaultThreads() int {
+	n := runtime.NumCPU()
+	if n > 4 {
+		n /= 2
+	}
+	if n < 1 {
+		n = 1
+	}
+	return n
+}

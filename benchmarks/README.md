@@ -54,8 +54,12 @@ Useful flags.
 ./benchmarks/run.sh --suite text            # one suite only
 ./benchmarks/run.sh --machine jetson-orin-nano --label "Jetson Orin Nano 8GB"
 ./benchmarks/run.sh --llamacpp b10964       # when the library came from elsewhere
+./benchmarks/run.sh --threads 24            # a thread count of your own
 ./benchmarks/run.sh --dry-run               # print the result, change no file
 ```
+
+The CPU benchmark uses one thread for each performance core of the machine.
+Use `--threads` to try another count.
 
 The PowerShell script takes the same names with one dash and a capital, as
 `-Machine`, `-Backend`, `-DryRun` and so on. The flags go after the name of the

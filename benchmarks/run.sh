@@ -12,6 +12,7 @@ backends="all"
 suites="text multimodal"
 llamacpp=""
 nctx=""
+threads=""
 count=5
 benchtime=10s
 dry_run=""
@@ -27,6 +28,7 @@ usage: benchmarks/run.sh [flags]
   --suite LIST       text, multimodal, or both
   --llamacpp TAG     tag of the llama.cpp build, default from yzma-install.json
   --nctx N           context tokens, default 8192 on the CPU and 32000 on a GPU
+  --threads N        CPU threads, default one for each performance core
   --count N          runs of each benchmark, default 5
   --benchtime D      time of each run, default 10s
   --tokens N         tokens of each run, WebAssembly only, default 64
@@ -42,6 +44,7 @@ while [ $# -gt 0 ]; do
     --suite) suites=$2; shift 2 ;;
     --llamacpp) llamacpp=$2; shift 2 ;;
     --nctx) nctx=$2; shift 2 ;;
+    --threads) threads=$2; shift 2 ;;
     --count) count=$2; shift 2 ;;
     --benchtime) benchtime=$2; shift 2 ;;
     --tokens) tokens=$2; shift 2 ;;
@@ -147,6 +150,11 @@ runNative() {
     flag="-device=$device"
   fi
 
+  local tflag=""
+  if [ -n "$threads" ]; then
+    tflag="-threads=$threads"
+  fi
+
   for suite in $suites; do
     local pkg bench
     case "$suite" in
@@ -164,9 +172,9 @@ runNative() {
     # The benchmarks take -nctx and -device, which go test only gives to the
     # test binary of the package that it runs in.
     if ! {
-      echo "\$ cd $pkg && go test -benchtime=$benchtime -count=$count -run=nada -bench $bench -nctx=$ctx ${flag:+$flag}"
+      echo "\$ cd $pkg && go test -benchtime=$benchtime -count=$count -run=nada -bench $bench -nctx=$ctx ${tflag:+$tflag} ${flag:+$flag}"
       (cd "$root/$pkg" && go test -benchtime="$benchtime" -count="$count" -run=nada \
-        -bench "$bench" -nctx="$ctx" ${flag:+"$flag"} 2>&1)
+        -bench "$bench" -nctx="$ctx" ${tflag:+"$tflag"} ${flag:+"$flag"} 2>&1)
     } | tee "$out"; then
       echo "the run of $suite on $backend failed, the file keeps the numbers it has" >&2
       continue

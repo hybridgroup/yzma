@@ -13,6 +13,7 @@ var (
 	verbose      *bool
 	temperature  *float64
 	contextSize  *int
+	threads      *int
 	predictSize  *int
 	userQuestion *string
 )
@@ -33,6 +34,7 @@ func handleFlags() error {
 	verbose = flag.Bool("v", false, "verbose logging")
 	temperature = flag.Float64("temp", 0.1, "temperature for model")
 	contextSize = flag.Int("c", 4096, "context size for model")
+	threads = flag.Int("t", 0, "number of CPU threads (0 = one for each performance core)")
 	predictSize = flag.Int("n", 512, "number of tokens to predict")
 	userQuestion = flag.String("question", "What is 15 + 27?", "question to ask the model")
 
