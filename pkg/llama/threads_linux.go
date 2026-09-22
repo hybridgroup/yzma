@@ -19,22 +19,35 @@ const hybridCPUFile = "/sys/devices/cpu_core/cpus"
 // efficiency cores it leaves the efficiency cores out. The count is 0 when
 // sysfs says nothing, and then the caller uses its own default.
 func mathCores() int {
+	return len(mathCPUs())
+}
+
+// mathCPUs gives one CPU of each core that does the arithmetic well. Two CPUs
+// of one core do not both appear, because a core gives its best with one
+// thread of arithmetic. It gives nothing when sysfs says nothing.
+func mathCPUs() []int32 {
 	cpus := performanceCPUs()
 	if cpus == nil {
 		cpus = allCPUs()
 	}
 
-	// One entry for each group of CPUs that share a core, thus one for each
-	// physical core.
-	cores := map[string]struct{}{}
+	// One CPU for each group that shares a core, thus one for each physical
+	// core.
+	seen := map[string]struct{}{}
+	var out []int32
 	for _, cpu := range cpus {
 		line, err := os.ReadFile(filepath.Join(sysfsCPU, "cpu"+strconv.Itoa(cpu), "topology", "thread_siblings_list"))
 		if err != nil {
 			continue
 		}
-		cores[strings.TrimSpace(string(line))] = struct{}{}
+		key := strings.TrimSpace(string(line))
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, int32(cpu))
 	}
-	return len(cores)
+	return out
 }
 
 // performanceCPUs gives the CPUs of the performance cores, or nil when this

@@ -34,6 +34,12 @@ var (
 	// GGML_API const char * ggml_backend_reg_name(ggml_backend_reg_t reg);
 	ggmlBackendRegNameFunc ffi.Fun
 
+	// GGML_API void * ggml_backend_reg_get_proc_address(ggml_backend_reg_t reg, const char * name);
+	ggmlBackendRegGetProcAddressFunc ffi.Fun
+
+	// GGML_API void ggml_threadpool_params_init(struct ggml_threadpool_params * p, int n_threads);
+	ggmlThreadpoolParamsInitFunc ffi.Fun
+
 	// GGML_API int64_t ggml_blck_size(enum ggml_type type);
 	ggmlBlckSizeFunc ffi.Fun
 
@@ -76,6 +82,14 @@ func loadGGMLBase(lib loader.Lib) error {
 
 	if ggmlBackendRegNameFunc, err = lib.Prep("ggml_backend_reg_name", &ffi.TypePointer, &ffi.TypePointer); err != nil {
 		return loadError("ggml_backend_reg_name", err)
+	}
+
+	if ggmlBackendRegGetProcAddressFunc, err = lib.Prep("ggml_backend_reg_get_proc_address", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("ggml_backend_reg_get_proc_address", err)
+	}
+
+	if ggmlThreadpoolParamsInitFunc, err = lib.Prep("ggml_threadpool_params_init", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32); err != nil {
+		return loadError("ggml_threadpool_params_init", err)
 	}
 
 	if ggmlBlckSizeFunc, err = lib.Prep("ggml_blck_size", &ffi.TypeSint64, &ffi.TypeSint32); err != nil {
