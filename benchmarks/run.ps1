@@ -17,6 +17,7 @@ param(
   [string]$LlamaCpp = "",
   [int]$NCtx = 0,
   [int]$Threads = 0,
+  [switch]$Threadpool,
   [int]$Count = 5,
   [string]$BenchTime = "10s",
   [switch]$DryRun
@@ -125,6 +126,7 @@ function Invoke-Suites($backend, $device, $record, $info) {
     $argv = @("test", "-benchtime=$BenchTime", "-count=$Count", "-run=nada",
       "-bench", "$bench", "-nctx=$ctx")
     if ($Threads -gt 0) { $argv += "-threads=$Threads" }
+    if ($Threadpool -and $backend -eq "cpu") { $argv += "-threadpool" }
     if ($device) { $argv += "-device=$device" }
     $command = "> cd $pkg; go " + ($argv -join " ")
     Write-Host $command

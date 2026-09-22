@@ -25,15 +25,19 @@ var (
 )
 
 var (
-	nCtx     int
-	nThreads int
-	device   string
+	nCtx       int
+	nThreads   int
+	device     string
+	threadpool bool
+
+	benchThreadpool llama.Threadpool
 )
 
 func init() {
 	flag.IntVar(&nCtx, "nctx", 8192, "number of context tokens for llama.Context")
 	flag.IntVar(&nThreads, "threads", 0, "number of CPU threads, 0 for the value of llama.Threads")
 	flag.StringVar(&device, "device", "", "comma-separated list of devices to use for benchmarking (e.g. 'CUDA0')")
+	flag.BoolVar(&threadpool, "threadpool", false, "hold the CPU threads to the performance cores")
 }
 
 func TestMain(m *testing.M) {
@@ -67,7 +71,9 @@ func benchmarkSetupOnce(b *testing.B) {
 	mparams := llama.ModelDefaultParams()
 	mparams.LoadMode = llama.LoadModeNone
 
-	if device != "" {
+	if strings.EqualFold(device, "CPU") {
+		mparams.SetCPUOnly()
+	} else if device != "" {
 		devs := []llama.GGMLBackendDevice{}
 		devices := strings.SplitSeq(device, ",")
 		for d := range devices {
@@ -105,6 +111,15 @@ func benchmarkSetupOnce(b *testing.B) {
 	}
 	benchCtx = ctx
 
+	if threadpool {
+		tp, err := llama.NewPerformanceThreadpool()
+		if err != nil {
+			b.Fatalf("NewPerformanceThreadpool failed: %v", err)
+		}
+		llama.AttachThreadpool(ctx, uintptr(tp), uintptr(tp))
+		benchThreadpool = tp
+	}
+
 	// The projector decides the count of tokens of an image. A minimum here
 	// makes a projector with a fixed count fail.
 	mprms := ContextParamsDefault()
@@ -134,7 +149,13 @@ func benchmarkSetupOnce(b *testing.B) {
 func benchmarkTeardown() {
 	BitmapFree(benchBitmap)
 	Free(benchMtmdCtx)
+	if benchThreadpool != 0 {
+		llama.DetachThreadpool(benchCtx)
+	}
 	llama.Free(benchCtx)
+	if benchThreadpool != 0 {
+		llama.ThreadpoolFree(benchThreadpool)
+	}
 	llama.ModelFree(benchModel)
 
 	llama.LogSet(llama.LogNormal)

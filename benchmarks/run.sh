@@ -13,6 +13,7 @@ suites="text multimodal"
 llamacpp=""
 nctx=""
 threads=""
+threadpool=""
 count=5
 benchtime=10s
 dry_run=""
@@ -29,6 +30,7 @@ usage: benchmarks/run.sh [flags]
   --llamacpp TAG     tag of the llama.cpp build, default from yzma-install.json
   --nctx N           context tokens, default 8192 on the CPU and 32000 on a GPU
   --threads N        CPU threads, default one for each performance core
+  --threadpool       hold the CPU threads to the performance cores
   --count N          runs of each benchmark, default 5
   --benchtime D      time of each run, default 10s
   --tokens N         tokens of each run, WebAssembly only, default 64
@@ -45,6 +47,7 @@ while [ $# -gt 0 ]; do
     --llamacpp) llamacpp=$2; shift 2 ;;
     --nctx) nctx=$2; shift 2 ;;
     --threads) threads=$2; shift 2 ;;
+    --threadpool) threadpool=1; shift ;;
     --count) count=$2; shift 2 ;;
     --benchtime) benchtime=$2; shift 2 ;;
     --tokens) tokens=$2; shift 2 ;;
@@ -155,6 +158,11 @@ runNative() {
     tflag="-threads=$threads"
   fi
 
+  local pflag=""
+  if [ -n "$threadpool" ] && [ "$backend" = cpu ]; then
+    pflag="-threadpool"
+  fi
+
   for suite in $suites; do
     local pkg bench
     case "$suite" in
@@ -172,9 +180,9 @@ runNative() {
     # The benchmarks take -nctx and -device, which go test only gives to the
     # test binary of the package that it runs in.
     if ! {
-      echo "\$ cd $pkg && go test -benchtime=$benchtime -count=$count -run=nada -bench $bench -nctx=$ctx ${tflag:+$tflag} ${flag:+$flag}"
+      echo "\$ cd $pkg && go test -benchtime=$benchtime -count=$count -run=nada -bench $bench -nctx=$ctx ${tflag:+$tflag} ${pflag:+$pflag} ${flag:+$flag}"
       (cd "$root/$pkg" && go test -benchtime="$benchtime" -count="$count" -run=nada \
-        -bench "$bench" -nctx="$ctx" ${tflag:+"$tflag"} ${flag:+"$flag"} 2>&1)
+        -bench "$bench" -nctx="$ctx" ${tflag:+"$tflag"} ${pflag:+"$pflag"} ${flag:+"$flag"} 2>&1)
     } | tee "$out"; then
       echo "the run of $suite on $backend failed, the file keeps the numbers it has" >&2
       continue

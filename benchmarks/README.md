@@ -55,11 +55,17 @@ Useful flags.
 ./benchmarks/run.sh --machine jetson-orin-nano --label "Jetson Orin Nano 8GB"
 ./benchmarks/run.sh --llamacpp b10964       # when the library came from elsewhere
 ./benchmarks/run.sh --threads 24            # a thread count of your own
+./benchmarks/run.sh --threadpool            # hold each thread to a core
 ./benchmarks/run.sh --dry-run               # print the result, change no file
 ```
 
 The CPU benchmark uses one thread for each performance core of the machine.
 Use `--threads` to try another count.
+
+`--threadpool` holds each of those threads to a CPU of its own. Without it the
+system moves the threads while the work goes on, which makes a short run read
+low and gives a different answer each time. It changes nothing on macOS, where
+a thread cannot choose a CPU.
 
 The PowerShell script takes the same names with one dash and a capital, as
 `-Machine`, `-Backend`, `-DryRun` and so on. The flags go after the name of the
