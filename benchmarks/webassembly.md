@@ -28,13 +28,13 @@ prompt and the count of tokens are different.
 <!-- yzma:bench table node -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
-| CPU | wasm | Intel Core i9-13900HX | - | 13.8 | b11017 | 2026-09-17 |
-| CPU, more threads | wasm | Intel Core i9-13900HX | - | 107.9 | b11017 | 2026-09-17 |
+| CPU | wasm | Intel Core i9-13900HX | - | 13.8 | b11017 | 2026-09-22 |
+| CPU, more threads | wasm | Intel Core i9-13900HX | - | 99.9 | b11017 | 2026-09-22 |
 <!-- yzma:bench table end node -->
 
 <!-- yzma:bench start node/cpu/wasm/i9-13900hx -->
 ### CPU, wasm, Intel Core i9-13900HX
-<!-- yzma:bench meta {"suite":"node","backend":"cpu","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":13.8,"llamacpp":"b11017","yzma":"1.27.0","date":"2026-09-17"} -->
+<!-- yzma:bench meta {"suite":"node","backend":"cpu","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":13.8,"llamacpp":"b11017","yzma":"1.27.0","date":"2026-09-22"} -->
 
 13th Gen Intel(R) Core(TM) i9-13900HX. 13.8 tokens a second.
 
@@ -48,13 +48,13 @@ pkg: github.com/hybridgroup/yzma/examples/wasm/chat
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
 backend: cpu, 1 thread(s)
 llama.cpp: b11017
-BenchmarkInference-1	1	4620938628 ns/op	13.8 tokens/s
 BenchmarkInference-1	1	4627621114 ns/op	13.8 tokens/s
-BenchmarkInference-1	1	4634322954 ns/op	13.8 tokens/s
-BenchmarkInference-1	1	4624277457 ns/op	13.8 tokens/s
 BenchmarkInference-1	1	4627621114 ns/op	13.8 tokens/s
+BenchmarkInference-1	1	4614275415 ns/op	13.9 tokens/s
+BenchmarkInference-1	1	4637681159 ns/op	13.8 tokens/s
+BenchmarkInference-1	1	4614275415 ns/op	13.9 tokens/s
 PASS
-ok	github.com/hybridgroup/yzma/examples/wasm/chat	23.161s
+ok	github.com/hybridgroup/yzma/examples/wasm/chat	23.141s
 ```
 
 </details>
@@ -62,9 +62,9 @@ ok	github.com/hybridgroup/yzma/examples/wasm/chat	23.161s
 
 <!-- yzma:bench start node/cpu-threads/wasm/i9-13900hx -->
 ### CPU, more threads, wasm, Intel Core i9-13900HX
-<!-- yzma:bench meta {"suite":"node","backend":"cpu-threads","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":107.9,"llamacpp":"b11017","yzma":"1.27.0","date":"2026-09-17"} -->
+<!-- yzma:bench meta {"suite":"node","backend":"cpu-threads","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":99.9,"llamacpp":"b11017","yzma":"1.27.0","date":"2026-09-22"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 107.9 tokens a second.
+13th Gen Intel(R) Core(TM) i9-13900HX. 99.9 tokens a second.
 
 <details><summary>The output of go test</summary>
 
@@ -76,13 +76,13 @@ pkg: github.com/hybridgroup/yzma/examples/wasm/chat
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
 backend: cpu-threads, 16 thread(s)
 llama.cpp: b11017
-BenchmarkInference-16	1	618955513 ns/op	103.4 tokens/s
-BenchmarkInference-16	1	528052805 ns/op	121.2 tokens/s
-BenchmarkInference-16	1	589753041 ns/op	108.5 tokens/s
-BenchmarkInference-16	1	593306758 ns/op	107.9 tokens/s
-BenchmarkInference-16	1	599643961 ns/op	106.7 tokens/s
+BenchmarkInference-16	1	640897256 ns/op	99.9 tokens/s
+BenchmarkInference-16	1	622507538 ns/op	102.8 tokens/s
+BenchmarkInference-16	1	601447232 ns/op	106.4 tokens/s
+BenchmarkInference-16	1	653461303 ns/op	97.9 tokens/s
+BenchmarkInference-16	1	675176706 ns/op	94.8 tokens/s
 PASS
-ok	github.com/hybridgroup/yzma/examples/wasm/chat	2.950s
+ok	github.com/hybridgroup/yzma/examples/wasm/chat	3.218s
 ```
 
 </details>
@@ -93,34 +93,31 @@ ok	github.com/hybridgroup/yzma/examples/wasm/chat	2.950s
 <!-- yzma:bench table browser -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
-| CPU, more threads | wasm | Intel Core i9-13900HX, Chrome | - | 89.0 | b11017 | 2026-09-17 |
+| CPU, more threads | wasm | Intel Core i9-13900HX, Chrome | - | 90.1 | b11017 | 2026-09-23 |
 <!-- yzma:bench table end browser -->
 
 <!-- yzma:bench start browser/cpu-threads/wasm/i9-13900hx -->
 ### CPU, more threads, wasm, Intel Core i9-13900HX, Chrome
-<!-- yzma:bench meta {"suite":"browser","backend":"cpu-threads","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX, Chrome","cpu":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36","tokens_per_second":89,"llamacpp":"b11017","yzma":"1.27.0","date":"2026-09-17"} -->
+<!-- yzma:bench meta {"suite":"browser","backend":"cpu-threads","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX, Chrome","cpu":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36","tokens_per_second":90.1,"llamacpp":"b11017","yzma":"1.27.0","date":"2026-09-23"} -->
 
-Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36. 89.0 tokens a second.
-
-Chrome refused the WebGPU adapter, which has no shader-f16, thus this run is on the CPU. See issue 341.
+Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36. 90.1 tokens a second.
 
 <details><summary>The output of go test</summary>
 
 ```
-$ browser-bench.js mode=webgpu tokens=64
 goos: js
 goarch: wasm
 pkg: github.com/hybridgroup/yzma/examples/wasm/chat
 cpu: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
 backend: cpu-threads, 16 threads
 llama.cpp: b11017
-BenchmarkInference-32    1    718939564 ns/op    89.0 tokens/s
-BenchmarkInference-32    1    710637353 ns/op    90.1 tokens/s
-BenchmarkInference-32    1    756680066 ns/op    84.6 tokens/s
-BenchmarkInference-32    1    704535447 ns/op    90.8 tokens/s
-BenchmarkInference-32    1    726694675 ns/op    88.1 tokens/s
+BenchmarkInference-32	1	706245862 ns/op	90.6 tokens/s
+BenchmarkInference-32	1	687950124 ns/op	93.0 tokens/s
+BenchmarkInference-32	1	725130297 ns/op	88.3 tokens/s
+BenchmarkInference-32	1	720720721 ns/op	88.8 tokens/s
+BenchmarkInference-32	1	710164225 ns/op	90.1 tokens/s
 PASS
-ok    github.com/hybridgroup/yzma/examples/wasm/chat    3.640s
+ok	github.com/hybridgroup/yzma/examples/wasm/chat	3.572s
 ```
 
 </details>
