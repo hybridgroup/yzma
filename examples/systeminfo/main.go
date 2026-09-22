@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
 )
@@ -42,7 +43,34 @@ func main() {
 
 	fmt.Println()
 
+	showThreads()
+
 	sysInfo := llama.PrintSystemInfo()
 	fmt.Println("-- llama.cpp System Information --")
 	fmt.Println(sysInfo)
+}
+
+// showThreads prints what yzma makes of the cores of this machine. Call it
+// after llama.Init, because the register of the CPU backend exists only then.
+func showThreads() {
+	fmt.Println("-- CPU Threads --")
+	fmt.Printf("Logical CPUs:      %d\n", runtime.NumCPU())
+	fmt.Printf("Inference threads: %d\n", llama.Threads())
+
+	cpus := llama.PerformanceCPUs()
+	if len(cpus) == 0 {
+		fmt.Println("Performance CPUs:  the system does not say")
+	} else {
+		fmt.Printf("Performance CPUs:  %v\n", cpus)
+	}
+
+	tp, err := llama.NewPerformanceThreadpool()
+	if err != nil {
+		fmt.Printf("Thread pool:       none, %v\n", err)
+	} else {
+		fmt.Printf("Thread pool:       %d threads, each held to a CPU\n", len(cpus))
+		llama.ThreadpoolFree(tp)
+	}
+
+	fmt.Println()
 }
