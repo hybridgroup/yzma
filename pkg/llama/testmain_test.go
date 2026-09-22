@@ -16,15 +16,19 @@ var (
 )
 
 var (
-	nCtx     int
-	nThreads int
-	device   string
+	nCtx       int
+	nThreads   int
+	device     string
+	threadpool bool
+
+	benchThreadpool Threadpool
 )
 
 func init() {
 	flag.IntVar(&nCtx, "nctx", 8192, "number of context tokens for llama.Context")
 	flag.IntVar(&nThreads, "threads", 0, "number of CPU threads, 0 for the value of llama.Threads")
 	flag.StringVar(&device, "device", "", "comma-separated list of devices to use for benchmarking (e.g. 'CUDA0')")
+	flag.BoolVar(&threadpool, "threadpool", false, "hold the CPU threads to the performance cores")
 }
 
 func TestMain(m *testing.M) {
@@ -51,7 +55,9 @@ func benchmarkSetupOnce(b *testing.B) {
 	mparams := ModelDefaultParams()
 	mparams.LoadMode = LoadModeNone
 
-	if device != "" {
+	if strings.EqualFold(device, "CPU") {
+		mparams.SetCPUOnly()
+	} else if device != "" {
 		devs := []GGMLBackendDevice{}
 		devices := strings.SplitSeq(device, ",")
 		for d := range devices {
@@ -89,13 +95,28 @@ func benchmarkSetupOnce(b *testing.B) {
 	}
 	benchCtx = ctx
 
+	if threadpool {
+		tp, err := NewPerformanceThreadpool()
+		if err != nil {
+			b.Fatalf("NewPerformanceThreadpool failed: %v", err)
+		}
+		AttachThreadpool(ctx, uintptr(tp), uintptr(tp))
+		benchThreadpool = tp
+	}
+
 	benchTemplate = ModelChatTemplate(model, "")
 
 	benchReady = true
 }
 
 func benchmarkTeardown() {
+	if benchThreadpool != 0 {
+		DetachThreadpool(benchCtx)
+	}
 	Free(benchCtx)
+	if benchThreadpool != 0 {
+		ThreadpoolFree(benchThreadpool)
+	}
 	ModelFree(benchModel)
 
 	LogSet(LogNormal)
