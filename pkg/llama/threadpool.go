@@ -149,7 +149,9 @@ func ThreadpoolFree(tp Threadpool) {
 // when the build of llama.cpp makes no pool and ErrNoPerformanceCPUs when the
 // system does not say which CPUs to use.
 //
-// Give the pool to a context with [AttachThreadpool].
+// Give the pool to a context with [AttachThreadpool]. The model of that
+// context must come from [ModelParams.SetCPUOnly], not from a device list that
+// names the CPU, because such a list leaves the pool with no work.
 func NewPerformanceThreadpool() (Threadpool, error) {
 	cpus := PerformanceCPUs()
 	if len(cpus) == 0 {

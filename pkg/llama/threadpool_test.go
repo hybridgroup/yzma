@@ -73,3 +73,15 @@ func TestThreadpoolNewNoParams(t *testing.T) {
 func TestThreadpoolFreeZero(t *testing.T) {
 	ThreadpoolFree(0) // must not panic
 }
+
+func TestSetCPUOnly(t *testing.T) {
+	p := ModelParams{NGpuLayers: 99, Devices: 1}
+	p.SetCPUOnly()
+
+	if p.NGpuLayers != 0 {
+		t.Errorf("NGpuLayers is %d, want 0", p.NGpuLayers)
+	}
+	if p.Devices != 0 {
+		t.Errorf("Devices is %d, want 0", p.Devices)
+	}
+}

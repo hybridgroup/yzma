@@ -916,6 +916,10 @@ func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
 // The slice must be NULL-terminated: the last element must be 0.
 // The caller must keep the slice alive (e.g., via runtime.KeepAlive) until
 // the model load call using these params completes.
+//
+// Do not name the CPU here to run on the CPU. Use [ModelParams.SetCPUOnly],
+// because llama.cpp makes a second CPU backend for a device list and runs the
+// graph on it, which leaves a thread pool of the context with no work.
 func (p *ModelParams) SetDevices(devices []GGMLBackendDevice) error {
 	if len(devices) == 0 {
 		p.Devices = uintptr(0)
@@ -929,6 +933,19 @@ func (p *ModelParams) SetDevices(devices []GGMLBackendDevice) error {
 	p.Devices = uintptr(unsafe.Pointer(&devices[0]))
 
 	return nil
+}
+
+// SetCPUOnly makes the model run on the CPU. It keeps every layer in memory of
+// the machine and names no device.
+//
+// This is the way to run on the CPU. A device list that names the CPU makes
+// llama.cpp build a second CPU backend and run the graph on it, while
+// [AttachThreadpool] gives the pool to the first one. The threads then go
+// where the system wants, which costs speed on a machine with two kinds of
+// core. See [NewPerformanceThreadpool].
+func (p *ModelParams) SetCPUOnly() {
+	p.NGpuLayers = 0
+	p.Devices = uintptr(0)
 }
 
 // ModelQuantizeDefaultParams returns default parameters for model quantization.
