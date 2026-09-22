@@ -14,3 +14,7 @@ func mathCores() int {
 	}
 	return 0
 }
+
+// mathCPUs gives nothing on macOS. The system does not let a thread choose a
+// CPU, thus ggml holds no thread to a core there either.
+func mathCPUs() []int32 { return nil }

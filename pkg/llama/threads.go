@@ -1,6 +1,9 @@
 package llama
 
-import "runtime"
+import (
+	"errors"
+	"runtime"
+)
 
 // Threads gives a good number of threads for inference on the CPU of this
 // machine. It counts the cores that do the arithmetic well, which is one
@@ -15,6 +18,18 @@ func Threads() int32 {
 		return int32(n)
 	}
 	return int32(defaultThreads())
+}
+
+// ErrNoPerformanceCPUs says that the system does not tell which CPUs belong
+// to the performance cores.
+var ErrNoPerformanceCPUs = errors.New("the system does not name the performance CPUs")
+
+// PerformanceCPUs gives one CPU for each core that does the arithmetic well,
+// which is one CPU of each performance core. It gives nothing when the system
+// says nothing. Use it to hold the threads of a pool to a core, see
+// [NewPerformanceThreadpool].
+func PerformanceCPUs() []int32 {
+	return mathCPUs()
 }
 
 // defaultThreads is the count that llama.cpp uses when it can read nothing
