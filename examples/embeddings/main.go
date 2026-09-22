@@ -45,6 +45,10 @@ func run() error {
 	ctxParams := llama.ContextDefaultParams()
 	ctxParams.NCtx = uint32(*contextSize)
 	ctxParams.NBatch = uint32(*batchSize)
+	if *threads > 0 {
+		ctxParams.NThreads = int32(*threads)
+		ctxParams.NThreadsBatch = int32(*threads)
+	}
 	ctxParams.PoolingType = poolingType
 	ctxParams.Embeddings = 1
 

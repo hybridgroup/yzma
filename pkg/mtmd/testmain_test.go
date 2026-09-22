@@ -25,12 +25,14 @@ var (
 )
 
 var (
-	nCtx   int
-	device string
+	nCtx     int
+	nThreads int
+	device   string
 )
 
 func init() {
 	flag.IntVar(&nCtx, "nctx", 8192, "number of context tokens for llama.Context")
+	flag.IntVar(&nThreads, "threads", 0, "number of CPU threads, 0 for the value of llama.Threads")
 	flag.StringVar(&device, "device", "", "comma-separated list of devices to use for benchmarking (e.g. 'CUDA0')")
 }
 
@@ -92,6 +94,10 @@ func benchmarkSetupOnce(b *testing.B) {
 	params := llama.ContextDefaultParams()
 	params.NCtx = uint32(nCtx)
 	params.NBatch = 1024
+	if nThreads > 0 {
+		params.NThreads = int32(nThreads)
+		params.NThreadsBatch = int32(nThreads)
+	}
 
 	ctx, err := llama.InitFromModel(model, params)
 	if err != nil {
@@ -102,6 +108,9 @@ func benchmarkSetupOnce(b *testing.B) {
 	// The projector decides the count of tokens of an image. A minimum here
 	// makes a projector with a fixed count fail.
 	mprms := ContextParamsDefault()
+	if nThreads > 0 {
+		mprms.Threads = int32(nThreads)
+	}
 
 	mtmdCtx, err := InitFromFile(projectFile, model, mprms)
 	if err != nil {

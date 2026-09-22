@@ -20,6 +20,7 @@ var (
 	topP        *float64
 	minP        *float64
 	contextSize *int
+	threads     *int
 	predictSize *int
 	batchSize   *int
 	uBatchSize  *int
@@ -47,6 +48,7 @@ func handleFlags() error {
 	topP = flag.Float64("top-p", 0.9, "top-p for model")
 
 	contextSize = flag.Int("c", 4096, "context size for model")
+	threads = flag.Int("t", 0, "number of CPU threads (0 = one for each performance core)")
 	predictSize = flag.Int("n", -1, "number of tokens to predict")
 	batchSize = flag.Int("b", 2048, "logical max batch size for model")
 	uBatchSize = flag.Int("ub", 2048, "physical max batch size for model")

@@ -41,6 +41,10 @@ func main() {
 	// Create context
 	params := llama.ContextDefaultParams()
 	params.NCtx = uint32(*contextSize)
+	if *threads > 0 {
+		params.NThreads = int32(*threads)
+		params.NThreadsBatch = int32(*threads)
+	}
 
 	ctx, err := llama.InitFromModel(model, params)
 	if err != nil {

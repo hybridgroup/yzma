@@ -346,9 +346,14 @@ var (
 )
 
 // ContextDefaultParams returns the default params to initialize a model context.
+//
+// NThreads and NThreadsBatch come from [Threads]. The four threads of llama.cpp
+// are slow on a machine with many cores.
 func ContextDefaultParams() ContextParams {
 	var p ContextParams
 	contextDefaultParamsFunc.Call(unsafe.Pointer(&p))
+	p.NThreads = Threads()
+	p.NThreadsBatch = p.NThreads
 	return p
 }
 

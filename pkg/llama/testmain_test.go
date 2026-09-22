@@ -16,12 +16,14 @@ var (
 )
 
 var (
-	nCtx   int
-	device string
+	nCtx     int
+	nThreads int
+	device   string
 )
 
 func init() {
 	flag.IntVar(&nCtx, "nctx", 8192, "number of context tokens for llama.Context")
+	flag.IntVar(&nThreads, "threads", 0, "number of CPU threads, 0 for the value of llama.Threads")
 	flag.StringVar(&device, "device", "", "comma-separated list of devices to use for benchmarking (e.g. 'CUDA0')")
 }
 
@@ -76,6 +78,10 @@ func benchmarkSetupOnce(b *testing.B) {
 	params := ContextDefaultParams()
 	params.NBatch = 1024
 	params.NCtx = uint32(nCtx)
+	if nThreads > 0 {
+		params.NThreads = int32(nThreads)
+		params.NThreadsBatch = int32(nThreads)
+	}
 
 	ctx, err := InitFromModel(model, params)
 	if err != nil {
