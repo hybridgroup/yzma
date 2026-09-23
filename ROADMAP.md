@@ -16,19 +16,19 @@ section at the end explains.
 | `llama_backend_free` | yes | yes |
 | `llama_backend_init` | yes | yes |
 | `llama_flash_attn_type_name` | yes | no |
-| `llama_ftype_name` | yes | no |
+| `llama_ftype_name` | yes | yes |
 | `llama_load_mode_from_str` | yes | no |
 | `llama_load_mode_name` | yes | no |
-| `llama_max_devices` | yes | no |
-| `llama_max_parallel_sequences` | yes | no |
+| `llama_max_devices` | yes | yes |
+| `llama_max_parallel_sequences` | yes | yes |
 | `llama_max_tensor_buft_overrides` | yes | no |
 | `llama_numa_init` | yes | no |
-| `llama_print_system_info` | yes | no |
-| `llama_supports_gpu_offload` | yes | no |
+| `llama_print_system_info` | yes | yes |
+| `llama_supports_gpu_offload` | yes | yes |
 | `llama_supports_mlock` | yes | no |
 | `llama_supports_mmap` | yes | no |
 | `llama_supports_rpc` | yes | no |
-| `llama_time_us` | yes | no |
+| `llama_time_us` | yes | yes |
 
 ### Model Functions
 
@@ -36,41 +36,41 @@ section at the end explains.
 | --- | :-: | :-: |
 | `llama_init_from_model` | yes | yes |
 | `llama_model_chat_template` | yes | yes |
-| `llama_model_cls_label` | yes | no |
-| `llama_model_decoder_start_token` | yes | no |
+| `llama_model_cls_label` | yes | yes |
+| `llama_model_decoder_start_token` | yes | yes |
 | `llama_model_default_params` | yes | partial |
 | `llama_model_desc` | yes | yes |
 | `llama_model_free` | yes | yes |
-| `llama_model_ftype` | yes | no |
-| `llama_model_has_decoder` | yes | no |
-| `llama_model_has_encoder` | yes | no |
-| `llama_model_is_diffusion` | yes | no |
-| `llama_model_is_hybrid` | yes | no |
-| `llama_model_is_recurrent` | yes | no |
+| `llama_model_ftype` | yes | yes |
+| `llama_model_has_decoder` | yes | yes |
+| `llama_model_has_encoder` | yes | yes |
+| `llama_model_is_diffusion` | yes | yes |
+| `llama_model_is_hybrid` | yes | yes |
+| `llama_model_is_recurrent` | yes | yes |
 | `llama_model_load_from_file` | yes | yes |
 | `llama_model_load_from_splits` | yes | no |
-| `llama_model_meta_count` | yes | no |
-| `llama_model_meta_key_by_index` | yes | no |
-| `llama_model_meta_key_str` | yes | no |
-| `llama_model_meta_val_str_by_index` | yes | no |
-| `llama_model_meta_val_str` | yes | no |
-| `llama_model_n_cls_out` | yes | no |
+| `llama_model_meta_count` | yes | yes |
+| `llama_model_meta_key_by_index` | yes | yes |
+| `llama_model_meta_key_str` | yes | yes |
+| `llama_model_meta_val_str_by_index` | yes | yes |
+| `llama_model_meta_val_str` | yes | yes |
+| `llama_model_n_cls_out` | yes | yes |
 | `llama_model_n_ctx_train` | yes | yes |
-| `llama_model_n_embd_inp` | yes | no |
-| `llama_model_n_embd_out` | yes | no |
+| `llama_model_n_embd_inp` | yes | yes |
+| `llama_model_n_embd_out` | yes | yes |
 | `llama_model_n_embd` | yes | yes |
-| `llama_model_n_head_kv` | yes | no |
-| `llama_model_n_head` | yes | no |
-| `llama_model_n_layer_nextn` | yes | no |
-| `llama_model_n_layer` | yes | no |
-| `llama_model_n_params` | yes | no |
-| `llama_model_n_swa` | yes | no |
+| `llama_model_n_head_kv` | yes | yes |
+| `llama_model_n_head` | yes | yes |
+| `llama_model_n_layer_nextn` | yes | yes |
+| `llama_model_n_layer` | yes | yes |
+| `llama_model_n_params` | yes | yes |
+| `llama_model_n_swa` | yes | yes |
 | `llama_model_quantize_default_params` | yes | no |
 | `llama_model_quantize` | yes | no |
-| `llama_model_rope_freq_scale_train` | yes | no |
-| `llama_model_rope_type` | yes | no |
+| `llama_model_rope_freq_scale_train` | yes | yes |
+| `llama_model_rope_type` | yes | yes |
 | `llama_model_save_to_file` | yes | no |
-| `llama_model_size` | yes | no |
+| `llama_model_size` | yes | yes |
 | `llama_split_path` | yes | no |
 | `llama_split_prefix` | yes | no |
 
@@ -117,41 +117,41 @@ section at the end explains.
 | `llama_detach_threadpool` | yes | no |
 | `llama_encode` | yes | yes |
 | `llama_free` | yes | yes |
-| `llama_get_embeddings_ith` | yes | no |
+| `llama_get_embeddings_ith` | yes | yes |
 | `llama_get_embeddings_seq` | yes | yes |
-| `llama_get_embeddings` | yes | no |
-| `llama_get_logits_ith` | yes | no |
-| `llama_get_logits` | yes | no |
+| `llama_get_embeddings` | yes | yes |
+| `llama_get_logits_ith` | yes | yes |
+| `llama_get_logits` | yes | yes |
 | `llama_get_memory` | yes | no |
 | `llama_get_model` | yes | no |
 | `llama_n_batch` | yes | yes |
 | `llama_n_ctx_seq` | yes | yes |
 | `llama_n_ctx` | yes | yes |
-| `llama_n_rs_seq` | yes | no |
+| `llama_n_rs_seq` | yes | yes |
 | `llama_n_seq_max` | yes | yes |
-| `llama_n_threads_batch` | yes | no |
-| `llama_n_threads` | yes | no |
+| `llama_n_threads_batch` | yes | yes |
+| `llama_n_threads` | yes | yes |
 | `llama_n_ubatch` | yes | yes |
-| `llama_pooling_type` | yes | no |
+| `llama_pooling_type` | yes | yes |
 | `llama_set_abort_callback` | yes | no |
 | `llama_set_adapter_cvec` | yes | no |
-| `llama_set_causal_attn` | yes | no |
-| `llama_set_embeddings` | yes | no |
-| `llama_set_n_threads` | yes | no |
+| `llama_set_causal_attn` | yes | yes |
+| `llama_set_embeddings` | yes | yes |
+| `llama_set_n_threads` | yes | yes |
 | `llama_set_warmup` | yes | no |
-| `llama_synchronize` | yes | no |
+| `llama_synchronize` | yes | yes |
 
 ### Backend Sampling Functions (Experimental)
 
 | Function | `yzma` | WebAssembly |
 | --- | :-: | :-: |
-| `llama_get_sampled_candidates_count_ith` | yes | no |
-| `llama_get_sampled_candidates_ith` | yes | no |
-| `llama_get_sampled_logits_count_ith` | yes | no |
-| `llama_get_sampled_logits_ith` | yes | no |
-| `llama_get_sampled_probs_count_ith` | yes | no |
-| `llama_get_sampled_probs_ith` | yes | no |
-| `llama_get_sampled_token_ith` | yes | no |
+| `llama_get_sampled_candidates_count_ith` | yes | yes |
+| `llama_get_sampled_candidates_ith` | yes | yes |
+| `llama_get_sampled_logits_count_ith` | yes | yes |
+| `llama_get_sampled_logits_ith` | yes | yes |
+| `llama_get_sampled_probs_count_ith` | yes | yes |
+| `llama_get_sampled_probs_ith` | yes | yes |
+| `llama_get_sampled_token_ith` | yes | yes |
 
 ### Speculative Decoding Functions (Experimental)
 
@@ -224,7 +224,7 @@ the public API. The [`exp/speculative`](./exp/speculative) package has them.
 | `llama_sampler_name` | yes | yes |
 | `llama_sampler_reset` | yes | yes |
 | `llama_sampler_sample` | yes | yes |
-| `llama_set_sampler` | yes | no |
+| `llama_set_sampler` | yes | yes |
 
 ### Logging Functions
 
@@ -237,12 +237,12 @@ the public API. The [`exp/speculative`](./exp/speculative) package has them.
 
 | Function | `yzma` | WebAssembly |
 | --- | :-: | :-: |
-| `llama_perf_context` | yes | no |
+| `llama_perf_context` | yes | yes |
 | `llama_perf_context_print` | yes | no |
-| `llama_perf_context_reset` | yes | no |
-| `llama_perf_sampler` | yes | no |
+| `llama_perf_context_reset` | yes | yes |
+| `llama_perf_sampler` | yes | yes |
 | `llama_perf_sampler_print` | yes | no |
-| `llama_perf_sampler_reset` | yes | no |
+| `llama_perf_sampler_reset` | yes | yes |
 
 ### Chat Functions
 
@@ -255,19 +255,19 @@ the public API. The [`exp/speculative`](./exp/speculative) package has them.
 
 | Function | `yzma` | WebAssembly |
 | --- | :-: | :-: |
-| `llama_state_get_data` | yes | no |
-| `llama_state_get_size` | yes | no |
+| `llama_state_get_data` | yes | yes |
+| `llama_state_get_size` | yes | yes |
 | `llama_state_load_file` | yes | no |
 | `llama_state_save_file` | yes | no |
-| `llama_state_seq_get_data_ext` | yes | no |
-| `llama_state_seq_get_data` | yes | no |
-| `llama_state_seq_get_size_ext` | yes | no |
-| `llama_state_seq_get_size` | yes | no |
+| `llama_state_seq_get_data_ext` | yes | yes |
+| `llama_state_seq_get_data` | yes | yes |
+| `llama_state_seq_get_size_ext` | yes | yes |
+| `llama_state_seq_get_size` | yes | yes |
 | `llama_state_seq_load_file` | yes | no |
 | `llama_state_seq_save_file` | yes | no |
-| `llama_state_seq_set_data_ext` | yes | no |
-| `llama_state_seq_set_data` | yes | no |
-| `llama_state_set_data` | yes | no |
+| `llama_state_seq_set_data_ext` | yes | yes |
+| `llama_state_seq_set_data` | yes | yes |
+| `llama_state_set_data` | yes | yes |
 
 ### LoRA Functions
 
@@ -378,7 +378,7 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 The `pkg/llamawasm` package drives a build of `llama.cpp` for WebAssembly. It
 does not use the C API directly. A C shim in the
 [llama-cpp-builder](https://github.com/hybridgroup/llama-cpp-builder) repository
-gives it a small set of calls with a version, which is ABI 6 now. Thus a function
+gives it a small set of calls with a version, which is ABI 9 now. Thus a function
 of `llama.cpp` reaches the browser only after the shim exports it.
 
 The WebAssembly column of each table above gives the state of the wrapper.
@@ -389,11 +389,12 @@ The WebAssembly column of each table above gives the state of the wrapper.
 | partial | The WebAssembly build has it with fewer options. See the notes. |
 | no | The shim does not export it. |
 
-107 functions reach WebAssembly, 100 complete and 7 partial, all of them among
-the 253 that have a wrapper on a host. That is sufficient for text generation,
+170 functions reach WebAssembly, 163 complete and 7 partial, all of them among
+the 258 that have a wrapper on a host. That is sufficient for text generation,
 embeddings, images, chat templates, tool calling with a grammar, every sampler
-that a host has, batches that carry more than one sequence, and a context that
-shifts when it becomes full.
+that a host has, batches that carry more than one sequence, a context that
+shifts when it becomes full, the logits and the metadata of a model, the state
+of a context in memory, and the performance counters.
 
 ### Notes on the partial wrappers
 
@@ -409,7 +410,7 @@ shifts when it becomes full.
   boundary of the module.
 - `llama_model_default_params` has `NGpuLayers` only.
 - `llama_context_default_params` has `NCtx`, `NBatch`, `NUbatch`, `NSeqMax`,
-  `NThreads`, `PoolingType`, and `Embeddings`.
+  `NThreads`, `PoolingType`, `Embeddings`, and `NoPerf`.
 - `llama_batch_init` takes no `embd`. The shim has no call that puts an
   embedding in a batch, thus a batch carries tokens only. `llama_batch_free`
   does nothing, because the arrays of a batch belong to Go here.
@@ -418,18 +419,23 @@ shifts when it becomes full.
 
 In order of the value that each one adds.
 
-1. **The metadata of a model.** The `llama_model_meta_*` calls and the counts of
-   layers, heads, and parameters.
+1. **A stop from the page.** `llama_set_abort_callback` cannot take a Go
+   function, but a flag in shared memory that the shim reads can stop a long
+   prompt. `llama_set_warmup` goes with it.
 2. **The parts of `mtmd`.** The shim does the whole pipeline of an image in two
    coarse calls, `mtmd_tokenize` and `mtmd_helper_eval_chunks`. Thus the calls
    that build or examine one piece are absent: the getters of a bitmap, the
    accessors of a chunk and of the tokens of an image, `mtmd_encode`,
    `mtmd_get_output_embd`, and the batch calls. A program in a browser cannot
    place the embeddings of an image itself.
+3. **A chat with turns in `llama_chat_apply_template`.** The shim takes one
+   message now.
 
 `llama_sampler_apply` is not planned. It takes a `llama_token_data_array`, and no
-struct crosses the boundary of the module. A program in a browser cannot reach
-the logits in any case, because `llama_get_logits_ith` is absent as well.
+struct crosses the boundary of the module. A program in a browser can read the
+logits with `llama_get_logits_ith` and sample them in Go.
 
-Audio, video, LoRA adapters, saved state, quantization, and the performance
-counters are not planned for WebAssembly.
+Audio, video, LoRA adapters, the state calls that use a file, quantization, and
+the calls that print the performance counters are not planned for WebAssembly.
+The state calls that use memory give the same result, and a page can keep the
+bytes in IndexedDB or OPFS.

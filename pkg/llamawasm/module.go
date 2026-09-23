@@ -19,12 +19,13 @@ import (
 // this package makes a test before each use.
 const (
 	abiVersionMin = 1 // 1 has the calls for text generation and embeddings
-	abiVersion    = 8 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
+	abiVersion    = 9 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
 	//                   bounds of the tokens of an image, 5 the rest of the
 	//                   vocabulary and of the samplers, 6 batches with
 	//                   positions and the calls for the memory of a sequence,
 	//                   7 the calls that read the logits and the
-	//                   embeddings of a batch, 8 yzma_backend_check
+	//                   embeddings of a batch, 8 yzma_backend_check, 9 the
+	//                   metadata, the state, and the performance counters
 )
 
 // Error codes that the shim returns. These agree with the values in
@@ -62,6 +63,10 @@ var (
 	// calls that change a context after it is made, which are in ABI version 7
 	// and later.
 	ErrNoContextFlags = errors.New("llamawasm: this llama.cpp module cannot change a context after it is made, install a newer build")
+
+	// ErrNoPerf says that the module is from a release before the performance
+	// counters, which are in ABI version 9 and later.
+	ErrNoPerf = errors.New("llamawasm: this llama.cpp module has no performance counters, install a newer build")
 )
 
 // mod is the Emscripten module instance of llama.cpp.
@@ -347,6 +352,33 @@ func callErr(name string, args ...any) (int32, error) {
 	return rc, nil
 }
 
+// callString runs a call that copies a string into a buffer and reads the
+// string. The args come before the pointer and the size that the call takes
+// last. It uses a larger buffer if the first buffer is too small.
+func callString(name string, size int, args ...any) string {
+	if !has(name) {
+		return ""
+	}
+
+	for {
+		ptr, err := pieceScratch.reserve(size)
+		if err != nil {
+			return ""
+		}
+
+		n := call(name, append(args, ptr, size)...)
+		switch {
+		case n == errTooSmall && size < 1<<20:
+			size *= 4
+			continue
+		case n <= 0:
+			return ""
+		default:
+			return string(readBytes(ptr, int(n)))
+		}
+	}
+}
+
 // shimError makes an error from a return code and the last error of the shim.
 func shimError(name string, rc int32) error {
 	if text := lastError(); text != "" {
@@ -494,6 +526,15 @@ func stringsSize(values []string) int {
 		n += len(s) + 1
 	}
 	return n
+}
+
+func readFloat64s(ptr, n int) []float64 {
+	b := readBytes(ptr, n*8)
+	values := make([]float64, n)
+	for i := range values {
+		values[i] = math.Float64frombits(binary.LittleEndian.Uint64(b[i*8:]))
+	}
+	return values
 }
 
 func readFloats(ptr, n int) []float32 {

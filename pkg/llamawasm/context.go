@@ -23,8 +23,13 @@ func InitFromModel(model Model, params ContextParams) (Context, error) {
 		int(params.PoolingType),
 	}
 
+	// Only a module of ABI version 9 and later takes NoPerf.
 	name := "_yzma_context_new"
-	if has("_yzma_context_new_seq") {
+	switch {
+	case has("_yzma_context_new_ext"):
+		name = "_yzma_context_new_ext"
+		args = append(args, int(params.NSeqMax), int(params.NoPerf))
+	case has("_yzma_context_new_seq"):
 		name = "_yzma_context_new_seq"
 		args = append(args, int(params.NSeqMax))
 	}

@@ -76,6 +76,25 @@ const (
 	FtypeGUESSED         Ftype = 1024
 )
 
+// ModelMetaKey is a key of the metadata of a model that llama.cpp knows. The
+// values agree with enum llama_model_meta_key.
+type ModelMetaKey int32
+
+const (
+	ModelMetaKeySamplingSequence ModelMetaKey = iota
+	ModelMetaKeySamplingTopK
+	ModelMetaKeySamplingTopP
+	ModelMetaKeySamplingMinP
+	ModelMetaKeySamplingXTCProb
+	ModelMetaKeySamplingXTCThold
+	ModelMetaKeySamplingTemp
+	ModelMetaKeySamplingPenaltyLastN
+	ModelMetaKeySamplingPenaltyRepeat
+	ModelMetaKeySamplingMirostat
+	ModelMetaKeySamplingMirostatTau
+	ModelMetaKeySamplingMirostatEta
+)
+
 // RopeScalingType is how a model scales the positions of RoPE. The values
 // agree with llama.RopeScalingType.
 type RopeScalingType int32
@@ -164,6 +183,7 @@ type ContextParams struct {
 	NThreads    int32       // number of threads, 0 = from the module
 	PoolingType PoolingType // how to pool embeddings
 	Embeddings  uint8       // 1 to compute embeddings
+	NoPerf      uint8       // 1 to stop the measurement of the time of each batch
 }
 
 // ContextDefaultParams gives the parameters that a context uses if the program
@@ -181,6 +201,7 @@ func ContextDefaultParams() ContextParams {
 		NThreads:    Threads(),
 		PoolingType: PoolingTypeUnspecified,
 		Embeddings:  0,
+		NoPerf:      1,
 	}
 }
 
