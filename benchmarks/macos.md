@@ -6,6 +6,19 @@ of each run, and of the device, is below the tables.
 To add a machine or to make these numbers again, see
 [how to run the benchmarks](README.md).
 
+## Summary
+
+Tokens a second on each machine.
+
+| Machine | Text, CPU | Text, Metal | Text, BLAS | Multimodal, CPU | Multimodal, Metal | Multimodal, BLAS |
+| --- | --- | --- | --- | --- | --- | --- |
+| Apple M4 Pro | 900.7 | 511.8 | 505.2 | 900.8 | 1098.0 | 583.5 |
+
+- For text, the CPU is the fastest backend, 1.8 times faster than Metal. The
+  text model is very small, thus the GPU has too little work for each token.
+- For multimodal, Metal is the fastest backend, 22 percent faster than the CPU.
+- BLAS is the slowest backend for both suites.
+
 ## Text model benchmarks
 
 The model is

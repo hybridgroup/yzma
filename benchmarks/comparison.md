@@ -10,8 +10,8 @@ These benchmarks are to compare inference performance using 3 different engines 
 
 | Suite | Result | Evidence |
 | --- | --- | --- |
-| Embeddings | yzma 3.3 to 3.4 times faster, 1.2 ms against 4.1 ms and 4.2 ms | Ten runs, no overlap, each engine at 29 prompt tokens and a vector of 384 |
-| Text | yzma 5.8 to 12.3 percent faster, half the time to the first token | Ten runs, no overlap, each engine at the same count of prompt tokens |
+| Embeddings | yzma 3.1 to 3.5 times faster, 1.4 ms against 4.2 ms and 4.9 ms | Five runs, no overlap, each engine at 29 prompt tokens and a vector of 384 |
+| Text | yzma 5.4 to 10.7 percent faster, 0.5 to 0.6 of the time to the first token | Five runs, no overlap, each engine at the same count of prompt tokens |
 | Images | No numbers. The code runs with `--suite multimodal` | The engines preprocess an image in different ways |
 
 ## Text

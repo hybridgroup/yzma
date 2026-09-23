@@ -6,6 +6,31 @@ of each run, and of the device, is below the tables.
 To add a machine or to make these numbers again, see
 [how to run the benchmarks](README.md).
 
+## Summary
+
+Tokens a second on each machine. The GPU columns give the fastest GPU backend.
+
+| Machine | GPU | Text, CPU | Text, GPU | Multimodal, CPU | Multimodal, GPU |
+| --- | --- | --- | --- | --- | --- |
+| Intel Core i9-13900HX | RTX 4070 Laptop | 269.6 | 852.8, CUDA | 890.9 | 2334.0, CUDA |
+| NVIDIA Jetson Orin Nano Super | Tegra Orin | 87.0 | 191.6, CUDA | 212.0 | 419.1, CUDA |
+| Raspberry Pi 4 Model B | none | 35.3 | none | 5.5 | none |
+| Arduino UNO Q | none | 32.0 | none | 4.2 | none |
+
+- CUDA on the RTX 4070 gives the fastest results of all Linux machines.
+- Vulkan on the same RTX 4070 gives 87 percent of CUDA for text and 90 percent
+  for multimodal.
+- The integrated Intel GPU of the i9-13900HX is slower than its CPU. On Vulkan0
+  it gives 95.5 for text and 466.3 for multimodal.
+- On the Jetson Orin Nano, the GPU is 2.2 times faster than the CPU for text and
+  2.0 times faster for multimodal. Vulkan gives 93 percent of CUDA for text and
+  99 percent for multimodal.
+- The Raspberry Pi 4 and the Arduino UNO Q have no GPU backend. They run text at
+  more than 30 tokens a second, but multimodal is slow.
+- The text suite uses 4 threads on each machine. The multimodal suite uses one
+  thread for each performance core, thus its CPU column shows the size of the
+  processor.
+
 ## Text model benchmarks
 
 The model is
