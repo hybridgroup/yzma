@@ -15,6 +15,10 @@ var (
 	benchReady    bool
 )
 
+// benchThreads is the thread count of the text benchmark on each machine. The
+// model is too small to use more threads, thus more threads make it slower.
+const benchThreads = 4
+
 var (
 	nCtx       int
 	nThreads   int
@@ -26,7 +30,7 @@ var (
 
 func init() {
 	flag.IntVar(&nCtx, "nctx", 8192, "number of context tokens for llama.Context")
-	flag.IntVar(&nThreads, "threads", 0, "number of CPU threads, 0 for the value of llama.Threads")
+	flag.IntVar(&nThreads, "threads", benchThreads, "number of CPU threads, 0 for the value of llama.Threads")
 	flag.StringVar(&device, "device", "", "comma-separated list of devices to use for benchmarking (e.g. 'CUDA0')")
 	flag.BoolVar(&threadpool, "threadpool", false, "hold the CPU threads to the performance cores")
 }
@@ -96,9 +100,9 @@ func benchmarkSetupOnce(b *testing.B) {
 	benchCtx = ctx
 
 	if threadpool {
-		tp, err := NewPerformanceThreadpool()
+		tp, err := newBenchThreadpool(params.NThreads)
 		if err != nil {
-			b.Fatalf("NewPerformanceThreadpool failed: %v", err)
+			b.Fatalf("newBenchThreadpool failed: %v", err)
 		}
 		AttachThreadpool(ctx, uintptr(tp), uintptr(tp))
 		benchThreadpool = tp
@@ -107,6 +111,22 @@ func benchmarkSetupOnce(b *testing.B) {
 	benchTemplate = ModelChatTemplate(model, "")
 
 	benchReady = true
+}
+
+// newBenchThreadpool holds n threads to the first n performance CPUs, thus the
+// pool has the thread count of the context.
+func newBenchThreadpool(n int32) (Threadpool, error) {
+	cpus := PerformanceCPUs()
+	if len(cpus) == 0 {
+		return 0, ErrNoPerformanceCPUs
+	}
+	if int(n) < len(cpus) {
+		cpus = cpus[:n]
+	}
+
+	params := ThreadpoolParamsDefault(int32(len(cpus)))
+	params.SetCPUs(cpus)
+	return ThreadpoolNew(&params)
 }
 
 func benchmarkTeardown() {

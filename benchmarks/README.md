@@ -59,13 +59,25 @@ Useful flags.
 ./benchmarks/run.sh --dry-run               # print the result, change no file
 ```
 
-The CPU benchmark uses one thread for each performance core of the machine.
-Use `--threads` to try another count.
+The text benchmark uses 4 threads on each machine. SmolLM-135M is too small to
+use more threads. Each token has little arithmetic, and the threads wait for
+each other after each operation, thus more threads make it slower. On an Apple
+M4 Pro, 4 threads give more than 900 tokens a second and 10 threads give much
+less. With the same count on each machine, the text tables measure the same
+work, and they agree with the older rows, which used the 4 threads of llama.cpp.
 
-`--threadpool` holds each of those threads to a CPU of its own. Without it the
+The multimodal benchmark uses one thread for each performance core of the
+machine, as a program of yzma does. Its model does more work for each token,
+thus this suite shows what a large processor can do.
+
+Use `--threads` to try another count for both suites. `--threads 0` gives the
+default of yzma, one thread for each performance core.
+
+`--threadpool` holds each thread to a performance CPU of its own. Without it the
 system moves the threads while the work goes on, which makes a short run read
-low and gives a different answer each time. It changes nothing on macOS, where
-a thread cannot choose a CPU.
+low and gives a different answer each time. It works only on Linux. macOS and
+Windows do not say which CPUs are performance CPUs, thus the benchmark stops
+with an error there.
 
 The PowerShell script takes the same names with one dash and a capital, as
 `-Machine`, `-Backend`, `-DryRun` and so on. The flags go after the name of the

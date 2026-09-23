@@ -112,9 +112,9 @@ func benchmarkSetupOnce(b *testing.B) {
 	benchCtx = ctx
 
 	if threadpool {
-		tp, err := llama.NewPerformanceThreadpool()
+		tp, err := newBenchThreadpool(params.NThreads)
 		if err != nil {
-			b.Fatalf("NewPerformanceThreadpool failed: %v", err)
+			b.Fatalf("newBenchThreadpool failed: %v", err)
 		}
 		llama.AttachThreadpool(ctx, uintptr(tp), uintptr(tp))
 		benchThreadpool = tp
@@ -144,6 +144,22 @@ func benchmarkSetupOnce(b *testing.B) {
 	benchBitmap = BitmapInit(x, y, uintptr(unsafe.Pointer(&benchImgData[0])))
 
 	benchReady = true
+}
+
+// newBenchThreadpool holds n threads to the first n performance CPUs, thus the
+// pool has the thread count of the context.
+func newBenchThreadpool(n int32) (llama.Threadpool, error) {
+	cpus := llama.PerformanceCPUs()
+	if len(cpus) == 0 {
+		return 0, llama.ErrNoPerformanceCPUs
+	}
+	if int(n) < len(cpus) {
+		cpus = cpus[:n]
+	}
+
+	params := llama.ThreadpoolParamsDefault(int32(len(cpus)))
+	params.SetCPUs(cpus)
+	return llama.ThreadpoolNew(&params)
 }
 
 func benchmarkTeardown() {

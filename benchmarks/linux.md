@@ -11,6 +11,8 @@ To add a machine or to make these numbers again, see
 The model is
 [SmolLM-135M.Q2_K.gguf](https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf).
 The code is [pkg/llama/benchmark_test.go](../pkg/llama/benchmark_test.go).
+The benchmark uses 4 threads on each machine, see
+[the thread count](README.md#run-them).
 
 <!-- yzma:bench table text -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
