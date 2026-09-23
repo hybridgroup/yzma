@@ -23,6 +23,19 @@ and the tokens a second come from the generation loop of
 uses. These numbers are not comparable with the native tables, because the
 prompt and the count of tokens are different.
 
+## Summary
+
+Tokens a second on each machine.
+
+| Machine | Node, CPU | Node, more threads | Chrome, more threads |
+| --- | --- | --- | --- |
+| Intel Core i9-13900HX | 13.8 | 103.0 | 92.5 |
+
+- The build with more threads is 7.5 times faster than the build with one
+  thread.
+- In Chrome, the build with more threads gives 90 percent of the speed in Node.
+- There is no WebGPU result yet.
+
 ## In Node
 
 <!-- yzma:bench table node -->
