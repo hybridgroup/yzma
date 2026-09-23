@@ -167,3 +167,42 @@ func TestModelInfoOldModule(t *testing.T) {
 		t.Errorf("ModelDecoderStartToken gave %v, want TokenNull", got)
 	}
 }
+
+func TestModelMeta(t *testing.T) {
+	fakeABI9(t)
+
+	m := Model(1)
+	if got := ModelMetaCount(m); got != 2 {
+		t.Fatalf("ModelMetaCount gave %d, want 2", got)
+	}
+	if got, ok := ModelMetaKeyByIndex(m, 0); !ok || got != "general.name" {
+		t.Errorf("ModelMetaKeyByIndex gave %q and %v", got, ok)
+	}
+	// This value is larger than the first buffer, thus it needs a second call.
+	if got, ok := ModelMetaValStrByIndex(m, 1); !ok || len(got) != 40000 {
+		t.Errorf("ModelMetaValStrByIndex gave %d bytes and %v, want 40000", len(got), ok)
+	}
+	if got, ok := ModelMetaValStr(m, "general.name"); !ok || got != "Tiny" {
+		t.Errorf("ModelMetaValStr gave %q and %v", got, ok)
+	}
+	if _, ok := ModelMetaValStr(m, "no.such.key"); ok {
+		t.Error("ModelMetaValStr found a key that is not there")
+	}
+	if _, ok := ModelMetaKeyByIndex(m, 5); ok {
+		t.Error("ModelMetaKeyByIndex found an index that is not there")
+	}
+	if got := ModelMetaKeyStr(ModelMetaKeySamplingTopK); got != "general.sampling.top_k" {
+		t.Errorf("ModelMetaKeyStr gave %q", got)
+	}
+	if got := ModelClsLabel(m, 1); got != "label1" {
+		t.Errorf("ModelClsLabel gave %q", got)
+	}
+}
+
+func TestModelMetaOldModule(t *testing.T) {
+	fakeOld(t)
+
+	if _, ok := ModelMetaValStr(Model(1), "general.name"); ok || ModelMetaCount(Model(1)) != 0 {
+		t.Error("a module of an earlier version must give no metadata")
+	}
+}

@@ -442,8 +442,9 @@ markers. The host build reads the token itself.
 - An operation larger than `maxStorageBufferBindingSize` returns to the CPU.
 - One JavaScript ArrayBuffer holds a maximum of 2 GB, thus a larger model must be
   in splits.
-- `pkg/llamawasm` has the calls for text generation, embeddings, and images. It
-  does not have audio, video, LoRA adapters, saved state, or quantization.
+- `pkg/llamawasm` has the calls for text generation, embeddings, and images, and
+  it saves the state of a context in memory. It does not have audio, video, LoRA
+  adapters, state in a file, or quantization.
 - The shim gives no end of turn token and no grammar sampler. Thus
   `message.StopMarkers` approximates, and a tool call cannot be forced by a
   grammar as it can on a host.

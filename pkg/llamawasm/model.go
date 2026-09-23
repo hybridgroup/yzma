@@ -75,30 +75,12 @@ func ModelChatTemplate(model Model, name string) string {
 	return modelString("_yzma_model_chat_template", model, 8192)
 }
 
-// modelString reads a string that the shim writes into a buffer. It uses a
-// larger buffer if the first buffer is too small.
+// modelString reads a string of a model that the shim writes into a buffer.
 func modelString(name string, model Model, size int) string {
 	if !Loaded() {
 		return ""
 	}
-
-	for {
-		ptr, err := pieceScratch.reserve(size)
-		if err != nil {
-			return ""
-		}
-
-		n := call(name, int(model), ptr, size)
-		switch {
-		case n < 0 && n == errTooSmall && size < 1<<20:
-			size *= 4
-			continue
-		case n <= 0:
-			return ""
-		default:
-			return string(readBytes(ptr, int(n)))
-		}
-	}
+	return callString(name, size, int(model))
 }
 
 // String gives the handle of the model as text, which is an aid to debugging.

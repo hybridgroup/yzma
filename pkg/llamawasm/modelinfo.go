@@ -118,3 +118,70 @@ func modelUint64(name string, model Model) uint64 {
 	}
 	return uint64(v)
 }
+
+// ModelMetaCount gives the number of key and value pairs in the metadata of the
+// model.
+func ModelMetaCount(model Model) int32 { return modelInt("_yzma_model_meta_count", model) }
+
+// ModelMetaKeyByIndex gives the key of pair i of the metadata.
+func ModelMetaKeyByIndex(model Model, i int32) (string, bool) {
+	return metaString("_yzma_model_meta_key_by_index", 128, int(model), int(i))
+}
+
+// ModelMetaValStrByIndex gives the value of pair i of the metadata as a string.
+func ModelMetaValStrByIndex(model Model, i int32) (string, bool) {
+	return metaString("_yzma_model_meta_val_str_by_index", 32768, int(model), int(i))
+}
+
+// ModelMetaValStr gives the value of a key of the metadata as a string.
+func ModelMetaValStr(model Model, key string) (string, bool) {
+	if !has("_yzma_model_meta_val_str") {
+		return "", false
+	}
+
+	keyPtr, freeKey, err := allocString(key)
+	if err != nil {
+		return "", false
+	}
+	defer freeKey()
+
+	return metaString("_yzma_model_meta_val_str", 32768, int(model), keyPtr)
+}
+
+// ModelMetaKeyStr gives the name of a key of the metadata, or an empty string
+// if the key is not known.
+func ModelMetaKeyStr(key ModelMetaKey) string {
+	return callString("_yzma_model_meta_key_str", 64, int(key))
+}
+
+// ModelClsLabel gives the label of output i of a classifier model, or an empty
+// string if the model has none.
+func ModelClsLabel(model Model, i uint32) string {
+	return callString("_yzma_model_cls_label", 256, int(model), int(i))
+}
+
+// metaString runs a meta call of the shim. These give the length of the whole
+// value as snprintf does, thus a length that is not less than the size of the
+// buffer needs a second call with a larger buffer.
+func metaString(name string, size int, args ...any) (string, bool) {
+	if !has(name) {
+		return "", false
+	}
+
+	for range 2 {
+		ptr, err := pieceScratch.reserve(size)
+		if err != nil {
+			return "", false
+		}
+
+		n := int(call(name, append(args, ptr, size)...))
+		if n < 0 {
+			return "", false
+		}
+		if n < size {
+			return string(readBytes(ptr, n)), true
+		}
+		size = n + 1
+	}
+	return "", false
+}

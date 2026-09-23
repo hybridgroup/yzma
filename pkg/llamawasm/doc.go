@@ -91,8 +91,9 @@
 // A WebAssembly module can address 4 GB and one JavaScript ArrayBuffer holds a
 // maximum of 2 GB. Thus a model of more than 2 GB must be in splits.
 //
-// The package has the calls that text generation, embeddings, and images need.
-// It does not have audio, video, LoRA adapters, saved state, or quantization.
+// The package has the calls that text generation, embeddings, and images need,
+// and it saves the state of a context in memory. It does not have audio, video,
+// LoRA adapters, state in a file, or quantization.
 //
 // The shim gives no end of turn token and no grammar sampler. Thus StopMarkers
 // of the message package approximates, and a grammar cannot force a tool call.
