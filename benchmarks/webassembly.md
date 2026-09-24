@@ -29,11 +29,11 @@ Tokens a second on each machine.
 
 | Machine | Node, CPU | Node, more threads | Chrome, more threads |
 | --- | --- | --- | --- |
-| Intel Core i9-13900HX | 13.8 | 103.0 | 92.5 |
+| Intel Core i9-13900HX | 13.8 | 105.7 | 91.8 |
 
-- The build with more threads is 7.5 times faster than the build with one
+- The build with more threads is 7.7 times faster than the build with one
   thread.
-- In Chrome, the build with more threads gives 90 percent of the speed in Node.
+- In Chrome, the build with more threads gives 87 percent of the speed in Node.
 - There is no WebGPU result yet.
 
 ## In Node
@@ -41,13 +41,13 @@ Tokens a second on each machine.
 <!-- yzma:bench table node -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
-| CPU | wasm | Intel Core i9-13900HX | - | 13.8 | b11132 | 2026-09-23 |
-| CPU, more threads | wasm | Intel Core i9-13900HX | - | 103.0 | b11132 | 2026-09-23 |
+| CPU | wasm | Intel Core i9-13900HX | - | 13.8 | b11146 | 2026-09-24 |
+| CPU, more threads | wasm | Intel Core i9-13900HX | - | 105.7 | b11146 | 2026-09-24 |
 <!-- yzma:bench table end node -->
 
 <!-- yzma:bench start node/cpu/wasm/i9-13900hx -->
 ### CPU, wasm, Intel Core i9-13900HX
-<!-- yzma:bench meta {"suite":"node","backend":"cpu","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":13.8,"llamacpp":"b11132","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"node","backend":"cpu","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":13.8,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
 13th Gen Intel(R) Core(TM) i9-13900HX. 13.8 tokens a second.
 
@@ -60,14 +60,14 @@ goarch: wasm
 pkg: github.com/hybridgroup/yzma/examples/wasm/chat
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
 backend: cpu, 1 thread(s)
-llama.cpp: b11132
+llama.cpp: b11146
 BenchmarkInference-1	1	4624277457 ns/op	13.8 tokens/s
-BenchmarkInference-1	1	4678362573 ns/op	13.7 tokens/s
-BenchmarkInference-1	1	4617604618 ns/op	13.9 tokens/s
-BenchmarkInference-1	1	4617604618 ns/op	13.9 tokens/s
+BenchmarkInference-1	1	4637681159 ns/op	13.8 tokens/s
+BenchmarkInference-1	1	4627621114 ns/op	13.8 tokens/s
 BenchmarkInference-1	1	4620938628 ns/op	13.8 tokens/s
+BenchmarkInference-1	1	4630969609 ns/op	13.8 tokens/s
 PASS
-ok	github.com/hybridgroup/yzma/examples/wasm/chat	23.180s
+ok	github.com/hybridgroup/yzma/examples/wasm/chat	23.162s
 ```
 
 </details>
@@ -75,9 +75,9 @@ ok	github.com/hybridgroup/yzma/examples/wasm/chat	23.180s
 
 <!-- yzma:bench start node/cpu-threads/wasm/i9-13900hx -->
 ### CPU, more threads, wasm, Intel Core i9-13900HX
-<!-- yzma:bench meta {"suite":"node","backend":"cpu-threads","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":103,"llamacpp":"b11132","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"node","backend":"cpu-threads","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":105.7,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 103.0 tokens a second.
+13th Gen Intel(R) Core(TM) i9-13900HX. 105.7 tokens a second.
 
 <details><summary>The output of go test</summary>
 
@@ -88,14 +88,14 @@ goarch: wasm
 pkg: github.com/hybridgroup/yzma/examples/wasm/chat
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
 backend: cpu-threads, 16 thread(s)
-llama.cpp: b11132
-BenchmarkInference-16	1	623295676 ns/op	102.7 tokens/s
-BenchmarkInference-16	1	621661000 ns/op	103.0 tokens/s
-BenchmarkInference-16	1	592867068 ns/op	108.0 tokens/s
-BenchmarkInference-16	1	582347589 ns/op	109.9 tokens/s
-BenchmarkInference-16	1	653661526 ns/op	97.9 tokens/s
+llama.cpp: b11146
+BenchmarkInference-16	1	640192058 ns/op	100.0 tokens/s
+BenchmarkInference-16	1	565720852 ns/op	113.1 tokens/s
+BenchmarkInference-16	1	607902736 ns/op	105.3 tokens/s
+BenchmarkInference-16	1	605258180 ns/op	105.7 tokens/s
+BenchmarkInference-16	1	594077787 ns/op	107.7 tokens/s
 PASS
-ok	github.com/hybridgroup/yzma/examples/wasm/chat	3.096s
+ok	github.com/hybridgroup/yzma/examples/wasm/chat	3.033s
 ```
 
 </details>
@@ -106,14 +106,14 @@ ok	github.com/hybridgroup/yzma/examples/wasm/chat	3.096s
 <!-- yzma:bench table browser -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
-| CPU, more threads | wasm | Intel Core i9-13900HX, Chrome | - | 92.5 | b11132 | 2026-09-23 |
+| CPU, more threads | wasm | Intel Core i9-13900HX, Chrome | - | 91.8 | b11146 | 2026-09-24 |
 <!-- yzma:bench table end browser -->
 
 <!-- yzma:bench start browser/cpu-threads/wasm/i9-13900hx -->
 ### CPU, more threads, wasm, Intel Core i9-13900HX, Chrome
-<!-- yzma:bench meta {"suite":"browser","backend":"cpu-threads","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX, Chrome","cpu":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36","tokens_per_second":92.5,"llamacpp":"b11132","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"browser","backend":"cpu-threads","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX, Chrome","cpu":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36","tokens_per_second":91.8,"llamacpp":"b11146","date":"2026-09-24"} -->
 
-Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36. 92.5 tokens a second.
+Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36. 91.8 tokens a second.
 
 <details><summary>The output of go test</summary>
 
@@ -124,14 +124,14 @@ goarch: wasm
 pkg: github.com/hybridgroup/yzma/examples/wasm/chat
 cpu: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
 backend: cpu-threads, 16 threads
-llama.cpp: b11132
-BenchmarkInference-32	1	685298212 ns/op	93.4 tokens/s
-BenchmarkInference-32	1	692340978 ns/op	92.4 tokens/s
-BenchmarkInference-32	1	680055254 ns/op	94.1 tokens/s
-BenchmarkInference-32	1	723900011 ns/op	88.4 tokens/s
-BenchmarkInference-32	1	691817101 ns/op	92.5 tokens/s
+llama.cpp: b11146
+BenchmarkInference-32	1	690995465 ns/op	92.6 tokens/s
+BenchmarkInference-32	1	700755502 ns/op	91.3 tokens/s
+BenchmarkInference-32	1	696864111 ns/op	91.8 tokens/s
+BenchmarkInference-32	1	693316000 ns/op	92.3 tokens/s
+BenchmarkInference-32	1	722266110 ns/op	88.6 tokens/s
 PASS
-ok	github.com/hybridgroup/yzma/examples/wasm/chat	3.496s
+ok	github.com/hybridgroup/yzma/examples/wasm/chat	3.527s
 ```
 
 </details>
