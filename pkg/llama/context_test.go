@@ -1023,6 +1023,9 @@ func TestNThreads(t *testing.T) {
 
 	nThreads := NThreads(ctx)
 	t.Logf("NThreads returned: %d", nThreads)
+	if want := ModelThreads(model); nThreads != want {
+		t.Errorf("NThreads gave %d, want %d from ModelThreads", nThreads, want)
+	}
 }
 
 func TestNThreadsBatch(t *testing.T) {
@@ -1045,6 +1048,9 @@ func TestNThreadsBatch(t *testing.T) {
 
 	nThreadsBatch := NThreadsBatch(ctx)
 	t.Logf("NThreadsBatch returned: %d", nThreadsBatch)
+	if want := Threads(); nThreadsBatch != want {
+		t.Errorf("NThreadsBatch gave %d, want %d from Threads", nThreadsBatch, want)
+	}
 }
 
 func TestNCtxSeq(t *testing.T) {

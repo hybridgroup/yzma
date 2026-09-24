@@ -59,7 +59,8 @@ Useful flags.
 ./benchmarks/run.sh --dry-run               # print the result, change no file
 ```
 
-The text benchmark uses 4 threads on each machine. SmolLM-135M is too small to
+The text benchmark uses the thread count of `llama.ModelThreads`, which is 4 for
+SmolLM-135M on each machine with 4 or more cores. The model is too small to
 use more threads. Each token has little arithmetic, and the threads wait for
 each other after each operation, thus more threads make it slower. On an Apple
 M4 Pro, 4 threads give more than 900 tokens a second and 10 threads give much
@@ -71,7 +72,8 @@ machine, as a program of yzma does. Its model does more work for each token,
 thus this suite shows what a large processor can do.
 
 Use `--threads` to try another count for both suites. `--threads 0` gives the
-default of yzma, one thread for each performance core.
+default of yzma. For text, this count comes from the model size. For
+multimodal, it is one thread for each performance core.
 
 `--threadpool` holds each thread to a performance CPU of its own. Without it the
 system moves the threads while the work goes on, which makes a short run read

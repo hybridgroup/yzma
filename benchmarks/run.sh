@@ -29,8 +29,8 @@ usage: benchmarks/run.sh [flags]
   --suite LIST       text, multimodal, or both
   --llamacpp TAG     tag of the llama.cpp build, default from yzma-install.json
   --nctx N           context tokens, default 8192 on the CPU and 32000 on a GPU
-  --threads N        CPU threads, default 4 for text and one for each
-                     performance core for multimodal
+  --threads N        CPU threads, default from the model size for text and
+                     one for each performance core for multimodal
   --threadpool       hold the CPU threads to the performance cores
   --count N          runs of each benchmark, default 5
   --benchtime D      time of each run, default 10s
