@@ -12,16 +12,16 @@ Tokens a second on each machine. The GPU columns give the fastest GPU backend.
 
 | Machine | GPU | Text, CPU | Text, GPU | Multimodal, CPU | Multimodal, GPU |
 | --- | --- | --- | --- | --- | --- |
-| Intel Core i9-13900HX | RTX 4070 Laptop | 269.6 | 852.8, CUDA | 890.9 | 2334.0, CUDA |
+| Intel Core i9-13900HX | RTX 4070 Laptop | 265.1 | 853.4, CUDA | 878.7 | 2277.0, CUDA |
 | NVIDIA Jetson Orin Nano Super | Tegra Orin | 87.0 | 191.6, CUDA | 212.0 | 419.1, CUDA |
 | Raspberry Pi 4 Model B | none | 35.3 | none | 5.5 | none |
 | Arduino UNO Q | none | 32.0 | none | 4.2 | none |
 
 - CUDA on the RTX 4070 gives the fastest results of all Linux machines.
-- Vulkan on the same RTX 4070 gives 87 percent of CUDA for text and 90 percent
+- Vulkan on the same RTX 4070 gives 87 percent of CUDA for text and 94 percent
   for multimodal.
 - The integrated Intel GPU of the i9-13900HX is slower than its CPU. On Vulkan0
-  it gives 95.5 for text and 466.3 for multimodal.
+  it gives 95.5 for text and 476.8 for multimodal.
 - On the Jetson Orin Nano, the GPU is 2.2 times faster than the CPU for text and
   2.0 times faster for multimodal. Vulkan gives 93 percent of CUDA for text and
   99 percent for multimodal.
@@ -42,22 +42,22 @@ The benchmark uses 4 threads on each machine, see
 <!-- yzma:bench table text -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
-| CPU | amd64 | Intel Core i9-13900HX | - | 269.6 | b10964 | 2026-09-23 |
+| CPU | amd64 | Intel Core i9-13900HX | - | 265.1 | b11146 | 2026-09-24 |
 | CPU | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | - | 87.0 | b10964 | 2026-09-23 |
 | CPU | arm64 | Raspberry Pi 4 Model B Rev 1.4 | - | 35.3 | b10964 | 2026-09-23 |
 | CPU | arm64 | Arduino UnoQ | - | 32.0 | b10964 | 2026-09-23 |
-| CUDA | amd64 | Intel Core i9-13900HX | CUDA0 | 852.8 | b10964 | 2026-09-23 |
+| CUDA | amd64 | Intel Core i9-13900HX | CUDA0 | 853.4 | b11146 | 2026-09-24 |
 | CUDA | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | CUDA0 | 191.6 | b10964 | 2026-09-23 |
-| Vulkan | amd64 | Intel Core i9-13900HX | Vulkan0 | 95.5 | b10964 | 2026-09-23 |
-| Vulkan | amd64 | Intel Core i9-13900HX | Vulkan1 | 740.0 | b10964 | 2026-09-23 |
+| Vulkan | amd64 | Intel Core i9-13900HX | Vulkan0 | 95.5 | b11146 | 2026-09-24 |
+| Vulkan | amd64 | Intel Core i9-13900HX | Vulkan1 | 744.2 | b11146 | 2026-09-24 |
 | Vulkan | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | Vulkan0 | 177.5 | b10964 | 2026-09-23 |
 <!-- yzma:bench table end text -->
 
 <!-- yzma:bench start text/cpu/amd64/i9-13900hx -->
 ### CPU, amd64, Intel Core i9-13900HX
-<!-- yzma:bench meta {"suite":"text","backend":"cpu","arch":"amd64","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":269.6,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"text","backend":"cpu","arch":"amd64","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":265.1,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 269.6 tokens a second.
+13th Gen Intel(R) Core(TM) i9-13900HX. 265.1 tokens a second.
 
 <details><summary>The output of go test</summary>
 
@@ -67,13 +67,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkInference-32    	     100	 118121499 ns/op	       254.0 tokens/s
-BenchmarkInference-32    	     100	 111269351 ns/op	       269.6 tokens/s
-BenchmarkInference-32    	     100	 109794968 ns/op	       273.2 tokens/s
-BenchmarkInference-32    	     100	 112005893 ns/op	       267.8 tokens/s
-BenchmarkInference-32    	      99	 111075334 ns/op	       270.1 tokens/s
+BenchmarkInference-32    	     100	 114444991 ns/op	       262.1 tokens/s
+BenchmarkInference-32    	     103	 114085020 ns/op	       263.0 tokens/s
+BenchmarkInference-32    	     100	 111509117 ns/op	       269.0 tokens/s
+BenchmarkInference-32    	     100	 111645951 ns/op	       268.7 tokens/s
+BenchmarkInference-32    	     100	 113144808 ns/op	       265.1 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	62.378s
+ok  	github.com/hybridgroup/yzma/pkg/llama	63.197s
 ```
 
 </details>
@@ -150,14 +150,14 @@ ok  	github.com/hybridgroup/yzma/pkg/llama	58.437s
 
 <!-- yzma:bench start text/cuda/amd64/i9-13900hx/cuda0 -->
 ### CUDA, amd64, Intel Core i9-13900HX, CUDA0
-<!-- yzma:bench meta {"suite":"text","backend":"cuda","arch":"amd64","machine":"i9-13900hx","device":"CUDA0","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":852.8,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"text","backend":"cuda","arch":"amd64","machine":"i9-13900hx","device":"CUDA0","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":853.4,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 852.8 tokens a second.
+13th Gen Intel(R) Core(TM) i9-13900HX. 853.4 tokens a second.
 
 <details><summary>The device</summary>
 
 ```
-Wed Sep 23 16:33:57 2026       
+Thu Sep 24 08:32:51 2026       
 +-----------------------------------------------------------------------------------------+
 | NVIDIA-SMI 595.84                 Driver Version: 595.84         CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
@@ -166,7 +166,7 @@ Wed Sep 23 16:33:57 2026
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
-| N/A   52C    P0             21W /  115W |      15MiB /   8188MiB |     16%      Default |
+| N/A   51C    P0             18W /  115W |      15MiB /   8188MiB |      1%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -189,13 +189,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkInference-32    	     328	  35619310 ns/op	       842.2 tokens/s
-BenchmarkInference-32    	     338	  35203378 ns/op	       852.2 tokens/s
-BenchmarkInference-32    	     340	  35129058 ns/op	       854.0 tokens/s
-BenchmarkInference-32    	     340	  35175269 ns/op	       852.9 tokens/s
-BenchmarkInference-32    	     339	  35178811 ns/op	       852.8 tokens/s
+BenchmarkInference-32    	     333	  35387764 ns/op	       847.8 tokens/s
+BenchmarkInference-32    	     339	  35300312 ns/op	       849.9 tokens/s
+BenchmarkInference-32    	     339	  35153057 ns/op	       853.4 tokens/s
+BenchmarkInference-32    	     340	  35067881 ns/op	       855.5 tokens/s
+BenchmarkInference-32    	     340	  35153941 ns/op	       853.4 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	65.261s
+ok  	github.com/hybridgroup/yzma/pkg/llama	65.310s
 ```
 
 </details>
@@ -253,7 +253,7 @@ ok  	github.com/hybridgroup/yzma/pkg/llama	63.084s
 
 <!-- yzma:bench start text/vulkan/amd64/i9-13900hx/vulkan0 -->
 ### Vulkan, amd64, Intel Core i9-13900HX, Vulkan0
-<!-- yzma:bench meta {"suite":"text","backend":"vulkan","arch":"amd64","machine":"i9-13900hx","device":"Vulkan0","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":95.45,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"text","backend":"vulkan","arch":"amd64","machine":"i9-13900hx","device":"Vulkan0","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":95.52,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
 13th Gen Intel(R) Core(TM) i9-13900HX. 95.5 tokens a second.
 
@@ -355,13 +355,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkInference-32    	      37	 314308954 ns/op	        95.45 tokens/s
-BenchmarkInference-32    	      37	 314894937 ns/op	        95.27 tokens/s
-BenchmarkInference-32    	      37	 312352107 ns/op	        96.05 tokens/s
-BenchmarkInference-32    	      38	 318470831 ns/op	        94.20 tokens/s
-BenchmarkInference-32    	      37	 313050069 ns/op	        95.83 tokens/s
+BenchmarkInference-32    	      33	 314484019 ns/op	        95.39 tokens/s
+BenchmarkInference-32    	      37	 314078421 ns/op	        95.52 tokens/s
+BenchmarkInference-32    	      36	 326216341 ns/op	        91.96 tokens/s
+BenchmarkInference-32    	      37	 313294349 ns/op	        95.76 tokens/s
+BenchmarkInference-32    	      37	 310940713 ns/op	        96.48 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	67.423s
+ok  	github.com/hybridgroup/yzma/pkg/llama	65.493s
 ```
 
 </details>
@@ -369,9 +369,9 @@ ok  	github.com/hybridgroup/yzma/pkg/llama	67.423s
 
 <!-- yzma:bench start text/vulkan/amd64/i9-13900hx/vulkan1 -->
 ### Vulkan, amd64, Intel Core i9-13900HX, Vulkan1
-<!-- yzma:bench meta {"suite":"text","backend":"vulkan","arch":"amd64","machine":"i9-13900hx","device":"Vulkan1","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":740,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"text","backend":"vulkan","arch":"amd64","machine":"i9-13900hx","device":"Vulkan1","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":744.2,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 740.0 tokens a second.
+13th Gen Intel(R) Core(TM) i9-13900HX. 744.2 tokens a second.
 
 <details><summary>The device</summary>
 
@@ -471,13 +471,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkInference-32    	     290	  40541911 ns/op	       740.0 tokens/s
-BenchmarkInference-32    	     295	  40197599 ns/op	       746.3 tokens/s
-BenchmarkInference-32    	     300	  40224283 ns/op	       745.8 tokens/s
-BenchmarkInference-32    	     294	  40736868 ns/op	       736.4 tokens/s
-BenchmarkInference-32    	     294	  40674027 ns/op	       737.6 tokens/s
+BenchmarkInference-32    	     294	  40435435 ns/op	       741.9 tokens/s
+BenchmarkInference-32    	     297	  40231602 ns/op	       745.7 tokens/s
+BenchmarkInference-32    	     298	  40003017 ns/op	       749.9 tokens/s
+BenchmarkInference-32    	     295	  40601893 ns/op	       738.9 tokens/s
+BenchmarkInference-32    	     296	  40311326 ns/op	       744.2 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	79.140s
+ok  	github.com/hybridgroup/yzma/pkg/llama	79.250s
 ```
 
 </details>
@@ -577,22 +577,22 @@ The code is [pkg/mtmd/benchmark_test.go](../pkg/mtmd/benchmark_test.go).
 <!-- yzma:bench table multimodal -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
-| CPU | amd64 | Intel Core i9-13900HX | - | 890.9 | b10964 | 2026-09-23 |
+| CPU | amd64 | Intel Core i9-13900HX | - | 878.7 | b11146 | 2026-09-24 |
 | CPU | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | - | 212.0 | b10964 | 2026-09-23 |
 | CPU | arm64 | Raspberry Pi 4 Model B Rev 1.4 | - | 5.5 | b10964 | 2026-09-23 |
 | CPU | arm64 | Arduino UnoQ | - | 4.2 | b10964 | 2026-09-23 |
-| CUDA | amd64 | Intel Core i9-13900HX | CUDA0 | 2334.0 | b10964 | 2026-09-23 |
+| CUDA | amd64 | Intel Core i9-13900HX | CUDA0 | 2277.0 | b11146 | 2026-09-24 |
 | CUDA | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | CUDA0 | 419.1 | b10964 | 2026-09-23 |
-| Vulkan | amd64 | Intel Core i9-13900HX | Vulkan0 | 466.3 | b10964 | 2026-09-23 |
-| Vulkan | amd64 | Intel Core i9-13900HX | Vulkan1 | 2112.0 | b10964 | 2026-09-23 |
+| Vulkan | amd64 | Intel Core i9-13900HX | Vulkan0 | 476.8 | b11146 | 2026-09-24 |
+| Vulkan | amd64 | Intel Core i9-13900HX | Vulkan1 | 2133.0 | b11146 | 2026-09-24 |
 | Vulkan | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | Vulkan0 | 416.1 | b10964 | 2026-09-23 |
 <!-- yzma:bench table end multimodal -->
 
 <!-- yzma:bench start multimodal/cpu/amd64/i9-13900hx -->
 ### CPU, amd64, Intel Core i9-13900HX
-<!-- yzma:bench meta {"suite":"multimodal","backend":"cpu","arch":"amd64","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":890.9,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"cpu","arch":"amd64","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":878.7,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 890.9 tokens a second.
+13th Gen Intel(R) Core(TM) i9-13900HX. 878.7 tokens a second.
 
 <details><summary>The output of go test</summary>
 
@@ -602,13 +602,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkMultimodalInference-32    	      44	 269306064 ns/op	       873.7 tokens/s
-BenchmarkMultimodalInference-32    	      40	 275893848 ns/op	       862.4 tokens/s
-BenchmarkMultimodalInference-32    	      51	 260731979 ns/op	       900.1 tokens/s
-BenchmarkMultimodalInference-32    	      45	 260193260 ns/op	       903.3 tokens/s
-BenchmarkMultimodalInference-32    	      44	 264672038 ns/op	       890.9 tokens/s
+BenchmarkMultimodalInference-32    	      48	 268641515 ns/op	       876.9 tokens/s
+BenchmarkMultimodalInference-32    	      44	 266624950 ns/op	       878.7 tokens/s
+BenchmarkMultimodalInference-32    	      37	 280456836 ns/op	       853.4 tokens/s
+BenchmarkMultimodalInference-32    	      56	 255300441 ns/op	       917.9 tokens/s
+BenchmarkMultimodalInference-32    	      45	 258057383 ns/op	       910.0 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/mtmd	62.815s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	64.335s
 ```
 
 </details>
@@ -685,14 +685,14 @@ ok  	github.com/hybridgroup/yzma/pkg/mtmd	285.758s
 
 <!-- yzma:bench start multimodal/cuda/amd64/i9-13900hx/cuda0 -->
 ### CUDA, amd64, Intel Core i9-13900HX, CUDA0
-<!-- yzma:bench meta {"suite":"multimodal","backend":"cuda","arch":"amd64","machine":"i9-13900hx","device":"CUDA0","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":2334,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"cuda","arch":"amd64","machine":"i9-13900hx","device":"CUDA0","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":2277,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 2334.0 tokens a second.
+13th Gen Intel(R) Core(TM) i9-13900HX. 2277.0 tokens a second.
 
 <details><summary>The device</summary>
 
 ```
-Wed Sep 23 16:33:57 2026       
+Thu Sep 24 08:32:51 2026       
 +-----------------------------------------------------------------------------------------+
 | NVIDIA-SMI 595.84                 Driver Version: 595.84         CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
@@ -701,7 +701,7 @@ Wed Sep 23 16:33:57 2026
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
-| N/A   52C    P0             21W /  115W |      15MiB /   8188MiB |     16%      Default |
+| N/A   51C    P0             18W /  115W |      15MiB /   8188MiB |      1%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -724,13 +724,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkMultimodalInference-32    	     114	 101178670 ns/op	      2311 tokens/s
-BenchmarkMultimodalInference-32    	     100	 100092573 ns/op	      2334 tokens/s
-BenchmarkMultimodalInference-32    	     120	  99111681 ns/op	      2355 tokens/s
-BenchmarkMultimodalInference-32    	     100	 101563658 ns/op	      2313 tokens/s
-BenchmarkMultimodalInference-32    	     121	  98254321 ns/op	      2367 tokens/s
+BenchmarkMultimodalInference-32    	     116	 103334961 ns/op	      2270 tokens/s
+BenchmarkMultimodalInference-32    	     100	 102473333 ns/op	      2288 tokens/s
+BenchmarkMultimodalInference-32    	      99	 103212343 ns/op	      2277 tokens/s
+BenchmarkMultimodalInference-32    	     100	 102320336 ns/op	      2294 tokens/s
+BenchmarkMultimodalInference-32    	     100	 103537540 ns/op	      2267 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/mtmd	58.074s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	55.205s
 ```
 
 </details>
@@ -788,9 +788,9 @@ ok  	github.com/hybridgroup/yzma/pkg/mtmd	66.513s
 
 <!-- yzma:bench start multimodal/vulkan/amd64/i9-13900hx/vulkan0 -->
 ### Vulkan, amd64, Intel Core i9-13900HX, Vulkan0
-<!-- yzma:bench meta {"suite":"multimodal","backend":"vulkan","arch":"amd64","machine":"i9-13900hx","device":"Vulkan0","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":466.3,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"vulkan","arch":"amd64","machine":"i9-13900hx","device":"Vulkan0","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":476.8,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 466.3 tokens a second.
+13th Gen Intel(R) Core(TM) i9-13900HX. 476.8 tokens a second.
 
 <details><summary>The device</summary>
 
@@ -890,13 +890,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkMultimodalInference-32    	      22	 493739862 ns/op	       475.8 tokens/s
-BenchmarkMultimodalInference-32    	      24	 499667748 ns/op	       471.4 tokens/s
-BenchmarkMultimodalInference-32    	      28	 504000808 ns/op	       466.3 tokens/s
-BenchmarkMultimodalInference-32    	      27	 531698527 ns/op	       445.4 tokens/s
-BenchmarkMultimodalInference-32    	      21	 532584492 ns/op	       445.3 tokens/s
+BenchmarkMultimodalInference-32    	      26	 458706669 ns/op	       505.4 tokens/s
+BenchmarkMultimodalInference-32    	      22	 500817466 ns/op	       471.0 tokens/s
+BenchmarkMultimodalInference-32    	      33	 493483073 ns/op	       476.8 tokens/s
+BenchmarkMultimodalInference-32    	      25	 493515625 ns/op	       477.1 tokens/s
+BenchmarkMultimodalInference-32    	      24	 510538972 ns/op	       463.6 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/mtmd	68.754s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	70.448s
 ```
 
 </details>
@@ -904,9 +904,9 @@ ok  	github.com/hybridgroup/yzma/pkg/mtmd	68.754s
 
 <!-- yzma:bench start multimodal/vulkan/amd64/i9-13900hx/vulkan1 -->
 ### Vulkan, amd64, Intel Core i9-13900HX, Vulkan1
-<!-- yzma:bench meta {"suite":"multimodal","backend":"vulkan","arch":"amd64","machine":"i9-13900hx","device":"Vulkan1","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":2112,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"vulkan","arch":"amd64","machine":"i9-13900hx","device":"Vulkan1","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":2133,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 2112.0 tokens a second.
+13th Gen Intel(R) Core(TM) i9-13900HX. 2133.0 tokens a second.
 
 <details><summary>The device</summary>
 
@@ -1006,13 +1006,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkMultimodalInference-32    	     109	 107936341 ns/op	      2159 tokens/s
-BenchmarkMultimodalInference-32    	     105	 114194348 ns/op	      2068 tokens/s
-BenchmarkMultimodalInference-32    	     100	 108970773 ns/op	      2136 tokens/s
-BenchmarkMultimodalInference-32    	     100	 111252350 ns/op	      2112 tokens/s
-BenchmarkMultimodalInference-32    	     100	 110984755 ns/op	      2112 tokens/s
+BenchmarkMultimodalInference-32    	     108	 109258887 ns/op	      2135 tokens/s
+BenchmarkMultimodalInference-32    	     100	 110990663 ns/op	      2122 tokens/s
+BenchmarkMultimodalInference-32    	     100	 110075571 ns/op	      2133 tokens/s
+BenchmarkMultimodalInference-32    	     100	 108413462 ns/op	      2155 tokens/s
+BenchmarkMultimodalInference-32    	     100	 110280568 ns/op	      2127 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/mtmd	64.321s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	63.073s
 ```
 
 </details>
