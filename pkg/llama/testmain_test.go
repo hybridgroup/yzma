@@ -15,10 +15,6 @@ var (
 	benchReady    bool
 )
 
-// benchThreads is the thread count of the text benchmark on each machine. The
-// model is too small to use more threads, thus more threads make it slower.
-const benchThreads = 4
-
 var (
 	nCtx       int
 	nThreads   int
@@ -30,7 +26,7 @@ var (
 
 func init() {
 	flag.IntVar(&nCtx, "nctx", 8192, "number of context tokens for llama.Context")
-	flag.IntVar(&nThreads, "threads", benchThreads, "number of CPU threads, 0 for the value of llama.Threads")
+	flag.IntVar(&nThreads, "threads", 0, "number of CPU threads, 0 for the value of llama.ModelThreads")
 	flag.StringVar(&device, "device", "", "comma-separated list of devices to use for benchmarking (e.g. 'CUDA0')")
 	flag.BoolVar(&threadpool, "threadpool", false, "hold the CPU threads to the performance cores")
 }
@@ -100,7 +96,7 @@ func benchmarkSetupOnce(b *testing.B) {
 	benchCtx = ctx
 
 	if threadpool {
-		tp, err := newBenchThreadpool(params.NThreads)
+		tp, err := newBenchThreadpool(NThreads(ctx))
 		if err != nil {
 			b.Fatalf("newBenchThreadpool failed: %v", err)
 		}

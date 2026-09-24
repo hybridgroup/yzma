@@ -37,7 +37,7 @@ func handleFlags() error {
 	verbose = flag.Bool("v", false, "verbose logging")
 
 	contextSize = flag.Int("c", 0, "context size for model (0 = from model)")
-	threads = flag.Int("t", 0, "number of CPU threads (0 = one for each performance core)")
+	threads = flag.Int("t", 0, "number of CPU threads (0 = from the model size)")
 	predictSize = flag.Int("n", -1, "predict size for model")
 	batchSize = flag.Int("b", 2048, "max batch size for model")
 

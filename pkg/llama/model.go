@@ -388,10 +388,17 @@ func ModelFree(model Model) error {
 }
 
 // InitFromModel initializes a previously loaded Model, and then returns a new Context.
+// A NThreads of 0 comes from [ModelThreads] and a NThreadsBatch of 0 from [Threads].
 func InitFromModel(model Model, params ContextParams) (Context, error) {
 	var ctx Context
 	if model == 0 {
 		return ctx, errors.New("invalid model")
+	}
+	if params.NThreads == 0 {
+		params.NThreads = ModelThreads(model)
+	}
+	if params.NThreadsBatch == 0 {
+		params.NThreadsBatch = Threads()
 	}
 	initFromModelFunc.Call(unsafe.Pointer(&ctx), unsafe.Pointer(&model), unsafe.Pointer(&params))
 
