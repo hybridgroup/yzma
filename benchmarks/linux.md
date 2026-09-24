@@ -42,16 +42,45 @@ The benchmark uses 4 threads on each machine, see
 <!-- yzma:bench table text -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
+| CPU | amd64 | AMD EPYC 7443P 24-Core Processor | - | 358.9 | b11146 | 2026-09-24 |
 | CPU | amd64 | Intel Core i9-13900HX | - | 265.1 | b11146 | 2026-09-24 |
 | CPU | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | - | 84.1 | b11146 | 2026-09-24 |
 | CPU | arm64 | Raspberry Pi 4 Model B Rev 1.4 | - | 35.4 | b11146 | 2026-09-24 |
 | CPU | arm64 | Arduino UnoQ | - | 32.2 | b11146 | 2026-09-24 |
 | CUDA | amd64 | Intel Core i9-13900HX | CUDA0 | 853.4 | b11146 | 2026-09-24 |
 | CUDA | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | CUDA0 | 190.0 | b11146 | 2026-09-24 |
+| Vulkan | amd64 | AMD EPYC 7443P 24-Core Processor | Vulkan0 | 806.5 | b11146 | 2026-09-24 |
+| Vulkan | amd64 | AMD EPYC 7443P 24-Core Processor | Vulkan1 | 791.5 | b11146 | 2026-09-24 |
 | Vulkan | amd64 | Intel Core i9-13900HX | Vulkan0 | 95.5 | b11146 | 2026-09-24 |
 | Vulkan | amd64 | Intel Core i9-13900HX | Vulkan1 | 744.2 | b11146 | 2026-09-24 |
 | Vulkan | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | Vulkan0 | 171.6 | b11146 | 2026-09-24 |
 <!-- yzma:bench table end text -->
+
+<!-- yzma:bench start text/cpu/amd64/cookie3 -->
+### CPU, amd64, AMD EPYC 7443P 24-Core Processor
+<!-- yzma:bench meta {"suite":"text","backend":"cpu","arch":"amd64","machine":"cookie3","label":"AMD EPYC 7443P 24-Core Processor","cpu":"AMD EPYC 7443P 24-Core Processor","tokens_per_second":358.9,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
+
+AMD EPYC 7443P 24-Core Processor. 358.9 tokens a second.
+
+<details><summary>The output of go test</summary>
+
+```
+$ cd pkg/llama && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkInference -nctx=8192   -device=CPU
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: AMD EPYC 7443P 24-Core Processor               
+BenchmarkInference-48    	     141	  84124135 ns/op	       356.6 tokens/s
+BenchmarkInference-48    	     142	  83460009 ns/op	       359.5 tokens/s
+BenchmarkInference-48    	     142	  83705960 ns/op	       358.4 tokens/s
+BenchmarkInference-48    	     144	  83161275 ns/op	       360.7 tokens/s
+BenchmarkInference-48    	     142	  83591348 ns/op	       358.9 tokens/s
+PASS
+ok  	github.com/hybridgroup/yzma/pkg/llama	68.005s
+```
+
+</details>
+<!-- yzma:bench end text/cpu/amd64/cookie3 -->
 
 <!-- yzma:bench start text/cpu/amd64/i9-13900hx -->
 ### CPU, amd64, Intel Core i9-13900HX
@@ -250,6 +279,242 @@ ok  	github.com/hybridgroup/yzma/pkg/llama	63.545s
 
 </details>
 <!-- yzma:bench end text/cuda/arm64/localhost/cuda0 -->
+
+<!-- yzma:bench start text/vulkan/amd64/cookie3/vulkan0 -->
+### Vulkan, amd64, AMD EPYC 7443P 24-Core Processor, Vulkan0
+<!-- yzma:bench meta {"suite":"text","backend":"vulkan","arch":"amd64","machine":"cookie3","device":"Vulkan0","label":"AMD EPYC 7443P 24-Core Processor","cpu":"AMD EPYC 7443P 24-Core Processor","tokens_per_second":806.5,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
+
+AMD EPYC 7443P 24-Core Processor. 806.5 tokens a second.
+
+<details><summary>The device</summary>
+
+```
+==========
+VULKANINFO
+==========
+
+Vulkan Instance Version: 1.4.341
+
+
+Instance Extensions: count = 26
+-------------------------------
+VK_EXT_acquire_drm_display             : extension revision 1
+VK_EXT_acquire_xlib_display            : extension revision 1
+VK_EXT_debug_report                    : extension revision 10
+VK_EXT_debug_utils                     : extension revision 2
+VK_EXT_direct_mode_display             : extension revision 1
+VK_EXT_display_surface_counter         : extension revision 1
+VK_EXT_headless_surface                : extension revision 1
+VK_EXT_layer_settings                  : extension revision 2
+VK_EXT_surface_maintenance1            : extension revision 1
+VK_EXT_swapchain_colorspace            : extension revision 5
+VK_KHR_device_group_creation           : extension revision 1
+VK_KHR_display                         : extension revision 23
+VK_KHR_external_fence_capabilities     : extension revision 1
+VK_KHR_external_memory_capabilities    : extension revision 1
+VK_KHR_external_semaphore_capabilities : extension revision 1
+VK_KHR_get_display_properties2         : extension revision 1
+VK_KHR_get_physical_device_properties2 : extension revision 2
+VK_KHR_get_surface_capabilities2       : extension revision 1
+VK_KHR_portability_enumeration         : extension revision 1
+VK_KHR_surface                         : extension revision 25
+VK_KHR_surface_maintenance1            : extension revision 1
+VK_KHR_surface_protected_capabilities  : extension revision 1
+VK_KHR_wayland_surface                 : extension revision 6
+VK_KHR_xcb_surface                     : extension revision 6
+VK_KHR_xlib_surface                    : extension revision 6
+VK_LUNARG_direct_driver_loading        : extension revision 1
+
+Instance Layers: count = 5
+--------------------------
+VK_LAYER_INTEL_nullhw       INTEL NULL HW                                                1.1.73   version 1
+VK_LAYER_MESA_anti_lag      Open-source implementation of the VK_AMD_anti_lag extension. 1.4.303  version 1
+VK_LAYER_MESA_device_select Linux device selection layer                                 1.4.303  version 1
+VK_LAYER_MESA_overlay       Mesa Overlay layer                                           1.4.303  version 1
+VK_LAYER_MESA_screenshot    Mesa Screenshot layer                                        1.4.303  version 1
+
+Devices:
+========
+GPU0:
+	apiVersion         = 1.4.335
+	driverVersion      = 26.0.8
+	vendorID           = 0x1002
+	deviceID           = 0x744c
+	deviceType         = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+	deviceName         = AMD Radeon RX 7900 XTX (RADV NAVI31)
+	driverID           = DRIVER_ID_MESA_RADV
+	driverName         = radv
+	driverInfo         = Mesa 26.0.8-1ubuntu0.3
+	conformanceVersion = 1.4.0.0
+	deviceUUID         = 00000000-8300-0000-0000-000000000000
+	driverUUID         = 414d442d-4d45-5341-2d44-525600000000
+GPU1:
+	apiVersion         = 1.4.335
+	driverVersion      = 26.0.8
+	vendorID           = 0x1002
+	deviceID           = 0x744c
+	deviceType         = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+	deviceName         = AMD Radeon RX 7900 XTX (RADV NAVI31)
+	driverID           = DRIVER_ID_MESA_RADV
+	driverName         = radv
+	driverInfo         = Mesa 26.0.8-1ubuntu0.3
+	conformanceVersion = 1.4.0.0
+	deviceUUID         = 00000000-8600-0000-0000-000000000000
+	driverUUID         = 414d442d-4d45-5341-2d44-525600000000
+GPU2:
+	apiVersion         = 1.4.335
+	driverVersion      = 26.0.8
+	vendorID           = 0x10005
+	deviceID           = 0x0000
+	deviceType         = PHYSICAL_DEVICE_TYPE_CPU
+	deviceName         = llvmpipe (LLVM 21.1.8, 256 bits)
+	driverID           = DRIVER_ID_MESA_LLVMPIPE
+	driverName         = llvmpipe
+	driverInfo         = Mesa 26.0.8-1ubuntu0.3 (LLVM 21.1.8)
+	conformanceVersion = 1.3.1.1
+	deviceUUID         = 6d657361-3236-2e30-2e38-2d3175627500
+	driverUUID         = 6c6c766d-7069-7065-5555-494400000000
+```
+
+</details>
+
+<details><summary>The output of go test</summary>
+
+```
+$ cd pkg/llama && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkInference -nctx=32000   -device=Vulkan0
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: AMD EPYC 7443P 24-Core Processor               
+BenchmarkInference-48    	     319	  37200317 ns/op	       806.4 tokens/s
+BenchmarkInference-48    	     322	  37022935 ns/op	       810.3 tokens/s
+BenchmarkInference-48    	     320	  37031336 ns/op	       810.1 tokens/s
+BenchmarkInference-48    	     322	  37196656 ns/op	       806.5 tokens/s
+BenchmarkInference-48    	     316	  37438856 ns/op	       801.3 tokens/s
+PASS
+ok  	github.com/hybridgroup/yzma/pkg/llama	61.763s
+```
+
+</details>
+<!-- yzma:bench end text/vulkan/amd64/cookie3/vulkan0 -->
+
+<!-- yzma:bench start text/vulkan/amd64/cookie3/vulkan1 -->
+### Vulkan, amd64, AMD EPYC 7443P 24-Core Processor, Vulkan1
+<!-- yzma:bench meta {"suite":"text","backend":"vulkan","arch":"amd64","machine":"cookie3","device":"Vulkan1","label":"AMD EPYC 7443P 24-Core Processor","cpu":"AMD EPYC 7443P 24-Core Processor","tokens_per_second":791.5,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
+
+AMD EPYC 7443P 24-Core Processor. 791.5 tokens a second.
+
+<details><summary>The device</summary>
+
+```
+==========
+VULKANINFO
+==========
+
+Vulkan Instance Version: 1.4.341
+
+
+Instance Extensions: count = 26
+-------------------------------
+VK_EXT_acquire_drm_display             : extension revision 1
+VK_EXT_acquire_xlib_display            : extension revision 1
+VK_EXT_debug_report                    : extension revision 10
+VK_EXT_debug_utils                     : extension revision 2
+VK_EXT_direct_mode_display             : extension revision 1
+VK_EXT_display_surface_counter         : extension revision 1
+VK_EXT_headless_surface                : extension revision 1
+VK_EXT_layer_settings                  : extension revision 2
+VK_EXT_surface_maintenance1            : extension revision 1
+VK_EXT_swapchain_colorspace            : extension revision 5
+VK_KHR_device_group_creation           : extension revision 1
+VK_KHR_display                         : extension revision 23
+VK_KHR_external_fence_capabilities     : extension revision 1
+VK_KHR_external_memory_capabilities    : extension revision 1
+VK_KHR_external_semaphore_capabilities : extension revision 1
+VK_KHR_get_display_properties2         : extension revision 1
+VK_KHR_get_physical_device_properties2 : extension revision 2
+VK_KHR_get_surface_capabilities2       : extension revision 1
+VK_KHR_portability_enumeration         : extension revision 1
+VK_KHR_surface                         : extension revision 25
+VK_KHR_surface_maintenance1            : extension revision 1
+VK_KHR_surface_protected_capabilities  : extension revision 1
+VK_KHR_wayland_surface                 : extension revision 6
+VK_KHR_xcb_surface                     : extension revision 6
+VK_KHR_xlib_surface                    : extension revision 6
+VK_LUNARG_direct_driver_loading        : extension revision 1
+
+Instance Layers: count = 5
+--------------------------
+VK_LAYER_INTEL_nullhw       INTEL NULL HW                                                1.1.73   version 1
+VK_LAYER_MESA_anti_lag      Open-source implementation of the VK_AMD_anti_lag extension. 1.4.303  version 1
+VK_LAYER_MESA_device_select Linux device selection layer                                 1.4.303  version 1
+VK_LAYER_MESA_overlay       Mesa Overlay layer                                           1.4.303  version 1
+VK_LAYER_MESA_screenshot    Mesa Screenshot layer                                        1.4.303  version 1
+
+Devices:
+========
+GPU0:
+	apiVersion         = 1.4.335
+	driverVersion      = 26.0.8
+	vendorID           = 0x1002
+	deviceID           = 0x744c
+	deviceType         = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+	deviceName         = AMD Radeon RX 7900 XTX (RADV NAVI31)
+	driverID           = DRIVER_ID_MESA_RADV
+	driverName         = radv
+	driverInfo         = Mesa 26.0.8-1ubuntu0.3
+	conformanceVersion = 1.4.0.0
+	deviceUUID         = 00000000-8300-0000-0000-000000000000
+	driverUUID         = 414d442d-4d45-5341-2d44-525600000000
+GPU1:
+	apiVersion         = 1.4.335
+	driverVersion      = 26.0.8
+	vendorID           = 0x1002
+	deviceID           = 0x744c
+	deviceType         = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+	deviceName         = AMD Radeon RX 7900 XTX (RADV NAVI31)
+	driverID           = DRIVER_ID_MESA_RADV
+	driverName         = radv
+	driverInfo         = Mesa 26.0.8-1ubuntu0.3
+	conformanceVersion = 1.4.0.0
+	deviceUUID         = 00000000-8600-0000-0000-000000000000
+	driverUUID         = 414d442d-4d45-5341-2d44-525600000000
+GPU2:
+	apiVersion         = 1.4.335
+	driverVersion      = 26.0.8
+	vendorID           = 0x10005
+	deviceID           = 0x0000
+	deviceType         = PHYSICAL_DEVICE_TYPE_CPU
+	deviceName         = llvmpipe (LLVM 21.1.8, 256 bits)
+	driverID           = DRIVER_ID_MESA_LLVMPIPE
+	driverName         = llvmpipe
+	driverInfo         = Mesa 26.0.8-1ubuntu0.3 (LLVM 21.1.8)
+	conformanceVersion = 1.3.1.1
+	deviceUUID         = 6d657361-3236-2e30-2e38-2d3175627500
+	driverUUID         = 6c6c766d-7069-7065-5555-494400000000
+```
+
+</details>
+
+<details><summary>The output of go test</summary>
+
+```
+$ cd pkg/llama && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkInference -nctx=32000   -device=Vulkan1
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: AMD EPYC 7443P 24-Core Processor               
+BenchmarkInference-48    	     314	  38202881 ns/op	       785.3 tokens/s
+BenchmarkInference-48    	     314	  37782531 ns/op	       794.0 tokens/s
+BenchmarkInference-48    	     314	  37904955 ns/op	       791.5 tokens/s
+BenchmarkInference-48    	     318	  37672420 ns/op	       796.3 tokens/s
+BenchmarkInference-48    	     313	  37924995 ns/op	       791.0 tokens/s
+PASS
+ok  	github.com/hybridgroup/yzma/pkg/llama	62.036s
+```
+
+</details>
+<!-- yzma:bench end text/vulkan/amd64/cookie3/vulkan1 -->
 
 <!-- yzma:bench start text/vulkan/amd64/i9-13900hx/vulkan0 -->
 ### Vulkan, amd64, Intel Core i9-13900HX, Vulkan0
@@ -577,16 +842,45 @@ The code is [pkg/mtmd/benchmark_test.go](../pkg/mtmd/benchmark_test.go).
 <!-- yzma:bench table multimodal -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
+| CPU | amd64 | AMD EPYC 7443P 24-Core Processor | - | 314.5 | b11146 | 2026-09-24 |
 | CPU | amd64 | Intel Core i9-13900HX | - | 878.7 | b11146 | 2026-09-24 |
 | CPU | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | - | 208.3 | b11146 | 2026-09-24 |
 | CPU | arm64 | Raspberry Pi 4 Model B Rev 1.4 | - | 5.6 | b11146 | 2026-09-24 |
 | CPU | arm64 | Arduino UnoQ | - | 4.1 | b11146 | 2026-09-24 |
 | CUDA | amd64 | Intel Core i9-13900HX | CUDA0 | 2277.0 | b11146 | 2026-09-24 |
 | CUDA | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | CUDA0 | 427.3 | b11146 | 2026-09-24 |
+| Vulkan | amd64 | AMD EPYC 7443P 24-Core Processor | Vulkan0 | 1350.0 | b11146 | 2026-09-24 |
+| Vulkan | amd64 | AMD EPYC 7443P 24-Core Processor | Vulkan1 | 1108.0 | b11146 | 2026-09-24 |
 | Vulkan | amd64 | Intel Core i9-13900HX | Vulkan0 | 476.8 | b11146 | 2026-09-24 |
 | Vulkan | amd64 | Intel Core i9-13900HX | Vulkan1 | 2133.0 | b11146 | 2026-09-24 |
 | Vulkan | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | Vulkan0 | 421.6 | b11146 | 2026-09-24 |
 <!-- yzma:bench table end multimodal -->
+
+<!-- yzma:bench start multimodal/cpu/amd64/cookie3 -->
+### CPU, amd64, AMD EPYC 7443P 24-Core Processor
+<!-- yzma:bench meta {"suite":"multimodal","backend":"cpu","arch":"amd64","machine":"cookie3","label":"AMD EPYC 7443P 24-Core Processor","cpu":"AMD EPYC 7443P 24-Core Processor","tokens_per_second":314.5,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
+
+AMD EPYC 7443P 24-Core Processor. 314.5 tokens a second.
+
+<details><summary>The output of go test</summary>
+
+```
+$ cd pkg/mtmd && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkMultimodalInference -nctx=8192   -device=CPU
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/mtmd
+cpu: AMD EPYC 7443P 24-Core Processor               
+BenchmarkMultimodalInference-48    	      34	 675699199 ns/op	       343.7 tokens/s
+BenchmarkMultimodalInference-48    	      13	 823531912 ns/op	       285.8 tokens/s
+BenchmarkMultimodalInference-48    	      15	 735855116 ns/op	       314.5 tokens/s
+BenchmarkMultimodalInference-48    	      15	 749055250 ns/op	       309.7 tokens/s
+BenchmarkMultimodalInference-48    	      15	 720972874 ns/op	       319.6 tokens/s
+PASS
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	68.954s
+```
+
+</details>
+<!-- yzma:bench end multimodal/cpu/amd64/cookie3 -->
 
 <!-- yzma:bench start multimodal/cpu/amd64/i9-13900hx -->
 ### CPU, amd64, Intel Core i9-13900HX
@@ -785,6 +1079,242 @@ ok  	github.com/hybridgroup/yzma/pkg/mtmd	61.894s
 
 </details>
 <!-- yzma:bench end multimodal/cuda/arm64/localhost/cuda0 -->
+
+<!-- yzma:bench start multimodal/vulkan/amd64/cookie3/vulkan0 -->
+### Vulkan, amd64, AMD EPYC 7443P 24-Core Processor, Vulkan0
+<!-- yzma:bench meta {"suite":"multimodal","backend":"vulkan","arch":"amd64","machine":"cookie3","device":"Vulkan0","label":"AMD EPYC 7443P 24-Core Processor","cpu":"AMD EPYC 7443P 24-Core Processor","tokens_per_second":1350,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
+
+AMD EPYC 7443P 24-Core Processor. 1350.0 tokens a second.
+
+<details><summary>The device</summary>
+
+```
+==========
+VULKANINFO
+==========
+
+Vulkan Instance Version: 1.4.341
+
+
+Instance Extensions: count = 26
+-------------------------------
+VK_EXT_acquire_drm_display             : extension revision 1
+VK_EXT_acquire_xlib_display            : extension revision 1
+VK_EXT_debug_report                    : extension revision 10
+VK_EXT_debug_utils                     : extension revision 2
+VK_EXT_direct_mode_display             : extension revision 1
+VK_EXT_display_surface_counter         : extension revision 1
+VK_EXT_headless_surface                : extension revision 1
+VK_EXT_layer_settings                  : extension revision 2
+VK_EXT_surface_maintenance1            : extension revision 1
+VK_EXT_swapchain_colorspace            : extension revision 5
+VK_KHR_device_group_creation           : extension revision 1
+VK_KHR_display                         : extension revision 23
+VK_KHR_external_fence_capabilities     : extension revision 1
+VK_KHR_external_memory_capabilities    : extension revision 1
+VK_KHR_external_semaphore_capabilities : extension revision 1
+VK_KHR_get_display_properties2         : extension revision 1
+VK_KHR_get_physical_device_properties2 : extension revision 2
+VK_KHR_get_surface_capabilities2       : extension revision 1
+VK_KHR_portability_enumeration         : extension revision 1
+VK_KHR_surface                         : extension revision 25
+VK_KHR_surface_maintenance1            : extension revision 1
+VK_KHR_surface_protected_capabilities  : extension revision 1
+VK_KHR_wayland_surface                 : extension revision 6
+VK_KHR_xcb_surface                     : extension revision 6
+VK_KHR_xlib_surface                    : extension revision 6
+VK_LUNARG_direct_driver_loading        : extension revision 1
+
+Instance Layers: count = 5
+--------------------------
+VK_LAYER_INTEL_nullhw       INTEL NULL HW                                                1.1.73   version 1
+VK_LAYER_MESA_anti_lag      Open-source implementation of the VK_AMD_anti_lag extension. 1.4.303  version 1
+VK_LAYER_MESA_device_select Linux device selection layer                                 1.4.303  version 1
+VK_LAYER_MESA_overlay       Mesa Overlay layer                                           1.4.303  version 1
+VK_LAYER_MESA_screenshot    Mesa Screenshot layer                                        1.4.303  version 1
+
+Devices:
+========
+GPU0:
+	apiVersion         = 1.4.335
+	driverVersion      = 26.0.8
+	vendorID           = 0x1002
+	deviceID           = 0x744c
+	deviceType         = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+	deviceName         = AMD Radeon RX 7900 XTX (RADV NAVI31)
+	driverID           = DRIVER_ID_MESA_RADV
+	driverName         = radv
+	driverInfo         = Mesa 26.0.8-1ubuntu0.3
+	conformanceVersion = 1.4.0.0
+	deviceUUID         = 00000000-8300-0000-0000-000000000000
+	driverUUID         = 414d442d-4d45-5341-2d44-525600000000
+GPU1:
+	apiVersion         = 1.4.335
+	driverVersion      = 26.0.8
+	vendorID           = 0x1002
+	deviceID           = 0x744c
+	deviceType         = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+	deviceName         = AMD Radeon RX 7900 XTX (RADV NAVI31)
+	driverID           = DRIVER_ID_MESA_RADV
+	driverName         = radv
+	driverInfo         = Mesa 26.0.8-1ubuntu0.3
+	conformanceVersion = 1.4.0.0
+	deviceUUID         = 00000000-8600-0000-0000-000000000000
+	driverUUID         = 414d442d-4d45-5341-2d44-525600000000
+GPU2:
+	apiVersion         = 1.4.335
+	driverVersion      = 26.0.8
+	vendorID           = 0x10005
+	deviceID           = 0x0000
+	deviceType         = PHYSICAL_DEVICE_TYPE_CPU
+	deviceName         = llvmpipe (LLVM 21.1.8, 256 bits)
+	driverID           = DRIVER_ID_MESA_LLVMPIPE
+	driverName         = llvmpipe
+	driverInfo         = Mesa 26.0.8-1ubuntu0.3 (LLVM 21.1.8)
+	conformanceVersion = 1.3.1.1
+	deviceUUID         = 6d657361-3236-2e30-2e38-2d3175627500
+	driverUUID         = 6c6c766d-7069-7065-5555-494400000000
+```
+
+</details>
+
+<details><summary>The output of go test</summary>
+
+```
+$ cd pkg/mtmd && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkMultimodalInference -nctx=32000   -device=Vulkan0
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/mtmd
+cpu: AMD EPYC 7443P 24-Core Processor               
+BenchmarkMultimodalInference-48    	      62	 171931417 ns/op	      1350 tokens/s
+BenchmarkMultimodalInference-48    	      57	 176524904 ns/op	      1323 tokens/s
+BenchmarkMultimodalInference-48    	      70	 175311360 ns/op	      1333 tokens/s
+BenchmarkMultimodalInference-48    	      61	 171654851 ns/op	      1354 tokens/s
+BenchmarkMultimodalInference-48    	      60	 169699917 ns/op	      1367 tokens/s
+PASS
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	54.959s
+```
+
+</details>
+<!-- yzma:bench end multimodal/vulkan/amd64/cookie3/vulkan0 -->
+
+<!-- yzma:bench start multimodal/vulkan/amd64/cookie3/vulkan1 -->
+### Vulkan, amd64, AMD EPYC 7443P 24-Core Processor, Vulkan1
+<!-- yzma:bench meta {"suite":"multimodal","backend":"vulkan","arch":"amd64","machine":"cookie3","device":"Vulkan1","label":"AMD EPYC 7443P 24-Core Processor","cpu":"AMD EPYC 7443P 24-Core Processor","tokens_per_second":1108,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
+
+AMD EPYC 7443P 24-Core Processor. 1108.0 tokens a second.
+
+<details><summary>The device</summary>
+
+```
+==========
+VULKANINFO
+==========
+
+Vulkan Instance Version: 1.4.341
+
+
+Instance Extensions: count = 26
+-------------------------------
+VK_EXT_acquire_drm_display             : extension revision 1
+VK_EXT_acquire_xlib_display            : extension revision 1
+VK_EXT_debug_report                    : extension revision 10
+VK_EXT_debug_utils                     : extension revision 2
+VK_EXT_direct_mode_display             : extension revision 1
+VK_EXT_display_surface_counter         : extension revision 1
+VK_EXT_headless_surface                : extension revision 1
+VK_EXT_layer_settings                  : extension revision 2
+VK_EXT_surface_maintenance1            : extension revision 1
+VK_EXT_swapchain_colorspace            : extension revision 5
+VK_KHR_device_group_creation           : extension revision 1
+VK_KHR_display                         : extension revision 23
+VK_KHR_external_fence_capabilities     : extension revision 1
+VK_KHR_external_memory_capabilities    : extension revision 1
+VK_KHR_external_semaphore_capabilities : extension revision 1
+VK_KHR_get_display_properties2         : extension revision 1
+VK_KHR_get_physical_device_properties2 : extension revision 2
+VK_KHR_get_surface_capabilities2       : extension revision 1
+VK_KHR_portability_enumeration         : extension revision 1
+VK_KHR_surface                         : extension revision 25
+VK_KHR_surface_maintenance1            : extension revision 1
+VK_KHR_surface_protected_capabilities  : extension revision 1
+VK_KHR_wayland_surface                 : extension revision 6
+VK_KHR_xcb_surface                     : extension revision 6
+VK_KHR_xlib_surface                    : extension revision 6
+VK_LUNARG_direct_driver_loading        : extension revision 1
+
+Instance Layers: count = 5
+--------------------------
+VK_LAYER_INTEL_nullhw       INTEL NULL HW                                                1.1.73   version 1
+VK_LAYER_MESA_anti_lag      Open-source implementation of the VK_AMD_anti_lag extension. 1.4.303  version 1
+VK_LAYER_MESA_device_select Linux device selection layer                                 1.4.303  version 1
+VK_LAYER_MESA_overlay       Mesa Overlay layer                                           1.4.303  version 1
+VK_LAYER_MESA_screenshot    Mesa Screenshot layer                                        1.4.303  version 1
+
+Devices:
+========
+GPU0:
+	apiVersion         = 1.4.335
+	driverVersion      = 26.0.8
+	vendorID           = 0x1002
+	deviceID           = 0x744c
+	deviceType         = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+	deviceName         = AMD Radeon RX 7900 XTX (RADV NAVI31)
+	driverID           = DRIVER_ID_MESA_RADV
+	driverName         = radv
+	driverInfo         = Mesa 26.0.8-1ubuntu0.3
+	conformanceVersion = 1.4.0.0
+	deviceUUID         = 00000000-8300-0000-0000-000000000000
+	driverUUID         = 414d442d-4d45-5341-2d44-525600000000
+GPU1:
+	apiVersion         = 1.4.335
+	driverVersion      = 26.0.8
+	vendorID           = 0x1002
+	deviceID           = 0x744c
+	deviceType         = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+	deviceName         = AMD Radeon RX 7900 XTX (RADV NAVI31)
+	driverID           = DRIVER_ID_MESA_RADV
+	driverName         = radv
+	driverInfo         = Mesa 26.0.8-1ubuntu0.3
+	conformanceVersion = 1.4.0.0
+	deviceUUID         = 00000000-8600-0000-0000-000000000000
+	driverUUID         = 414d442d-4d45-5341-2d44-525600000000
+GPU2:
+	apiVersion         = 1.4.335
+	driverVersion      = 26.0.8
+	vendorID           = 0x10005
+	deviceID           = 0x0000
+	deviceType         = PHYSICAL_DEVICE_TYPE_CPU
+	deviceName         = llvmpipe (LLVM 21.1.8, 256 bits)
+	driverID           = DRIVER_ID_MESA_LLVMPIPE
+	driverName         = llvmpipe
+	driverInfo         = Mesa 26.0.8-1ubuntu0.3 (LLVM 21.1.8)
+	conformanceVersion = 1.3.1.1
+	deviceUUID         = 6d657361-3236-2e30-2e38-2d3175627500
+	driverUUID         = 6c6c766d-7069-7065-5555-494400000000
+```
+
+</details>
+
+<details><summary>The output of go test</summary>
+
+```
+$ cd pkg/mtmd && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkMultimodalInference -nctx=32000   -device=Vulkan1
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/mtmd
+cpu: AMD EPYC 7443P 24-Core Processor               
+BenchmarkMultimodalInference-48    	      52	 208638597 ns/op	      1121 tokens/s
+BenchmarkMultimodalInference-48    	      54	 215018444 ns/op	      1089 tokens/s
+BenchmarkMultimodalInference-48    	      49	 210643485 ns/op	      1108 tokens/s
+BenchmarkMultimodalInference-48    	      55	 214275826 ns/op	      1087 tokens/s
+BenchmarkMultimodalInference-48    	      56	 208981753 ns/op	      1108 tokens/s
+PASS
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	56.983s
+```
+
+</details>
+<!-- yzma:bench end multimodal/vulkan/amd64/cookie3/vulkan1 -->
 
 <!-- yzma:bench start multimodal/vulkan/amd64/i9-13900hx/vulkan0 -->
 ### Vulkan, amd64, Intel Core i9-13900HX, Vulkan0
