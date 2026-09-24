@@ -43,14 +43,14 @@ The benchmark uses 4 threads on each machine, see
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
 | CPU | amd64 | Intel Core i9-13900HX | - | 265.1 | b11146 | 2026-09-24 |
-| CPU | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | - | 87.0 | b10964 | 2026-09-23 |
+| CPU | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | - | 84.1 | b11146 | 2026-09-24 |
 | CPU | arm64 | Raspberry Pi 4 Model B Rev 1.4 | - | 35.4 | b11146 | 2026-09-24 |
 | CPU | arm64 | Arduino UnoQ | - | 32.0 | b10964 | 2026-09-23 |
 | CUDA | amd64 | Intel Core i9-13900HX | CUDA0 | 853.4 | b11146 | 2026-09-24 |
-| CUDA | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | CUDA0 | 191.6 | b10964 | 2026-09-23 |
+| CUDA | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | CUDA0 | 190.0 | b11146 | 2026-09-24 |
 | Vulkan | amd64 | Intel Core i9-13900HX | Vulkan0 | 95.5 | b11146 | 2026-09-24 |
 | Vulkan | amd64 | Intel Core i9-13900HX | Vulkan1 | 744.2 | b11146 | 2026-09-24 |
-| Vulkan | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | Vulkan0 | 177.5 | b10964 | 2026-09-23 |
+| Vulkan | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | Vulkan0 | 171.6 | b11146 | 2026-09-24 |
 <!-- yzma:bench table end text -->
 
 <!-- yzma:bench start text/cpu/amd64/i9-13900hx -->
@@ -81,7 +81,7 @@ ok  	github.com/hybridgroup/yzma/pkg/llama	63.197s
 
 <!-- yzma:bench start text/cpu/arm64/localhost -->
 ### CPU, arm64, NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super
-<!-- yzma:bench meta {"suite":"text","backend":"cpu","arch":"arm64","machine":"localhost","label":"NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super","tokens_per_second":87.02,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"text","backend":"cpu","arch":"arm64","machine":"localhost","label":"NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super","tokens_per_second":84.08,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
 <details><summary>The output of go test</summary>
 
@@ -90,13 +90,13 @@ $ cd pkg/llama && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkInfe
 goos: linux
 goarch: arm64
 pkg: github.com/hybridgroup/yzma/pkg/llama
-BenchmarkInference-6   	      36	 351380582 ns/op	        85.38 tokens/s
-BenchmarkInference-6   	      33	 343945806 ns/op	        87.22 tokens/s
-BenchmarkInference-6   	      32	 342749008 ns/op	        87.53 tokens/s
-BenchmarkInference-6   	      34	 344729854 ns/op	        87.02 tokens/s
-BenchmarkInference-6   	      34	 353905994 ns/op	        84.77 tokens/s
+BenchmarkInference-6   	      49	 355536797 ns/op	        84.38 tokens/s
+BenchmarkInference-6   	      33	 353419570 ns/op	        84.88 tokens/s
+BenchmarkInference-6   	      32	 356798194 ns/op	        84.08 tokens/s
+BenchmarkInference-6   	      33	 374441333 ns/op	        80.12 tokens/s
+BenchmarkInference-6   	      32	 379652602 ns/op	        79.02 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	60.902s
+ok  	github.com/hybridgroup/yzma/pkg/llama	67.282s
 ```
 
 </details>
@@ -203,12 +203,12 @@ ok  	github.com/hybridgroup/yzma/pkg/llama	65.310s
 
 <!-- yzma:bench start text/cuda/arm64/localhost/cuda0 -->
 ### CUDA, arm64, NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super, CUDA0
-<!-- yzma:bench meta {"suite":"text","backend":"cuda","arch":"arm64","machine":"localhost","device":"CUDA0","label":"NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super","tokens_per_second":191.6,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"text","backend":"cuda","arch":"arm64","machine":"localhost","device":"CUDA0","label":"NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super","tokens_per_second":190,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
 <details><summary>The device</summary>
 
 ```
-Wed Sep 23 10:46:52 2026       
+Thu Sep 24 01:00:31 2026       
 +-----------------------------------------------------------------------------------------+
 | NVIDIA-SMI 595.78                 Driver Version: 595.78         CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
@@ -239,13 +239,13 @@ $ cd pkg/llama && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkInfe
 goos: linux
 goarch: arm64
 pkg: github.com/hybridgroup/yzma/pkg/llama
-BenchmarkInference-6   	      74	 158071388 ns/op	       189.8 tokens/s
-BenchmarkInference-6   	      72	 156535194 ns/op	       191.7 tokens/s
-BenchmarkInference-6   	      74	 156677079 ns/op	       191.5 tokens/s
-BenchmarkInference-6   	      74	 156541354 ns/op	       191.6 tokens/s
-BenchmarkInference-6   	      74	 156442212 ns/op	       191.8 tokens/s
+BenchmarkInference-6   	      74	 159127344 ns/op	       188.5 tokens/s
+BenchmarkInference-6   	      74	 157303500 ns/op	       190.7 tokens/s
+BenchmarkInference-6   	      74	 157672155 ns/op	       190.3 tokens/s
+BenchmarkInference-6   	      74	 158528183 ns/op	       189.2 tokens/s
+BenchmarkInference-6   	      73	 157934078 ns/op	       190.0 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	63.084s
+ok  	github.com/hybridgroup/yzma/pkg/llama	63.545s
 ```
 
 </details>
@@ -485,7 +485,7 @@ ok  	github.com/hybridgroup/yzma/pkg/llama	79.250s
 
 <!-- yzma:bench start text/vulkan/arm64/localhost/vulkan0 -->
 ### Vulkan, arm64, NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super, Vulkan0
-<!-- yzma:bench meta {"suite":"text","backend":"vulkan","arch":"arm64","machine":"localhost","device":"Vulkan0","label":"NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super","tokens_per_second":177.5,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"text","backend":"vulkan","arch":"arm64","machine":"localhost","device":"Vulkan0","label":"NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super","tokens_per_second":171.6,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
 <details><summary>The device</summary>
 
@@ -554,13 +554,13 @@ $ cd pkg/llama && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkInfe
 goos: linux
 goarch: arm64
 pkg: github.com/hybridgroup/yzma/pkg/llama
-BenchmarkInference-6   	      67	 174882641 ns/op	       171.5 tokens/s
-BenchmarkInference-6   	      61	 169256059 ns/op	       177.2 tokens/s
-BenchmarkInference-6   	      62	 166685163 ns/op	       180.0 tokens/s
-BenchmarkInference-6   	      62	 169041983 ns/op	       177.5 tokens/s
-BenchmarkInference-6   	      72	 166200892 ns/op	       180.5 tokens/s
+BenchmarkInference-6   	      64	 179407782 ns/op	       167.2 tokens/s
+BenchmarkInference-6   	      60	 172412458 ns/op	       174.0 tokens/s
+BenchmarkInference-6   	      63	 174854310 ns/op	       171.6 tokens/s
+BenchmarkInference-6   	      63	 176573087 ns/op	       169.9 tokens/s
+BenchmarkInference-6   	      63	 174616567 ns/op	       171.8 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	69.999s
+ok  	github.com/hybridgroup/yzma/pkg/llama	70.402s
 ```
 
 </details>
@@ -578,14 +578,14 @@ The code is [pkg/mtmd/benchmark_test.go](../pkg/mtmd/benchmark_test.go).
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
 | CPU | amd64 | Intel Core i9-13900HX | - | 878.7 | b11146 | 2026-09-24 |
-| CPU | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | - | 212.0 | b10964 | 2026-09-23 |
+| CPU | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | - | 208.3 | b11146 | 2026-09-24 |
 | CPU | arm64 | Raspberry Pi 4 Model B Rev 1.4 | - | 5.6 | b11146 | 2026-09-24 |
 | CPU | arm64 | Arduino UnoQ | - | 4.2 | b10964 | 2026-09-23 |
 | CUDA | amd64 | Intel Core i9-13900HX | CUDA0 | 2277.0 | b11146 | 2026-09-24 |
-| CUDA | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | CUDA0 | 419.1 | b10964 | 2026-09-23 |
+| CUDA | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | CUDA0 | 427.3 | b11146 | 2026-09-24 |
 | Vulkan | amd64 | Intel Core i9-13900HX | Vulkan0 | 476.8 | b11146 | 2026-09-24 |
 | Vulkan | amd64 | Intel Core i9-13900HX | Vulkan1 | 2133.0 | b11146 | 2026-09-24 |
-| Vulkan | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | Vulkan0 | 416.1 | b10964 | 2026-09-23 |
+| Vulkan | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | Vulkan0 | 421.6 | b11146 | 2026-09-24 |
 <!-- yzma:bench table end multimodal -->
 
 <!-- yzma:bench start multimodal/cpu/amd64/i9-13900hx -->
@@ -616,7 +616,7 @@ ok  	github.com/hybridgroup/yzma/pkg/mtmd	64.335s
 
 <!-- yzma:bench start multimodal/cpu/arm64/localhost -->
 ### CPU, arm64, NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super
-<!-- yzma:bench meta {"suite":"multimodal","backend":"cpu","arch":"arm64","machine":"localhost","label":"NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super","tokens_per_second":212,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"cpu","arch":"arm64","machine":"localhost","label":"NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super","tokens_per_second":208.3,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
 <details><summary>The output of go test</summary>
 
@@ -625,13 +625,13 @@ $ cd pkg/mtmd && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkMulti
 goos: linux
 goarch: arm64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
-BenchmarkMultimodalInference-6   	      10	1141532842 ns/op	       206.7 tokens/s
-BenchmarkMultimodalInference-6   	      10	1086205780 ns/op	       215.0 tokens/s
-BenchmarkMultimodalInference-6   	      10	1100411231 ns/op	       212.0 tokens/s
-BenchmarkMultimodalInference-6   	      10	1085658571 ns/op	       214.5 tokens/s
-BenchmarkMultimodalInference-6   	       9	1165162499 ns/op	       203.0 tokens/s
+BenchmarkMultimodalInference-6   	      10	1129672048 ns/op	       205.6 tokens/s
+BenchmarkMultimodalInference-6   	      12	1150341682 ns/op	       204.9 tokens/s
+BenchmarkMultimodalInference-6   	      10	1046150194 ns/op	       219.9 tokens/s
+BenchmarkMultimodalInference-6   	      10	1105003232 ns/op	       210.8 tokens/s
+BenchmarkMultimodalInference-6   	       9	1118734330 ns/op	       208.3 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/mtmd	55.891s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	58.044s
 ```
 
 </details>
@@ -738,12 +738,12 @@ ok  	github.com/hybridgroup/yzma/pkg/mtmd	55.205s
 
 <!-- yzma:bench start multimodal/cuda/arm64/localhost/cuda0 -->
 ### CUDA, arm64, NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super, CUDA0
-<!-- yzma:bench meta {"suite":"multimodal","backend":"cuda","arch":"arm64","machine":"localhost","device":"CUDA0","label":"NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super","tokens_per_second":419.1,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"cuda","arch":"arm64","machine":"localhost","device":"CUDA0","label":"NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super","tokens_per_second":427.3,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
 <details><summary>The device</summary>
 
 ```
-Wed Sep 23 10:46:52 2026       
+Thu Sep 24 01:00:31 2026       
 +-----------------------------------------------------------------------------------------+
 | NVIDIA-SMI 595.78                 Driver Version: 595.78         CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
@@ -774,13 +774,13 @@ $ cd pkg/mtmd && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkMulti
 goos: linux
 goarch: arm64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
-BenchmarkMultimodalInference-6   	      20	 567053354 ns/op	       417.1 tokens/s
-BenchmarkMultimodalInference-6   	      22	 800435411 ns/op	       357.0 tokens/s
-BenchmarkMultimodalInference-6   	      21	 545664945 ns/op	       428.4 tokens/s
-BenchmarkMultimodalInference-6   	      22	 569710673 ns/op	       419.1 tokens/s
-BenchmarkMultimodalInference-6   	      21	 550007790 ns/op	       431.4 tokens/s
+BenchmarkMultimodalInference-6   	      20	 578088734 ns/op	       413.6 tokens/s
+BenchmarkMultimodalInference-6   	      21	 553972668 ns/op	       427.3 tokens/s
+BenchmarkMultimodalInference-6   	      20	 590844827 ns/op	       412.7 tokens/s
+BenchmarkMultimodalInference-6   	      21	 547958442 ns/op	       429.1 tokens/s
+BenchmarkMultimodalInference-6   	      25	 539944356 ns/op	       433.5 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/mtmd	66.513s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	61.894s
 ```
 
 </details>
@@ -1020,7 +1020,7 @@ ok  	github.com/hybridgroup/yzma/pkg/mtmd	63.073s
 
 <!-- yzma:bench start multimodal/vulkan/arm64/localhost/vulkan0 -->
 ### Vulkan, arm64, NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super, Vulkan0
-<!-- yzma:bench meta {"suite":"multimodal","backend":"vulkan","arch":"arm64","machine":"localhost","device":"Vulkan0","label":"NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super","tokens_per_second":416.1,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"vulkan","arch":"arm64","machine":"localhost","device":"Vulkan0","label":"NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super","tokens_per_second":421.6,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
 <details><summary>The device</summary>
 
@@ -1089,13 +1089,13 @@ $ cd pkg/mtmd && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkMulti
 goos: linux
 goarch: arm64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
-BenchmarkMultimodalInference-6   	      18	 563675996 ns/op	       416.1 tokens/s
-BenchmarkMultimodalInference-6   	      22	 538901458 ns/op	       430.9 tokens/s
-BenchmarkMultimodalInference-6   	      18	 571077486 ns/op	       413.6 tokens/s
-BenchmarkMultimodalInference-6   	      18	 580751599 ns/op	       409.1 tokens/s
-BenchmarkMultimodalInference-6   	      22	 540216471 ns/op	       431.6 tokens/s
+BenchmarkMultimodalInference-6   	       1	17988229145 ns/op	        12.79 tokens/s
+BenchmarkMultimodalInference-6   	      19	 547001947 ns/op	       426.7 tokens/s
+BenchmarkMultimodalInference-6   	      20	 580179014 ns/op	       409.4 tokens/s
+BenchmarkMultimodalInference-6   	      21	 520896861 ns/op	       443.4 tokens/s
+BenchmarkMultimodalInference-6   	      21	 561339900 ns/op	       421.6 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/mtmd	60.272s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	67.698s
 ```
 
 </details>
