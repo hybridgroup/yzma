@@ -34,17 +34,17 @@ The benchmark uses 4 threads on each machine, see
 <!-- yzma:bench table text -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
-| CPU | amd64 | AMD Ryzen 9 7950X 16-Core Processor             | - | 115.0 | b10964 | 2026-09-23 |
-| CUDA | amd64 | AMD Ryzen 9 7950X 16-Core Processor             | CUDA0 | 707.4 | b10964 | 2026-09-23 |
-| Vulkan | amd64 | AMD Ryzen 9 7950X 16-Core Processor             | Vulkan0 | 114.3 | b10964 | 2026-09-23 |
-| Vulkan | amd64 | AMD Ryzen 9 7950X 16-Core Processor             | Vulkan1 | 803.2 | b10964 | 2026-09-23 |
+| CPU | amd64 | AMD Ryzen 9 7950X 16-Core Processor             | - | 112.9 | b11146 | 2026-09-24 |
+| CUDA | amd64 | AMD Ryzen 9 7950X 16-Core Processor             | CUDA0 | 700.5 | b11146 | 2026-09-24 |
+| Vulkan | amd64 | AMD Ryzen 9 7950X 16-Core Processor             | Vulkan0 | 115.6 | b11146 | 2026-09-24 |
+| Vulkan | amd64 | AMD Ryzen 9 7950X 16-Core Processor             | Vulkan1 | 802.3 | b11146 | 2026-09-24 |
 <!-- yzma:bench table end text -->
 
 <!-- yzma:bench start text/cpu/amd64/desktop-b8a29kd -->
 ### CPU, amd64, AMD Ryzen 9 7950X 16-Core Processor            
-<!-- yzma:bench meta {"suite":"text","backend":"cpu","arch":"amd64","machine":"desktop-b8a29kd","label":"AMD Ryzen 9 7950X 16-Core Processor            ","cpu":"AMD Ryzen 9 7950X 16-Core Processor","tokens_per_second":115,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"text","backend":"cpu","arch":"amd64","machine":"desktop-b8a29kd","label":"AMD Ryzen 9 7950X 16-Core Processor            ","cpu":"AMD Ryzen 9 7950X 16-Core Processor","tokens_per_second":112.9,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
-AMD Ryzen 9 7950X 16-Core Processor. 115.0 tokens a second.
+AMD Ryzen 9 7950X 16-Core Processor. 112.9 tokens a second.
 
 <details><summary>The output of go test</summary>
 
@@ -54,13 +54,13 @@ goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: AMD Ryzen 9 7950X 16-Core Processor            
-BenchmarkInference-32    	      45	 258961422 ns/op	       115.8 tokens/s
-BenchmarkInference-32    	      45	 262115822 ns/op	       114.5 tokens/s
-BenchmarkInference-32    	      45	 256640851 ns/op	       116.9 tokens/s
-BenchmarkInference-32    	      42	 260806229 ns/op	       115.0 tokens/s
-BenchmarkInference-32    	      44	 266618600 ns/op	       112.5 tokens/s
+BenchmarkInference-32    	      44	 266535414 ns/op	       112.6 tokens/s
+BenchmarkInference-32    	      44	 265157861 ns/op	       113.1 tokens/s
+BenchmarkInference-32    	      44	 265621375 ns/op	       112.9 tokens/s
+BenchmarkInference-32    	      45	 268107333 ns/op	       111.9 tokens/s
+BenchmarkInference-32    	      44	 261941895 ns/op	       114.5 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	58.786s
+ok  	github.com/hybridgroup/yzma/pkg/llama	59.764s
 ```
 
 </details>
@@ -68,14 +68,14 @@ ok  	github.com/hybridgroup/yzma/pkg/llama	58.786s
 
 <!-- yzma:bench start text/cuda/amd64/desktop-b8a29kd/cuda0 -->
 ### CUDA, amd64, AMD Ryzen 9 7950X 16-Core Processor            , CUDA0
-<!-- yzma:bench meta {"suite":"text","backend":"cuda","arch":"amd64","machine":"desktop-b8a29kd","device":"CUDA0","label":"AMD Ryzen 9 7950X 16-Core Processor            ","cpu":"AMD Ryzen 9 7950X 16-Core Processor","tokens_per_second":707.4,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"text","backend":"cuda","arch":"amd64","machine":"desktop-b8a29kd","device":"CUDA0","label":"AMD Ryzen 9 7950X 16-Core Processor            ","cpu":"AMD Ryzen 9 7950X 16-Core Processor","tokens_per_second":700.5,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
-AMD Ryzen 9 7950X 16-Core Processor. 707.4 tokens a second.
+AMD Ryzen 9 7950X 16-Core Processor. 700.5 tokens a second.
 
 <details><summary>The device</summary>
 
 ```
-Wed Sep 23 19:24:55 2026       
+Thu Sep 24 10:17:50 2026       
 +-----------------------------------------------------------------------------------------+
 | NVIDIA-SMI 591.86                 Driver Version: 591.86         CUDA Version: 13.1     |
 +-----------------------------------------+------------------------+----------------------+
@@ -84,7 +84,7 @@ Wed Sep 23 19:24:55 2026
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 3070      WDDM  |   00000000:01:00.0 Off |                  N/A |
-|  0%   39C    P0              9W /  240W |       0MiB /   8192MiB |     10%      Default |
+|  0%   38C    P0              4W /  240W |       0MiB /   8192MiB |      0%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -107,13 +107,13 @@ goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: AMD Ryzen 9 7950X 16-Core Processor            
-BenchmarkInference-32    	     279	  42565482 ns/op	       704.8 tokens/s
-BenchmarkInference-32    	     282	  42406014 ns/op	       707.4 tokens/s
-BenchmarkInference-32    	     282	  42423854 ns/op	       707.1 tokens/s
-BenchmarkInference-32    	     282	  42400097 ns/op	       707.5 tokens/s
-BenchmarkInference-32    	     284	  42116328 ns/op	       712.3 tokens/s
+BenchmarkInference-32    	     273	  43194863 ns/op	       694.5 tokens/s
+BenchmarkInference-32    	     280	  42824033 ns/op	       700.5 tokens/s
+BenchmarkInference-32    	     279	  42895518 ns/op	       699.4 tokens/s
+BenchmarkInference-32    	     282	  42513730 ns/op	       705.7 tokens/s
+BenchmarkInference-32    	     280	  42755701 ns/op	       701.7 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	62.834s
+ok  	github.com/hybridgroup/yzma/pkg/llama	62.823s
 ```
 
 </details>
@@ -121,9 +121,9 @@ ok  	github.com/hybridgroup/yzma/pkg/llama	62.834s
 
 <!-- yzma:bench start text/vulkan/amd64/desktop-b8a29kd/vulkan0 -->
 ### Vulkan, amd64, AMD Ryzen 9 7950X 16-Core Processor            , Vulkan0
-<!-- yzma:bench meta {"suite":"text","backend":"vulkan","arch":"amd64","machine":"desktop-b8a29kd","device":"Vulkan0","label":"AMD Ryzen 9 7950X 16-Core Processor            ","cpu":"AMD Ryzen 9 7950X 16-Core Processor","tokens_per_second":114.3,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"text","backend":"vulkan","arch":"amd64","machine":"desktop-b8a29kd","device":"Vulkan0","label":"AMD Ryzen 9 7950X 16-Core Processor            ","cpu":"AMD Ryzen 9 7950X 16-Core Processor","tokens_per_second":115.6,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
-AMD Ryzen 9 7950X 16-Core Processor. 114.3 tokens a second.
+AMD Ryzen 9 7950X 16-Core Processor. 115.6 tokens a second.
 
 <details><summary>The device</summary>
 
@@ -206,13 +206,13 @@ goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: AMD Ryzen 9 7950X 16-Core Processor            
-BenchmarkInference-32    	      38	 293363245 ns/op	       102.3 tokens/s
-BenchmarkInference-32    	      44	 262383202 ns/op	       114.3 tokens/s
-BenchmarkInference-32    	      45	 262079087 ns/op	       114.5 tokens/s
-BenchmarkInference-32    	      45	 262501896 ns/op	       114.3 tokens/s
-BenchmarkInference-32    	      45	 262116369 ns/op	       114.5 tokens/s
+BenchmarkInference-32    	      39	 288354731 ns/op	       104.0 tokens/s
+BenchmarkInference-32    	      45	 259580356 ns/op	       115.6 tokens/s
+BenchmarkInference-32    	      45	 259779556 ns/op	       115.5 tokens/s
+BenchmarkInference-32    	      45	 259522553 ns/op	       115.6 tokens/s
+BenchmarkInference-32    	      45	 259512469 ns/op	       115.6 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	61.115s
+ok  	github.com/hybridgroup/yzma/pkg/llama	61.030s
 ```
 
 </details>
@@ -220,9 +220,9 @@ ok  	github.com/hybridgroup/yzma/pkg/llama	61.115s
 
 <!-- yzma:bench start text/vulkan/amd64/desktop-b8a29kd/vulkan1 -->
 ### Vulkan, amd64, AMD Ryzen 9 7950X 16-Core Processor            , Vulkan1
-<!-- yzma:bench meta {"suite":"text","backend":"vulkan","arch":"amd64","machine":"desktop-b8a29kd","device":"Vulkan1","label":"AMD Ryzen 9 7950X 16-Core Processor            ","cpu":"AMD Ryzen 9 7950X 16-Core Processor","tokens_per_second":803.2,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"text","backend":"vulkan","arch":"amd64","machine":"desktop-b8a29kd","device":"Vulkan1","label":"AMD Ryzen 9 7950X 16-Core Processor            ","cpu":"AMD Ryzen 9 7950X 16-Core Processor","tokens_per_second":802.3,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
-AMD Ryzen 9 7950X 16-Core Processor. 803.2 tokens a second.
+AMD Ryzen 9 7950X 16-Core Processor. 802.3 tokens a second.
 
 <details><summary>The device</summary>
 
@@ -305,13 +305,13 @@ goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: AMD Ryzen 9 7950X 16-Core Processor            
-BenchmarkInference-32    	     318	  37424038 ns/op	       801.6 tokens/s
-BenchmarkInference-32    	     321	  37217502 ns/op	       806.1 tokens/s
-BenchmarkInference-32    	     321	  37291330 ns/op	       804.5 tokens/s
-BenchmarkInference-32    	     320	  37351894 ns/op	       803.2 tokens/s
-BenchmarkInference-32    	     320	  37421694 ns/op	       801.7 tokens/s
+BenchmarkInference-32    	     307	  37952148 ns/op	       790.5 tokens/s
+BenchmarkInference-32    	     319	  37391985 ns/op	       802.3 tokens/s
+BenchmarkInference-32    	     321	  37283221 ns/op	       804.7 tokens/s
+BenchmarkInference-32    	     321	  37368861 ns/op	       802.8 tokens/s
+BenchmarkInference-32    	     320	  37430941 ns/op	       801.5 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	86.633s
+ok  	github.com/hybridgroup/yzma/pkg/llama	86.223s
 ```
 
 </details>
@@ -328,17 +328,17 @@ The code is [pkg/mtmd/benchmark_test.go](../pkg/mtmd/benchmark_test.go).
 <!-- yzma:bench table multimodal -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
-| CPU | amd64 | AMD Ryzen 9 7950X 16-Core Processor             | - | 289.5 | b10964 | 2026-09-23 |
-| CUDA | amd64 | AMD Ryzen 9 7950X 16-Core Processor             | CUDA0 | 1787.0 | b10964 | 2026-09-23 |
-| Vulkan | amd64 | AMD Ryzen 9 7950X 16-Core Processor             | Vulkan0 | 479.2 | b10964 | 2026-09-23 |
-| Vulkan | amd64 | AMD Ryzen 9 7950X 16-Core Processor             | Vulkan1 | 2018.0 | b10964 | 2026-09-23 |
+| CPU | amd64 | AMD Ryzen 9 7950X 16-Core Processor             | - | 291.9 | b11146 | 2026-09-24 |
+| CUDA | amd64 | AMD Ryzen 9 7950X 16-Core Processor             | CUDA0 | 1782.0 | b11146 | 2026-09-24 |
+| Vulkan | amd64 | AMD Ryzen 9 7950X 16-Core Processor             | Vulkan0 | 448.9 | b11146 | 2026-09-24 |
+| Vulkan | amd64 | AMD Ryzen 9 7950X 16-Core Processor             | Vulkan1 | 2011.0 | b11146 | 2026-09-24 |
 <!-- yzma:bench table end multimodal -->
 
 <!-- yzma:bench start multimodal/cpu/amd64/desktop-b8a29kd -->
 ### CPU, amd64, AMD Ryzen 9 7950X 16-Core Processor            
-<!-- yzma:bench meta {"suite":"multimodal","backend":"cpu","arch":"amd64","machine":"desktop-b8a29kd","label":"AMD Ryzen 9 7950X 16-Core Processor            ","cpu":"AMD Ryzen 9 7950X 16-Core Processor","tokens_per_second":289.5,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"cpu","arch":"amd64","machine":"desktop-b8a29kd","label":"AMD Ryzen 9 7950X 16-Core Processor            ","cpu":"AMD Ryzen 9 7950X 16-Core Processor","tokens_per_second":291.9,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
-AMD Ryzen 9 7950X 16-Core Processor. 289.5 tokens a second.
+AMD Ryzen 9 7950X 16-Core Processor. 291.9 tokens a second.
 
 <details><summary>The output of go test</summary>
 
@@ -348,13 +348,13 @@ goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: AMD Ryzen 9 7950X 16-Core Processor            
-BenchmarkMultimodalInference-32    	      16	 745796738 ns/op	       315.2 tokens/s
-BenchmarkMultimodalInference-32    	      22	 909492400 ns/op	       265.5 tokens/s
-BenchmarkMultimodalInference-32    	      18	 923854639 ns/op	       262.5 tokens/s
-BenchmarkMultimodalInference-32    	      14	 789683586 ns/op	       299.5 tokens/s
-BenchmarkMultimodalInference-32    	      15	 821971773 ns/op	       289.5 tokens/s
+BenchmarkMultimodalInference-32    	      16	 683603094 ns/op	       339.9 tokens/s
+BenchmarkMultimodalInference-32    	      13	 831616277 ns/op	       286.7 tokens/s
+BenchmarkMultimodalInference-32    	      24	 812582217 ns/op	       291.9 tokens/s
+BenchmarkMultimodalInference-32    	      16	 825620562 ns/op	       288.0 tokens/s
+BenchmarkMultimodalInference-32    	      13	 774315915 ns/op	       304.7 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/mtmd	72.818s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	65.331s
 ```
 
 </details>
@@ -362,14 +362,14 @@ ok  	github.com/hybridgroup/yzma/pkg/mtmd	72.818s
 
 <!-- yzma:bench start multimodal/cuda/amd64/desktop-b8a29kd/cuda0 -->
 ### CUDA, amd64, AMD Ryzen 9 7950X 16-Core Processor            , CUDA0
-<!-- yzma:bench meta {"suite":"multimodal","backend":"cuda","arch":"amd64","machine":"desktop-b8a29kd","device":"CUDA0","label":"AMD Ryzen 9 7950X 16-Core Processor            ","cpu":"AMD Ryzen 9 7950X 16-Core Processor","tokens_per_second":1787,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"cuda","arch":"amd64","machine":"desktop-b8a29kd","device":"CUDA0","label":"AMD Ryzen 9 7950X 16-Core Processor            ","cpu":"AMD Ryzen 9 7950X 16-Core Processor","tokens_per_second":1782,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
-AMD Ryzen 9 7950X 16-Core Processor. 1787.0 tokens a second.
+AMD Ryzen 9 7950X 16-Core Processor. 1782.0 tokens a second.
 
 <details><summary>The device</summary>
 
 ```
-Wed Sep 23 19:24:55 2026       
+Thu Sep 24 10:17:50 2026       
 +-----------------------------------------------------------------------------------------+
 | NVIDIA-SMI 591.86                 Driver Version: 591.86         CUDA Version: 13.1     |
 +-----------------------------------------+------------------------+----------------------+
@@ -378,7 +378,7 @@ Wed Sep 23 19:24:55 2026
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 3070      WDDM  |   00000000:01:00.0 Off |                  N/A |
-|  0%   39C    P0              9W /  240W |       0MiB /   8192MiB |     10%      Default |
+|  0%   38C    P0              4W /  240W |       0MiB /   8192MiB |      0%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -401,13 +401,13 @@ goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: AMD Ryzen 9 7950X 16-Core Processor            
-BenchmarkMultimodalInference-32    	      90	 133313998 ns/op	      1767 tokens/s
-BenchmarkMultimodalInference-32    	      90	 131427786 ns/op	      1788 tokens/s
-BenchmarkMultimodalInference-32    	      94	 132823227 ns/op	      1779 tokens/s
-BenchmarkMultimodalInference-32    	      94	 131777089 ns/op	      1787 tokens/s
-BenchmarkMultimodalInference-32    	      97	 129325838 ns/op	      1807 tokens/s
+BenchmarkMultimodalInference-32    	      90	 133344401 ns/op	      1763 tokens/s
+BenchmarkMultimodalInference-32    	      93	 131132820 ns/op	      1790 tokens/s
+BenchmarkMultimodalInference-32    	      87	 132017324 ns/op	      1782 tokens/s
+BenchmarkMultimodalInference-32    	      87	 132366326 ns/op	      1776 tokens/s
+BenchmarkMultimodalInference-32    	      94	 131995491 ns/op	      1782 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/mtmd	62.993s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	61.563s
 ```
 
 </details>
@@ -415,9 +415,9 @@ ok  	github.com/hybridgroup/yzma/pkg/mtmd	62.993s
 
 <!-- yzma:bench start multimodal/vulkan/amd64/desktop-b8a29kd/vulkan0 -->
 ### Vulkan, amd64, AMD Ryzen 9 7950X 16-Core Processor            , Vulkan0
-<!-- yzma:bench meta {"suite":"multimodal","backend":"vulkan","arch":"amd64","machine":"desktop-b8a29kd","device":"Vulkan0","label":"AMD Ryzen 9 7950X 16-Core Processor            ","cpu":"AMD Ryzen 9 7950X 16-Core Processor","tokens_per_second":479.2,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"vulkan","arch":"amd64","machine":"desktop-b8a29kd","device":"Vulkan0","label":"AMD Ryzen 9 7950X 16-Core Processor            ","cpu":"AMD Ryzen 9 7950X 16-Core Processor","tokens_per_second":448.9,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
-AMD Ryzen 9 7950X 16-Core Processor. 479.2 tokens a second.
+AMD Ryzen 9 7950X 16-Core Processor. 448.9 tokens a second.
 
 <details><summary>The device</summary>
 
@@ -500,13 +500,13 @@ goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: AMD Ryzen 9 7950X 16-Core Processor            
-BenchmarkMultimodalInference-32    	      24	 478238429 ns/op	       484.8 tokens/s
-BenchmarkMultimodalInference-32    	      26	 465214100 ns/op	       497.9 tokens/s
-BenchmarkMultimodalInference-32    	      31	 480689284 ns/op	       479.2 tokens/s
-BenchmarkMultimodalInference-32    	      22	 506849014 ns/op	       454.9 tokens/s
-BenchmarkMultimodalInference-32    	      22	 504452005 ns/op	       460.6 tokens/s
+BenchmarkMultimodalInference-32    	       8	1290016338 ns/op	       179.2 tokens/s
+BenchmarkMultimodalInference-32    	      25	 528152336 ns/op	       440.9 tokens/s
+BenchmarkMultimodalInference-32    	      24	 513449204 ns/op	       453.6 tokens/s
+BenchmarkMultimodalInference-32    	      24	 497500900 ns/op	       465.2 tokens/s
+BenchmarkMultimodalInference-32    	      20	 519748675 ns/op	       448.9 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/mtmd	62.883s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	60.078s
 ```
 
 </details>
@@ -514,9 +514,9 @@ ok  	github.com/hybridgroup/yzma/pkg/mtmd	62.883s
 
 <!-- yzma:bench start multimodal/vulkan/amd64/desktop-b8a29kd/vulkan1 -->
 ### Vulkan, amd64, AMD Ryzen 9 7950X 16-Core Processor            , Vulkan1
-<!-- yzma:bench meta {"suite":"multimodal","backend":"vulkan","arch":"amd64","machine":"desktop-b8a29kd","device":"Vulkan1","label":"AMD Ryzen 9 7950X 16-Core Processor            ","cpu":"AMD Ryzen 9 7950X 16-Core Processor","tokens_per_second":2018,"llamacpp":"b10964","yzma":"1.27.0","date":"2026-09-23"} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"vulkan","arch":"amd64","machine":"desktop-b8a29kd","device":"Vulkan1","label":"AMD Ryzen 9 7950X 16-Core Processor            ","cpu":"AMD Ryzen 9 7950X 16-Core Processor","tokens_per_second":2011,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
 
-AMD Ryzen 9 7950X 16-Core Processor. 2018.0 tokens a second.
+AMD Ryzen 9 7950X 16-Core Processor. 2011.0 tokens a second.
 
 <details><summary>The device</summary>
 
@@ -599,13 +599,13 @@ goos: windows
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: AMD Ryzen 9 7950X 16-Core Processor            
-BenchmarkMultimodalInference-32    	     102	 116508174 ns/op	      2009 tokens/s
-BenchmarkMultimodalInference-32    	     100	 115528723 ns/op	      2022 tokens/s
-BenchmarkMultimodalInference-32    	     100	 115872453 ns/op	      2018 tokens/s
-BenchmarkMultimodalInference-32    	     100	 116910499 ns/op	      2007 tokens/s
-BenchmarkMultimodalInference-32    	      99	 114065233 ns/op	      2041 tokens/s
+BenchmarkMultimodalInference-32    	      85	 123081724 ns/op	      1910 tokens/s
+BenchmarkMultimodalInference-32    	     100	 116428688 ns/op	      2012 tokens/s
+BenchmarkMultimodalInference-32    	     100	 118117676 ns/op	      1992 tokens/s
+BenchmarkMultimodalInference-32    	      99	 116481655 ns/op	      2011 tokens/s
+BenchmarkMultimodalInference-32    	      97	 113441393 ns/op	      2046 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/mtmd	67.089s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	65.135s
 ```
 
 </details>
