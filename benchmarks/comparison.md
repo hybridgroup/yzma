@@ -537,11 +537,17 @@ ok  	github.com/hybridgroup/yzma/benchmarks/compare	0.477s
 </details>
 <!-- yzma:bench end compare-embeddings/dmr/amd64/ron-tuxedo-gemini-gen2/bge-small -->
 
-## Images, work in progress
+## Images
 
-This report provides no numbers for images yet. WIP code of the suite is here and
-it runs with `--suite multimodal`, but a measurement that compares the engines
-fairly is not yet ready.
+Each request has one image and a short question about it. The image gives most
+of the prompt tokens. Each run gets an image that no engine has seen, with the
+same size and nearly the same pixels, thus a server cannot answer from its
+cache. yzma decodes the image inside its own measurement, as a server does.
+
+<!-- yzma:bench table compare-multimodal -->
+| Engine | Arch | Machine | Model | Prompt tokens | Tokens a second | First token ms | Request ms | Version | Date |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+<!-- yzma:bench table end compare-multimodal -->
 
 ## Each engine brings its own llama.cpp
 

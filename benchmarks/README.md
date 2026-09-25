@@ -213,6 +213,11 @@ repeat of the same request from its cache, 40 times faster in one measurement,
 while yzma empties its cache after each generation. The benchmark would else
 compare a warm server with a cold yzma.
 
+The number of a request counts across each `-count` of a run, thus no count
+repeats the requests of the one before. The warmup request is not timed and
+no timed request repeats it. Before this, ollama answered the images of the
+second count from its cache in 190 ms, against 540 ms for a new image.
+
 The count of the prompt tokens is the check that matters. Two engines can give
 a similar answer and still do different work. A different count always means a
 different prompt, or a different preprocessing of the image. The script says so
@@ -222,6 +227,19 @@ An image gives most of the prompt tokens. A projector that cuts the image into
 tiles gives three times the tokens of one that does not, thus it does three
 times the work of the vision model. Use `-image-min-tokens` and
 `-image-max-tokens` to set that budget for yzma.
+
+Each engine scales an image in its own way. ollama scales a small Qwen3-VL image
+up to about 1000 tokens. The llama.cpp of Docker Model Runner scales a Gemma 4
+image down to 280 tokens, and a newer build does not. The script therefore
+gives each model an image of a size that no engine changes, 1280x960 for
+qwen3-vl-2b and 768x576 for gemma4-e2b. `-image-size` sets it.
+
+The multimodal suite makes the GPU of a laptop hot, and a hot GPU lowers its
+clock. Before each engine the script waits until the GPU is at 60 degrees or
+less. Give `--cool` another limit for a machine that stays warmer when idle.
+
+The image goes before the text in each engine. The count of the prompt tokens
+does not show the order, but the model answers another prompt.
 
 The code is in [benchmarks/compare](compare). The conditions that make the
 engines equal are in [comparison.md](comparison.md).
