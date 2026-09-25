@@ -367,6 +367,9 @@ func Free(ctx Context) error {
 }
 
 // SetWarmup sets the model context warmup mode on or off.
+//
+// Deprecated: do warmup runs manually instead. It can cause extra graph
+// reallocations with MoE models, and llama.cpp will remove it.
 func SetWarmup(ctx Context, warmup bool) error {
 	if ctx == 0 {
 		return errInvalidContext
