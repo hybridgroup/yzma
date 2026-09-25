@@ -2,6 +2,7 @@ package llama
 
 import (
 	"encoding/binary"
+	"runtime"
 	"testing"
 )
 
@@ -32,4 +33,12 @@ func TestCountPerformanceCores(t *testing.T) {
 	if n := countPerformanceCores(nil); n != 0 {
 		t.Errorf("no records gave %d, want 0", n)
 	}
+}
+
+func TestMathCoresWindows(t *testing.T) {
+	n := mathCores()
+	if n < 1 || n > runtime.NumCPU() {
+		t.Fatalf("mathCores gave %d, want 1 to %d", n, runtime.NumCPU())
+	}
+	t.Logf("mathCores gave %d of %d logical CPUs", n, runtime.NumCPU())
 }
