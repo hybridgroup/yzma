@@ -42,13 +42,15 @@ The benchmark uses 4 threads on each machine, see
 <!-- yzma:bench table text -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
-| CPU | amd64 | AMD EPYC 7443P 24-Core Processor | - | 358.9 | b11146 | 2026-09-24 |
+| CPU | amd64 | AMD EPYC 7443P 24-Core Processor | - | 253.4 | b11146 | 2026-09-25 |
 | CPU | amd64 | Intel Core i9-13900HX | - | 265.1 | b11146 | 2026-09-24 |
 | CPU | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | - | 84.1 | b11146 | 2026-09-24 |
 | CPU | arm64 | Raspberry Pi 4 Model B Rev 1.4 | - | 35.4 | b11146 | 2026-09-24 |
 | CPU | arm64 | Arduino UnoQ | - | 32.2 | b11146 | 2026-09-24 |
 | CUDA | amd64 | Intel Core i9-13900HX | CUDA0 | 853.4 | b11146 | 2026-09-24 |
 | CUDA | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | CUDA0 | 190.0 | b11146 | 2026-09-24 |
+| ROCm | amd64 | AMD EPYC 7443P 24-Core Processor | ROCm0 | 479.9 | b11146 | 2026-09-25 |
+| ROCm | amd64 | AMD EPYC 7443P 24-Core Processor | ROCm1 | 475.0 | b11146 | 2026-09-25 |
 | Vulkan | amd64 | AMD EPYC 7443P 24-Core Processor | Vulkan0 | 806.5 | b11146 | 2026-09-24 |
 | Vulkan | amd64 | AMD EPYC 7443P 24-Core Processor | Vulkan1 | 791.5 | b11146 | 2026-09-24 |
 | Vulkan | amd64 | Intel Core i9-13900HX | Vulkan0 | 95.5 | b11146 | 2026-09-24 |
@@ -58,9 +60,9 @@ The benchmark uses 4 threads on each machine, see
 
 <!-- yzma:bench start text/cpu/amd64/cookie3 -->
 ### CPU, amd64, AMD EPYC 7443P 24-Core Processor
-<!-- yzma:bench meta {"suite":"text","backend":"cpu","arch":"amd64","machine":"cookie3","label":"AMD EPYC 7443P 24-Core Processor","cpu":"AMD EPYC 7443P 24-Core Processor","tokens_per_second":358.9,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
+<!-- yzma:bench meta {"suite":"text","backend":"cpu","arch":"amd64","machine":"cookie3","label":"AMD EPYC 7443P 24-Core Processor","cpu":"AMD EPYC 7443P 24-Core Processor","tokens_per_second":253.4,"llamacpp":"b11146","yzma":"1.29.0-dev","date":"2026-09-25"} -->
 
-AMD EPYC 7443P 24-Core Processor. 358.9 tokens a second.
+AMD EPYC 7443P 24-Core Processor. 253.4 tokens a second.
 
 <details><summary>The output of go test</summary>
 
@@ -70,13 +72,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/llama
 cpu: AMD EPYC 7443P 24-Core Processor               
-BenchmarkInference-48    	     141	  84124135 ns/op	       356.6 tokens/s
-BenchmarkInference-48    	     142	  83460009 ns/op	       359.5 tokens/s
-BenchmarkInference-48    	     142	  83705960 ns/op	       358.4 tokens/s
-BenchmarkInference-48    	     144	  83161275 ns/op	       360.7 tokens/s
-BenchmarkInference-48    	     142	  83591348 ns/op	       358.9 tokens/s
+BenchmarkInference-48    	     135	  89289872 ns/op	       336.0 tokens/s
+BenchmarkInference-48    	      96	 118404079 ns/op	       253.4 tokens/s
+BenchmarkInference-48    	      90	 112516471 ns/op	       266.6 tokens/s
+BenchmarkInference-48    	      98	 119620676 ns/op	       250.8 tokens/s
+BenchmarkInference-48    	      91	 122816695 ns/op	       244.3 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	68.005s
+ok  	github.com/hybridgroup/yzma/pkg/llama	62.630s
 ```
 
 </details>
@@ -279,6 +281,94 @@ ok  	github.com/hybridgroup/yzma/pkg/llama	63.545s
 
 </details>
 <!-- yzma:bench end text/cuda/arm64/localhost/cuda0 -->
+
+<!-- yzma:bench start text/rocm/amd64/cookie3/rocm0 -->
+### ROCm, amd64, AMD EPYC 7443P 24-Core Processor, ROCm0
+<!-- yzma:bench meta {"suite":"text","backend":"rocm","arch":"amd64","machine":"cookie3","device":"ROCm0","label":"AMD EPYC 7443P 24-Core Processor","cpu":"AMD EPYC 7443P 24-Core Processor","tokens_per_second":479.9,"llamacpp":"b11146","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+
+AMD EPYC 7443P 24-Core Processor. 479.9 tokens a second.
+
+<details><summary>The device</summary>
+
+```
+
+
+======================================= ROCm System Management Interface =======================================
+================================================= Concise Info =================================================
+Device  Node  IDs              Temp    Power  Partitions          SCLK  MCLK    Fan  Perf  PwrCap  VRAM%  GPU%  
+[3m              (DID,     GUID)  (Edge)  (Avg)  (Mem, Compute, ID)                                                [0m
+================================================================================================================
+0       1     0x744c,   16626  31.0°C  59.0W  N/A, N/A, 0         0Mhz  456Mhz  0%   auto  0.0W    0%     0%    
+1       2     0x744c,   19095  27.0°C  61.0W  N/A, N/A, 0         0Mhz  456Mhz  0%   auto  0.0W    0%     0%    
+================================================================================================================
+============================================= End of ROCm SMI Log ==============================================
+```
+
+</details>
+
+<details><summary>The output of go test</summary>
+
+```
+$ cd pkg/llama && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkInference -nctx=32000   -device=ROCm0
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: AMD EPYC 7443P 24-Core Processor               
+BenchmarkInference-48    	     189	  62374303 ns/op	       481.0 tokens/s
+BenchmarkInference-48    	     192	  62524617 ns/op	       479.8 tokens/s
+BenchmarkInference-48    	     192	  62219906 ns/op	       482.2 tokens/s
+BenchmarkInference-48    	     190	  62511263 ns/op	       479.9 tokens/s
+BenchmarkInference-48    	     190	  62777837 ns/op	       477.9 tokens/s
+PASS
+ok  	github.com/hybridgroup/yzma/pkg/llama	61.381s
+```
+
+</details>
+<!-- yzma:bench end text/rocm/amd64/cookie3/rocm0 -->
+
+<!-- yzma:bench start text/rocm/amd64/cookie3/rocm1 -->
+### ROCm, amd64, AMD EPYC 7443P 24-Core Processor, ROCm1
+<!-- yzma:bench meta {"suite":"text","backend":"rocm","arch":"amd64","machine":"cookie3","device":"ROCm1","label":"AMD EPYC 7443P 24-Core Processor","cpu":"AMD EPYC 7443P 24-Core Processor","tokens_per_second":475,"llamacpp":"b11146","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+
+AMD EPYC 7443P 24-Core Processor. 475.0 tokens a second.
+
+<details><summary>The device</summary>
+
+```
+
+
+========================================= ROCm System Management Interface =========================================
+=================================================== Concise Info ===================================================
+Device  Node  IDs              Temp    Power   Partitions          SCLK  MCLK   Fan     Perf  PwrCap  VRAM%  GPU%  
+[3m              (DID,     GUID)  (Edge)  (Avg)   (Mem, Compute, ID)                                                  [0m
+====================================================================================================================
+0       1     0x744c,   16626  46.0°C  139.0W  N/A, N/A, 0         0Mhz  96Mhz  28.63%  auto  0.0W    0%     0%    
+1       2     0x744c,   19095  26.0°C  12.0W   N/A, N/A, 0         0Mhz  96Mhz  0%      auto  0.0W    0%     0%    
+====================================================================================================================
+=============================================== End of ROCm SMI Log ================================================
+```
+
+</details>
+
+<details><summary>The output of go test</summary>
+
+```
+$ cd pkg/llama && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkInference -nctx=32000   -device=ROCm1
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/llama
+cpu: AMD EPYC 7443P 24-Core Processor               
+BenchmarkInference-48    	     186	  63754700 ns/op	       470.6 tokens/s
+BenchmarkInference-48    	     189	  63221721 ns/op	       474.5 tokens/s
+BenchmarkInference-48    	     189	  62945370 ns/op	       476.6 tokens/s
+BenchmarkInference-48    	     189	  63152136 ns/op	       475.0 tokens/s
+BenchmarkInference-48    	     189	  62817984 ns/op	       477.6 tokens/s
+PASS
+ok  	github.com/hybridgroup/yzma/pkg/llama	60.890s
+```
+
+</details>
+<!-- yzma:bench end text/rocm/amd64/cookie3/rocm1 -->
 
 <!-- yzma:bench start text/vulkan/amd64/cookie3/vulkan0 -->
 ### Vulkan, amd64, AMD EPYC 7443P 24-Core Processor, Vulkan0
@@ -842,13 +932,15 @@ The code is [pkg/mtmd/benchmark_test.go](../pkg/mtmd/benchmark_test.go).
 <!-- yzma:bench table multimodal -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
-| CPU | amd64 | AMD EPYC 7443P 24-Core Processor | - | 314.5 | b11146 | 2026-09-24 |
+| CPU | amd64 | AMD EPYC 7443P 24-Core Processor | - | 531.1 | b11146 | 2026-09-25 |
 | CPU | amd64 | Intel Core i9-13900HX | - | 878.7 | b11146 | 2026-09-24 |
 | CPU | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | - | 208.3 | b11146 | 2026-09-24 |
 | CPU | arm64 | Raspberry Pi 4 Model B Rev 1.4 | - | 5.6 | b11146 | 2026-09-24 |
 | CPU | arm64 | Arduino UnoQ | - | 4.1 | b11146 | 2026-09-24 |
 | CUDA | amd64 | Intel Core i9-13900HX | CUDA0 | 2277.0 | b11146 | 2026-09-24 |
 | CUDA | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | CUDA0 | 427.3 | b11146 | 2026-09-24 |
+| ROCm | amd64 | AMD EPYC 7443P 24-Core Processor | ROCm0 | 1461.0 | b11146 | 2026-09-25 |
+| ROCm | amd64 | AMD EPYC 7443P 24-Core Processor | ROCm1 | 1203.0 | b11146 | 2026-09-25 |
 | Vulkan | amd64 | AMD EPYC 7443P 24-Core Processor | Vulkan0 | 1350.0 | b11146 | 2026-09-24 |
 | Vulkan | amd64 | AMD EPYC 7443P 24-Core Processor | Vulkan1 | 1108.0 | b11146 | 2026-09-24 |
 | Vulkan | amd64 | Intel Core i9-13900HX | Vulkan0 | 476.8 | b11146 | 2026-09-24 |
@@ -858,9 +950,9 @@ The code is [pkg/mtmd/benchmark_test.go](../pkg/mtmd/benchmark_test.go).
 
 <!-- yzma:bench start multimodal/cpu/amd64/cookie3 -->
 ### CPU, amd64, AMD EPYC 7443P 24-Core Processor
-<!-- yzma:bench meta {"suite":"multimodal","backend":"cpu","arch":"amd64","machine":"cookie3","label":"AMD EPYC 7443P 24-Core Processor","cpu":"AMD EPYC 7443P 24-Core Processor","tokens_per_second":314.5,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"cpu","arch":"amd64","machine":"cookie3","label":"AMD EPYC 7443P 24-Core Processor","cpu":"AMD EPYC 7443P 24-Core Processor","tokens_per_second":531.1,"llamacpp":"b11146","yzma":"1.29.0-dev","date":"2026-09-25"} -->
 
-AMD EPYC 7443P 24-Core Processor. 314.5 tokens a second.
+AMD EPYC 7443P 24-Core Processor. 531.1 tokens a second.
 
 <details><summary>The output of go test</summary>
 
@@ -870,13 +962,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
 cpu: AMD EPYC 7443P 24-Core Processor               
-BenchmarkMultimodalInference-48    	      34	 675699199 ns/op	       343.7 tokens/s
-BenchmarkMultimodalInference-48    	      13	 823531912 ns/op	       285.8 tokens/s
-BenchmarkMultimodalInference-48    	      15	 735855116 ns/op	       314.5 tokens/s
-BenchmarkMultimodalInference-48    	      15	 749055250 ns/op	       309.7 tokens/s
-BenchmarkMultimodalInference-48    	      15	 720972874 ns/op	       319.6 tokens/s
+BenchmarkMultimodalInference-48    	      28	 416150767 ns/op	       557.1 tokens/s
+BenchmarkMultimodalInference-48    	      26	 435851928 ns/op	       531.1 tokens/s
+BenchmarkMultimodalInference-48    	      31	 434341982 ns/op	       533.3 tokens/s
+BenchmarkMultimodalInference-48    	      25	 466286117 ns/op	       504.9 tokens/s
+BenchmarkMultimodalInference-48    	      28	 481531058 ns/op	       493.6 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/mtmd	68.954s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	63.979s
 ```
 
 </details>
@@ -1079,6 +1171,94 @@ ok  	github.com/hybridgroup/yzma/pkg/mtmd	61.894s
 
 </details>
 <!-- yzma:bench end multimodal/cuda/arm64/localhost/cuda0 -->
+
+<!-- yzma:bench start multimodal/rocm/amd64/cookie3/rocm0 -->
+### ROCm, amd64, AMD EPYC 7443P 24-Core Processor, ROCm0
+<!-- yzma:bench meta {"suite":"multimodal","backend":"rocm","arch":"amd64","machine":"cookie3","device":"ROCm0","label":"AMD EPYC 7443P 24-Core Processor","cpu":"AMD EPYC 7443P 24-Core Processor","tokens_per_second":1461,"llamacpp":"b11146","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+
+AMD EPYC 7443P 24-Core Processor. 1461.0 tokens a second.
+
+<details><summary>The device</summary>
+
+```
+
+
+======================================= ROCm System Management Interface =======================================
+================================================= Concise Info =================================================
+Device  Node  IDs              Temp    Power  Partitions          SCLK  MCLK    Fan  Perf  PwrCap  VRAM%  GPU%  
+[3m              (DID,     GUID)  (Edge)  (Avg)  (Mem, Compute, ID)                                                [0m
+================================================================================================================
+0       1     0x744c,   16626  31.0°C  59.0W  N/A, N/A, 0         0Mhz  456Mhz  0%   auto  0.0W    0%     0%    
+1       2     0x744c,   19095  27.0°C  61.0W  N/A, N/A, 0         0Mhz  456Mhz  0%   auto  0.0W    0%     0%    
+================================================================================================================
+============================================= End of ROCm SMI Log ==============================================
+```
+
+</details>
+
+<details><summary>The output of go test</summary>
+
+```
+$ cd pkg/mtmd && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkMultimodalInference -nctx=32000   -device=ROCm0
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/mtmd
+cpu: AMD EPYC 7443P 24-Core Processor               
+BenchmarkMultimodalInference-48    	      66	 169443589 ns/op	      1390 tokens/s
+BenchmarkMultimodalInference-48    	      74	 159135187 ns/op	      1479 tokens/s
+BenchmarkMultimodalInference-48    	      90	 164132082 ns/op	      1443 tokens/s
+BenchmarkMultimodalInference-48    	      74	 157266751 ns/op	      1490 tokens/s
+BenchmarkMultimodalInference-48    	      74	 161120145 ns/op	      1461 tokens/s
+PASS
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	62.499s
+```
+
+</details>
+<!-- yzma:bench end multimodal/rocm/amd64/cookie3/rocm0 -->
+
+<!-- yzma:bench start multimodal/rocm/amd64/cookie3/rocm1 -->
+### ROCm, amd64, AMD EPYC 7443P 24-Core Processor, ROCm1
+<!-- yzma:bench meta {"suite":"multimodal","backend":"rocm","arch":"amd64","machine":"cookie3","device":"ROCm1","label":"AMD EPYC 7443P 24-Core Processor","cpu":"AMD EPYC 7443P 24-Core Processor","tokens_per_second":1203,"llamacpp":"b11146","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+
+AMD EPYC 7443P 24-Core Processor. 1203.0 tokens a second.
+
+<details><summary>The device</summary>
+
+```
+
+
+========================================= ROCm System Management Interface =========================================
+=================================================== Concise Info ===================================================
+Device  Node  IDs              Temp    Power   Partitions          SCLK  MCLK   Fan     Perf  PwrCap  VRAM%  GPU%  
+[3m              (DID,     GUID)  (Edge)  (Avg)   (Mem, Compute, ID)                                                  [0m
+====================================================================================================================
+0       1     0x744c,   16626  46.0°C  139.0W  N/A, N/A, 0         0Mhz  96Mhz  28.63%  auto  0.0W    0%     0%    
+1       2     0x744c,   19095  26.0°C  12.0W   N/A, N/A, 0         0Mhz  96Mhz  0%      auto  0.0W    0%     0%    
+====================================================================================================================
+=============================================== End of ROCm SMI Log ================================================
+```
+
+</details>
+
+<details><summary>The output of go test</summary>
+
+```
+$ cd pkg/mtmd && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkMultimodalInference -nctx=32000   -device=ROCm1
+goos: linux
+goarch: amd64
+pkg: github.com/hybridgroup/yzma/pkg/mtmd
+cpu: AMD EPYC 7443P 24-Core Processor               
+BenchmarkMultimodalInference-48    	      55	 202216190 ns/op	      1161 tokens/s
+BenchmarkMultimodalInference-48    	      54	 200107492 ns/op	      1178 tokens/s
+BenchmarkMultimodalInference-48    	      54	 192329472 ns/op	      1217 tokens/s
+BenchmarkMultimodalInference-48    	      67	 192463774 ns/op	      1219 tokens/s
+BenchmarkMultimodalInference-48    	      57	 195761670 ns/op	      1203 tokens/s
+PASS
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	57.350s
+```
+
+</details>
+<!-- yzma:bench end multimodal/rocm/amd64/cookie3/rocm1 -->
 
 <!-- yzma:bench start multimodal/vulkan/amd64/cookie3/vulkan0 -->
 ### Vulkan, amd64, AMD EPYC 7443P 24-Core Processor, Vulkan0
