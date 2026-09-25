@@ -62,6 +62,14 @@ func showSystemInfo(c *cli.Context) error {
 
 	fmt.Println()
 
+	if errs := llama.GGMLBackendLoadErrors(libPath); len(errs) > 0 {
+		fmt.Println("-- Backend Load Errors --")
+		for _, err := range errs {
+			fmt.Println(err)
+		}
+		fmt.Println()
+	}
+
 	sysInfo := llama.PrintSystemInfo()
 	fmt.Println("-- llama.cpp System Information --")
 	fmt.Println(sysInfo)

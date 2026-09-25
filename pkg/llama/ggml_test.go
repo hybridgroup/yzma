@@ -1,8 +1,12 @@
 package llama
 
 import (
+	"os"
 	"regexp"
+	"strings"
 	"testing"
+
+	"github.com/hybridgroup/yzma/pkg/loader"
 )
 
 func TestGGMLBackendCpuBufferType(t *testing.T) {
@@ -428,5 +432,22 @@ func TestGGMLTypeName(t *testing.T) {
 
 	if got := GGMLTypeQ4_K.String(); got != name {
 		t.Errorf("GGMLTypeQ4_K.String() = %q, want %q", got, name)
+	}
+}
+
+func TestGGMLBackendLoadErrors(t *testing.T) {
+	dir := t.TempDir()
+	for _, lib := range []string{"ggml-broken", "ggml-base", "other"} {
+		if err := os.WriteFile(loader.GetLibraryFilename(dir, lib), []byte("not a library"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	errs := GGMLBackendLoadErrors(dir)
+	if len(errs) != 1 {
+		t.Fatalf("expected 1 error, got %d: %v", len(errs), errs)
+	}
+	if !strings.Contains(errs[0].Error(), "ggml-broken") {
+		t.Fatalf("expected the error to name ggml-broken, got %v", errs[0])
 	}
 }
