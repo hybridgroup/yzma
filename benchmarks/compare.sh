@@ -9,7 +9,7 @@ cd "$root"
 machine=""
 label=""
 engines="yzma ollama dmr"
-suites="text embeddings"
+suites="text multimodal embeddings"
 models="qwen3-vl-2b gemma4-e2b"
 embed_model="bge-small"
 llamacpp=""
@@ -17,6 +17,7 @@ nctx=8192
 count=5
 benchtime=20x
 tokens=16
+cool=60
 dry_run=""
 
 usage() {
@@ -26,8 +27,7 @@ usage: benchmarks/compare.sh [flags]
   --machine NAME     short name of this machine, default the host name
   --label TEXT       name of the machine to show, default the short name
   --engine LIST      yzma, ollama, dmr, or more than one
-  --suite LIST       text, embeddings, or both. multimodal is work in
-                     progress and no table of the report takes it yet
+  --suite LIST       text, multimodal, embeddings, or more than one
   --model LIST       qwen3-vl-2b, gemma4-e2b, or more than one
   --device NAME      device for yzma, default CUDA0 when the machine has one
   --llamacpp TAG     tag of the llama.cpp build, default from yzma-install.json
@@ -35,6 +35,7 @@ usage: benchmarks/compare.sh [flags]
   --tokens N         tokens of each request, default 16
   --count N          runs of each benchmark, default 5
   --benchtime D      time or count of each run, default 20x
+  --cool C           wait until the GPU is at C degrees or less, default 60
   --dry-run          print the result and change no file
 
 The servers must run and must have the model. The script says which command
@@ -58,6 +59,7 @@ while [ $# -gt 0 ]; do
     --tokens) tokens=$2; shift 2 ;;
     --count) count=$2; shift 2 ;;
     --benchtime) benchtime=$2; shift 2 ;;
+    --cool) cool=$2; shift 2 ;;
     --dry-run) dry_run="--dry-run"; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "unknown flag: $1" >&2; usage; exit 2 ;;
@@ -137,8 +139,10 @@ gguf=""
 mmproj=""
 ref=""
 template=""
+image_size=""
 modelFiles() {
   template=""
+  image_size=""
   case "$1" in
     qwen3-vl-2b)
       gguf=$MODELS_DIR/Qwen3-VL-2B-Instruct.Q4_K_M.gguf
@@ -149,6 +153,8 @@ modelFiles() {
 {{ .Prompt }}<|im_end|>
 <|im_start|>assistant
 '
+      # ollama scales a smaller image up to about 1000 tokens.
+      image_size=1280x960
       ;;
     gemma4-e2b)
       gguf=$MODELS_DIR/gemma-4-E2B-it-Q4_K_M.gguf
@@ -157,6 +163,9 @@ modelFiles() {
       mmproj=$MODELS_DIR/mmproj-F16.gguf
       ref=hf.co/unsloth/gemma-4-e2b-it-gguf:q4_k_m
       # ollama has a renderer for gemma4, thus it needs no template here.
+      # An image under the budget of 280 tokens of the llama.cpp of Docker
+      # Model Runner. A larger one gets another size in each engine.
+      image_size=768x576
       ;;
     bge-small)
       # The embeddings suite. An embedding gives no token back, thus almost all
@@ -214,6 +223,30 @@ freeGPU() {
 
   # The memory of the GPU comes back a moment after the process gives it up.
   sleep 3
+
+  coolGPU
+}
+
+# coolGPU waits until the GPU is at $cool degrees or less. A hot GPU of a
+# laptop lowers its clock, thus the engine that runs after another one is slower.
+coolGPU() {
+  if ! has nvidia-smi; then
+    return 0
+  fi
+
+  local temp waited=0
+  while temp=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -1) &&
+    [ -n "$temp" ] && [ "$temp" -gt "$cool" ]; do
+    if [ "$waited" -ge 600 ]; then
+      echo "the GPU is still at $temp degrees after 10 minutes, the run goes on" >&2
+      return 0
+    fi
+    if [ "$waited" -eq 0 ]; then
+      echo "==> the GPU is at $temp degrees, wait until it is at $cool"
+    fi
+    sleep 10
+    waited=$((waited + 10))
+  done
 }
 
 # ollamaRun runs one ollama command, in the container or on the host.
@@ -309,7 +342,7 @@ ready() {
         echo "no model at $gguf, run make download-compare-models" >&2
         return 1
       fi
-      if [ ! -f "$mmproj" ] && echo "$suites" | grep -q multimodal; then
+      if [ "$suite" = multimodal ] && [ ! -f "$mmproj" ]; then
         echo "no projector at $mmproj, run make download-compare-models" >&2
         return 1
       fi
@@ -354,6 +387,9 @@ ready() {
 flagsFor() {
   local engine=$1 suite=$2
   local flags=(-engine="$engine" -suite="$suite" -tokens="$tokens" -nctx="$nctx")
+  if [ "$suite" = multimodal ] && [ -n "$image_size" ]; then
+    flags+=(-image-size="$image_size")
+  fi
 
   case "$engine" in
     yzma)

@@ -3,6 +3,8 @@ package compare
 import (
 	"bytes"
 	"encoding/json"
+	"image"
+	"image/jpeg"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -66,16 +68,23 @@ func TestReadStreamWithoutAnyToken(t *testing.T) {
 }
 
 // Each run needs its own image, or a server answers the second run from the
-// cache of the first while yzma does the whole work again.
+// cache of the first while yzma does the whole work again. A benchmark with
+// -count 5 sends more than 100 requests, and runs 1 and 257 must differ too.
 func TestImageVariantsDiffer(t *testing.T) {
-	made, err := ImageVariants("../../images/domestic_llama.jpg", 3)
+	images, err := NewImages("../../images/domestic_llama.jpg", image.Point{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(made) != 3 {
-		t.Fatalf("got %d images, want 3", len(made))
+	var made [][]byte
+	for _, n := range []int{0, 1, 2, 256, 257} {
+		img, err := images.Variant(n)
+		if err != nil {
+			t.Fatal(err)
+		}
+		made = append(made, img)
 	}
+
 	for i := range made {
 		for j := i + 1; j < len(made); j++ {
 			if bytes.Equal(made[i], made[j]) {
@@ -85,14 +94,40 @@ func TestImageVariantsDiffer(t *testing.T) {
 	}
 }
 
-// The image goes as a data URL of the bytes that yzma also reads.
-func TestMessageContentPutsTheImageInTheMessage(t *testing.T) {
-	made, err := ImageVariants("../../images/domestic_llama.jpg", 2)
+// The engines scale an image each in their own way, thus the suite gives them
+// one at a size that they take as it is.
+func TestImageVariantsHaveTheSize(t *testing.T) {
+	images, err := NewImages("../../images/domestic_llama.jpg", image.Pt(1280, 960))
+	if err != nil {
+		t.Fatal(err)
+	}
+	img, err := images.Variant(1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	content, err := messageContent(Request{Prompt: ImagePrompt, Image: made[0]})
+	cfg, err := jpeg.DecodeConfig(bytes.NewReader(img))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Width != 1280 || cfg.Height != 960 {
+		t.Errorf("size = %dx%d, want 1280x960", cfg.Width, cfg.Height)
+	}
+}
+
+// The image goes as a data URL of the bytes that yzma also reads. It goes
+// before the text, as in the prompt of yzma, or the model gets another prompt.
+func TestMessageContentPutsTheImageInTheMessage(t *testing.T) {
+	images, err := NewImages("../../images/domestic_llama.jpg", image.Point{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	img, err := images.Variant(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	content, err := messageContent(Request{Prompt: ImagePrompt, Image: img})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,11 +136,11 @@ func TestMessageContentPutsTheImageInTheMessage(t *testing.T) {
 	if !ok || len(parts) != 2 {
 		t.Fatalf("content = %#v, want two parts", content)
 	}
-	if parts[0].Text != ImagePrompt {
-		t.Errorf("text = %q, want %q", parts[0].Text, ImagePrompt)
+	if parts[0].ImageURL == nil || !strings.HasPrefix(parts[0].ImageURL.URL, "data:image/jpeg;base64,") {
+		t.Fatalf("the first part is not a JPEG data URL: %#v", parts[0])
 	}
-	if !strings.HasPrefix(parts[1].ImageURL.URL, "data:image/jpeg;base64,") {
-		t.Errorf("the image is not a JPEG data URL: %.40s", parts[1].ImageURL.URL)
+	if parts[1].Text != ImagePrompt {
+		t.Errorf("text = %q, want %q", parts[1].Text, ImagePrompt)
 	}
 }
 

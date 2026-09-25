@@ -3,6 +3,7 @@ package compare
 import (
 	"flag"
 	"fmt"
+	"image"
 	"os"
 	"testing"
 	"time"
@@ -25,17 +26,19 @@ var (
 	imgMin      int
 	imgMax      int
 	imageFile   string
+	imageSize   string
 	threads     int
 
 	engine Engine
 
-	// variants hold a different image for each run, thus no engine answers
-	// from its cache of the last request.
-	variants [][]byte
-)
+	// images give a different image for each run, thus no engine answers
+	// from its cache.
+	images *Images
 
-// variantCount is how many different images and prompts one run cycles.
-const variantCount = 32
+	// sent counts the requests of this process. Each -count of a benchmark
+	// runs the loop again, thus a count of its own would repeat the requests.
+	sent int
+)
 
 func init() {
 	flag.StringVar(&engineName, "engine", "yzma", "engine to measure (yzma, ollama, dmr)")
@@ -52,6 +55,7 @@ func init() {
 	flag.IntVar(&maxTokens, "tokens", 16, "tokens to make in one request")
 	flag.UintVar(&seed, "seed", 1234, "seed of the sampler")
 	flag.StringVar(&imageFile, "image", ImageFile, "image file of the multimodal suite")
+	flag.StringVar(&imageSize, "image-size", "", "size to scale the image to, such as 1280x960, empty keeps the size")
 	flag.IntVar(&threads, "threads", 0, "threads of the vision model, for yzma, 0 keeps the default")
 	flag.IntVar(&imgMin, "image-min-tokens", 0, "least tokens of an image, for yzma, 0 keeps the default")
 	flag.IntVar(&imgMax, "image-max-tokens", 0, "most tokens of an image, for yzma, 0 keeps the default")
@@ -69,11 +73,11 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// request gives the request of one run. Each run gets a prompt and an image
+// request gives the request of run n. Each run gets a prompt and an image
 // that no engine has seen, thus every engine does the whole work every time.
-// A server keeps the prompt of the last request and answers a repeat of it
-// almost at once, while yzma empties its cache after each generation.
-func request(n int) Request {
+// A server keeps the prompts and images it has seen and answers a repeat of
+// them almost at once, while yzma empties its cache after each generation.
+func request(n int) (Request, error) {
 	req := Request{
 		Prompt:    TextVariant(n),
 		MaxTokens: maxTokens,
@@ -83,10 +87,26 @@ func request(n int) Request {
 	switch suite {
 	case "multimodal":
 		req.Prompt = ImagePrompt
-		req.Image = variants[n%len(variants)]
+		img, err := images.Variant(n)
+		if err != nil {
+			return req, err
+		}
+		req.Image = img
 	case "embeddings":
 		req.Prompt = EmbedVariant(n)
 		req.Embeddings = true
+	}
+
+	return req, nil
+}
+
+// next gives a request that this process has not sent yet. Request 0 is the
+// one of the load, thus the first one of next is 1.
+func next(t skipper) Request {
+	sent++
+	req, err := request(sent)
+	if err != nil {
+		t.Fatalf("unable to make request %d: %v", sent, err)
 	}
 
 	return req
@@ -112,15 +132,25 @@ func setup(t skipper) Engine {
 		return engine
 	}
 
-	if suite == "multimodal" && variants == nil {
-		made, err := ImageVariants(imageFile, variantCount)
-		if err != nil {
-			t.Fatalf("unable to make the images: %v", err)
+	if suite == "multimodal" && images == nil {
+		var size image.Point
+		if imageSize != "" {
+			if _, err := fmt.Sscanf(imageSize, "%dx%d", &size.X, &size.Y); err != nil {
+				t.Fatalf("the image size %q is not WIDTHxHEIGHT: %v", imageSize, err)
+			}
 		}
-		variants = made
+
+		made, err := NewImages(imageFile, size)
+		if err != nil {
+			t.Fatalf("unable to read the image: %v", err)
+		}
+		images = made
 	}
 
-	req := request(0)
+	req, err := request(0)
+	if err != nil {
+		t.Fatalf("unable to make the first request: %v", err)
+	}
 
 	switch engineName {
 	case "yzma":
@@ -178,7 +208,8 @@ func BenchmarkCompare(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		result, err := call(eng, request(runs))
+		// The request is made before the call, thus its image is not timed.
+		result, err := call(eng, next(b))
 		if err != nil {
 			b.Fatalf("%s failed: %v", eng.Name(), err)
 		}
@@ -225,7 +256,7 @@ func millis(d time.Duration, runs int) float64 {
 func TestAnswer(t *testing.T) {
 	eng := setup(t)
 
-	result, err := call(eng, request(0))
+	result, err := call(eng, next(t))
 	if err != nil {
 		t.Fatalf("%s failed: %v", eng.Name(), err)
 	}

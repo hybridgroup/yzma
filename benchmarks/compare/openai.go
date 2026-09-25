@@ -235,6 +235,7 @@ func readStream(body io.Reader, start time.Time) (Result, error) {
 
 // messageContent gives a plain string for the text suite and the two part form
 // for an image. The image goes as a data URL of the same bytes that yzma reads.
+// The image goes first, as the marker does in the prompt of yzma.
 func messageContent(req Request) (any, error) {
 	if len(req.Image) == 0 {
 		return req.Prompt, nil
@@ -243,8 +244,8 @@ func messageContent(req Request) (any, error) {
 	url := "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(req.Image)
 
 	return []contentPart{
-		{Type: "text", Text: req.Prompt},
 		{Type: "image_url", ImageURL: &imageURL{URL: url}},
+		{Type: "text", Text: req.Prompt},
 	}, nil
 }
 
