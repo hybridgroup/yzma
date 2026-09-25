@@ -383,6 +383,10 @@ func analyse(yzmaRoot, headerDir string, patterns []string) (*report, error) {
 			callbacksByID[id] = cb
 		}
 	}
+	if len(all) == 0 {
+		return nil, fmt.Errorf("no FFI bindings found in %s", strings.Join(patterns, ", "))
+	}
+
 	sort.Slice(callbacks, func(i, j int) bool {
 		if callbacks[i].Pos.Filename != callbacks[j].Pos.Filename {
 			return callbacks[i].Pos.Filename < callbacks[j].Pos.Filename

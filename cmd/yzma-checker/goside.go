@@ -188,6 +188,10 @@ type analyzer struct {
 	stores []*FnPtrStore
 }
 
+func isLibType(t string) bool {
+	return strings.HasSuffix(t, "ffi.Lib") || t == yzmaModulePath+"/pkg/loader.Lib"
+}
+
 func loadPkgs(dir string, patterns ...string) ([]*packages.Package, error) {
 	cfg := &packages.Config{
 		Mode: packages.NeedName | packages.NeedFiles | packages.NeedSyntax |
@@ -694,9 +698,9 @@ func (a *analyzer) run() {
 			default:
 				return true
 			}
-			// receiver must be ffi.Lib
+			// receiver must be ffi.Lib or the loader.Lib that wraps it
 			rt := a.pkg.TypesInfo.TypeOf(sel.X)
-			if rt == nil || !strings.HasSuffix(rt.String(), "ffi.Lib") {
+			if rt == nil || !isLibType(rt.String()) {
 				return true
 			}
 			bl, ok := nameArg.(*ast.BasicLit)
