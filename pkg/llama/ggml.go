@@ -3,6 +3,8 @@ package llama
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/loader"
@@ -232,6 +234,35 @@ func GGMLBackendLoadAllFromPath(path string) error {
 	ggmlBackendLoadAllFromPath.Call(nil, unsafe.Pointer(&p))
 
 	return nil
+}
+
+// GGMLBackendLoadErrors opens each ggml backend library in path and returns the
+// errors of the ones that fail to open. ggml does not report these errors itself.
+func GGMLBackendLoadErrors(path string) []error {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return []error{err}
+	}
+
+	pattern := filepath.Base(loader.GetLibraryFilename("", "ggml-*"))
+	base := filepath.Base(loader.GetLibraryFilename("", "ggml-base"))
+
+	var errs []error
+	for _, e := range entries {
+		name := e.Name()
+		if match, _ := filepath.Match(pattern, name); !match || name == base {
+			continue
+		}
+
+		lib, err := ffi.Load(filepath.Join(path, name))
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", name, err))
+			continue
+		}
+		lib.Close()
+	}
+
+	return errs
 }
 
 // GGMLBackendUnload unloads a backend if loaded dynamically and unregisters it.
