@@ -223,6 +223,10 @@ a similar answer and still do different work. A different count always means a
 different prompt, or a different preprocessing of the image. The script says so
 and the numbers must not go in a table.
 
+One gap is known and accepted. ollama counts 5 tokens more than yzma and Docker
+Model Runner for an image, on each model and at each image size, while the
+answers agree. That is less than 3 percent of the image suite prompt.
+
 An image gives most of the prompt tokens. A projector that cuts the image into
 tiles gives three times the tokens of one that does not, thus it does three
 times the work of the vision model. Use `-image-min-tokens` and
