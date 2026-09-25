@@ -29,6 +29,7 @@ section at the end explains.
 | `llama_supports_mmap` | yes | no |
 | `llama_supports_rpc` | yes | no |
 | `llama_time_us` | yes | yes |
+| `llama_version` | yes | no |
 
 ### Model Functions
 
@@ -183,9 +184,22 @@ the public API. The [`exp/speculative`](./exp/speculative) package has them.
 
 | Function | `yzma` | WebAssembly |
 | --- | :-: | :-: |
+| `llama_batch_ext_add` | yes | no |
+| `llama_batch_ext_add_embd` | yes | no |
+| `llama_batch_ext_add_seq` | yes | no |
+| `llama_batch_ext_add_token` | yes | no |
+| `llama_batch_ext_clear` | yes | no |
+| `llama_batch_ext_free` | yes | no |
+| `llama_batch_ext_init` | yes | no |
+| `llama_batch_ext_set_embd_state` | yes | no |
+| `llama_batch_ext_set_embd_token` | yes | no |
+| `llama_batch_ext_set_output_embd` | yes | no |
+| `llama_batch_ext_set_output_logits` | yes | no |
+| `llama_batch_ext_set_pos` | yes | no |
 | `llama_batch_free` | yes | yes |
 | `llama_batch_get_one` | yes | yes |
 | `llama_batch_init` | yes | partial |
+| `llama_process` | yes | no |
 
 ### Sampling Functions
 
@@ -356,11 +370,13 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 
 | Function | `yzma` | WebAssembly |
 | --- | :-: | :-: |
+| `llama_adapter_lora_init_from_file_ptr` | no | no |
 | `llama_model_init_from_user` | no | no |
 | `llama_model_load_from_file_ptr` | no | no |
 | `llama_opt_epoch` | no | no |
 | `llama_opt_init` | no | no |
 | `llama_opt_param_filter_all` | no | no |
+| `llama_sampler_copy` | no | no |
 | `llama_sampler_init` | no | no |
 
 ### `mtmd` Functions
@@ -390,7 +406,7 @@ The WebAssembly column of each table above gives the state of the wrapper.
 | no | The shim does not export it. |
 
 170 functions reach WebAssembly, 163 complete and 7 partial, all of them among
-the 258 that have a wrapper on a host. That is sufficient for text generation,
+the 272 that have a wrapper on a host. That is sufficient for text generation,
 embeddings, images, chat templates, tool calling with a grammar, every sampler
 that a host has, batches that carry more than one sequence, a context that
 shifts when it becomes full, the logits and the metadata of a model, the state
