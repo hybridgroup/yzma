@@ -470,7 +470,8 @@ func EncodeChunk(ctx Context, chunk InputChunk) error {
 
 // Encode encodes image tokens.
 // This function is NOT thread-safe.
-// Note: this function is marked as deprecated upstream in favor of EncodeChunk.
+//
+// Deprecated: use [EncodeChunk] instead.
 func Encode(ctx Context, imageTokens ImageTokens) error {
 	if ctx == 0 {
 		return errors.New("invalid mtmd context handle")
