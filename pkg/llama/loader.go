@@ -51,6 +51,10 @@ func Load(path string) error {
 		return err
 	}
 
+	if err := loadBatchExtFuncs(lib); err != nil {
+		return err
+	}
+
 	if err := loadVocabFuncs(lib); err != nil {
 		return err
 	}

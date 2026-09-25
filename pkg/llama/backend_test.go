@@ -165,3 +165,14 @@ func TestPrintSystemInfo(t *testing.T) {
 	}
 	t.Logf("PrintSystemInfo returned:\n%s", info)
 }
+
+func TestVersion(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	v := Version()
+	if v == "" {
+		t.Fatal("Version returned empty string")
+	}
+	t.Logf("Version returned: %s", v)
+}
