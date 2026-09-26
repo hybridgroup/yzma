@@ -264,6 +264,9 @@ gives two results.
   google-chrome --enable-dawn-features=vulkan_enable_f16_on_nvidia
   ```
 
+  On Linux this switch alone is not sufficient. See Vulkan in Chrome on Linux
+  below.
+
 The fallback makes the page slow, but the page operates.
 
 ### Vulkan in Chrome on Linux
@@ -282,23 +285,46 @@ This path gives two results, and neither is good.
   feature of the adapter tells it apart from a device that operates, thus the
   loader measures it. See the self test of the backend above.
 
-These switches ask Chrome for the Vulkan backend. Close every window of Chrome
-first.
+These three switches give Chrome the Vulkan backend. Close every window of
+Chrome first, and make sure that no Chrome process stays in the background.
 
 ```
-google-chrome --enable-features=Vulkan \
+google-chrome --enable-unsafe-webgpu --enable-features=Vulkan \
   --enable-dawn-features=vulkan_enable_f16_on_nvidia
 ```
 
-`chrome://gpu` must then say `Vulkan: Enabled` and the first adapter of Dawn
-Info must be a `Vulkan backend` line with the name of the card.
+| Switch | Why |
+| --- | --- |
+| `--enable-unsafe-webgpu` | Turns off the list of blocked adapters in Dawn. Without it Chrome keeps the Vulkan adapters hidden and gives only the OpenGLES adapter. |
+| `--enable-features=Vulkan` | Turns on Vulkan in the GPU process of Chrome. |
+| `--enable-dawn-features=vulkan_enable_f16_on_nvidia` | Gives `shader-f16` on an NVIDIA card. See above. |
 
-This does not always operate. On Ubuntu 22.04 with Mesa 23.2.1 the feature
-status says `Vulkan: Enabled` and Dawn still gives the OpenGLES adapter in
-compatibility mode, thus the page still computes wrong values. Issue #341 has
-the pictures. The switches are worth a test, but they are not a repair. A
-machine in this condition has no GPU path that operates, and the self test
-takes the CPU.
+All three are necessary. `--use-angle=vulkan` is not. `chrome://version` shows
+the command line, thus look there first if a switch seems to have no effect.
+
+Tested on Chrome 154 on Ubuntu 24.04 with Mesa 25.2.8, an Intel RPL-S and an
+NVIDIA RTX 4070. Without the switches Dawn gives only the OpenGLES adapter of
+the Intel, which has no `shader-f16`, thus the page takes the CPU. With the
+three switches Dawn gives a Vulkan adapter for each card, both with
+`shader-f16`, and SmolLM-135M Q2_K makes the correct text with WebGPU at 44
+tokens a second.
+
+This test in the console of a page shows the adapters.
+
+```js
+for (const p of ["low-power", "high-performance"]) {
+  const a = await navigator.gpu.requestAdapter({ powerPreference: p });
+  console.log(p, a && a.info.vendor, a && a.info.architecture,
+    a && a.features.has("shader-f16"));
+}
+```
+
+A good result names a GPU for each line, not `swiftshader`, and gives `true`.
+
+Issue #341 was tested before `--enable-unsafe-webgpu` was known. On Ubuntu
+22.04 with Mesa 23.2.1 and only the other two switches, Dawn still gave the
+OpenGLES adapter, thus the page computed wrong values. Such a machine can try
+the three switches. Without them the self test takes the CPU.
 
 ### Firefox
 
