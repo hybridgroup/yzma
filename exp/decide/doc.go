@@ -16,5 +16,8 @@
 // softmax(scores / T). The token ids and the temperatures T come from the
 // readout_config.json that ships with the model, see [LoadConfig].
 //
+// [Decider.DecideMany] asks several questions about one state. It decodes
+// the whole ubatches of the state once, so long states gain the most.
+//
 // This package is experimental and its API can change.
 package decide

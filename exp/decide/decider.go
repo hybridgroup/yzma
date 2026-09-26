@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"sync"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
@@ -52,7 +53,9 @@ type Decider struct {
 	mem        llama.Memory
 	nVocab     int
 	maxOptions int
+	ubatch     int
 	render     *renderer
+	cached     []llama.Token
 	mu         sync.Mutex
 }
 
@@ -99,7 +102,7 @@ func New(modelPath, configPath string, opts Options) (*Decider, error) {
 	if opts.UBatch > 0 {
 		params.NUbatch = min(opts.UBatch, params.NCtx)
 	}
-	params.NSeqMax = 1
+	params.NSeqMax = 2
 	params.NOutputsMax = uint32(d.maxOptions)
 	params.KVUnified = 1
 	params.NoPerf = 1
@@ -107,6 +110,8 @@ func New(modelPath, configPath string, opts Options) (*Decider, error) {
 		params.NThreads = opts.Threads
 		params.NThreadsBatch = opts.Threads
 	}
+
+	d.ubatch = int(params.NUbatch)
 
 	d.ctx, err = llama.InitFromModel(model, params)
 	if err != nil || d.ctx == 0 {
@@ -164,6 +169,45 @@ func (d *Decider) Decide(state any, q Question, category string) (*Result, error
 	return result(r, scores, d.cfg.Temperature(category, q.Type, len(r.names)))
 }
 
+// DecideMany scores several questions about one state. The results are the
+// same as calling [Decider.Decide] for each question. The whole ubatches of
+// the state are decoded once and kept, so a later call with the same state
+// reuses them. All questions are checked before any scoring.
+func (d *Decider) DecideMany(state any, qs []Question, category string) ([]*Result, error) {
+	if len(qs) == 0 {
+		return nil, nil
+	}
+
+	s, err := serializeState(state)
+	if err != nil {
+		return nil, err
+	}
+
+	rs := make([]*rendered, len(qs))
+	for i, q := range qs {
+		if rs[i], err = d.render.render(s, q); err != nil {
+			return nil, fmt.Errorf("question %d: %w", i, err)
+		}
+		if len(rs[i].slots) > d.maxOptions {
+			return nil, fmt.Errorf("question %d: %w: %d options, the limit is %d", i, ErrQuestion, len(rs[i].slots), d.maxOptions)
+		}
+	}
+
+	scores, err := d.scoresMany(rs)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]*Result, len(qs))
+	for i, q := range qs {
+		if out[i], err = result(rs[i], scores[i], d.cfg.Temperature(category, q.Type, len(rs[i].names))); err != nil {
+			return nil, fmt.Errorf("question %d: %w", i, err)
+		}
+	}
+
+	return out, nil
+}
+
 func (d *Decider) scores(r *rendered) ([]float64, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -172,20 +216,84 @@ func (d *Decider) scores(r *rendered) ([]float64, error) {
 		return nil, errors.New("decide: decider is closed")
 	}
 
-	llama.MemoryClear(d.mem, true)
-	defer llama.MemoryClear(d.mem, true)
+	d.clear()
+	defer d.clear()
 
-	isSlot := make(map[int]bool, len(r.slots))
-	for _, s := range r.slots {
+	return d.decode(r.ids, 0, 0, r.slots)
+}
+
+// scoresMany decodes the whole ubatches of the shared state once into sequence 0
+// and each question on a copy of it in sequence 1. The ubatch splits are the
+// same as in scores, so the results are identical.
+func (d *Decider) scoresMany(rs []*rendered) ([][]float64, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if d.ctx == 0 {
+		return nil, errors.New("decide: decider is closed")
+	}
+
+	out := make([][]float64, len(rs))
+	shared := (rs[0].prefixLen / d.ubatch) * d.ubatch
+	if shared == 0 {
+		for i, r := range rs {
+			d.clear()
+			sc, err := d.decode(r.ids, 0, 0, r.slots)
+			if err != nil {
+				d.clear()
+				return nil, err
+			}
+			out[i] = sc
+		}
+		d.clear()
+		return out, nil
+	}
+
+	prefix := rs[0].ids[:shared]
+	if !slices.Equal(d.cached, prefix) {
+		d.clear()
+		if _, err := d.decode(prefix, 0, 0, nil); err != nil {
+			d.clear()
+			return nil, err
+		}
+		d.cached = slices.Clone(prefix)
+	}
+
+	for i, r := range rs {
+		llama.MemorySeqRm(d.mem, 1, -1, -1)
+		llama.MemorySeqCp(d.mem, 0, 1, -1, -1)
+		sc, err := d.decode(r.ids[shared:], shared, 1, r.slots)
+		llama.MemorySeqRm(d.mem, 1, -1, -1)
+		if err != nil {
+			d.clear()
+			return nil, err
+		}
+		out[i] = sc
+	}
+
+	return out, nil
+}
+
+// clear empties the memory and forgets the cached state.
+func (d *Decider) clear() {
+	llama.MemoryClear(d.mem, true)
+	d.cached = nil
+}
+
+// decode runs ids at positions pos0 onward in seq and returns the scores at
+// the slots, which are absolute positions.
+func (d *Decider) decode(ids []llama.Token, pos0 int, seq llama.SeqId, slots []int) ([]float64, error) {
+	isSlot := make(map[int]bool, len(slots))
+	for _, s := range slots {
 		isSlot[s] = true
 	}
 
-	batch := llama.BatchInit(int32(len(r.ids)), 0, 1)
+	batch := llama.BatchInit(int32(len(ids)), 0, 1)
 	defer llama.BatchFree(batch)
 
-	seq := []llama.SeqId{0}
-	for i, tok := range r.ids {
-		if err := batch.Add(tok, llama.Pos(i), seq, isSlot[i]); err != nil {
+	seqs := []llama.SeqId{seq}
+	for i, tok := range ids {
+		if err := batch.Add(tok, llama.Pos(pos0+i), seqs, isSlot[pos0+i]); err != nil {
 			return nil, err
 		}
 	}
@@ -199,9 +307,9 @@ func (d *Decider) scores(r *rendered) ([]float64, error) {
 	}
 
 	yes, no := d.cfg.SlotTokens.Yes.ID, d.cfg.SlotTokens.No.ID
-	scores := make([]float64, len(r.slots))
-	for k, s := range r.slots {
-		logits, err := llama.GetLogitsIth(d.ctx, int32(s), d.nVocab)
+	scores := make([]float64, len(slots))
+	for k, s := range slots {
+		logits, err := llama.GetLogitsIth(d.ctx, int32(s-pos0), d.nVocab)
 		if err != nil {
 			return nil, err
 		}
