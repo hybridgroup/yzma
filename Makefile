@@ -76,12 +76,18 @@ wasm-tools-example: wasm-assets
 	tinygo build -target wasm -o $(WASM_DIR)/yzma-tools.wasm ./examples/wasm/tools
 	cp "$(shell tinygo env TINYGOROOT)/targets/wasm_exec.js" $(WASM_DIR)/
 
+# make wasm-decide-example to build the browser example of exp/decide.
+wasm-decide-example: wasm-assets
+	tinygo build -target wasm -o $(WASM_DIR)/yzma-decide.wasm ./examples/wasm/decide
+	cp "$(shell tinygo env TINYGOROOT)/targets/wasm_exec.js" $(WASM_DIR)/
+
 # make wasm-example-go to build the same examples with the standard toolchain.
 # The binaries are larger, which helps when TinyGo cannot build a dependency.
 wasm-example-go: wasm-assets
 	GOOS=js GOARCH=wasm go build -o $(WASM_DIR)/yzma.wasm ./examples/wasm/chat
 	GOOS=js GOARCH=wasm go build -o $(WASM_DIR)/yzma-vlm.wasm ./examples/wasm/vlm
 	GOOS=js GOARCH=wasm go build -o $(WASM_DIR)/yzma-tools.wasm ./examples/wasm/tools
+	GOOS=js GOARCH=wasm go build -o $(WASM_DIR)/yzma-decide.wasm ./examples/wasm/decide
 	cp "$(shell go env GOROOT)/lib/wasm/wasm_exec.js" $(WASM_DIR)/
 
 # wasm-assets copies the JavaScript glue and the page into the build directory.
@@ -89,7 +95,7 @@ wasm-example-go: wasm-assets
 # program copies the correct one.
 wasm-assets:
 	mkdir -p $(WASM_DIR)
-	cp wasm/yzma-loader.js wasm/worker.js wasm/index.html wasm/vlm.html wasm/tools.html $(WASM_DIR)/
+	cp wasm/yzma-loader.js wasm/worker.js wasm/index.html wasm/vlm.html wasm/tools.html wasm/decide.html $(WASM_DIR)/
 
 # make download-llama.cpp-wasm to get the WebAssembly build of llama.cpp.
 download-llama.cpp-wasm:
@@ -107,13 +113,14 @@ vet-wasm:
 	GOOS=js GOARCH=wasm go build -o /dev/null ./examples/wasm/chat
 	GOOS=js GOARCH=wasm go build -o /dev/null ./examples/wasm/vlm
 	GOOS=js GOARCH=wasm go build -o /dev/null ./examples/wasm/tools
-	GOOS=js GOARCH=wasm go vet ./pkg/llamawasm ./pkg/message ./pkg/template \
-		./examples/wasm/chat ./examples/wasm/vlm ./examples/wasm/tools
+	GOOS=js GOARCH=wasm go build -o /dev/null ./examples/wasm/decide
+	GOOS=js GOARCH=wasm go vet ./pkg/llamawasm ./pkg/message ./pkg/template ./exp/decide \
+		./examples/wasm/chat ./examples/wasm/vlm ./examples/wasm/tools ./examples/wasm/decide
 
-# make test-wasm-unit to run the tests of pkg/llamawasm in Node. They cover the
-# part of the package that needs no llama.cpp module, such as a batch of tokens.
+# make test-wasm-unit to run the tests of pkg/llamawasm and exp/decide in Node.
+# They cover the part that needs no llama.cpp module, such as a batch of tokens.
 test-wasm-unit:
-	PATH="$(PATH):$(shell go env GOROOT)/lib/wasm" GOOS=js GOARCH=wasm go test ./pkg/llamawasm
+	PATH="$(PATH):$(shell go env GOROOT)/lib/wasm" GOOS=js GOARCH=wasm go test ./pkg/llamawasm ./exp/decide
 
 # make test-wasm-loader to test the choice that yzma-loader.js makes. It needs
 # no llama.cpp module and no browser, so it covers the GPU that computes wrong
@@ -154,6 +161,13 @@ test-wasm-vlm:
 # for example Qwen2.5-0.5B-Instruct.
 test-wasm-tools:
 	node wasm/node/tools.js --dir $(WASM_DIR) --model $(MODELS_DIR)/SmolLM-135M.Q2_K.gguf --tokens 32
+
+# make test-wasm-decide to ask a Jev-Style model three questions in Node, with
+# no browser. DecideMany must match Decide in the exact mode.
+test-wasm-decide:
+	node wasm/node/decide.js --dir $(WASM_DIR) --readout jev \
+		--model $(MODELS_DIR)/Jev-Style-0.8B-Decision-v3-Q4_K_M.gguf \
+		--config $(MODELS_DIR)/readout_config.json --expect billing,true --mt
 
 clean-wasm:
 	rm -rf $(WASM_DIR)

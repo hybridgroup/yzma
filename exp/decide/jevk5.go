@@ -10,8 +10,6 @@ import (
 	"slices"
 	"sort"
 	"strconv"
-
-	"github.com/hybridgroup/yzma/pkg/llama"
 )
 
 const (
@@ -36,7 +34,11 @@ func LoadJevK5Config(path string) (*JevK5Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	return ParseJevK5Config(data)
+}
 
+// ParseJevK5Config parses and checks the contents of a jevk5_config.json file.
+func ParseJevK5Config(data []byte) (*JevK5Config, error) {
 	var c JevK5Config
 	if err := json.Unmarshal(data, &c); err != nil {
 		return nil, fmt.Errorf("jevk5 config: %w", err)
@@ -56,7 +58,7 @@ func LoadJevK5Config(path string) (*JevK5Config, error) {
 
 // NewJevK5 loads a JevK5 model and its jevk5_config.json. JevK5 reads the
 // probability of each option from the logit of its letter after a chat prompt.
-// Call [llama.Load] and [llama.Init] first, and [Decider.Close] when done.
+// Load and init llama.cpp first, and call [Decider.Close] when done.
 //
 // As in the reference runtime, the whole prompt is tokenized with special
 // tokens parsed, so control token text in the state is read as a control token.
@@ -68,6 +70,15 @@ func NewJevK5(modelPath, configPath string, opts Options) (*Decider, error) {
 	cfg, err := LoadJevK5Config(configPath)
 	if err != nil {
 		return nil, err
+	}
+	return NewJevK5FromConfig(modelPath, cfg, opts)
+}
+
+// NewJevK5FromConfig loads a JevK5 model with a config that is already parsed,
+// for example with [ParseJevK5Config] where there are no files.
+func NewJevK5FromConfig(modelPath string, cfg *JevK5Config, opts Options) (*Decider, error) {
+	if modelPath == "" || cfg == nil {
+		return nil, errors.New("decide: model path and jevk5 config are required")
 	}
 
 	d, err := load(modelPath, jevK5Context, opts)
@@ -93,7 +104,7 @@ func NewJevK5(modelPath, configPath string, opts Options) (*Decider, error) {
 type jevK5 struct {
 	cfg     *JevK5Config
 	enc     encoder
-	letters []llama.Token
+	letters []token
 }
 
 // jevK5Option is one option as the model sees it, and its place in [Question.Names].

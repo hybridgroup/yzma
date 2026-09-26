@@ -18,14 +18,15 @@ import (
 // A call from a later version is present only in a module that has it, thus
 // this package makes a test before each use.
 const (
-	abiVersionMin = 1 // 1 has the calls for text generation and embeddings
-	abiVersion    = 9 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
-	//                   bounds of the tokens of an image, 5 the rest of the
-	//                   vocabulary and of the samplers, 6 batches with
-	//                   positions and the calls for the memory of a sequence,
-	//                   7 the calls that read the logits and the
-	//                   embeddings of a batch, 8 yzma_backend_check, 9 the
-	//                   metadata, the state, and the performance counters
+	abiVersionMin = 1  // 1 has the calls for text generation and embeddings
+	abiVersion    = 10 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
+	//                    bounds of the tokens of an image, 5 the rest of the
+	//                    vocabulary and of the samplers, 6 batches with
+	//                    positions and the calls for the memory of a sequence,
+	//                    7 the calls that read the logits and the
+	//                    embeddings of a batch, 8 yzma_backend_check, 9 the
+	//                    metadata, the state, and the performance counters,
+	//                    10 contexts with a unified cache and a cap on outputs
 )
 
 // Error codes that the shim returns. These agree with the values in
@@ -63,6 +64,10 @@ var (
 	// calls that change a context after it is made, which are in ABI version 7
 	// and later.
 	ErrNoContextFlags = errors.New("llamawasm: this llama.cpp module cannot change a context after it is made, install a newer build")
+
+	// ErrNoKVUnified says that the module is from a release before contexts
+	// with a unified cache, which are in ABI version 10 and later.
+	ErrNoKVUnified = errors.New("llamawasm: this llama.cpp module cannot make a context with a unified cache, install a newer build")
 
 	// ErrNoPerf says that the module is from a release before the performance
 	// counters, which are in ABI version 9 and later.

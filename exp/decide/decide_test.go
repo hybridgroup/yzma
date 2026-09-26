@@ -6,11 +6,8 @@ import (
 	"math"
 	"os"
 	"slices"
-	"strconv"
 	"strings"
 	"testing"
-
-	"github.com/hybridgroup/yzma/pkg/llama"
 )
 
 func testConfig(t *testing.T) *Config {
@@ -22,23 +19,23 @@ func testConfig(t *testing.T) *Config {
 }
 
 // fakeEncode gives the slot tokens their config ids and one token per byte otherwise.
-func fakeEncode(s string) []llama.Token {
+func fakeEncode(s string) []token {
 	switch s {
 	case " yes":
-		return []llama.Token{1}
+		return []token{1}
 	case " no":
-		return []llama.Token{2}
+		return []token{2}
 	case " ->":
-		return []llama.Token{3}
+		return []token{3}
 	}
-	out := make([]llama.Token, len(s))
+	out := make([]token, len(s))
 	for i := range len(s) {
-		out[i] = llama.Token(100 + int(s[i]))
+		out[i] = token(100 + int(s[i]))
 	}
 	return out
 }
 
-func decodeFake(ids []llama.Token) string {
+func decodeFake(ids []token) string {
 	var b strings.Builder
 	for _, id := range ids {
 		if id == 3 {
@@ -172,9 +169,9 @@ func TestRenderBudget(t *testing.T) {
 }
 
 func TestTokenizerMismatch(t *testing.T) {
-	enc := func(s string) []llama.Token {
+	enc := func(s string) []token {
 		if s == " ->" {
-			return []llama.Token{7, 8}
+			return []token{7, 8}
 		}
 		return fakeEncode(s)
 	}
@@ -225,164 +222,5 @@ func TestResult(t *testing.T) {
 
 	if _, err := softmax([]float64{math.NaN(), 0}, 1); err == nil {
 		t.Error("NaN score accepted")
-	}
-}
-
-func TestDecideModel(t *testing.T) {
-	model, config := os.Getenv("YZMA_TEST_JEV_MODEL"), os.Getenv("YZMA_TEST_JEV_CONFIG")
-	if model == "" || config == "" {
-		t.Skip("no YZMA_TEST_JEV_MODEL or YZMA_TEST_JEV_CONFIG skipping test")
-	}
-	if os.Getenv("YZMA_LIB") == "" {
-		t.Fatal("no YZMA_LIB set for tests")
-	}
-	if err := llama.Load(os.Getenv("YZMA_LIB")); err != nil {
-		t.Fatal("unable to load library", err.Error())
-	}
-	llama.LogSet(llama.LogSilent())
-	llama.Init()
-	defer llama.BackendFree()
-
-	d, err := New(model, config, Options{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer d.Close()
-
-	for _, tc := range []struct {
-		state    any
-		q        Question
-		category string
-		want     string
-	}{
-		{map[string]string{"ticket": "I was charged twice for my subscription."},
-			ChoiceDesc("Which team handles this?",
-				Option{Name: "billing", Description: "payments, invoices"},
-				Option{Name: "technical", Description: "bugs"}),
-			"theme_routing", "billing"},
-		{"The film was excellent.", Choice("What is the sentiment?", "negative", "positive"), "general_sentiment", "positive"},
-		{"The meeting moved from Tuesday to Thursday at 3pm.", Noul("The meeting is on Thursday.", "", ""), "mac_gate", "true"},
-	} {
-		res, err := d.Decide(tc.state, tc.q, tc.category)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if res.Answer != tc.want || res.TopProbability < 0.5 {
-			t.Errorf("%s: got %s %v, want %s", tc.q.Text, res.Answer, res.Probabilities, tc.want)
-		}
-	}
-}
-
-func TestDecideManyModel(t *testing.T) {
-	model, config := os.Getenv("YZMA_TEST_JEV_MODEL"), os.Getenv("YZMA_TEST_JEV_CONFIG")
-	if model == "" || config == "" {
-		t.Skip("no YZMA_TEST_JEV_MODEL or YZMA_TEST_JEV_CONFIG skipping test")
-	}
-	if os.Getenv("YZMA_LIB") == "" {
-		t.Fatal("no YZMA_LIB set for tests")
-	}
-	if err := llama.Load(os.Getenv("YZMA_LIB")); err != nil {
-		t.Fatal("unable to load library", err.Error())
-	}
-	llama.LogSet(llama.LogSilent())
-	llama.Init()
-	defer llama.BackendFree()
-
-	d, err := New(model, config, Options{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer d.Close()
-
-	var b strings.Builder
-	for i := range 160 {
-		b.WriteString("Line " + strconv.Itoa(i) + ": order shipped to warehouse " + strconv.Itoa(i%7) + ", status ok. ")
-	}
-	qs := []Question{
-		Noul("Any order failed?", "", ""),
-		Score("How busy was the day?", "quiet", "normal", "busy"),
-		Choice("What is this document?", "log", "email", "story"),
-	}
-
-	for _, state := range []string{b.String(), "The film was excellent."} {
-		many, err := d.DecideMany(state, qs, "")
-		if err != nil {
-			t.Fatal(err)
-		}
-		// The second call reuses the cached state.
-		again, err := d.DecideMany(state, qs, "")
-		if err != nil {
-			t.Fatal(err)
-		}
-		for i, q := range qs {
-			one, err := d.Decide(state, q, "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !slices.Equal(many[i].Probabilities, one.Probabilities) || !slices.Equal(again[i].Probabilities, one.Probabilities) {
-				t.Errorf("%s: DecideMany %v and %v, Decide %v", q.Text, many[i].Probabilities, again[i].Probabilities, one.Probabilities)
-			}
-		}
-	}
-
-	if _, err := d.DecideMany("state", []Question{Choice("q", "a"), Choice("q", "a", "a")}, ""); !errors.Is(err, ErrQuestion) {
-		t.Errorf("bad question: got %v, want ErrQuestion", err)
-	}
-}
-
-func TestDecideManyBatchedModel(t *testing.T) {
-	model, config := os.Getenv("YZMA_TEST_JEV_MODEL"), os.Getenv("YZMA_TEST_JEV_CONFIG")
-	if model == "" || config == "" {
-		t.Skip("no YZMA_TEST_JEV_MODEL or YZMA_TEST_JEV_CONFIG skipping test")
-	}
-	if os.Getenv("YZMA_LIB") == "" {
-		t.Fatal("no YZMA_LIB set for tests")
-	}
-	if err := llama.Load(os.Getenv("YZMA_LIB")); err != nil {
-		t.Fatal("unable to load library", err.Error())
-	}
-	llama.LogSet(llama.LogSilent())
-	llama.Init()
-	defer llama.BackendFree()
-
-	d, err := New(model, config, Options{ManyMode: ManyBatched})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer d.Close()
-
-	var b strings.Builder
-	for i := range 160 {
-		b.WriteString("Line " + strconv.Itoa(i) + ": order shipped to warehouse " + strconv.Itoa(i%7) + ", status ok. ")
-	}
-	state := b.String()
-
-	// 20 questions need two groups of at most 16.
-	var qs []Question
-	for i := range 20 {
-		qs = append(qs, Noul("Line "+strconv.Itoa(i*7)+" mentions warehouse "+strconv.Itoa(i%7)+".", "", ""))
-	}
-
-	many, err := d.DecideMany(state, qs, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	again, err := d.DecideMany(state, qs, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for i, q := range qs {
-		one, err := d.Decide(state, q, "")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !slices.Equal(many[i].Probabilities, again[i].Probabilities) {
-			t.Errorf("%s: cached call %v, first call %v", q.Text, again[i].Probabilities, many[i].Probabilities)
-		}
-		for k := range one.Probabilities {
-			if math.Abs(many[i].Probabilities[k]-one.Probabilities[k]) > 0.1 {
-				t.Errorf("%s: batched %v, Decide %v", q.Text, many[i].Probabilities, one.Probabilities)
-			}
-		}
 	}
 }
