@@ -143,6 +143,31 @@ test-wasm-mt:
 test-wasm-webgpu:
 	node wasm/node/run.js --dir $(WASM_DIR) --model $(MODELS_DIR)/SmolLM-135M.Q2_K.gguf --tokens 12 --webgpu
 
+# make test-wasm-dawn to run the WebGPU build on a real GPU with Dawn, the
+# WebGPU of Chrome, with no browser. It needs Node 25 or later for JSPI. Set
+# GPU=high-performance or GPU=low-power to select the GPU, and DAWN_FLAGS to give
+# flags to Dawn.
+NODE ?= node
+NODE_DIR ?= $(MAKEFILE_DIR)build/node
+GPU ?=
+DAWN_FLAGS ?= enable-dawn-features=vulkan_enable_f16_on_nvidia
+
+$(NODE_DIR)/node_modules/webgpu/index.js:
+	npm install --prefix $(NODE_DIR) --no-save webgpu@0.6.1
+
+test-wasm-dawn: $(NODE_DIR)/node_modules/webgpu/index.js
+	YZMA_WEBGPU=$(NODE_DIR)/node_modules/webgpu/index.js YZMA_DAWN=$(DAWN_FLAGS) \
+		$(NODE) wasm/node/dawn.js --dir $(WASM_DIR) --model $(MODELS_DIR)/SmolLM-135M.Q2_K.gguf \
+		--tokens 12 --webgpu --require-gpu $(if $(GPU),--gpu $(GPU))
+
+# make test-wasm-wgpu to run the WebGPU build on a real GPU with wgpu, the
+# WebGPU of Firefox, in Deno. Set GPU as for test-wasm-dawn.
+DENO ?= deno
+
+test-wasm-wgpu:
+	$(DENO) run -A wasm/node/wgpu.cjs --dir $(WASM_DIR) --model $(MODELS_DIR)/SmolLM-135M.Q2_K.gguf \
+		--tokens 12 --webgpu --require-gpu $(if $(GPU),--gpu $(GPU))
+
 # make test-wasm-vlm to answer a question about an image in Node, with no
 # browser. Node has no canvas, so the harness makes the pixels itself.
 #

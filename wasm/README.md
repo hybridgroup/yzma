@@ -50,6 +50,8 @@ for each token, as in the `examples/hello` program.
 | `node/vlm.js` | The same test for an image model. It makes its own pixels, because Node has no canvas. |
 | `node/tools.js` | The same test for tool calling. |
 | `node/decide.js` | The same test for typed decisions with `exp/decide`. |
+| `node/dawn.js` | Runs `node/run.js` with Dawn, the WebGPU of Chrome, thus the WebGPU build runs in Node. |
+| `node/wgpu.cjs` | Runs `node/run.js` in Deno, which has wgpu, the WebGPU of Firefox. |
 | `node/bench.js` | Measures the tokens a second of a build in Node. `benchmarks/run.sh --backend wasm` calls it. |
 
 ## Build and run
@@ -95,8 +97,30 @@ Node gives `SharedArrayBuffer` without the headers that a browser needs, thus
 this tests that build outside a browser.
 
 `make test-wasm-webgpu` tests the fallback from WebGPU. Node has no WebGPU, thus
-the loader must select a CPU build and the program must make text. Only a
-browser can run the WebGPU build.
+the loader must select a CPU build and the program must make text.
+
+Two targets run the WebGPU build on a real GPU with no browser. Each one runs
+the self test of the backend first, and fails if the GPU is not usable.
+
+```
+make test-wasm-dawn NODE=/path/to/node26
+make test-wasm-wgpu
+```
+
+| Target | WebGPU | Needs |
+| --- | --- | --- |
+| `test-wasm-dawn` | Dawn, as in Chrome, from the npm package `webgpu` | Node 25 or later for JSPI. The first run installs the package in `build/node`. |
+| `test-wasm-wgpu` | wgpu, as in Firefox | Deno 2.9 or later. |
+
+Set `GPU=high-performance` or `GPU=low-power` to select the GPU on a machine
+with two. `DAWN_FLAGS` gives flags to Dawn, separated by commas, for example
+`backend=vulkan,adapter=NVIDIA`. The default gives `shader-f16` on an NVIDIA
+card. `DAWN_FLAGS=backend=opengles` copies the OpenGL ES path of Chrome on
+Linux.
+
+On an Intel RPL-S and an NVIDIA RTX 4070 both GPUs give the same text as the
+CPU with both targets. wgpu is about five times slower than Dawn. The targets
+are not in CI, because CI has no GPU.
 
 ## Threads
 
