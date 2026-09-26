@@ -40,7 +40,11 @@ func run() error {
 	llama.Init()
 	defer llama.Close()
 
-	d, err := decide.New(*modelFile, *configFile, decide.Options{Threads: int32(*threads)})
+	newDecider := decide.New
+	if *readout == "jevk5" {
+		newDecider = decide.NewJevK5
+	}
+	d, err := newDecider(*modelFile, *configFile, decide.Options{Threads: int32(*threads)})
 	if err != nil {
 		return err
 	}

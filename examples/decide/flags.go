@@ -11,6 +11,7 @@ import (
 var (
 	modelFile  *string
 	configFile *string
+	readout    *string
 	state      *string
 	question   *string
 	options    *string
@@ -24,12 +25,13 @@ var (
 func showUsage() {
 	fmt.Println(`
 Usage:
-decide -model [model file path] -config [readout_config.json path] -lib [llama.cpp .so file path] -state [text] -question [text] -type [choice|score|noul] -options [JSON] -category [name] -v`)
+decide -model [model file path] -config [config path] -readout [jev|jevk5] -lib [llama.cpp .so file path] -state [text] -question [text] -type [choice|score|noul] -options [JSON] -category [name] -v`)
 }
 
 func handleFlags() error {
 	modelFile = flag.String("model", "", "model file to use")
-	configFile = flag.String("config", "", "readout_config.json from the model repo")
+	configFile = flag.String("config", "", "readout_config.json for jev, jevk5_config.json for jevk5")
+	readout = flag.String("readout", "jev", "model family, jev for Jev-Style or jevk5 for JevK5")
 	state = flag.String("state", "", "state as text or JSON")
 	question = flag.String("question", "", "question text")
 	options = flag.String("options", "", `JSON options, ["a","b"] or {"a":"desc"} for choice, ["level 0",...] for score, {"false":"desc","true":"desc"} for noul`)
@@ -47,6 +49,10 @@ func handleFlags() error {
 
 	if len(*configFile) == 0 {
 		return errors.New("missing config flag")
+	}
+
+	if *readout != "jev" && *readout != "jevk5" {
+		return errors.New("readout flag must be jev or jevk5")
 	}
 
 	if len(*question) == 0 {

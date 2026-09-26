@@ -203,25 +203,27 @@ func TestSerializeState(t *testing.T) {
 }
 
 func TestResult(t *testing.T) {
-	r := &rendered{names: []string{"a", "b"}, ids: make([]llama.Token, 5), headTokens: 3}
-	res, err := result(r, []float64{1, 1}, 1)
+	names := []string{"a", "b"}
+	p, err := softmax([]float64{1, 1}, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
+	res := newResult(names, p, nil, 1, 5, 3)
 	if res.Probability("a") != 0.5 || res.EntropyConcentration != 0 {
 		t.Errorf("tie: got %v concentration %v", res.Probabilities, res.EntropyConcentration)
 	}
 
-	res, err = result(r, []float64{0, 2}, 0.5)
+	p, err = softmax([]float64{0, 2}, 0.5)
 	if err != nil {
 		t.Fatal(err)
 	}
+	res = newResult(names, p, nil, 0.5, 5, 3)
 	want := 1 / (1 + math.Exp(-4))
 	if res.Answer != "b" || math.Abs(res.TopProbability-want) > 1e-12 {
 		t.Errorf("got %s %v, want b %v", res.Answer, res.TopProbability, want)
 	}
 
-	if _, err := result(r, []float64{math.NaN(), 0}, 1); err == nil {
+	if _, err := softmax([]float64{math.NaN(), 0}, 1); err == nil {
 		t.Error("NaN score accepted")
 	}
 }
