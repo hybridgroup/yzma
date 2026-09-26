@@ -19,10 +19,15 @@ const { pathToFileURL } = require("node:url");
   Object.assign(globalThis, globals);
 
   const flags = (process.env.YZMA_DAWN || "").split(",").filter((flag) => flag);
-  Object.defineProperty(globalThis.navigator, "gpu", {
-    value: create(flags),
-    configurable: true,
-  });
+  const gpu = create(flags);
+
+  // Dawn gives an OpenGL adapter only in compatibility mode, which Chrome asks for.
+  if (flags.some((flag) => /^backend=opengl(es)?$/.test(flag))) {
+    const request = gpu.requestAdapter.bind(gpu);
+    gpu.requestAdapter = (options) => request({ ...options, featureLevel: "compatibility" });
+  }
+
+  Object.defineProperty(globalThis.navigator, "gpu", { value: gpu, configurable: true });
 
   require("./run.js");
 })().catch((err) => {
