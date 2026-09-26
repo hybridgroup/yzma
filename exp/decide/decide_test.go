@@ -327,3 +327,60 @@ func TestDecideManyModel(t *testing.T) {
 		t.Errorf("bad question: got %v, want ErrQuestion", err)
 	}
 }
+
+func TestDecideManyBatchedModel(t *testing.T) {
+	model, config := os.Getenv("YZMA_TEST_JEV_MODEL"), os.Getenv("YZMA_TEST_JEV_CONFIG")
+	if model == "" || config == "" {
+		t.Skip("no YZMA_TEST_JEV_MODEL or YZMA_TEST_JEV_CONFIG skipping test")
+	}
+	if os.Getenv("YZMA_LIB") == "" {
+		t.Fatal("no YZMA_LIB set for tests")
+	}
+	if err := llama.Load(os.Getenv("YZMA_LIB")); err != nil {
+		t.Fatal("unable to load library", err.Error())
+	}
+	llama.LogSet(llama.LogSilent())
+	llama.Init()
+	defer llama.BackendFree()
+
+	d, err := New(model, config, Options{ManyMode: ManyBatched})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+
+	var b strings.Builder
+	for i := range 160 {
+		b.WriteString("Line " + strconv.Itoa(i) + ": order shipped to warehouse " + strconv.Itoa(i%7) + ", status ok. ")
+	}
+	state := b.String()
+
+	// 20 questions need two groups of at most 16.
+	var qs []Question
+	for i := range 20 {
+		qs = append(qs, Noul("Line "+strconv.Itoa(i*7)+" mentions warehouse "+strconv.Itoa(i%7)+".", "", ""))
+	}
+
+	many, err := d.DecideMany(state, qs, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	again, err := d.DecideMany(state, qs, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, q := range qs {
+		one, err := d.Decide(state, q, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !slices.Equal(many[i].Probabilities, again[i].Probabilities) {
+			t.Errorf("%s: cached call %v, first call %v", q.Text, again[i].Probabilities, many[i].Probabilities)
+		}
+		for k := range one.Probabilities {
+			if math.Abs(many[i].Probabilities[k]-one.Probabilities[k]) > 0.1 {
+				t.Errorf("%s: batched %v, Decide %v", q.Text, many[i].Probabilities, one.Probabilities)
+			}
+		}
+	}
+}

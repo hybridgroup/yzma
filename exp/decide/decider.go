@@ -18,7 +18,25 @@ type Options struct {
 	UBatch uint32
 	// MaxOptions is the most options one question can have. 0 uses 256.
 	MaxOptions uint32
+	// ManyMode is how [Decider.DecideMany] shares the state. The default is ManyExact.
+	ManyMode ManyMode
 }
+
+// ManyMode is how [Decider.DecideMany] shares one state across questions.
+type ManyMode int
+
+const (
+	// ManyExact decodes the whole ubatches of the state once and each question
+	// on its own. Results are identical to [Decider.Decide].
+	ManyExact ManyMode = iota
+	// ManyBatched decodes the whole state once and up to 16 questions in one
+	// decode. It is faster, but probabilities can differ from [Decider.Decide]
+	// by a few hundredths and a near tie can change the answer.
+	ManyBatched
+)
+
+// maxSeqs is the number of sequences, the shared state plus up to 16 questions.
+const maxSeqs = 17
 
 // Result is the decision for one question.
 // Options, Probabilities and Scores are in question order.
@@ -54,6 +72,9 @@ type Decider struct {
 	nVocab     int
 	maxOptions int
 	ubatch     int
+	nCtx       int
+	nSeqMax    int
+	manyMode   ManyMode
 	render     *renderer
 	cached     []llama.Token
 	mu         sync.Mutex
@@ -79,7 +100,7 @@ func New(modelPath, configPath string, opts Options) (*Decider, error) {
 		return nil, fmt.Errorf("decide: unable to load model %s", modelPath)
 	}
 
-	d := &Decider{cfg: cfg, model: model, maxOptions: 256}
+	d := &Decider{cfg: cfg, model: model, maxOptions: 256, manyMode: opts.ManyMode}
 	if opts.MaxOptions > 0 {
 		d.maxOptions = int(opts.MaxOptions)
 	}
@@ -102,8 +123,9 @@ func New(modelPath, configPath string, opts Options) (*Decider, error) {
 	if opts.UBatch > 0 {
 		params.NUbatch = min(opts.UBatch, params.NCtx)
 	}
-	params.NSeqMax = 2
-	params.NOutputsMax = uint32(d.maxOptions)
+	params.NSeqMax = maxSeqs
+	// llama.cpp needs room for at least one output per sequence.
+	params.NOutputsMax = uint32(max(d.maxOptions, maxSeqs))
 	params.KVUnified = 1
 	params.NoPerf = 1
 	if opts.Threads > 0 {
@@ -112,6 +134,8 @@ func New(modelPath, configPath string, opts Options) (*Decider, error) {
 	}
 
 	d.ubatch = int(params.NUbatch)
+	d.nCtx = int(params.NCtx)
+	d.nSeqMax = maxSeqs
 
 	d.ctx, err = llama.InitFromModel(model, params)
 	if err != nil || d.ctx == 0 {
@@ -169,10 +193,9 @@ func (d *Decider) Decide(state any, q Question, category string) (*Result, error
 	return result(r, scores, d.cfg.Temperature(category, q.Type, len(r.names)))
 }
 
-// DecideMany scores several questions about one state. The results are the
-// same as calling [Decider.Decide] for each question. The whole ubatches of
-// the state are decoded once and kept, so a later call with the same state
-// reuses them. All questions are checked before any scoring.
+// DecideMany scores several questions about one state. The state is shared
+// as set by [Options.ManyMode] and kept, so a later call with the same state
+// reuses it. All questions are checked before any scoring.
 func (d *Decider) DecideMany(state any, qs []Question, category string) ([]*Result, error) {
 	if len(qs) == 0 {
 		return nil, nil
@@ -219,12 +242,14 @@ func (d *Decider) scores(r *rendered) ([]float64, error) {
 	d.clear()
 	defer d.clear()
 
-	return d.decode(r.ids, 0, 0, r.slots)
+	sc, err := d.decode(part{ids: r.ids, slots: r.slots})
+	if err != nil {
+		return nil, err
+	}
+	return sc[0], nil
 }
 
-// scoresMany decodes the whole ubatches of the shared state once into sequence 0
-// and each question on a copy of it in sequence 1. The ubatch splits are the
-// same as in scores, so the results are identical.
+// scoresMany scores questions that share one state, in the Decider's ManyMode.
 func (d *Decider) scoresMany(rs []*rendered) ([][]float64, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -233,45 +258,114 @@ func (d *Decider) scoresMany(rs []*rendered) ([][]float64, error) {
 		return nil, errors.New("decide: decider is closed")
 	}
 
+	var (
+		out [][]float64
+		err error
+	)
+	if d.manyMode == ManyBatched {
+		out, err = d.batched(rs)
+	} else {
+		out, err = d.exact(rs)
+	}
+	if err != nil {
+		d.clear()
+		return nil, err
+	}
+
+	return out, nil
+}
+
+// exact decodes the whole ubatches of the state once into sequence 0 and each
+// question on a copy of it in sequence 1. The ubatch splits are the same as
+// in scores, so the results are identical.
+func (d *Decider) exact(rs []*rendered) ([][]float64, error) {
 	out := make([][]float64, len(rs))
 	shared := (rs[0].prefixLen / d.ubatch) * d.ubatch
 	if shared == 0 {
 		for i, r := range rs {
 			d.clear()
-			sc, err := d.decode(r.ids, 0, 0, r.slots)
+			sc, err := d.decode(part{ids: r.ids, slots: r.slots})
 			if err != nil {
-				d.clear()
 				return nil, err
 			}
-			out[i] = sc
+			out[i] = sc[0]
 		}
 		d.clear()
 		return out, nil
 	}
 
-	prefix := rs[0].ids[:shared]
-	if !slices.Equal(d.cached, prefix) {
-		d.clear()
-		if _, err := d.decode(prefix, 0, 0, nil); err != nil {
-			d.clear()
-			return nil, err
-		}
-		d.cached = slices.Clone(prefix)
+	if err := d.keepPrefix(rs[0].ids[:shared]); err != nil {
+		return nil, err
 	}
 
 	for i, r := range rs {
 		llama.MemorySeqRm(d.mem, 1, -1, -1)
 		llama.MemorySeqCp(d.mem, 0, 1, -1, -1)
-		sc, err := d.decode(r.ids[shared:], shared, 1, r.slots)
+		sc, err := d.decode(part{ids: r.ids[shared:], pos0: shared, seq: 1, slots: r.slots})
 		llama.MemorySeqRm(d.mem, 1, -1, -1)
 		if err != nil {
-			d.clear()
 			return nil, err
 		}
-		out[i] = sc
+		out[i] = sc[0]
 	}
 
 	return out, nil
+}
+
+// batched decodes the whole state once into sequence 0, then groups of
+// questions in one decode, each on its own copy of the state.
+func (d *Decider) batched(rs []*rendered) ([][]float64, error) {
+	n := rs[0].prefixLen
+	if err := d.keepPrefix(rs[0].ids[:n]); err != nil {
+		return nil, err
+	}
+
+	out := make([][]float64, 0, len(rs))
+	for i := 0; i < len(rs); {
+		var parts []part
+		used, outs := 0, 0
+		for i < len(rs) && len(parts) < d.nSeqMax-1 {
+			l, ns := len(rs[i].ids)-n, len(rs[i].slots)
+			if len(parts) > 0 && (n+used+l > d.nCtx || outs+ns > d.maxOptions) {
+				break
+			}
+			seq := llama.SeqId(len(parts) + 1)
+			parts = append(parts, part{ids: rs[i].ids[n:], pos0: n, seq: seq, slots: rs[i].slots})
+			used += l
+			outs += ns
+			i++
+		}
+
+		for _, p := range parts {
+			llama.MemorySeqRm(d.mem, p.seq, -1, -1)
+			llama.MemorySeqCp(d.mem, 0, p.seq, -1, -1)
+		}
+		sc, err := d.decode(parts...)
+		for _, p := range parts {
+			llama.MemorySeqRm(d.mem, p.seq, -1, -1)
+		}
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, sc...)
+	}
+
+	return out, nil
+}
+
+// keepPrefix makes sequence 0 hold exactly prefix, reusing it when it is already there.
+func (d *Decider) keepPrefix(prefix []llama.Token) error {
+	if slices.Equal(d.cached, prefix) {
+		return nil
+	}
+
+	d.clear()
+	if _, err := d.decode(part{ids: prefix}); err != nil {
+		return err
+	}
+	d.cached = slices.Clone(prefix)
+
+	return nil
 }
 
 // clear empties the memory and forgets the cached state.
@@ -280,21 +374,38 @@ func (d *Decider) clear() {
 	d.cached = nil
 }
 
-// decode runs ids at positions pos0 onward in seq and returns the scores at
-// the slots, which are absolute positions.
-func (d *Decider) decode(ids []llama.Token, pos0 int, seq llama.SeqId, slots []int) ([]float64, error) {
-	isSlot := make(map[int]bool, len(slots))
-	for _, s := range slots {
-		isSlot[s] = true
+// part is a run of tokens at positions pos0 onward in seq. slots are absolute positions.
+type part struct {
+	ids   []llama.Token
+	pos0  int
+	seq   llama.SeqId
+	slots []int
+}
+
+// decode runs all parts in one batch and returns the scores at each part's slots.
+func (d *Decider) decode(parts ...part) ([][]float64, error) {
+	total := 0
+	for _, p := range parts {
+		total += len(p.ids)
 	}
 
-	batch := llama.BatchInit(int32(len(ids)), 0, 1)
+	batch := llama.BatchInit(int32(total), 0, 1)
 	defer llama.BatchFree(batch)
 
-	seqs := []llama.SeqId{seq}
-	for i, tok := range ids {
-		if err := batch.Add(tok, llama.Pos(pos0+i), seqs, isSlot[pos0+i]); err != nil {
-			return nil, err
+	idx := make([][]int32, len(parts))
+	for k, p := range parts {
+		isSlot := make(map[int]bool, len(p.slots))
+		for _, s := range p.slots {
+			isSlot[s] = true
+		}
+		seqs := []llama.SeqId{p.seq}
+		for i, tok := range p.ids {
+			if isSlot[p.pos0+i] {
+				idx[k] = append(idx[k], batch.NTokens)
+			}
+			if err := batch.Add(tok, llama.Pos(p.pos0+i), seqs, isSlot[p.pos0+i]); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -307,19 +418,22 @@ func (d *Decider) decode(ids []llama.Token, pos0 int, seq llama.SeqId, slots []i
 	}
 
 	yes, no := d.cfg.SlotTokens.Yes.ID, d.cfg.SlotTokens.No.ID
-	scores := make([]float64, len(slots))
-	for k, s := range slots {
-		logits, err := llama.GetLogitsIth(d.ctx, int32(s-pos0), d.nVocab)
-		if err != nil {
-			return nil, err
+	out := make([][]float64, len(parts))
+	for k := range parts {
+		out[k] = make([]float64, len(idx[k]))
+		for j, i := range idx[k] {
+			logits, err := llama.GetLogitsIth(d.ctx, i, d.nVocab)
+			if err != nil {
+				return nil, err
+			}
+			if logits == nil {
+				return nil, fmt.Errorf("decide: no logits at batch index %d", i)
+			}
+			out[k][j] = float64(logits[yes]) - float64(logits[no])
 		}
-		if logits == nil {
-			return nil, fmt.Errorf("decide: no logits at slot %d", s)
-		}
-		scores[k] = float64(logits[yes]) - float64(logits[no])
 	}
 
-	return scores, nil
+	return out, nil
 }
 
 func result(r *rendered, scores []float64, temp float64) (*Result, error) {
