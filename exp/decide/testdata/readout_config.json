@@ -1,0 +1,24 @@
+{
+  "format": "macjev-readout-v1",
+  "readout": "verdict",
+  "template": "macjev-render-v1",
+  "slot_tokens": {
+    "yes": {"text": " yes", "id": 1},
+    "no": {"text": " no", "id": 2},
+    "verdict_slot": {"text": " ->", "id": 3}
+  },
+  "families": {
+    "general_*": "general",
+    "intent*": "intent",
+    "anything else": "other (global T)"
+  },
+  "budgets": {"max_len": 800, "head_max": 400, "hard_head_max": 400},
+  "temperatures": {
+    "global": 0.9,
+    "clamp": [0.3, 5.0],
+    "groups": {
+      "general|choice|3-5": {"T": 0.8},
+      "intent|choice|21+": {"T": 9.0}
+    }
+  }
+}
