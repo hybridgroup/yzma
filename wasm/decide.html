@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>yzma: typed decisions in WebAssembly</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0 auto;
+        max-width: 46rem;
+        padding: 1.5rem;
+        line-height: 1.5;
+      }
+      label { display: block; margin-top: 1rem; font-weight: 600; }
+      input, textarea, select, button { font: inherit; width: 100%; box-sizing: border-box; }
+      input, textarea, select { padding: 0.4rem; }
+      textarea { font-family: ui-monospace, monospace; font-size: 0.9rem; }
+      button { margin-top: 0.75rem; padding: 0.5rem; cursor: pointer; }
+      .row { display: flex; gap: 0.75rem; }
+      .row > * { flex: 1; }
+      #status { margin-top: 1rem; color: #555; }
+      .question { margin-top: 1rem; padding: 0.5rem 0.75rem; border-left: 3px solid #2e8b57; background: #fafafa; }
+      .question .text { font-weight: 600; }
+      .bar { display: flex; align-items: center; gap: 0.5rem; margin: 0.2rem 0; font-size: 0.9rem; }
+      .bar .name { flex: 0 0 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .bar .track { flex: 1; height: 0.8rem; background: #e5e5e5; border-radius: 2px; overflow: hidden; }
+      .bar .fill { height: 100%; background: #2e8b57; }
+      .bar .value { flex: 0 0 4rem; text-align: right; font-family: ui-monospace, monospace; }
+      .bar.top .name { font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <h1>Typed decisions, in WebAssembly</h1>
+    <p>
+      A System One model answers a typed question about a state with a
+      probability for each option, from one forward pass and with no generated
+      text. llama.cpp runs as a WebAssembly module, and the
+      <code>exp/decide</code> package of yzma, compiled by TinyGo, renders the
+      questions and reads the logits.
+    </p>
+    <p id="backend">looking for a backend</p>
+
+    <div class="row">
+      <div>
+        <label for="readout">Model family</label>
+        <select id="readout">
+          <option value="jev">Jev-Style</option>
+          <option value="jevk5">JevK5</option>
+        </select>
+      </div>
+      <div>
+        <label for="mode">Several questions</label>
+        <select id="mode">
+          <option value="exact">exact</option>
+          <option value="batched">batched</option>
+        </select>
+      </div>
+    </div>
+
+    <label for="model">Model URL (GGUF)</label>
+    <input id="model" />
+    <label for="config">Config URL</label>
+    <input id="config" />
+    <button id="load">Load the model</button>
+
+    <label for="state">State</label>
+    <textarea id="state" rows="3">{"ticket": "I was charged twice for my subscription and want a refund."}</textarea>
+
+    <label for="questions">Questions (JSON list)</label>
+    <textarea id="questions" rows="8">[
+  {"question": "Which team handles this?", "options": {"billing": "payments, invoices", "technical": "bugs", "sales": "new purchases"}},
+  {"question": "The customer is angry."},
+  {"type": "score", "question": "How urgent is this?", "options": ["low", "medium", "high"]}
+]</textarea>
+    <button id="decide" disabled>Decide</button>
+
+    <div id="status">starting</div>
+    <div id="results"></div>
+
+    <script>
+      const models = {
+        jev: {
+          model: "https://huggingface.co/chaoliangUNSW/Jev-Style-0.8B-Decision-v3-GGUF/resolve/main/Jev-Style-0.8B-Decision-v3-Q4_K_M.gguf",
+          config: "https://huggingface.co/chaoliangUNSW/Jev-Style-0.8B-Decision-v3-GGUF/resolve/main/readout_config.json",
+        },
+        jevk5: {
+          model: "https://huggingface.co/alibiserikbay/JevK5-GGUF/resolve/main/jevk5-2b-v0.2-Q8_0.gguf",
+          config: "https://huggingface.co/alibiserikbay/JevK5-2B/resolve/main/jevk5_config.json",
+        },
+      };
+
+      const status = document.getElementById("status");
+      const results = document.getElementById("results");
+      const readout = document.getElementById("readout");
+      const decideButton = document.getElementById("decide");
+
+      function fill() {
+        document.getElementById("model").value = models[readout.value].model;
+        document.getElementById("config").value = models[readout.value].config;
+      }
+      readout.onchange = fill;
+      fill();
+
+      const mode = new URLSearchParams(location.search).get("mode");
+      const worker = new Worker(
+        "./worker.js?program=yzma-decide.wasm" + (mode ? "&mode=" + encodeURIComponent(mode) : ""),
+      );
+
+      let asked = [];
+
+      // show draws one bar for each option of each question.
+      function show(list) {
+        results.textContent = "";
+        list.forEach((r, i) => {
+          const box = document.createElement("div");
+          box.className = "question";
+
+          const text = document.createElement("div");
+          text.className = "text";
+          text.textContent = (asked[i] && asked[i].question) || "question " + (i + 1);
+          box.appendChild(text);
+
+          r.options.forEach((name, k) => {
+            const p = r.probabilities[k];
+            const bar = document.createElement("div");
+            bar.className = "bar" + (name === r.answer ? " top" : "");
+            bar.innerHTML = '<span class="name"></span><span class="track"><span class="fill"></span></span><span class="value"></span>';
+            bar.querySelector(".name").textContent = name;
+            bar.querySelector(".fill").style.width = (p * 100).toFixed(1) + "%";
+            bar.querySelector(".value").textContent = p.toFixed(3);
+            box.appendChild(bar);
+          });
+          results.appendChild(box);
+        });
+      }
+
+      worker.onmessage = (event) => {
+        const { kind, text } = event.data || {};
+        switch (kind) {
+          case "ready":
+            document.getElementById("backend").textContent = text;
+            status.textContent = "ready";
+            break;
+          case "loaded":
+            status.textContent = "model loaded, " + text;
+            decideButton.disabled = false;
+            break;
+          case "result": {
+            const out = JSON.parse(text);
+            show(Array.isArray(out.result) ? out.result : [out.result]);
+            status.textContent = "decided in " + out.ms + " ms";
+            decideButton.disabled = false;
+            break;
+          }
+          case "error":
+            status.textContent = "error: " + text;
+            decideButton.disabled = false;
+            break;
+          default:
+            status.textContent = kind + ": " + text;
+        }
+      };
+
+      document.getElementById("load").onclick = () => {
+        status.textContent = "loading";
+        decideButton.disabled = true;
+        worker.postMessage({
+          kind: "decide-load",
+          url: document.getElementById("model").value,
+          config: document.getElementById("config").value,
+          readout: readout.value,
+          manyMode: document.getElementById("mode").value,
+        });
+      };
+
+      decideButton.onclick = () => {
+        try {
+          asked = JSON.parse(document.getElementById("questions").value);
+        } catch (err) {
+          status.textContent = "the questions are not JSON: " + err;
+          return;
+        }
+        if (!Array.isArray(asked)) {
+          asked = [asked];
+        }
+        status.textContent = "deciding";
+        decideButton.disabled = true;
+        worker.postMessage({
+          kind: "decide-many",
+          state: document.getElementById("state").value,
+          questions: JSON.stringify(asked),
+        });
+      };
+    </script>
+  </body>
+</html>

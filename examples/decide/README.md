@@ -102,6 +102,10 @@ $ go run ./examples/decide/ -readout jevk5 -model ~/models/jevk5-2b-v0.2-Q8_0.gg
 
 Each GGUF file needs the config of its own version. The [JevK5](https://huggingface.co/alibiserikbay/JevK5/resolve/main/jevk5_config.json) config fits `jevk5-4b-v0.3-*.gguf`, and the [JevK5-9B](https://huggingface.co/alibiserikbay/JevK5-9B/resolve/main/jevk5_config.json) config fits `jevk5-9b-v0.3.3-*.gguf`.
 
+## WebAssembly
+
+The same package runs in a browser. See `examples/wasm/decide` and the typed decisions part of [wasm/README.md](../../wasm/README.md).
+
 ## Install
 
 ```shell

@@ -6,8 +6,6 @@ import (
 	"math"
 	"slices"
 	"sync"
-
-	"github.com/hybridgroup/yzma/pkg/llama"
 )
 
 // Options configures a [Decider]. The zero value is valid.
@@ -76,17 +74,13 @@ func (r *Result) Probability(name string) float64 {
 // use, but calls run one at a time.
 type Decider struct {
 	family     family
-	model      llama.Model
-	vocab      llama.Vocab
-	ctx        llama.Context
-	mem        llama.Memory
-	nVocab     int
+	b          backend
 	maxOptions int
 	ubatch     int
 	nCtx       int
 	nSeqMax    int
 	manyMode   ManyMode
-	cached     []llama.Token
+	cached     []token
 	mu         sync.Mutex
 }
 
@@ -96,7 +90,7 @@ type family interface {
 }
 
 // New loads a Jev-Style model and its readout_config.json.
-// Call [llama.Load] and [llama.Init] first, and [Decider.Close] when done.
+// Load and init llama.cpp first, and call [Decider.Close] when done.
 func New(modelPath, configPath string, opts Options) (*Decider, error) {
 	if modelPath == "" || configPath == "" {
 		return nil, errors.New("decide: model and readout config paths are required")
@@ -105,6 +99,15 @@ func New(modelPath, configPath string, opts Options) (*Decider, error) {
 	cfg, err := LoadConfig(configPath)
 	if err != nil {
 		return nil, err
+	}
+	return NewFromConfig(modelPath, cfg, opts)
+}
+
+// NewFromConfig loads a Jev-Style model with a readout config that is already
+// parsed, for example with [ParseConfig] where there are no files.
+func NewFromConfig(modelPath string, cfg *Config, opts Options) (*Decider, error) {
+	if modelPath == "" || cfg == nil {
+		return nil, errors.New("decide: model path and readout config are required")
 	}
 
 	d, err := load(modelPath, cfg.Budgets.MaxLen, opts)
@@ -125,75 +128,52 @@ func New(modelPath, configPath string, opts Options) (*Decider, error) {
 
 // load loads the model and creates a context of opts.ContextSize tokens, or defCtx when it is 0.
 func load(modelPath string, defCtx int, opts Options) (*Decider, error) {
-	model, err := llama.ModelLoadFromFile(modelPath, llama.ModelDefaultParams())
-	if err != nil {
-		return nil, fmt.Errorf("decide: load model: %w", err)
-	}
-	if model == 0 {
-		return nil, fmt.Errorf("decide: unable to load model %s", modelPath)
-	}
-
-	d := &Decider{model: model, maxOptions: 256, manyMode: opts.ManyMode}
+	d := &Decider{maxOptions: 256, manyMode: opts.ManyMode}
 	if opts.MaxOptions > 0 {
 		d.maxOptions = int(opts.MaxOptions)
 	}
-	d.vocab = llama.ModelGetVocab(model)
-	d.nVocab = int(llama.VocabNTokens(d.vocab))
+	if err := d.b.load(modelPath); err != nil {
+		return nil, err
+	}
 
 	// One decode holds the whole input, so the batch is as big as the context.
-	params := llama.ContextDefaultParams()
-	params.NCtx = uint32(defCtx)
+	p := ctxParams{nCtx: uint32(defCtx), nSeqMax: maxSeqs, threads: opts.Threads}
 	if opts.ContextSize > 0 {
-		params.NCtx = opts.ContextSize
+		p.nCtx = opts.ContextSize
 	}
-	params.NBatch = params.NCtx
-	params.NUbatch = min(1024, params.NCtx)
+	p.nBatch = p.nCtx
+	p.nUbatch = min(1024, p.nCtx)
 	if opts.UBatch > 0 {
-		params.NUbatch = min(opts.UBatch, params.NCtx)
+		p.nUbatch = min(opts.UBatch, p.nCtx)
 	}
-	params.NSeqMax = maxSeqs
 	// llama.cpp needs room for at least one output per sequence.
-	params.NOutputsMax = uint32(max(d.maxOptions, maxSeqs))
-	params.KVUnified = 1
-	params.NoPerf = 1
-	if opts.Threads > 0 {
-		params.NThreads = opts.Threads
-		params.NThreadsBatch = opts.Threads
-	}
+	p.nOutputsMax = uint32(max(d.maxOptions, maxSeqs))
 
-	d.ubatch = int(params.NUbatch)
-	d.nCtx = int(params.NCtx)
-	d.nSeqMax = maxSeqs
-
-	d.ctx, err = llama.InitFromModel(model, params)
-	if err != nil || d.ctx == 0 {
-		d.Close()
-		return nil, fmt.Errorf("decide: unable to create context: %v", err)
-	}
-	if d.mem, err = llama.GetMemory(d.ctx); err != nil {
+	n, err := d.b.newContext(p)
+	if err != nil {
 		d.Close()
 		return nil, err
+	}
+	d.ubatch = int(p.nUbatch)
+	d.nCtx = int(p.nCtx)
+	d.nSeqMax = int(n)
+	// A context of one sequence cannot share the state.
+	if d.nSeqMax < 2 {
+		d.manyMode = manySeparate
 	}
 
 	return d, nil
 }
 
 func (d *Decider) tokenizer(parseSpecial bool) encoder {
-	return func(s string) []llama.Token {
-		return llama.Tokenize(d.vocab, s, false, parseSpecial)
+	return func(s string) []token {
+		return d.b.tokenize(s, parseSpecial)
 	}
 }
 
 // Close frees the model and context.
 func (d *Decider) Close() {
-	if d.ctx != 0 {
-		llama.Free(d.ctx)
-		d.ctx = 0
-	}
-	if d.model != 0 {
-		llama.ModelFree(d.model)
-		d.model = 0
-	}
+	d.b.close()
 }
 
 // Config returns the readout config of a Jev-Style model, or nil for other models.
@@ -233,7 +213,7 @@ func (d *Decider) score(rs []*rendered, mode ManyMode) ([][][]float64, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	if d.ctx == 0 {
+	if !d.b.open() {
 		return nil, errors.New("decide: decider is closed")
 	}
 
@@ -303,10 +283,10 @@ func (d *Decider) exact(rs []*rendered) ([][][]float64, error) {
 
 	out := make([][][]float64, len(rs))
 	for i, r := range rs {
-		llama.MemorySeqRm(d.mem, 1, -1, -1)
-		llama.MemorySeqCp(d.mem, 0, 1, -1, -1)
+		d.b.memSeqRm(1)
+		d.b.memSeqCp(0, 1)
 		v, err := d.decode(part{ids: r.ids[shared:], pos0: shared, seq: 1, slots: r.slots, rows: r.rows})
-		llama.MemorySeqRm(d.mem, 1, -1, -1)
+		d.b.memSeqRm(1)
 		if err != nil {
 			return nil, err
 		}
@@ -333,7 +313,7 @@ func (d *Decider) batched(rs []*rendered) ([][][]float64, error) {
 			if len(parts) > 0 && (n+used+l > d.nCtx || outs+ns > d.maxOptions) {
 				break
 			}
-			seq := llama.SeqId(len(parts) + 1)
+			seq := seqID(len(parts) + 1)
 			parts = append(parts, part{ids: rs[i].ids[n:], pos0: n, seq: seq, slots: rs[i].slots, rows: rs[i].rows})
 			used += l
 			outs += ns
@@ -341,12 +321,12 @@ func (d *Decider) batched(rs []*rendered) ([][][]float64, error) {
 		}
 
 		for _, p := range parts {
-			llama.MemorySeqRm(d.mem, p.seq, -1, -1)
-			llama.MemorySeqCp(d.mem, 0, p.seq, -1, -1)
+			d.b.memSeqRm(p.seq)
+			d.b.memSeqCp(0, p.seq)
 		}
 		v, err := d.decode(parts...)
 		for _, p := range parts {
-			llama.MemorySeqRm(d.mem, p.seq, -1, -1)
+			d.b.memSeqRm(p.seq)
 		}
 		if err != nil {
 			return nil, err
@@ -358,7 +338,7 @@ func (d *Decider) batched(rs []*rendered) ([][][]float64, error) {
 }
 
 // keepPrefix makes sequence 0 hold exactly prefix, reusing it when it is already there.
-func (d *Decider) keepPrefix(prefix []llama.Token) error {
+func (d *Decider) keepPrefix(prefix []token) error {
 	if slices.Equal(d.cached, prefix) {
 		return nil
 	}
@@ -374,18 +354,18 @@ func (d *Decider) keepPrefix(prefix []llama.Token) error {
 
 // clear empties the memory and forgets the cached state.
 func (d *Decider) clear() {
-	llama.MemoryClear(d.mem, true)
+	d.b.memClear()
 	d.cached = nil
 }
 
 // part is a run of tokens at positions pos0 onward in seq. slots are absolute
 // positions, and rows are the tokens whose logits are read at each slot.
 type part struct {
-	ids   []llama.Token
+	ids   []token
 	pos0  int
-	seq   llama.SeqId
+	seq   seqID
 	slots []int
-	rows  []llama.Token
+	rows  []token
 }
 
 // decode runs all parts in one batch and returns, per part, the logits of its
@@ -396,8 +376,8 @@ func (d *Decider) decode(parts ...part) ([][][]float64, error) {
 		total += len(p.ids)
 	}
 
-	batch := llama.BatchInit(int32(total), 0, 1)
-	defer llama.BatchFree(batch)
+	bt := newBatch(total)
+	defer bt.free()
 
 	idx := make([][]int32, len(parts))
 	for k, p := range parts {
@@ -405,30 +385,25 @@ func (d *Decider) decode(parts ...part) ([][][]float64, error) {
 		for _, s := range p.slots {
 			isSlot[s] = true
 		}
-		seqs := []llama.SeqId{p.seq}
 		for i, tok := range p.ids {
 			if isSlot[p.pos0+i] {
-				idx[k] = append(idx[k], batch.NTokens)
+				idx[k] = append(idx[k], bt.len())
 			}
-			if err := batch.Add(tok, llama.Pos(p.pos0+i), seqs, isSlot[p.pos0+i]); err != nil {
+			if err := bt.add(tok, p.pos0+i, p.seq, isSlot[p.pos0+i]); err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	ret, err := llama.Decode(d.ctx, batch)
-	if err != nil {
+	if err := d.b.decode(bt); err != nil {
 		return nil, err
-	}
-	if ret != 0 {
-		return nil, fmt.Errorf("decide: decode returned %d", ret)
 	}
 
 	out := make([][][]float64, len(parts))
 	for k, p := range parts {
 		out[k] = make([][]float64, len(idx[k]))
 		for j, i := range idx[k] {
-			logits, err := llama.GetLogitsIth(d.ctx, i, d.nVocab)
+			logits, err := d.b.logits(i)
 			if err != nil {
 				return nil, err
 			}

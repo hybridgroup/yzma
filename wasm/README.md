@@ -44,10 +44,12 @@ for each token, as in the `examples/hello` program.
 | `index.html` | A page that loads a model and makes text. |
 | `vlm.html` | A page that asks a question about an image. |
 | `tools.html` | A page where the model calls tools. |
+| `decide.html` | A page that asks a System One model typed questions and shows the probabilities. |
 | `serve/main.go` | A static server that sets the headers for a build with more than one thread. |
 | `node/run.js` | Runs the same build in Node with no browser. CI uses this test. |
 | `node/vlm.js` | The same test for an image model. It makes its own pixels, because Node has no canvas. |
 | `node/tools.js` | The same test for tool calling. |
+| `node/decide.js` | The same test for typed decisions with `exp/decide`. |
 | `node/bench.js` | Measures the tokens a second of a build in Node. `benchmarks/run.sh --backend wasm` calls it. |
 
 ## Build and run
@@ -60,6 +62,7 @@ make download-llama.cpp-wasm
 make wasm-example
 make wasm-vlm-example
 make wasm-tools-example
+make wasm-decide-example
 
 # serve them
 make serve-wasm
@@ -67,7 +70,8 @@ make serve-wasm
 
 Then <http://localhost:8080> is the chat page,
 <http://localhost:8080/vlm.html> is the page that takes an image, and
-<http://localhost:8080/tools.html> is the page where the model calls tools.
+<http://localhost:8080/tools.html> is the page where the model calls tools, and
+<http://localhost:8080/decide.html> is the page for typed decisions.
 
 Add `?mode=cpu` or `?mode=webgpu` to the URL of a page to select the backend
 yourself.
@@ -392,6 +396,21 @@ An isolated page can get a model from another origin only if that origin sends
 the CORS headers. Hugging Face sends them, thus the model in `index.html` comes
 down without a change. A model on a host with no CORS headers needs a copy on
 the origin of the page.
+
+## Typed decisions
+
+`decide.html` and `examples/wasm/decide` run the `exp/decide` package, which
+answers a typed question about a state with a probability for each option. It
+takes Jev-Style and JevK5 models, the same as on the host. The page fetches the
+model and its config, and asks every question about the state with
+`DecideMany`.
+
+`exp/decide` shares one state across several questions with a unified KV
+cache. That needs a module of ABI version 10 or later. An older module still
+runs it, with one sequence, and then decodes each question on its own.
+
+`make test-wasm-decide` asks a Jev-Style model three questions in Node. It
+fails when `DecideMany` and `Decide` differ in the exact mode.
 
 ## Tool calling
 

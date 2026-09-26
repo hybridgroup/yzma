@@ -184,6 +184,8 @@ type ContextParams struct {
 	PoolingType PoolingType // how to pool embeddings
 	Embeddings  uint8       // 1 to compute embeddings
 	NoPerf      uint8       // 1 to stop the measurement of the time of each batch
+	KVUnified   uint8       // 1 for the sequences to share one cache, ABI 10 and later
+	NOutputsMax uint32      // largest number of outputs of a batch, 0 = NBatch, ABI 10 and later
 }
 
 // ContextDefaultParams gives the parameters that a context uses if the program

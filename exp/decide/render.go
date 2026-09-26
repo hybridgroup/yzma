@@ -6,22 +6,20 @@ import (
 	"errors"
 	"fmt"
 	"unicode/utf8"
-
-	"github.com/hybridgroup/yzma/pkg/llama"
 )
 
 // ErrBudget is returned when a rendered input is over a token budget.
 // Inputs are never truncated.
 var ErrBudget = errors.New("input over token budget")
 
-type encoder func(text string) []llama.Token
+type encoder func(text string) []token
 
 // rendered is one model input. The logits of rows are read at each slot.
 // Inputs about one state can share their first prefixLen tokens.
 type rendered struct {
-	ids        []llama.Token
+	ids        []token
 	slots      []int
-	rows       []llama.Token
+	rows       []token
 	names      []string
 	prefixLen  int
 	headTokens int
@@ -29,9 +27,9 @@ type rendered struct {
 
 type renderer struct {
 	enc             encoder
-	yesNo           []llama.Token
-	arrow, nl, dash []llama.Token
-	judge           []llama.Token
+	yesNo           []token
+	arrow, nl, dash []token
+	judge           []token
 	maxLen, headMax int
 }
 
@@ -45,8 +43,8 @@ func newRenderer(enc encoder, cfg *Config) (*renderer, error) {
 
 	return &renderer{
 		enc:     enc,
-		yesNo:   []llama.Token{llama.Token(cfg.SlotTokens.Yes.ID), llama.Token(cfg.SlotTokens.No.ID)},
-		arrow:   []llama.Token{llama.Token(cfg.SlotTokens.VerdictSlot.ID)},
+		yesNo:   []token{token(cfg.SlotTokens.Yes.ID), token(cfg.SlotTokens.No.ID)},
+		arrow:   []token{token(cfg.SlotTokens.VerdictSlot.ID)},
 		nl:      enc("\n"),
 		dash:    enc("- "),
 		judge:   enc("Judge each option:\n"),
@@ -62,7 +60,7 @@ func (r *renderer) render(state string, q Question) (*rendered, error) {
 	}
 
 	opts := q.renderOptions()
-	optIDs := make([][]llama.Token, len(opts))
+	optIDs := make([][]token, len(opts))
 	for i, o := range opts {
 		optIDs[i] = r.enc(o)
 	}

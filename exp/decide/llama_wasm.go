@@ -1,0 +1,149 @@
+//go:build js && wasm
+
+package decide
+
+import (
+	"errors"
+	"fmt"
+
+	llama "github.com/hybridgroup/yzma/pkg/llamawasm"
+)
+
+type (
+	token = llama.Token
+	seqID = llama.SeqId
+)
+
+// backend holds the llama.cpp objects of a Decider, here through pkg/llamawasm.
+// The memory calls of that package take the context.
+type backend struct {
+	model  llama.Model
+	vocab  llama.Vocab
+	ctx    llama.Context
+	nVocab int32
+}
+
+// ctxParams is what a Decider sets on its context.
+type ctxParams struct {
+	nCtx, nBatch, nUbatch, nSeqMax, nOutputsMax uint32
+	threads                                     int32
+}
+
+// load reads a model that is already in the file system of the module, for
+// example with [llama.FetchModelFile]. It goes on the GPU when there is one.
+func (b *backend) load(modelPath string) error {
+	params := llama.ModelDefaultParams()
+	if llama.GPUDevice() != "" {
+		params.NGpuLayers = 999
+	}
+
+	model, err := llama.ModelLoadFromFile(modelPath, params)
+	if err != nil {
+		return fmt.Errorf("decide: load model: %w", err)
+	}
+	if model == 0 {
+		return fmt.Errorf("decide: unable to load model %s", modelPath)
+	}
+
+	b.model = model
+	b.vocab = llama.ModelGetVocab(model)
+	b.nVocab = llama.VocabNTokens(b.vocab)
+	return nil
+}
+
+// newContext makes the context and gives the number of sequences it holds. A
+// module before ABI version 10 has no unified cache, so the context then holds
+// one sequence and every question is decoded on its own.
+func (b *backend) newContext(p ctxParams) (uint32, error) {
+	params := llama.ContextDefaultParams()
+	params.NCtx = p.nCtx
+	params.NBatch = p.nBatch
+	params.NUbatch = p.nUbatch
+	params.NSeqMax = p.nSeqMax
+	params.NOutputsMax = p.nOutputsMax
+	params.KVUnified = 1
+	params.NoPerf = 1
+	if p.threads > 0 {
+		params.NThreads = p.threads
+	}
+
+	ctx, err := llama.InitFromModel(b.model, params)
+	if errors.Is(err, llama.ErrNoKVUnified) || errors.Is(err, llama.ErrNoBatch) {
+		params.NSeqMax = 1
+		params.KVUnified = 0
+		ctx, err = llama.InitFromModel(b.model, params)
+	}
+	if err != nil || ctx == 0 {
+		return 0, fmt.Errorf("decide: unable to create context: %v", err)
+	}
+	b.ctx = ctx
+
+	return max(1, params.NSeqMax), nil
+}
+
+func (b *backend) open() bool {
+	return b.ctx != 0
+}
+
+func (b *backend) close() {
+	if b.ctx != 0 {
+		llama.Free(b.ctx)
+		b.ctx = 0
+	}
+	if b.model != 0 {
+		llama.ModelFree(b.model)
+		b.model = 0
+	}
+}
+
+func (b *backend) tokenize(s string, parseSpecial bool) []token {
+	return llama.Tokenize(b.vocab, s, false, parseSpecial)
+}
+
+func (b *backend) memClear() {
+	llama.MemoryClear(b.ctx, true)
+}
+
+func (b *backend) memSeqRm(seq seqID) {
+	llama.MemorySeqRm(b.ctx, seq, -1, -1)
+}
+
+func (b *backend) memSeqCp(src, dst seqID) {
+	llama.MemorySeqCp(b.ctx, src, dst, -1, -1)
+}
+
+type batch struct {
+	llama.Batch
+}
+
+func newBatch(n int) *batch {
+	return &batch{llama.BatchInit(int32(n), 0, 1)}
+}
+
+func (bt *batch) add(tok token, pos int, seq seqID, logits bool) error {
+	return bt.Add(tok, llama.Pos(pos), []llama.SeqId{seq}, logits)
+}
+
+func (bt *batch) len() int32 {
+	return bt.NTokens
+}
+
+func (bt *batch) free() {
+	llama.BatchFree(bt.Batch)
+}
+
+func (b *backend) decode(bt *batch) error {
+	ret, err := llama.Decode(b.ctx, bt.Batch)
+	if err != nil {
+		return err
+	}
+	if ret != 0 {
+		return fmt.Errorf("decide: decode returned %d", ret)
+	}
+	return nil
+}
+
+// logits gives the logits of the output at batch index i.
+func (b *backend) logits(i int32) ([]float32, error) {
+	return llama.GetLogitsIth(b.ctx, i, b.nVocab)
+}

@@ -23,9 +23,15 @@ func InitFromModel(model Model, params ContextParams) (Context, error) {
 		int(params.PoolingType),
 	}
 
-	// Only a module of ABI version 9 and later takes NoPerf.
+	// Only a module of ABI version 9 and later takes NoPerf, and only one of
+	// ABI version 10 and later takes KVUnified and NOutputsMax.
 	name := "_yzma_context_new"
 	switch {
+	case has("_yzma_context_new_kv"):
+		name = "_yzma_context_new_kv"
+		args = append(args, int(params.NSeqMax), int(params.NoPerf), int(params.KVUnified), int(params.NOutputsMax))
+	case params.KVUnified != 0:
+		return 0, ErrNoKVUnified
 	case has("_yzma_context_new_ext"):
 		name = "_yzma_context_new_ext"
 		args = append(args, int(params.NSeqMax), int(params.NoPerf))

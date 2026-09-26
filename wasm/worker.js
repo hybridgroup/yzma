@@ -83,7 +83,7 @@ function run() {
 
     await programReady;
 
-    if (typeof self.yzmaLoadModel !== "function") {
+    if (typeof self.yzmaLoadModel !== "function" && typeof self.yzmaDecideLoad !== "function") {
       throw new Error("the Go program did not set its functions");
     }
   })();
@@ -115,6 +115,16 @@ function run() {
             new Uint8Array(message.rgba),
             message.maxTokens || 128,
           );
+          break;
+        case "decide-load":
+          // The decide page loads a model with its config and a readout.
+          self.yzmaDecideLoad(message.url, message.config, message.readout, message.manyMode || "");
+          break;
+        case "decide":
+          self.yzmaDecide(message.state, message.question, message.category || "");
+          break;
+        case "decide-many":
+          self.yzmaDecideMany(message.state, message.questions, message.category || "");
           break;
         default:
           self.postMessage({ kind: "error", text: "unknown message: " + message.kind });
