@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -267,5 +268,62 @@ func TestDecideModel(t *testing.T) {
 		if res.Answer != tc.want || res.TopProbability < 0.5 {
 			t.Errorf("%s: got %s %v, want %s", tc.q.Text, res.Answer, res.Probabilities, tc.want)
 		}
+	}
+}
+
+func TestDecideManyModel(t *testing.T) {
+	model, config := os.Getenv("YZMA_TEST_JEV_MODEL"), os.Getenv("YZMA_TEST_JEV_CONFIG")
+	if model == "" || config == "" {
+		t.Skip("no YZMA_TEST_JEV_MODEL or YZMA_TEST_JEV_CONFIG skipping test")
+	}
+	if os.Getenv("YZMA_LIB") == "" {
+		t.Fatal("no YZMA_LIB set for tests")
+	}
+	if err := llama.Load(os.Getenv("YZMA_LIB")); err != nil {
+		t.Fatal("unable to load library", err.Error())
+	}
+	llama.LogSet(llama.LogSilent())
+	llama.Init()
+	defer llama.BackendFree()
+
+	d, err := New(model, config, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+
+	var b strings.Builder
+	for i := range 160 {
+		b.WriteString("Line " + strconv.Itoa(i) + ": order shipped to warehouse " + strconv.Itoa(i%7) + ", status ok. ")
+	}
+	qs := []Question{
+		Noul("Any order failed?", "", ""),
+		Score("How busy was the day?", "quiet", "normal", "busy"),
+		Choice("What is this document?", "log", "email", "story"),
+	}
+
+	for _, state := range []string{b.String(), "The film was excellent."} {
+		many, err := d.DecideMany(state, qs, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		// The second call reuses the cached state.
+		again, err := d.DecideMany(state, qs, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, q := range qs {
+			one, err := d.Decide(state, q, "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !slices.Equal(many[i].Probabilities, one.Probabilities) || !slices.Equal(again[i].Probabilities, one.Probabilities) {
+				t.Errorf("%s: DecideMany %v and %v, Decide %v", q.Text, many[i].Probabilities, again[i].Probabilities, one.Probabilities)
+			}
+		}
+	}
+
+	if _, err := d.DecideMany("state", []Question{Choice("q", "a"), Choice("q", "a", "a")}, ""); !errors.Is(err, ErrQuestion) {
+		t.Errorf("bad question: got %v, want ErrQuestion", err)
 	}
 }
