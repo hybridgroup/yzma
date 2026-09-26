@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"unicode/utf8"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
 )
@@ -15,9 +16,12 @@ var ErrBudget = errors.New("input over token budget")
 
 type encoder func(text string) []llama.Token
 
+// rendered is one model input. The logits of rows are read at each slot.
+// Inputs about one state can share their first prefixLen tokens.
 type rendered struct {
 	ids        []llama.Token
 	slots      []int
+	rows       []llama.Token
 	names      []string
 	prefixLen  int
 	headTokens int
@@ -25,6 +29,7 @@ type rendered struct {
 
 type renderer struct {
 	enc             encoder
+	yesNo           []llama.Token
 	arrow, nl, dash []llama.Token
 	judge           []llama.Token
 	maxLen, headMax int
@@ -40,6 +45,7 @@ func newRenderer(enc encoder, cfg *Config) (*renderer, error) {
 
 	return &renderer{
 		enc:     enc,
+		yesNo:   []llama.Token{llama.Token(cfg.SlotTokens.Yes.ID), llama.Token(cfg.SlotTokens.No.ID)},
 		arrow:   []llama.Token{llama.Token(cfg.SlotTokens.VerdictSlot.ID)},
 		nl:      enc("\n"),
 		dash:    enc("- "),
@@ -95,7 +101,64 @@ func (r *renderer) render(state string, q Question) (*rendered, error) {
 		slots[i] = prefixLen + s
 	}
 
-	return &rendered{ids: ids, slots: slots, names: names, prefixLen: prefixLen, headTokens: len(head)}, nil
+	return &rendered{ids: ids, slots: slots, rows: r.yesNo, names: names, prefixLen: prefixLen, headTokens: len(head)}, nil
+}
+
+// jevStyle is the Jev-Style family. The score of option k is
+// logit(" yes") minus logit(" no") at its slot.
+type jevStyle struct {
+	cfg    *Config
+	render *renderer
+}
+
+func (j *jevStyle) decide(d *Decider, state any, qs []Question, category string, many bool) ([]*Result, error) {
+	s, err := serializeState(state)
+	if err != nil {
+		return nil, err
+	}
+
+	rs := make([]*rendered, len(qs))
+	for i, q := range qs {
+		if rs[i], err = j.render.render(s, q); err == nil && len(rs[i].slots) > d.maxOptions {
+			err = fmt.Errorf("%w: %d options, the limit is %d", ErrQuestion, len(rs[i].slots), d.maxOptions)
+		}
+		if err != nil {
+			return nil, questionErr(many, i, err)
+		}
+	}
+
+	mode := manySeparate
+	if many {
+		mode = d.manyMode
+	}
+	vals, err := d.score(rs, mode)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]*Result, len(qs))
+	for i, q := range qs {
+		scores := make([]float64, len(vals[i]))
+		for k, v := range vals[i] {
+			scores[k] = v[0] - v[1]
+		}
+		t := j.cfg.Temperature(category, q.Type, len(rs[i].names))
+		p, err := softmax(scores, t)
+		if err != nil {
+			return nil, questionErr(many, i, err)
+		}
+		out[i] = newResult(rs[i].names, p, scores, t, len(rs[i].ids), rs[i].headTokens)
+	}
+
+	return out, nil
+}
+
+// questionErr adds the question index to err when there are several questions.
+func questionErr(many bool, i int, err error) error {
+	if many {
+		return fmt.Errorf("question %d: %w", i, err)
+	}
+	return err
 }
 
 // serializeState passes a string through and encodes any other value as JSON
@@ -115,22 +178,30 @@ func serializeState(state any) (string, error) {
 	return spaceJSON(bytes.TrimRight(buf.Bytes(), "\n")), nil
 }
 
-// spaceJSON adds a space after each comma and colon outside strings.
+// spaceJSON adds a space after each comma and colon outside strings, and
+// writes U+2028 and U+2029 raw, as Python's json.dumps does.
 func spaceJSON(b []byte) string {
 	out := make([]byte, 0, len(b)+len(b)/8)
-	inStr, esc := false, false
-	for _, c := range b {
-		out = append(out, c)
+	inStr := false
+	for i := 0; i < len(b); i++ {
+		c := b[i]
 		switch {
-		case esc:
-			esc = false
 		case inStr && c == '\\':
-			esc = true
+			if i+5 < len(b) && b[i+1] == 'u' && string(b[i+2:i+5]) == "202" && (b[i+5] == '8' || b[i+5] == '9') {
+				out = utf8.AppendRune(out, rune(0x2020+int(b[i+5]-'0')))
+				i += 5
+				continue
+			}
+			out = append(out, c, b[i+1])
+			i++
+			continue
 		case c == '"':
 			inStr = !inStr
 		case !inStr && (c == ',' || c == ':'):
-			out = append(out, ' ')
+			out = append(out, c, ' ')
+			continue
 		}
+		out = append(out, c)
 	}
 	return string(out)
 }

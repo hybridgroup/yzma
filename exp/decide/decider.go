@@ -20,6 +20,9 @@ type Options struct {
 	MaxOptions uint32
 	// ManyMode is how [Decider.DecideMany] shares the state. The default is ManyExact.
 	ManyMode ManyMode
+	// ContextSize is the context in tokens. 0 uses the model family default,
+	// max_len for Jev-Style and 8192 for JevK5.
+	ContextSize uint32
 }
 
 // ManyMode is how [Decider.DecideMany] shares one state across questions.
@@ -31,25 +34,32 @@ const (
 	ManyExact ManyMode = iota
 	// ManyBatched decodes the whole state once and up to 16 questions in one
 	// decode. It is faster, but probabilities can differ from [Decider.Decide]
-	// by a few hundredths and a near tie can change the answer.
+	// by a few hundredths and a near tie can change the answer. For a JevK5
+	// question with more than 16 options a near tie can also change which
+	// options reach the final pass, which moves its probabilities more.
 	ManyBatched
+
+	// manySeparate decodes each question on its own from an empty memory.
+	manySeparate ManyMode = -1
 )
 
 // maxSeqs is the number of sequences, the shared state plus up to 16 questions.
 const maxSeqs = 17
 
 // Result is the decision for one question.
-// Options, Probabilities and Scores are in question order.
+// Options, Probabilities and Scores are in [Question.Names] order.
+// Scores are the raw scores before calibration. They are empty for a JevK5
+// question with more than 16 options, which combines several passes.
 type Result struct {
 	Answer               string    `json:"answer"`
 	Options              []string  `json:"options"`
 	Probabilities        []float64 `json:"probabilities"`
-	Scores               []float64 `json:"scores"`
+	Scores               []float64 `json:"scores,omitempty"`
 	Temperature          float64   `json:"temperature"`
 	TopProbability       float64   `json:"top_probability"`
 	EntropyConcentration float64   `json:"entropy_concentration"`
 	InputTokens          int       `json:"input_tokens"`
-	HeadTokens           int       `json:"head_tokens"`
+	HeadTokens           int       `json:"head_tokens,omitempty"`
 }
 
 // Probability returns the probability of the named option, or 0 if there is no such option.
@@ -62,11 +72,12 @@ func (r *Result) Probability(name string) float64 {
 	return 0
 }
 
-// Decider scores questions with a Jev-style model. It is safe for concurrent
+// Decider scores questions with a System One model. It is safe for concurrent
 // use, but calls run one at a time.
 type Decider struct {
-	cfg        *Config
+	family     family
 	model      llama.Model
+	vocab      llama.Vocab
 	ctx        llama.Context
 	mem        llama.Memory
 	nVocab     int
@@ -75,12 +86,16 @@ type Decider struct {
 	nCtx       int
 	nSeqMax    int
 	manyMode   ManyMode
-	render     *renderer
 	cached     []llama.Token
 	mu         sync.Mutex
 }
 
-// New loads the model and its readout_config.json.
+// family is how one kind of model renders questions and reads its logits.
+type family interface {
+	decide(d *Decider, state any, qs []Question, category string, many bool) ([]*Result, error)
+}
+
+// New loads a Jev-Style model and its readout_config.json.
 // Call [llama.Load] and [llama.Init] first, and [Decider.Close] when done.
 func New(modelPath, configPath string, opts Options) (*Decider, error) {
 	if modelPath == "" || configPath == "" {
@@ -92,6 +107,24 @@ func New(modelPath, configPath string, opts Options) (*Decider, error) {
 		return nil, err
 	}
 
+	d, err := load(modelPath, cfg.Budgets.MaxLen, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := newRenderer(d.tokenizer(false), cfg)
+	if err != nil {
+		d.Close()
+		return nil, err
+	}
+	r.maxLen = min(r.maxLen, d.nCtx)
+	d.family = &jevStyle{cfg: cfg, render: r}
+
+	return d, nil
+}
+
+// load loads the model and creates a context of opts.ContextSize tokens, or defCtx when it is 0.
+func load(modelPath string, defCtx int, opts Options) (*Decider, error) {
 	model, err := llama.ModelLoadFromFile(modelPath, llama.ModelDefaultParams())
 	if err != nil {
 		return nil, fmt.Errorf("decide: load model: %w", err)
@@ -100,24 +133,19 @@ func New(modelPath, configPath string, opts Options) (*Decider, error) {
 		return nil, fmt.Errorf("decide: unable to load model %s", modelPath)
 	}
 
-	d := &Decider{cfg: cfg, model: model, maxOptions: 256, manyMode: opts.ManyMode}
+	d := &Decider{model: model, maxOptions: 256, manyMode: opts.ManyMode}
 	if opts.MaxOptions > 0 {
 		d.maxOptions = int(opts.MaxOptions)
 	}
-
-	vocab := llama.ModelGetVocab(model)
-	d.nVocab = int(llama.VocabNTokens(vocab))
-	d.render, err = newRenderer(func(s string) []llama.Token {
-		return llama.Tokenize(vocab, s, false, false)
-	}, cfg)
-	if err != nil {
-		d.Close()
-		return nil, err
-	}
+	d.vocab = llama.ModelGetVocab(model)
+	d.nVocab = int(llama.VocabNTokens(d.vocab))
 
 	// One decode holds the whole input, so the batch is as big as the context.
 	params := llama.ContextDefaultParams()
-	params.NCtx = uint32(cfg.Budgets.MaxLen)
+	params.NCtx = uint32(defCtx)
+	if opts.ContextSize > 0 {
+		params.NCtx = opts.ContextSize
+	}
 	params.NBatch = params.NCtx
 	params.NUbatch = min(1024, params.NCtx)
 	if opts.UBatch > 0 {
@@ -150,6 +178,12 @@ func New(modelPath, configPath string, opts Options) (*Decider, error) {
 	return d, nil
 }
 
+func (d *Decider) tokenizer(parseSpecial bool) encoder {
+	return func(s string) []llama.Token {
+		return llama.Tokenize(d.vocab, s, false, parseSpecial)
+	}
+}
+
 // Close frees the model and context.
 func (d *Decider) Close() {
 	if d.ctx != 0 {
@@ -162,35 +196,25 @@ func (d *Decider) Close() {
 	}
 }
 
-// Config returns the readout config the Decider was loaded with.
+// Config returns the readout config of a Jev-Style model, or nil for other models.
 func (d *Decider) Config() *Config {
-	return d.cfg
+	if j, ok := d.family.(*jevStyle); ok {
+		return j.cfg
+	}
+	return nil
 }
 
 // Decide scores one question about state. A string state is used as is, and
 // any other value is encoded as JSON. Go sorts map keys, so pass a string or a
 // json.RawMessage to keep a key order.
-// An empty category uses the global temperature.
+// category picks a Jev-Style calibration temperature. An empty category uses
+// the global temperature. JevK5 ignores it.
 func (d *Decider) Decide(state any, q Question, category string) (*Result, error) {
-	s, err := serializeState(state)
+	rs, err := d.family.decide(d, state, []Question{q}, category, false)
 	if err != nil {
 		return nil, err
 	}
-
-	r, err := d.render.render(s, q)
-	if err != nil {
-		return nil, err
-	}
-	if len(r.slots) > d.maxOptions {
-		return nil, fmt.Errorf("%w: %d options, the limit is %d", ErrQuestion, len(r.slots), d.maxOptions)
-	}
-
-	scores, err := d.scores(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return result(r, scores, d.cfg.Temperature(category, q.Type, len(r.names)))
+	return rs[0], nil
 }
 
 // DecideMany scores several questions about one state. The state is shared
@@ -200,57 +224,12 @@ func (d *Decider) DecideMany(state any, qs []Question, category string) ([]*Resu
 	if len(qs) == 0 {
 		return nil, nil
 	}
-
-	s, err := serializeState(state)
-	if err != nil {
-		return nil, err
-	}
-
-	rs := make([]*rendered, len(qs))
-	for i, q := range qs {
-		if rs[i], err = d.render.render(s, q); err != nil {
-			return nil, fmt.Errorf("question %d: %w", i, err)
-		}
-		if len(rs[i].slots) > d.maxOptions {
-			return nil, fmt.Errorf("question %d: %w: %d options, the limit is %d", i, ErrQuestion, len(rs[i].slots), d.maxOptions)
-		}
-	}
-
-	scores, err := d.scoresMany(rs)
-	if err != nil {
-		return nil, err
-	}
-
-	out := make([]*Result, len(qs))
-	for i, q := range qs {
-		if out[i], err = result(rs[i], scores[i], d.cfg.Temperature(category, q.Type, len(rs[i].names))); err != nil {
-			return nil, fmt.Errorf("question %d: %w", i, err)
-		}
-	}
-
-	return out, nil
+	return d.family.decide(d, state, qs, category, true)
 }
 
-func (d *Decider) scores(r *rendered) ([]float64, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if d.ctx == 0 {
-		return nil, errors.New("decide: decider is closed")
-	}
-
-	d.clear()
-	defer d.clear()
-
-	sc, err := d.decode(part{ids: r.ids, slots: r.slots})
-	if err != nil {
-		return nil, err
-	}
-	return sc[0], nil
-}
-
-// scoresMany scores questions that share one state, in the Decider's ManyMode.
-func (d *Decider) scoresMany(rs []*rendered) ([][]float64, error) {
+// score decodes the rendered inputs, which share one state, and returns the
+// logits at each slot for each row token. mode manySeparate decodes each on its own.
+func (d *Decider) score(rs []*rendered, mode ManyMode) ([][][]float64, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -259,12 +238,15 @@ func (d *Decider) scoresMany(rs []*rendered) ([][]float64, error) {
 	}
 
 	var (
-		out [][]float64
+		out [][][]float64
 		err error
 	)
-	if d.manyMode == ManyBatched {
+	switch mode {
+	case manySeparate:
+		out, err = d.separate(rs)
+	case ManyBatched:
 		out, err = d.batched(rs)
-	} else {
+	default:
 		out, err = d.exact(rs)
 	}
 	if err != nil {
@@ -275,38 +257,60 @@ func (d *Decider) scoresMany(rs []*rendered) ([][]float64, error) {
 	return out, nil
 }
 
-// exact decodes the whole ubatches of the state once into sequence 0 and each
-// question on a copy of it in sequence 1. The ubatch splits are the same as
-// in scores, so the results are identical.
-func (d *Decider) exact(rs []*rendered) ([][]float64, error) {
-	out := make([][]float64, len(rs))
-	shared := (rs[0].prefixLen / d.ubatch) * d.ubatch
-	if shared == 0 {
-		for i, r := range rs {
-			d.clear()
-			sc, err := d.decode(part{ids: r.ids, slots: r.slots})
-			if err != nil {
-				return nil, err
-			}
-			out[i] = sc[0]
-		}
+// separate decodes each input from an empty memory.
+func (d *Decider) separate(rs []*rendered) ([][][]float64, error) {
+	out := make([][][]float64, len(rs))
+	for i, r := range rs {
 		d.clear()
-		return out, nil
+		v, err := d.decode(part{ids: r.ids, slots: r.slots, rows: r.rows})
+		if err != nil {
+			return nil, err
+		}
+		out[i] = v[0]
+	}
+	d.clear()
+	return out, nil
+}
+
+// sharedLen is the number of leading tokens all inputs have in common, at
+// most each input's prefixLen, so every input keeps its slots.
+func sharedLen(rs []*rendered) int {
+	n := rs[0].prefixLen
+	for _, r := range rs[1:] {
+		n = min(n, r.prefixLen)
+		for i := range n {
+			if r.ids[i] != rs[0].ids[i] {
+				n = i
+				break
+			}
+		}
+	}
+	return n
+}
+
+// exact decodes the whole ubatches of the shared state once into sequence 0
+// and each input on a copy of it in sequence 1. The ubatch splits are the same
+// as in separate, so the results are identical.
+func (d *Decider) exact(rs []*rendered) ([][][]float64, error) {
+	shared := (sharedLen(rs) / d.ubatch) * d.ubatch
+	if shared == 0 {
+		return d.separate(rs)
 	}
 
 	if err := d.keepPrefix(rs[0].ids[:shared]); err != nil {
 		return nil, err
 	}
 
+	out := make([][][]float64, len(rs))
 	for i, r := range rs {
 		llama.MemorySeqRm(d.mem, 1, -1, -1)
 		llama.MemorySeqCp(d.mem, 0, 1, -1, -1)
-		sc, err := d.decode(part{ids: r.ids[shared:], pos0: shared, seq: 1, slots: r.slots})
+		v, err := d.decode(part{ids: r.ids[shared:], pos0: shared, seq: 1, slots: r.slots, rows: r.rows})
 		llama.MemorySeqRm(d.mem, 1, -1, -1)
 		if err != nil {
 			return nil, err
 		}
-		out[i] = sc[0]
+		out[i] = v[0]
 	}
 
 	return out, nil
@@ -314,13 +318,13 @@ func (d *Decider) exact(rs []*rendered) ([][]float64, error) {
 
 // batched decodes the whole state once into sequence 0, then groups of
 // questions in one decode, each on its own copy of the state.
-func (d *Decider) batched(rs []*rendered) ([][]float64, error) {
-	n := rs[0].prefixLen
+func (d *Decider) batched(rs []*rendered) ([][][]float64, error) {
+	n := sharedLen(rs)
 	if err := d.keepPrefix(rs[0].ids[:n]); err != nil {
 		return nil, err
 	}
 
-	out := make([][]float64, 0, len(rs))
+	out := make([][][]float64, 0, len(rs))
 	for i := 0; i < len(rs); {
 		var parts []part
 		used, outs := 0, 0
@@ -330,7 +334,7 @@ func (d *Decider) batched(rs []*rendered) ([][]float64, error) {
 				break
 			}
 			seq := llama.SeqId(len(parts) + 1)
-			parts = append(parts, part{ids: rs[i].ids[n:], pos0: n, seq: seq, slots: rs[i].slots})
+			parts = append(parts, part{ids: rs[i].ids[n:], pos0: n, seq: seq, slots: rs[i].slots, rows: rs[i].rows})
 			used += l
 			outs += ns
 			i++
@@ -340,14 +344,14 @@ func (d *Decider) batched(rs []*rendered) ([][]float64, error) {
 			llama.MemorySeqRm(d.mem, p.seq, -1, -1)
 			llama.MemorySeqCp(d.mem, 0, p.seq, -1, -1)
 		}
-		sc, err := d.decode(parts...)
+		v, err := d.decode(parts...)
 		for _, p := range parts {
 			llama.MemorySeqRm(d.mem, p.seq, -1, -1)
 		}
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, sc...)
+		out = append(out, v...)
 	}
 
 	return out, nil
@@ -374,16 +378,19 @@ func (d *Decider) clear() {
 	d.cached = nil
 }
 
-// part is a run of tokens at positions pos0 onward in seq. slots are absolute positions.
+// part is a run of tokens at positions pos0 onward in seq. slots are absolute
+// positions, and rows are the tokens whose logits are read at each slot.
 type part struct {
 	ids   []llama.Token
 	pos0  int
 	seq   llama.SeqId
 	slots []int
+	rows  []llama.Token
 }
 
-// decode runs all parts in one batch and returns the scores at each part's slots.
-func (d *Decider) decode(parts ...part) ([][]float64, error) {
+// decode runs all parts in one batch and returns, per part, the logits of its
+// rows at each of its slots.
+func (d *Decider) decode(parts ...part) ([][][]float64, error) {
 	total := 0
 	for _, p := range parts {
 		total += len(p.ids)
@@ -417,10 +424,9 @@ func (d *Decider) decode(parts ...part) ([][]float64, error) {
 		return nil, fmt.Errorf("decide: decode returned %d", ret)
 	}
 
-	yes, no := d.cfg.SlotTokens.Yes.ID, d.cfg.SlotTokens.No.ID
-	out := make([][]float64, len(parts))
-	for k := range parts {
-		out[k] = make([]float64, len(idx[k]))
+	out := make([][][]float64, len(parts))
+	for k, p := range parts {
+		out[k] = make([][]float64, len(idx[k]))
 		for j, i := range idx[k] {
 			logits, err := llama.GetLogitsIth(d.ctx, i, d.nVocab)
 			if err != nil {
@@ -429,14 +435,18 @@ func (d *Decider) decode(parts ...part) ([][]float64, error) {
 			if logits == nil {
 				return nil, fmt.Errorf("decide: no logits at batch index %d", i)
 			}
-			out[k][j] = float64(logits[yes]) - float64(logits[no])
+			out[k][j] = make([]float64, len(p.rows))
+			for r, t := range p.rows {
+				out[k][j][r] = float64(logits[t])
+			}
 		}
 	}
 
 	return out, nil
 }
 
-func result(r *rendered, scores []float64, temp float64) (*Result, error) {
+// softmax returns softmax(scores / temp).
+func softmax(scores []float64, temp float64) ([]float64, error) {
 	z := make([]float64, len(scores))
 	zmax := math.Inf(-1)
 	for i, s := range scores {
@@ -453,25 +463,32 @@ func result(r *rendered, scores []float64, temp float64) (*Result, error) {
 		p[i] = math.Exp(z[i] - zmax)
 		sum += p[i]
 	}
-	top := 0
 	for i := range p {
 		p[i] /= sum
+	}
+	return p, nil
+}
+
+// newResult builds a Result from probabilities in names order.
+func newResult(names []string, p, scores []float64, temp float64, inputTokens, headTokens int) *Result {
+	top := 0
+	for i := range p {
 		if p[i] > p[top] {
 			top = i
 		}
 	}
 
 	return &Result{
-		Answer:               r.names[top],
-		Options:              r.names,
+		Answer:               names[top],
+		Options:              names,
 		Probabilities:        p,
 		Scores:               scores,
 		Temperature:          temp,
 		TopProbability:       p[top],
 		EntropyConcentration: concentration(p),
-		InputTokens:          len(r.ids),
-		HeadTokens:           r.headTokens,
-	}, nil
+		InputTokens:          inputTokens,
+		HeadTokens:           headTokens,
+	}
 }
 
 // concentration is 1 minus the entropy of p over its maximum, in [0, 1].
