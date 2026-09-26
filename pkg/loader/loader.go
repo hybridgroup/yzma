@@ -5,8 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
-	"sync"
 
 	"github.com/jupiterrider/ffi"
 )
@@ -16,45 +14,9 @@ type Lib struct {
 	lib ffi.Lib
 }
 
-// argTypes keeps the argument type arrays reachable. ffi_prep_cif stores the
-// array address in the cif with a C write that the Go collector cannot see.
-// https://github.com/libffi/libffi/blob/v3.4.6/src/prep_cif.c#L128
-var (
-	argTypesMu sync.Mutex
-	argTypes   = make(map[string][]*ffi.Type)
-)
-
-// keepArgTypes returns the kept array for these argument types. One array
-// serves every function with the same signature, so a second call to Load
-// keeps no more memory than the first.
-func keepArgTypes(args []*ffi.Type) []*ffi.Type {
-	if len(args) == 0 {
-		return args
-	}
-
-	var b strings.Builder
-	for _, arg := range args {
-		fmt.Fprintf(&b, "%p,", arg)
-	}
-	key := b.String()
-
-	argTypesMu.Lock()
-	defer argTypesMu.Unlock()
-
-	kept, ok := argTypes[key]
-	if !ok {
-		kept = args
-		argTypes[key] = kept
-	}
-
-	return kept
-}
-
 // Prep gets the address of a function and describes its signature.
-// It keeps the argument types reachable for the life of the program.
 func (l Lib) Prep(name string, ret *ffi.Type, args ...*ffi.Type) (ffi.Fun, error) {
-	// args must reach libffi as the array that keepArgTypes holds.
-	return l.lib.Prep(name, ret, keepArgTypes(args)...)
+	return l.lib.Prep(name, ret, args...)
 }
 
 // LoadLibrary The path can be an empty string to use the location as set by the YZMA_LIB env variable.
