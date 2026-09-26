@@ -27,8 +27,9 @@
 // Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy headers.
 //
 // In "auto" mode the loader selects the best build that the browser can run.
-// Firefox is the one exception. Its WebGPU gives wrong values to llama.cpp,
-// thus auto mode takes the CPU there. Mode "webgpu" still selects the GPU.
+// Firefox is the one exception. Its WebGPU gives llama.cpp correct values but
+// is far slower than its CPU, thus auto mode takes the CPU there. Mode
+// "webgpu" still selects the GPU.
 //
 // Some drivers give an adapter that llama.cpp accepts and that then computes
 // wrong values, which makes a model answer with random tokens. The loader
@@ -94,7 +95,7 @@
   }
 
   // firefox says if the browser is Firefox. The WebGPU of Firefox uses wgpu,
-  // which does not give llama.cpp the same results as Dawn.
+  // which is much slower with llama.cpp than Dawn.
   function firefox() {
     return /firefox/i.test(globalThis.navigator?.userAgent || "");
   }
@@ -129,13 +130,13 @@
     let adapter = "";
     let reason = "";
 
-    // llama.cpp computes wrong values with WebGPU in Firefox, and a model
-    // stops before the first token. Auto mode takes the CPU there.
+    // WebGPU in Firefox makes less than one token a second, and the CPU makes
+    // more than a hundred. Auto mode takes the CPU there.
     const skipFirefox = mode !== "webgpu" && mode !== "cpu" && firefox();
 
     if (skipFirefox) {
       console.warn(
-        "yzma: llama.cpp computes wrong values with WebGPU in Firefox, using" +
+        "yzma: WebGPU in Firefox is much slower than the CPU, using" +
           " the CPU. Set yzmaMode to webgpu to try the GPU."
       );
     }
