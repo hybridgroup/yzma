@@ -16,6 +16,8 @@
 //
 //   globalThis.yzmaBase      the location of the llama.cpp files, default "."
 //   globalThis.yzmaMode      "auto" (the default), "webgpu", or "cpu"
+//   globalThis.yzmaPowerPreference "high-performance" or "low-power" to pick
+//                            the GPU on a machine with two, default the browser
 //
 // There are three builds of llama.cpp. The WebGPU build computes on the GPU and
 // needs a browser with WebGPU and JSPI, which is Chrome and Edge 137 or later,
@@ -37,6 +39,7 @@
 (function () {
   const base = globalThis.yzmaBase || ".";
   const mode = globalThis.yzmaMode || "auto";
+  const power = globalThis.yzmaPowerPreference || "";
 
   // A browser gives SharedArrayBuffer only to an isolated page. The build with
   // more than one thread needs it.
@@ -66,7 +69,9 @@
     }
 
     try {
-      const adapter = await navigator.gpu.requestAdapter();
+      const adapter = await navigator.gpu.requestAdapter(
+        power ? { powerPreference: power } : undefined
+      );
       if (!adapter) {
         return ["", "requestAdapter gave no adapter"];
       }
@@ -92,6 +97,15 @@
   // which does not give llama.cpp the same results as Dawn.
   function firefox() {
     return /firefox/i.test(globalThis.navigator?.userAgent || "");
+  }
+
+  // preferAdapter makes llama.cpp ask for the same GPU that the loader tested.
+  // llama.cpp sets no power preference of its own.
+  function preferAdapter(preference) {
+    const gpu = navigator.gpu;
+    const request = gpu.requestAdapter.bind(gpu);
+    gpu.requestAdapter = (options) =>
+      request({ ...options, powerPreference: options?.powerPreference || preference });
   }
 
   function loadScript(url) {
@@ -133,6 +147,9 @@
     if (adapter) {
       name = "yzma_wasm_webgpu";
       backend = "webgpu";
+      if (power) {
+        preferAdapter(power);
+      }
     } else if (mode === "webgpu") {
       // The page asked for WebGPU, but the browser cannot give it. Continue
       // with the CPU, which is the result that "auto" gives.

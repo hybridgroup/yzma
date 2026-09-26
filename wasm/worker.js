@@ -19,10 +19,14 @@ const isThread = globalThis.name === "em-pthread";
 self.yzmaBase = ".";
 
 // The page selects the backend with a query on the URL of this worker, for
-// example new Worker("./worker.js?mode=cpu"). yzma-loader.js has the values.
+// example new Worker("./worker.js?mode=cpu"), and the GPU with
+// gpu=high-performance or gpu=low-power. yzma-loader.js has the values.
 const workerQuery = new URLSearchParams((self.location.search || "").slice(1));
 if (workerQuery.get("mode")) {
   self.yzmaMode = workerQuery.get("mode");
+}
+if (workerQuery.get("gpu")) {
+  self.yzmaPowerPreference = workerQuery.get("gpu");
 }
 
 // Only the build with more than one thread has threads, so a thread does not

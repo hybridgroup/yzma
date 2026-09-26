@@ -102,10 +102,7 @@
       readout.onchange = fill;
       fill();
 
-      const mode = new URLSearchParams(location.search).get("mode");
-      const worker = new Worker(
-        "./worker.js?program=yzma-decide.wasm" + (mode ? "&mode=" + encodeURIComponent(mode) : ""),
-      );
+      const worker = new Worker("./worker.js?program=yzma-decide.wasm&" + location.search.slice(1));
 
       let asked = [];
 
