@@ -6,5 +6,5 @@ go 1.26
 
 require (
 	github.com/ebitengine/purego v0.10.0
-	github.com/jupiterrider/ffi v0.7.0
+	github.com/jupiterrider/ffi v0.8.0
 )
