@@ -13,11 +13,13 @@ const source = fs.readFileSync(path.join(__dirname, "..", "yzma-loader.js"), "ut
 
 // fakeWorld makes the globals that the loader reads. The adapter and the result
 // of the self test come from the options, thus each test describes one machine.
-function fakeWorld({ mode, gpu, f16, jspi, threads, check, agent }) {
+function fakeWorld({ mode, power, gpu, f16, jspi, threads, check, agent }) {
   const loaded = [];
+  const requests = [];
   const world = {
     console: { log() {}, warn() {}, error() {} },
     yzmaMode: mode,
+    yzmaPowerPreference: power,
     crossOriginIsolated: threads === true,
     navigator: { userAgent: agent || "Chrome/152", hardwareConcurrency: 8 },
   };
@@ -32,7 +34,7 @@ function fakeWorld({ mode, gpu, f16, jspi, threads, check, agent }) {
   }
   if (gpu) {
     world.navigator.gpu = {
-      requestAdapter: async () => ({
+      requestAdapter: async (options) => (requests.push(options), {
         features: new Set(f16 === false ? [] : ["shader-f16"]),
         info: { vendor: "test", device: "test gpu" },
       }),
@@ -62,15 +64,15 @@ function fakeWorld({ mode, gpu, f16, jspi, threads, check, agent }) {
   };
 
   world.globalThis = world;
-  return { world, loaded };
+  return { world, loaded, requests };
 }
 
 async function run({ name, ...options }) {
-  const { world, loaded } = fakeWorld(options);
+  const { world, loaded, requests } = fakeWorld(options);
   vm.createContext(world);
   vm.runInContext(source, world);
   const instance = await world.yzmaReady;
-  return { name, instance, loaded, world };
+  return { name, instance, loaded, world, requests };
 }
 
 async function main() {
@@ -138,6 +140,24 @@ async function main() {
     console.log("a machine with no GPU");
     check("uses the CPU build", r.instance.name, "yzma_wasm");
     check("loads one build", r.loaded.length, 1);
+  }
+
+  // With no preference the browser picks the GPU.
+  {
+    const r = await run({ gpu: true, check: "ok" });
+    await r.world.navigator.gpu.requestAdapter({ powerPreference: undefined });
+    console.log("no power preference");
+    check("the loader asks with no options", r.requests[0], undefined);
+    check("llama.cpp asks with its own options", r.requests[1], { powerPreference: undefined });
+  }
+
+  // A preference goes to the test of the loader and to the request of llama.cpp.
+  {
+    const r = await run({ power: "high-performance", gpu: true, check: "ok" });
+    await r.world.navigator.gpu.requestAdapter({ powerPreference: undefined });
+    console.log("power preference high-performance");
+    check("the loader asks for it", r.requests[0].powerPreference, "high-performance");
+    check("llama.cpp asks for it", r.requests[1].powerPreference, "high-performance");
   }
 
   // Mode cpu asks for no GPU at all.

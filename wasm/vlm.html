@@ -81,10 +81,7 @@
 
       let picture = null;
 
-      const mode = new URLSearchParams(location.search).get("mode");
-      const worker = new Worker(
-        "./worker.js?program=yzma-vlm.wasm" + (mode ? "&mode=" + encodeURIComponent(mode) : ""),
-      );
+      const worker = new Worker("./worker.js?program=yzma-vlm.wasm&" + location.search.slice(1));
 
       worker.onmessage = (event) => {
         const { kind, text } = event.data || {};

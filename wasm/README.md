@@ -74,7 +74,8 @@ Then <http://localhost:8080> is the chat page,
 <http://localhost:8080/decide.html> is the page for typed decisions.
 
 Add `?mode=cpu` or `?mode=webgpu` to the URL of a page to select the backend
-yourself.
+yourself. Add `?gpu=high-performance` or `?gpu=low-power` to select the GPU on a
+machine with two.
 
 `make wasm-example-go` builds the same program with the standard Go toolchain.
 The binary is larger, which is an aid if TinyGo cannot build a dependency.
@@ -219,6 +220,14 @@ CPU if the browser cannot run that build, because a slow page is better than a
 page that does not operate. Auto mode takes the CPU in Firefox, because the
 WebGPU of that browser gives wrong values. Mode `webgpu` still selects the GPU
 there, thus a test of a repair is easy.
+
+A machine with an integrated and a discrete GPU gives the browser a choice. A
+page selects one with `globalThis.yzmaPowerPreference`, which accepts
+`high-performance` or `low-power`. With no value the browser selects. The loader
+tests that GPU and makes llama.cpp ask for the same one, because llama.cpp sets
+no preference of its own. The discrete card is usually faster. SmolLM-135M Q2_K
+in Chrome 154 gave 52.9 tokens a second with `?gpu=high-performance` on an NVIDIA
+RTX 4070 and 20.3 with `?gpu=low-power` on an Intel RPL-S, with the same text.
 
 `llamawasm.Backend()` gives the name of the part that computes and
 `llamawasm.GPUDevice()` gives the name of the GPU that llama.cpp found. Ask

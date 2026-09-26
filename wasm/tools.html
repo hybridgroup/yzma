@@ -83,10 +83,7 @@
       const trace = document.getElementById("trace");
       const askButton = document.getElementById("ask");
 
-      const mode = new URLSearchParams(location.search).get("mode");
-      const worker = new Worker(
-        "./worker.js?program=yzma-tools.wasm" + (mode ? "&mode=" + encodeURIComponent(mode) : ""),
-      );
+      const worker = new Worker("./worker.js?program=yzma-tools.wasm&" + location.search.slice(1));
 
       // step adds one line of the round trip, so a reader sees each tool call
       // and its result apart from the text of the model.
