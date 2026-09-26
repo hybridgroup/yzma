@@ -234,7 +234,7 @@ the browser can run.
 
 | Build | What it needs |
 | --- | --- |
-| `yzma_wasm_webgpu` | WebGPU with f16 shaders, and JSPI. Chrome and Edge 137 or later. Firefox gives wrong values, thus auto mode does not use it there. See below. The loader also drops this build if the self test of the backend fails. |
+| `yzma_wasm_webgpu` | WebGPU with f16 shaders, and JSPI. Chrome and Edge 137 or later. Firefox is much slower than its CPU, thus auto mode does not use it there. See below. The loader also drops this build if the self test of the backend fails. |
 | `yzma_wasm_mt` | `SharedArrayBuffer`, thus a page with the COOP and COEP headers. |
 | `yzma_wasm` | Nothing. It operates in all browsers. |
 
@@ -242,7 +242,7 @@ A page can set the choice with `globalThis.yzmaMode`, which accepts `auto` (the
 default), `webgpu`, or `cpu`. With `webgpu` the loader still falls back to the
 CPU if the browser cannot run that build, because a slow page is better than a
 page that does not operate. Auto mode takes the CPU in Firefox, because the
-WebGPU of that browser gives wrong values. Mode `webgpu` still selects the GPU
+WebGPU of that browser is much slower than its CPU. Mode `webgpu` still selects the GPU
 there, thus a test of a repair is easy.
 
 A machine with an integrated and a discrete GPU gives the browser a choice. A
@@ -410,20 +410,26 @@ MESA_VK_DEVICE_SELECT=<vendor>:<device> firefox
 Firefox gives no subgroups, thus llama.cpp takes the plain f16 shaders and the
 GPU is slower than the same card in Chrome.
 
-#### Firefox gives wrong values
+#### Firefox is slow
 
-The WebGPU build operates in Firefox, but the numbers that come back are wrong.
-A model stops at the first token, thus a chat page shows a question and no
-answer. `Decode` reports no failure, thus the logits reach the sampler with
-values that make the first token an end of generation.
+Firefox 154 gave wrong values. A model stopped at the first token, thus a chat
+page showed a question and no answer. Firefox 156 gives the correct text, but
+very slowly.
 
-The same page, the same model, and the same WebAssembly build give this.
+SmolLM-135M Q2_K on `index.html`, on an Intel RPL-S and an NVIDIA RTX 4070 with
+Linux, gives this.
 
-| Browser | Backend | Result |
-| --- | --- | --- |
-| Firefox 154 | webgpu, which is wgpu | no tokens |
-| Firefox 154 with `?mode=cpu` | cpu | a correct answer |
-| Chrome 152 | webgpu, which is Dawn | a correct answer |
+| Browser | Backend | Result | Tokens a second |
+| --- | --- | --- | --- |
+| Firefox 156 | webgpu, the Intel | a correct answer | 0.66 |
+| Firefox 156 | webgpu, the NVIDIA | a correct answer | 0.71 |
+| Firefox 156 | cpu-threads | a correct answer | 123 |
+| Chrome 154 | webgpu, the Intel | a correct answer | 20.3 |
+| Chrome 154 | webgpu, the NVIDIA | a correct answer | 52.9 |
+
+The NVIDIA is not faster than the Intel in Firefox, thus the time does not go to
+the computation. wgpu alone in Deno gives 3.5 to 5 tokens a second on the same
+cards, thus the most time goes to Firefox itself.
 
 Thus `yzma-loader.js` takes the CPU in Firefox in auto mode. Set `yzmaMode` to
 `webgpu`, or add `?mode=webgpu` to a page of this directory, to test the GPU
@@ -509,8 +515,8 @@ markers. The host build reads the token itself.
 
 - WebGPU needs an adapter with f16 shaders, and Chrome or Edge 137 or later. All
   other browsers use the CPU with SIMD.
-- The WebGPU of Firefox gives wrong values to llama.cpp, thus auto mode takes
-  the CPU there.
+- The WebGPU of Firefox is much slower than its CPU with llama.cpp, thus auto
+  mode takes the CPU there.
 - Some drivers give an adapter that llama.cpp accepts and that then computes
   wrong values. The loader measures the device against the CPU and takes a CPU
   build if the two do not agree.
