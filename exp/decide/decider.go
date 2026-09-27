@@ -19,7 +19,7 @@ type Options struct {
 	// ManyMode is how [Decider.DecideMany] shares the state. The default is ManyExact.
 	ManyMode ManyMode
 	// ContextSize is the context in tokens. 0 uses the model family default,
-	// max_len for Jev-Style and 8192 for JevK5.
+	// max_len for Jev-Style and 8192 for JevK5 and decider models.
 	ContextSize uint32
 }
 
@@ -47,7 +47,8 @@ const maxSeqs = 17
 // Result is the decision for one question.
 // Options, Probabilities and Scores are in [Question.Names] order.
 // Scores are the raw scores before calibration. They are empty for a JevK5
-// question with more than 16 options, which combines several passes.
+// question with more than 16 options and for a decider score question with
+// isolated levels, which combine several passes.
 type Result struct {
 	Answer               string    `json:"answer"`
 	Options              []string  `json:"options"`
@@ -188,7 +189,7 @@ func (d *Decider) Config() *Config {
 // any other value is encoded as JSON. Go sorts map keys, so pass a string or a
 // json.RawMessage to keep a key order.
 // category picks a Jev-Style calibration temperature. An empty category uses
-// the global temperature. JevK5 ignores it.
+// the global temperature. JevK5 and decider models ignore it.
 func (d *Decider) Decide(state any, q Question, category string) (*Result, error) {
 	rs, err := d.family.decide(d, state, []Question{q}, category, false)
 	if err != nil {

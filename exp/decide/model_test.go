@@ -281,3 +281,100 @@ func TestJevK5ManyModel(t *testing.T) {
 		})
 	}
 }
+
+func deciderTestDecider(t *testing.T, mode ManyMode) *Decider {
+	model, config := os.Getenv("YZMA_TEST_DECIDER_MODEL"), os.Getenv("YZMA_TEST_DECIDER_CONFIG")
+	if model == "" || config == "" {
+		t.Skip("no YZMA_TEST_DECIDER_MODEL or YZMA_TEST_DECIDER_CONFIG skipping test")
+	}
+	if os.Getenv("YZMA_LIB") == "" {
+		t.Fatal("no YZMA_LIB set for tests")
+	}
+	if err := llama.Load(os.Getenv("YZMA_LIB")); err != nil {
+		t.Fatal("unable to load library", err.Error())
+	}
+	llama.LogSet(llama.LogSilent())
+	llama.Init()
+	t.Cleanup(llama.BackendFree)
+
+	d, err := NewDeciderModel(model, config, Options{ManyMode: mode})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(d.Close)
+	return d
+}
+
+func TestDeciderModel(t *testing.T) {
+	d := deciderTestDecider(t, ManyExact)
+
+	for _, tc := range []struct {
+		state any
+		q     Question
+		want  string
+	}{
+		{map[string]string{"ticket": "I was charged twice for order A-104. Please refund the duplicate."},
+			ChoiceDesc("Which team should handle this?",
+				Option{Name: "billing", Description: "Charges, invoices, refunds"},
+				Option{Name: "technical", Description: "Bugs, outages"},
+				Option{Name: "other"}), "billing"},
+		{"The meeting moved from Tuesday to Thursday at 3pm.", Noul("Is the meeting on Thursday?", "", ""), "true"},
+		{"The film was excellent.", Score("How positive is the review?", "negative", "mixed", "positive"), "2"},
+		{"Turn the living room lights off.", Choice("What does the user want?", jevK5Intents...), "lights off"},
+	} {
+		res, err := d.Decide(tc.state, tc.q, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var sum float64
+		for _, p := range res.Probabilities {
+			sum += p
+		}
+		if res.Answer != tc.want || math.Abs(sum-1) > 1e-9 {
+			t.Errorf("%s: got %s %v, want %s", tc.q.Text, res.Answer, res.Probabilities, tc.want)
+		}
+	}
+}
+
+func TestDeciderManyModel(t *testing.T) {
+	var b strings.Builder
+	for i := range 150 {
+		b.WriteString("Ticket " + strconv.Itoa(i) + ": the customer reports a double charge on the invoice. ")
+	}
+	state := b.String()
+	qs := []Question{
+		Noul("Was the customer charged twice?", "", ""),
+		Score("How urgent is this?", "low", "medium", "high"),
+		Choice("What does the user want?", jevK5Intents...),
+	}
+
+	for _, mode := range []ManyMode{ManyExact, ManyBatched} {
+		t.Run(strconv.Itoa(int(mode)), func(t *testing.T) {
+			d := deciderTestDecider(t, mode)
+			many, err := d.DecideMany(state, qs, "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			again, err := d.DecideMany(state, qs, "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			for i, q := range qs {
+				one, err := d.Decide(state, q, "")
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !slices.Equal(many[i].Probabilities, again[i].Probabilities) {
+					t.Errorf("%s: cached call %v, first call %v", q.Text, again[i].Probabilities, many[i].Probabilities)
+				}
+				for k := range one.Probabilities {
+					d := math.Abs(many[i].Probabilities[k] - one.Probabilities[k])
+					if (mode == ManyExact && d != 0) || d > 0.1 {
+						t.Errorf("%s: DecideMany %v, Decide %v", q.Text, many[i].Probabilities, one.Probabilities)
+						break
+					}
+				}
+			}
+		})
+	}
+}

@@ -1,5 +1,5 @@
 // Package decide runs System One models, which answer a typed question about
-// a state with calibrated probabilities instead of text. Two model families
+// a state with calibrated probabilities instead of text. Three model families
 // are supported.
 //
 // Jev-Style models, loaded with [New], use the macjev-render-v1 layout. Each
@@ -22,6 +22,20 @@
 // letters A to P at the last token, and the probabilities are softmax(logits / T).
 // A question with more than 16 options is read in several passes and combined.
 // T comes from jevk5_config.json, see [LoadJevK5Config].
+//
+// Decider models, loaded with [NewDeciderModel], take the state and one
+// question with lettered options.
+//
+//	Context:\n<state>
+//	\n\nQuestion: <question>\nOptions:\n(A) <option 1> ... \n(J) <option 10>
+//	\nAnswer: (
+//
+// One decode reads the logits of the option labels at the last token, and the
+// probabilities are softmax(logits / T). A question with more than 10 options
+// uses A to Z and then two letter labels, up to 255 options. With
+// isolated_levels, each level of a score question is its own yes or no
+// question, and the level probabilities are the yes probabilities normalized.
+// T comes from decider_config.json, see [LoadDeciderConfig].
 //
 // [Decider.DecideMany] asks several questions about one state and decodes
 // the state once. See [ManyMode] for the exact and batched modes.
