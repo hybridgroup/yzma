@@ -163,7 +163,7 @@ There are three builds of `llama.cpp`, and the JavaScript glue takes the best on
 
 | Build | What the browser needs |
 |-------|------------------------|
-| WebGPU | WebGPU with f16 shaders, and JSPI: Chrome or Edge 137 and later, or Firefox 153 and later with two switches in `about:config` |
+| WebGPU | WebGPU with f16 shaders, and JSPI: Chrome or Edge 137 and later, or Firefox 153 and later with two switches in `about:config`. Chrome on Linux needs [three switches](./wasm/README.md#vulkan-in-chrome-on-linux). In Firefox the loader takes the CPU, which is faster there. |
 | More threads | `SharedArrayBuffer`, so a page with the COOP and COEP headers |
 | One thread | Nothing. It works everywhere. |
 
