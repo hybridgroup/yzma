@@ -84,9 +84,11 @@
 //
 // # Limits
 //
-// A CPU build uses SIMD. WebGPU needs Chrome or Edge 137 or later, because the
-// backend waits for the GPU in a synchronous call and that needs JavaScript
-// Promise Integration.
+// A CPU build uses SIMD. WebGPU needs Chrome or Edge 137 or later, or Firefox
+// 153 or later, because the backend waits for the GPU in a synchronous call and
+// that needs JavaScript Promise Integration. The loader takes the CPU in
+// Firefox, which is faster there. Chrome on Linux needs switches for Vulkan,
+// see wasm/README.md.
 //
 // A WebAssembly module can address 4 GB and one JavaScript ArrayBuffer holds a
 // maximum of 2 GB. Thus a model of more than 2 GB must be in splits.

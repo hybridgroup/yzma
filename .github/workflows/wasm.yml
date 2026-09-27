@@ -75,7 +75,8 @@ jobs:
             --tokens 12
       # Node has no WebGPU, so this checks the other half of that story: asking
       # for WebGPU where there is none must quietly take a build on the CPU and
-      # still make text. Only a browser can run the WebGPU build itself.
+      # still make text. The runner has no GPU, so make test-wasm-dawn and
+      # make test-wasm-wgpu run the WebGPU build on a machine that has one.
       - name: Check the fallback from WebGPU
         run: |
           node wasm/node/run.js \
