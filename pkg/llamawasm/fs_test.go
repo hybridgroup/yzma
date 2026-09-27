@@ -8,8 +8,8 @@ import (
 	"testing"
 )
 
-// The fakes are in JavaScript, because a filesystem and a fetch of the browser
-// are objects with many functions.
+// The fakes are in JavaScript, because the browser filesystem and fetch are
+// objects with many functions.
 const fakeSource = `
 globalThis.__yzmaFake = (function () {
 	const files = {};
@@ -54,8 +54,8 @@ globalThis.__yzmaFake = (function () {
 })();
 `
 
-// fake puts the module and the fetch of the test in place and gives the
-// helper back. It repairs the globals when the test ends.
+// fake installs the test module and fetch and returns the helper. It restores
+// the globals when the test ends.
 func fake(t *testing.T, chunks [][]byte, headers map[string]any) js.Value {
 	t.Helper()
 
@@ -103,15 +103,15 @@ func TestFetchModelFileShortBody(t *testing.T) {
 }
 
 func TestFetchModelFileNoLength(t *testing.T) {
-	// A server that gives no length leaves nothing to compare.
+	// A server that sends no length leaves nothing to compare.
 	if err := fakeFetch(t, map[string]any{}); err != nil {
 		t.Fatalf("FetchModelFile gave %v, want no error", err)
 	}
 }
 
 func TestFetchModelFileCompressed(t *testing.T) {
-	// The length is of the compressed body, thus the counts do not agree and
-	// the check has to stay away.
+	// The length is of the compressed body, so the counts do not match and
+	// the check must not run.
 	headers := map[string]any{"content-length": "2", "content-encoding": "gzip"}
 	if err := fakeFetch(t, headers); err != nil {
 		t.Fatalf("FetchModelFile gave %v, want no error", err)

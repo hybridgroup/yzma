@@ -1,8 +1,8 @@
 //go:build manifest
 
-// This file holds the check that the built-in platform table still names assets that
-// llama.cpp publishes. It talks to the GitHub API, so it stays behind the "manifest"
-// build tag and out of the ordinary test run: run it with `make test-manifest`, or
+// This file checks that the built-in platform table still names assets that llama.cpp
+// publishes. It calls the GitHub API, so it stays behind the "manifest" build tag and
+// out of the normal test run. Run it with `make test-manifest`, or
 // with `go test -tags manifest -run TestDefaultResolverMatchesRelease ./pkg/download/`.
 //
 // Set YZMA_TEST_LLAMA_TAG to check a build other than the newest one.
@@ -60,8 +60,8 @@ func llamaReleaseAssets(tag string) (map[string]bool, error) {
 	return names, nil
 }
 
-// releaseHasOpenVINO reports if a release publishes an OpenVINO asset. A few builds
-// publish none, and then there is nothing to check.
+// releaseHasOpenVINO reports whether a release publishes an OpenVINO asset. A few
+// builds publish none, and then there is nothing to check.
 func releaseHasOpenVINO(assets map[string]bool) bool {
 	for name := range assets {
 		if strings.Contains(name, "-openvino-") {
@@ -145,9 +145,9 @@ func TestDefaultResolverMatchesRelease(t *testing.T) {
 }
 
 // TestDigestManifestCoversResolvedAssets checks that the published digest manifest
-// names every asset the built-in table can ask for. An asset the manifest misses
-// installs with no check under the default policy, so this catches a manifest that
-// falls behind the table.
+// lists every asset the built-in table can request. An asset missing from the manifest
+// installs unchecked under the default policy, so this catches a manifest that falls
+// behind the table.
 func TestDigestManifestCoversResolvedAssets(t *testing.T) {
 	tag := os.Getenv("YZMA_TEST_LLAMA_TAG")
 	if tag == "" {
@@ -178,7 +178,7 @@ func TestDigestManifestCoversResolvedAssets(t *testing.T) {
 	arches := []Arch{AMD64, ARM64}
 	processors := []Processor{CPU, CUDA, Metal, ROCm, Vulkan, WebGPU}
 
-	// A build that publishes no OpenVINO asset has nothing for the digests to name.
+	// A build with no OpenVINO asset has no OpenVINO digest to check.
 	upstream := tag
 	if target.UpstreamVersion != "" {
 		upstream = target.UpstreamVersion

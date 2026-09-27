@@ -9,8 +9,8 @@ import (
 	"github.com/hybridgroup/yzma/pkg/message"
 )
 
-// toolDefinitions gives the tools that the model can call. They make their
-// answer from the arguments alone, thus a test always gets the same result.
+// toolDefinitions returns the tools the model can call. Their answers depend
+// only on the arguments, so a test always gets the same result.
 func toolDefinitions() []message.ToolDefinition {
 	return []message.ToolDefinition{
 		{
@@ -58,7 +58,7 @@ func toolDefinitions() []message.ToolDefinition {
 	}
 }
 
-// executeToolCall runs one tool call and gives its result as text.
+// executeToolCall runs one tool call and returns its result as text.
 func executeToolCall(call message.ToolCall) (string, error) {
 	switch call.Function.Name {
 	case "get_weather":
@@ -107,8 +107,8 @@ func calculate(a, b float64, op string) (string, error) {
 	return strconv.FormatFloat(result, 'f', -1, 64), nil
 }
 
-// argumentAsFloat reads one argument as a number. Every argument of a tool call
-// is text, thus this must parse it.
+// argumentAsFloat reads one argument as a number. Tool call arguments are
+// always text, so it has to parse them.
 func argumentAsFloat(args map[string]string, key string) (float64, error) {
 	value, ok := args[key]
 	if !ok {

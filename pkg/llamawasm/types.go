@@ -2,17 +2,17 @@
 
 package llamawasm
 
-// The shim gives each object of llama.cpp a small int32 handle. A handle of 0
-// is never valid. The Go code holds no address in the llama.cpp module, thus
-// the module can move or increase its memory.
+// The shim gives each llama.cpp object a small int32 handle. A handle of 0 is
+// never valid. The Go code holds no address in the llama.cpp module, so the
+// module can move or grow its memory.
 type (
-	// Token is one token of a vocabulary.
+	// Token is one token in a vocabulary.
 	Token int32
 
 	// Pos is the position of a token in a sequence.
 	Pos int32
 
-	// SeqId is the identifier of a sequence.
+	// SeqId is a sequence ID.
 	SeqId int32
 
 	// Model is a handle to a loaded model.
@@ -24,16 +24,14 @@ type (
 	// Vocab is a handle to the vocabulary of a model.
 	Vocab int32
 
-	// Sampler is a handle to a sampler or to a chain of samplers.
+	// Sampler is a handle to a sampler or a sampler chain.
 	Sampler int32
 )
 
-// TokenNull is the value of a token that is not there. It agrees with
-// llama.TokenNull.
+// TokenNull is the value for a missing token. It matches llama.TokenNull.
 const TokenNull Token = -1
 
-// Ftype is the kind of the quantization of a model. The values agree with
-// llama.Ftype.
+// Ftype is the quantization type of a model. The values match llama.Ftype.
 type Ftype int32
 
 const (
@@ -76,8 +74,8 @@ const (
 	FtypeGUESSED         Ftype = 1024
 )
 
-// ModelMetaKey is a key of the metadata of a model that llama.cpp knows. The
-// values agree with enum llama_model_meta_key.
+// ModelMetaKey is a model metadata key that llama.cpp knows. The values match
+// enum llama_model_meta_key.
 type ModelMetaKey int32
 
 const (
@@ -95,8 +93,8 @@ const (
 	ModelMetaKeySamplingMirostatEta
 )
 
-// RopeScalingType is how a model scales the positions of RoPE. The values
-// agree with llama.RopeScalingType.
+// RopeScalingType is how a model scales RoPE positions. The values match
+// llama.RopeScalingType.
 type RopeScalingType int32
 
 const (
@@ -108,7 +106,7 @@ const (
 	RopeScalingTypeMaxValue    RopeScalingType = RopeScalingTypeLongROPE
 )
 
-// VocabType is the kind of the tokenizer of a vocabulary. The values agree with
+// VocabType is the tokenizer type of a vocabulary. The values match
 // llama.VocabType.
 type VocabType int32
 
@@ -122,7 +120,7 @@ const (
 	VocabTypePLAMO2
 )
 
-// TokenAttr holds the attributes of one token. The values agree with
+// TokenAttr holds the attributes of one token. The values match
 // llama.TokenAttr.
 type TokenAttr int32
 
@@ -140,7 +138,7 @@ const (
 	TokenAttrSingleWord TokenAttr = 1 << 9
 )
 
-// PoolingType is how the embeddings of the tokens of a sequence become one
+// PoolingType is how the token embeddings of a sequence combine into one
 // embedding.
 type PoolingType int32
 
@@ -153,28 +151,27 @@ const (
 	PoolingTypeRank        PoolingType = 4
 )
 
-// ModelParams holds what the shim can set while it loads a model.
+// ModelParams holds the settings the shim can apply when it loads a model.
 //
 // The struct is much smaller than llama.ModelParams, because a WebAssembly
 // build has no device list.
 type ModelParams struct {
 	// NGpuLayers is the number of layers to put on the GPU. A value larger than
-	// the number of layers of the model puts them all there.
+	// the model layer count puts them all there.
 	//
-	// A CPU build ignores this value. Examine [GPUDevice] first, because it is
+	// A CPU build ignores this value. Check [GPUDevice] first, because it is
 	// empty when llama.cpp has no GPU.
 	NGpuLayers int32
 }
 
-// ModelDefaultParams gives the parameters that a model uses if the program
-// changes nothing.
+// ModelDefaultParams returns the default model parameters.
 func ModelDefaultParams() ModelParams {
 	return ModelParams{
 		NGpuLayers: 0,
 	}
 }
 
-// ContextParams holds what the shim can set while it makes a context.
+// ContextParams holds the settings the shim can apply when it creates a context.
 type ContextParams struct {
 	NCtx        uint32      // size of the text context, 0 = from the model
 	NBatch      uint32      // largest logical batch, 0 = from llama.cpp
@@ -183,17 +180,16 @@ type ContextParams struct {
 	NThreads    int32       // number of threads, 0 = from the module
 	PoolingType PoolingType // how to pool embeddings
 	Embeddings  uint8       // 1 to compute embeddings
-	NoPerf      uint8       // 1 to stop the measurement of the time of each batch
-	KVUnified   uint8       // 1 for the sequences to share one cache, ABI 10 and later
+	NoPerf      uint8       // 1 to skip timing each batch
+	KVUnified   uint8       // 1 for sequences to share one cache, ABI 10 and later
 	NOutputsMax uint32      // largest number of outputs of a batch, 0 = NBatch, ABI 10 and later
 }
 
-// ContextDefaultParams gives the parameters that a context uses if the program
-// changes nothing.
+// ContextDefaultParams returns the default context parameters.
 //
-// NThreads comes from [Threads], which is the number that the module can use. A
-// value of 0 gives the four threads of llama.cpp, which is slow on a machine
-// with more cores.
+// NThreads comes from [Threads], which is the number the module can use. A
+// value of 0 gives the llama.cpp default of four threads, which is slow on a
+// machine with more cores.
 func ContextDefaultParams() ContextParams {
 	return ContextParams{
 		NCtx:        0,
@@ -207,13 +203,12 @@ func ContextDefaultParams() ContextParams {
 	}
 }
 
-// SamplerChainParams holds the parameters of a chain of samplers.
+// SamplerChainParams holds the parameters of a sampler chain.
 type SamplerChainParams struct {
-	NoPerf uint8 // 1 to stop the measurement of the time of each sample
+	NoPerf uint8 // 1 to skip timing each sample
 }
 
-// SamplerChainDefaultParams gives the parameters that a chain uses if the
-// program changes nothing.
+// SamplerChainDefaultParams returns the default sampler chain parameters.
 func SamplerChainDefaultParams() SamplerChainParams {
 	return SamplerChainParams{NoPerf: 1}
 }
@@ -221,12 +216,12 @@ func SamplerChainDefaultParams() SamplerChainParams {
 // Batch holds the tokens of one call to Decode or Encode.
 //
 // On a native platform llama.Batch is a C struct. Here it is an ordinary Go
-// struct, because the shim makes the C batch itself.
+// struct, because the shim builds the C batch itself.
 //
-// [BatchGetOne] gives a batch that holds tokens only, and the context gives
-// each one its position. [BatchInit] gives a batch that also holds the
-// position, the sequences, and the logit flag of each token, which is what a
-// program needs to keep more than one sequence in one context.
+// [BatchGetOne] returns a batch that holds only tokens, and the context assigns
+// their positions. [BatchInit] returns a batch that also holds the position,
+// sequences, and logit flag of each token, which a program needs to keep more
+// than one sequence in one context.
 type Batch struct {
 	// NTokens is the number of tokens in the batch. A generation loop reads
 	// it to move the position forward.
@@ -234,9 +229,9 @@ type Batch struct {
 
 	tokens []Token
 
-	// These are empty in a batch from BatchGetOne. seqIDs holds capSeq
-	// identifiers for each token, one after the other, because that is the
-	// shape that the shim takes.
+	// These are empty in a batch from BatchGetOne. seqIDs holds capSeq IDs
+	// for each token, one after the other, because that is the layout the
+	// shim expects.
 	pos       []Pos
 	nSeqID    []int32
 	seqIDs    []SeqId

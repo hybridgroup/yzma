@@ -27,8 +27,8 @@ func benchmarkInference(b *testing.B, ctx Context, model Model, text string) int
 
 	batch := BatchGetOne(tokens)
 
-	// The loop runs to the end and does not stop at an end of generation
-	// token, thus each run does the same work with any model.
+	// The loop does not stop at an end of generation token, so each run does
+	// the same work with any model.
 	sampler := SamplerChainInit(SamplerChainDefaultParams())
 	SamplerChainAdd(sampler, SamplerInitGreedy())
 

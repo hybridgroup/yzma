@@ -1,11 +1,11 @@
-// dawn.js runs run.js with Dawn, which is the WebGPU of Chrome, thus the
-// WebGPU build of llama.cpp runs with no browser.
+// dawn.js runs run.js with Dawn, the WebGPU implementation in Chrome. This runs
+// the WebGPU build of llama.cpp without a browser.
 //
 // Usage.
 //   YZMA_WEBGPU=build/node/node_modules/webgpu/index.js \
-//     node wasm/node/dawn.js <arguments of run.js> --webgpu
+//     node wasm/node/dawn.js <run.js arguments> --webgpu
 //
-// YZMA_DAWN gives the flags of Dawn, separated by commas, for example
+// YZMA_DAWN sets comma separated Dawn flags, for example
 // backend=vulkan,adapter=NVIDIA. It needs Node 25 or later for JSPI.
 
 const path = require("node:path");
@@ -21,7 +21,7 @@ const { pathToFileURL } = require("node:url");
   const flags = (process.env.YZMA_DAWN || "").split(",").filter((flag) => flag);
   const gpu = create(flags);
 
-  // Dawn gives an OpenGL adapter only in compatibility mode, which Chrome asks for.
+  // Dawn only returns an OpenGL adapter in compatibility mode, which Chrome requests.
   if (flags.some((flag) => /^backend=opengl(es)?$/.test(flag))) {
     const request = gpu.requestAdapter.bind(gpu);
     gpu.requestAdapter = (options) => request({ ...options, featureLevel: "compatibility" });

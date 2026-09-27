@@ -32,9 +32,9 @@
     <h1>yzma in WebAssembly</h1>
     <p>
       llama.cpp runs as a WebAssembly module. The program that drives it is Go,
-      compiled by TinyGo, and it calls llama.cpp through the
-      <code>pkg/llamawasm</code> package of yzma. Everything runs in a Web
-      Worker in this browser.
+      compiled by TinyGo, and it calls llama.cpp through the yzma
+      <code>pkg/llamawasm</code> package. Everything runs in a Web Worker in
+      this browser.
     </p>
     <p>
       <a href="./vlm.html">A model with eyes</a> asks a question about an image,
@@ -61,8 +61,8 @@
       const output = document.getElementById("output");
       const generateButton = document.getElementById("generate");
 
-      // ?mode=cpu and ?gpu=high-performance on the page go to the worker, thus
-      // a reader can compare the GPU with the CPU.
+      // ?mode=cpu and ?gpu=high-performance on the page pass through to the
+      // worker, so you can compare the GPU with the CPU.
       const worker = new Worker("./worker.js" + location.search);
 
       worker.onmessage = (event) => {

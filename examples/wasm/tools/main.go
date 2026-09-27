@@ -2,10 +2,10 @@
 
 // Tools calls functions with llama.cpp in a browser.
 //
-// The program has the same structure as examples/wasm/chat. It renders the chat
-// template of the model with the template package, offers the tools to it,
-// parses the tool calls that come back, runs them, and gives the results to the
-// model for a final answer.
+// The program has the same structure as examples/wasm/chat. It renders the
+// model's chat template with the template package, offers the tools to it,
+// parses the tool calls that come back, runs them, and passes the results back
+// to the model for a final answer.
 //
 // Build it with TinyGo.
 //
@@ -15,7 +15,7 @@
 //
 //	GOOS=js GOARCH=wasm go build -o build/wasm/yzma-tools.wasm ./examples/wasm/tools
 //
-// See wasm/README.md for the method to serve the result.
+// See wasm/README.md for how to serve the result.
 package main
 
 import (
@@ -30,8 +30,8 @@ import (
 	"github.com/hybridgroup/yzma/pkg/template"
 )
 
-// maxTurns is the number of times that the model can call a tool before it must
-// answer. A turn in a browser is slow, thus this is small.
+// maxTurns is how many times the model can call a tool before it must answer.
+// A turn in a browser is slow, so this is small.
 const maxTurns = 3
 
 const modelPath = "/models/model.gguf"
@@ -42,8 +42,8 @@ var (
 	vocab   llamawasm.Vocab
 	sampler llamawasm.Sampler
 
-	// format is how this model writes a tool call. It comes from the name of
-	// the file of the model.
+	// format is how this model writes a tool call. It comes from the model's
+	// file name.
 	format message.Format
 )
 
@@ -67,7 +67,7 @@ func main() {
 	<-make(chan struct{})
 }
 
-// loadModel(url) gets a model over the network and makes a context for it.
+// loadModel(url) downloads a model and creates a context for it.
 func loadModel(this js.Value, args []js.Value) any {
 	if len(args) < 1 {
 		post("error", "loadModel needs a URL")
@@ -94,16 +94,16 @@ func loadModel(this js.Value, args []js.Value) any {
 	return nil
 }
 
-// openModel(path) loads a model that is already in the filesystem of the
-// llama.cpp module. A test puts the file there itself.
+// openModel(path) loads a model that is already in the llama.cpp module's
+// filesystem. A test puts the file there itself.
 func openModel(this js.Value, args []js.Value) any {
 	path := modelPath
 	if len(args) > 0 && args[0].Truthy() {
 		path = args[0].String()
 	}
 
-	// The second argument gives the name of the original file, because the path
-	// in the filesystem of the module says nothing about the model.
+	// The second argument is the original file name, because the path in the
+	// module's filesystem says nothing about the model.
 	name := path
 	if len(args) > 1 && args[1].Truthy() {
 		name = args[1].String()
@@ -114,14 +114,14 @@ func openModel(this js.Value, args []js.Value) any {
 	return nil
 }
 
-// open loads the model at path and makes a context for it. The name tells which
-// format of tool call to expect.
+// open loads the model at path and creates a context for it. The name tells
+// which tool call format to expect.
 func open(path, name string) {
 	post("status", "loading the model")
 
 	params := llamawasm.ModelDefaultParams()
 
-	// A WebGPU build has a device, thus put each layer on it. A CPU build has no
+	// A WebGPU build has a device, so put every layer on it. A CPU build has no
 	// device and ignores this value.
 	if llamawasm.GPUDevice() != "" {
 		params.NGpuLayers = 999
@@ -135,8 +135,8 @@ func open(path, name string) {
 
 	ctxParams := llamawasm.ContextDefaultParams()
 
-	// Each turn repeats the whole conversation and the tools, thus this context
-	// is larger than the one of the chat example.
+	// Each turn repeats the whole conversation and the tools, so this context
+	// is larger than the one in the chat example.
 	ctxParams.NCtx = 4096
 	ctxParams.NBatch = 512
 
@@ -151,7 +151,7 @@ func open(path, name string) {
 	post("loaded", llamawasm.ModelDesc(model)+", "+backendReport())
 }
 
-// backendReport gives the name of the backend that computes.
+// backendReport returns the name of the compute backend.
 func backendReport() string {
 	if device := llamawasm.GPUDevice(); device != "" {
 		return fmt.Sprintf("backend: %s (%s)", llamawasm.Backend(), device)
@@ -177,8 +177,8 @@ func ask(this js.Value, args []js.Value) any {
 	return nil
 }
 
-// converse asks the model, runs the tools that it calls, and asks again with
-// the results until the model gives an answer.
+// converse asks the model, runs the tools it calls, and asks again with the
+// results until the model answers.
 func converse(question string, maxTokens int32) {
 	if model == 0 || ctx == 0 {
 		post("error", "load a model first")
@@ -229,7 +229,7 @@ func converse(question string, maxTokens int32) {
 	post("done", fmt.Sprintf("%d tokens", total))
 }
 
-// start gives the template, the tools, and the first messages of a
+// start returns the template, the tools, and the first messages of a
 // conversation.
 func start(question string) (string, []message.ToolDefinition, []message.Message) {
 	tools := toolDefinitions()
@@ -241,8 +241,8 @@ func start(question string) (string, []message.ToolDefinition, []message.Message
 		}
 	}
 
-	// A model with no template of its own takes chatml, which has no tools
-	// branch. Thus the tools go in a system message instead.
+	// A model without its own template falls back to chatml, which has no
+	// tools branch, so the tools go in a system message instead.
 	tmpl, _ = template.BuiltinTemplate("chatml")
 
 	return tmpl, tools, []message.Message{
@@ -263,7 +263,7 @@ func toolsPrompt(tools []message.ToolDefinition) string {
 		" After you get the result, answer the question."
 }
 
-// run calls one tool and makes the message that holds its result.
+// run calls one tool and builds the message that holds its result.
 func run(call message.ToolCall) message.Message {
 	args, _ := json.Marshal(call.Function.Arguments)
 	post("tool", call.Function.Name+" "+string(args))
@@ -281,8 +281,8 @@ func run(call message.ToolCall) message.Message {
 	}
 }
 
-// generate makes text for a prompt and sends each piece to the page. It stops
-// at the end of the turn of the model.
+// generate generates text for a prompt and sends each piece to the page. It
+// stops at the end of the model's turn.
 func generate(prompt string, maxTokens int32) (string, int32, error) {
 	// Each turn starts from an empty state, because the prompt holds the whole
 	// conversation.
@@ -339,7 +339,7 @@ func generate(prompt string, maxTokens int32) (string, int32, error) {
 	return text.String(), count, nil
 }
 
-// trim cuts the text at the first marker that it holds.
+// trim cuts the text at the first marker in it.
 func trim(text string, markers []string) (string, bool) {
 	cut := -1
 	for _, marker := range markers {
@@ -355,8 +355,8 @@ func trim(text string, markers []string) (string, bool) {
 	return text[:cut], true
 }
 
-// post sends a message to the container of this module. In a worker that is
-// the page, and in Node it is the console.
+// post sends a message to the module's host. In a worker that is the page,
+// and in Node it is the console.
 func post(kind, text string) {
 	message := map[string]any{"kind": kind, "text": text}
 

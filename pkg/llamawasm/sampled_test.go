@@ -8,8 +8,8 @@ import (
 	"testing"
 )
 
-// The fake module answers the calls of the backend sampler. It has a real
-// heap, thus the test covers the way that the package reads the memory.
+// The fake module answers the backend sampler calls. It has a real heap, so
+// the test covers how the package reads the memory.
 const fakeSamplerSource = `
 globalThis.__yzmaSampler = (function () {
 	const heap = new Uint8Array(1 << 20);
@@ -75,7 +75,7 @@ func TestSetSampler(t *testing.T) {
 		t.Errorf("SetSampler gave %v and %v, want true and no error", taken, err)
 	}
 
-	// A backend that cannot take the sampler gives 0, which is not an error.
+	// A backend that cannot accept the sampler returns 0, which is not an error.
 	helper.Call("setTaken", 0)
 	taken, err = SetSampler(Context(1), 0, Sampler(2))
 	if err != nil || taken {
@@ -91,14 +91,14 @@ func TestGetSampledTokenIth(t *testing.T) {
 		t.Errorf("GetSampledTokenIth gave %v and %v, want 42 and no error", got, err)
 	}
 
-	// A backend that sampled no token gives -1, which is not an error.
+	// A backend that sampled no token returns -1, which is not an error.
 	helper.Call("setToken", -1)
 	got, err = GetSampledTokenIth(Context(1), 0)
 	if err != nil || got != TokenNull {
 		t.Errorf("GetSampledTokenIth gave %v and %v, want TokenNull and no error", got, err)
 	}
 
-	// Only the value of a bad handle is an error.
+	// Only the bad handle value is an error.
 	helper.Call("setToken", errBadHandle)
 	if _, err = GetSampledTokenIth(Context(9), 0); err == nil {
 		t.Error("GetSampledTokenIth gave no error, want the error of a bad handle")

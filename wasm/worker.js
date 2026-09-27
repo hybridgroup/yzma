@@ -1,7 +1,7 @@
 // worker.js runs llama.cpp and the Go program in a Web Worker.
 //
-// Each call into llama.cpp is synchronous and one token takes milliseconds.
-// Thus this work cannot go on the main thread, because it would stop the page.
+// Each call into llama.cpp is synchronous and one token takes milliseconds,
+// so this work cannot run on the main thread without freezing the page.
 //
 // The page sends these messages to the worker:
 //
@@ -18,9 +18,9 @@ const isThread = globalThis.name === "em-pthread";
 
 self.yzmaBase = ".";
 
-// The page selects the backend with a query on the URL of this worker, for
-// example new Worker("./worker.js?mode=cpu"), and the GPU with
-// gpu=high-performance or gpu=low-power. yzma-loader.js has the values.
+// The page picks the backend with a query on this worker's URL, for example
+// new Worker("./worker.js?mode=cpu"), and the GPU with gpu=high-performance
+// or gpu=low-power. yzma-loader.js lists the values.
 const workerQuery = new URLSearchParams((self.location.search || "").slice(1));
 if (workerQuery.get("mode")) {
   self.yzmaMode = workerQuery.get("mode");
@@ -29,14 +29,14 @@ if (workerQuery.get("gpu")) {
   self.yzmaPowerPreference = workerQuery.get("gpu");
 }
 
-// Only the build with more than one thread has threads, so a thread does not
-// need to look for a GPU.
+// Only the multithreaded build has threads, so a thread does not need to look
+// for a GPU.
 if (isThread) {
   self.yzmaMode = "cpu";
 }
 
 // The Go program to run. The chat page uses the default and the image page
-// asks for its own.
+// requests its own.
 const program = workerQuery.get("program") || "yzma.wasm";
 
 importScripts("./yzma-loader.js");
@@ -48,8 +48,8 @@ if (!isThread) {
 
 // run starts llama.cpp and the Go program for the page.
 function run() {
-  // A failure with no handler must reach the page. Without this the page only
-  // sees that nothing more occurs.
+  // An unhandled failure must reach the page. Without this the page just sees
+  // nothing happen.
   self.onerror = (event) => {
     self.postMessage({ kind: "error", text: String((event && event.message) || event) });
   };
@@ -59,7 +59,7 @@ function run() {
 
   importScripts("./wasm_exec.js");
 
-  // The Go program sends a message of kind "ready" when it sets its functions.
+  // The Go program sends a "ready" message once it has set its functions.
   // Wait for that message, because the backend can take a long time to start.
   let programIsReady;
   const programReady = new Promise((resolve) => {
@@ -81,8 +81,8 @@ function run() {
     const go = new Go();
     const result = await WebAssembly.instantiateStreaming(fetch("./" + program), go.importObject);
 
-    // The Go program blocks at the end of main and continues to run, thus the
-    // page can call into it. Do not wait for this promise.
+    // The Go program blocks at the end of main and keeps running, so the page
+    // can call into it. Do not wait for this promise.
     go.run(result.instance);
 
     await programReady;
@@ -107,11 +107,11 @@ function run() {
           break;
         case "ask":
           // The tools page sends a question, not a prompt. The Go program
-          // renders the chat template of the model itself.
+          // renders the model's chat template itself.
           self.yzmaAsk(message.question, message.maxTokens || 256);
           break;
         case "describe":
-          // The image comes as RGBA from a canvas of the page.
+          // The image arrives as RGBA from a canvas on the page.
           self.yzmaDescribe(
             message.prompt,
             message.width,

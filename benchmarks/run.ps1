@@ -1,10 +1,10 @@
-# run.ps1 runs the benchmarks of this machine and puts each result in
+# run.ps1 runs the benchmarks on this machine and writes each result to
 # benchmarks/windows.md. See benchmarks/README.md.
 #
 #   .\benchmarks\run.ps1 -Machine ryzen-9-7950x -Label "AMD Ryzen 9 7950X"
 #
-# PowerShell does not run a script until the policy of the machine permits it.
-# Start the script from a PowerShell prompt in the directory of the repository.
+# PowerShell won't run a script unless the execution policy allows it. Start
+# the script from a PowerShell prompt in the repository directory.
 #
 #   powershell -ExecutionPolicy Bypass -File .\benchmarks\run.ps1
 
@@ -51,7 +51,7 @@ if (-not $LlamaCpp -and (Test-Path $install)) {
   $LlamaCpp = if ($record.upstream_tag) { $record.upstream_tag } else { $record.tag }
 }
 if (-not $LlamaCpp) {
-  throw "no tag of the llama.cpp build, run make download-llama.cpp or give -LlamaCpp"
+  throw "no llama.cpp build tag, run make download-llama.cpp or pass -LlamaCpp"
 }
 
 if (-not $Machine) {
@@ -69,13 +69,13 @@ function Test-Wanted($name) {
 }
 
 # Write-Lines writes a file with no byte order mark, which the tool expects.
-# An empty list gives an empty file, because a pipeline with no output is null.
+# An empty list writes an empty file, because a pipeline with no output is null.
 function Write-Lines($path, $lines) {
   $text = [string[]]@(@($lines) | Where-Object { $null -ne $_ } | ForEach-Object { "$_" })
   [System.IO.File]::WriteAllLines($path, $text)
 }
 
-# Get-DeviceInfo collects what the machine says about the device of a backend.
+# Get-DeviceInfo collects what the machine reports about a backend's device.
 function Get-DeviceInfo($backend, $path) {
   try {
     switch ($backend) {
@@ -92,8 +92,8 @@ function Update-Section($suiteName, $backend, $device, $output, $info) {
   $argv = @("run", "./cmd/yzma-bench", "update", "--file", $file, "--suite", $suiteName,
     "--backend", $backend, "--machine", $Machine, "--label", $Label,
     "--llamacpp", $LlamaCpp, "--yzma", $yzmaVersion, "--output", $output)
-  # PowerShell removes an empty argument, thus --device would take the name of
-  # the next flag as its value.
+  # PowerShell drops an empty argument, so --device would take the next flag
+  # name as its value.
   if ($device) { $argv += @("--device", $device) }
   if ((Test-Path $info) -and (Get-Item $info).Length -gt 0) { $argv += @("--device-info", $info) }
   if ($DryRun) { $argv += "--dry-run" }
@@ -101,8 +101,8 @@ function Update-Section($suiteName, $backend, $device, $output, $info) {
   if ($LASTEXITCODE -ne 0) { throw "yzma-bench failed" }
 }
 
-# Invoke-Suites runs both suites for one device. The benchmarks take -nctx and
-# -device, which go test only gives to the package that it runs in.
+# Invoke-Suites runs both suites on one device. The benchmarks take -nctx and
+# -device, which go test only passes to the package it runs in.
 function Invoke-Suites($backend, $device, $record, $info) {
   $ctx = $NCtx
   if ($ctx -eq 0) { $ctx = if ($backend -eq "cpu") { 8192 } else { 32000 } }
@@ -114,15 +114,15 @@ function Invoke-Suites($backend, $device, $record, $info) {
       default { throw "unknown suite: $suiteName" }
     }
     if ($suiteName -eq "multimodal" -and -not (Test-Path $env:YZMA_BENCHMARK_MMMODEL)) {
-      Write-Warning "no multimodal model at $($env:YZMA_BENCHMARK_MMMODEL), the suite is not run"
+      Write-Warning "no multimodal model at $($env:YZMA_BENCHMARK_MMMODEL), skipping the suite"
       continue
     }
 
     $out = Join-Path $work "$suiteName-$backend-$device.txt"
     Write-Host "==> $suiteName, $backend ($device)"
 
-    # Each argument is one string, because PowerShell can divide a bare
-    # argument that has a dash and a variable.
+    # Each argument is one string, because PowerShell can split a bare
+    # argument that contains a dash and a variable.
     $argv = @("test", "-benchtime=$BenchTime", "-count=$Count", "-run=nada",
       "-bench", "$bench", "-nctx=$ctx")
     if ($Threads -gt 0) { $argv += "-threads=$Threads" }
@@ -130,7 +130,7 @@ function Invoke-Suites($backend, $device, $record, $info) {
     if ($device) { $argv += "-device=$device" }
     $command = "> cd $pkg; go " + ($argv -join " ")
     Write-Host $command
-    # Show each line when it comes. A suite takes many minutes.
+    # Show each line as it arrives. A suite takes many minutes.
     Push-Location (Join-Path $root $pkg)
     & go @argv 2>&1 | Tee-Object -Variable result | Out-Host
     Pop-Location
@@ -141,9 +141,9 @@ function Invoke-Suites($backend, $device, $record, $info) {
   }
 }
 
-# The device list of llama.cpp says which backends this machine has. The first
-# go command builds the packages, thus it is slow.
-Write-Host "==> the devices of this machine"
+# The llama.cpp device list shows which backends this machine has. The first
+# go command builds the packages, so it is slow.
+Write-Host "==> devices on this machine"
 $devices = Join-Path $work "devices.txt"
 Write-Lines $devices (& go run . system -lib $env:YZMA_LIB)
 Get-Content $devices | Write-Host
@@ -154,8 +154,8 @@ if (-not $Label) {
     if ($lines[$i] -match "Backend:\s*CPU") {
       $description = $lines | Select-Object -Skip $i | Where-Object { $_ -match "Description:" } | Select-Object -First 1
       if ($description) { $Label = ($description -replace ".*Description:\s*", "") }
-      # Some builds give "CPU" as the description, which is no name for a
-      # machine.
+      # Some builds report "CPU" as the description, which is no use as a
+      # machine name.
       if ($Label -eq "CPU") { $Label = "" }
       break
     }
@@ -168,8 +168,8 @@ $ranCPU = $false
 foreach ($line in $lines) {
   if ($line -match "^Device \d+:\s*(.*)$") { $device = $Matches[1].Trim() }
   elseif ($line -match "Backend:\s*(.*)$") {
-    # A name of a variable has no case in PowerShell. The name $backend here
-    # would write on the $Backend parameter and stop each device.
+    # PowerShell variable names are case insensitive. Using $backend here
+    # would overwrite the $Backend parameter and break every device.
     $devBackend = $Matches[1].Trim().ToLower()
     $info = Join-Path $work "$devBackend-$device.txt"
     if ($devBackend -eq "cpu") {

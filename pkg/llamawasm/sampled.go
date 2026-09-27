@@ -2,13 +2,13 @@
 
 package llamawasm
 
-// llama.cpp can put the sampler in the compute graph, thus the backend gives
-// the token and the values that made it. The calls here read that result and
-// follow the ones in pkg/llama. This is experimental in llama.cpp.
+// llama.cpp can put the sampler in the compute graph, so the backend returns
+// the token and the values that produced it. The calls here read that result
+// and follow the ones in pkg/llama. This is experimental in llama.cpp.
 
-// SetSampler attaches a sampler to a sequence of a context, which makes the
-// backend sample while it decodes. It gives false when the backend does not
-// take the sampler, and the program then samples itself with SamplerSample.
+// SetSampler attaches a sampler to a context sequence, so the backend samples
+// while it decodes. It returns false when the backend does not accept the
+// sampler, and the program then samples itself with SamplerSample.
 func SetSampler(ctx Context, seqID SeqId, sampler Sampler) (bool, error) {
 	if !Loaded() {
 		return false, ErrNotLoaded
@@ -24,8 +24,8 @@ func SetSampler(ctx Context, seqID SeqId, sampler Sampler) (bool, error) {
 	return rc == 1, nil
 }
 
-// GetSampledTokenIth gives the token that the backend sampled for the output
-// at i. It gives TokenNull when the backend sampled no token.
+// GetSampledTokenIth returns the token that the backend sampled for output i.
+// It returns TokenNull when the backend sampled no token.
 func GetSampledTokenIth(ctx Context, i int32) (Token, error) {
 	if !Loaded() {
 		return TokenNull, ErrNotLoaded
@@ -34,7 +34,7 @@ func GetSampledTokenIth(ctx Context, i int32) (Token, error) {
 		return TokenNull, ErrNoBackendSampling
 	}
 
-	// A token can be -1, thus only the value of a bad handle is an error.
+	// A token can be -1, so only the bad handle value is an error.
 	rc := call("_yzma_get_sampled_token_ith", int(ctx), int(i))
 	if rc <= errBadHandle {
 		return TokenNull, shimError("_yzma_get_sampled_token_ith", rc)
@@ -42,39 +42,38 @@ func GetSampledTokenIth(ctx Context, i int32) (Token, error) {
 	return Token(rc), nil
 }
 
-// GetSampledProbsCountIth gives the number of probabilities that the backend
-// sampler made for the output at i.
+// GetSampledProbsCountIth returns the number of probabilities the backend
+// sampler produced for output i.
 func GetSampledProbsCountIth(ctx Context, i int32) (int32, error) {
 	return sampledCount("_yzma_get_sampled_probs_count_ith", ctx, i)
 }
 
-// GetSampledLogitsCountIth gives the number of logits that the backend sampler
-// made for the output at i.
+// GetSampledLogitsCountIth returns the number of logits the backend sampler
+// produced for output i.
 func GetSampledLogitsCountIth(ctx Context, i int32) (int32, error) {
 	return sampledCount("_yzma_get_sampled_logits_count_ith", ctx, i)
 }
 
-// GetSampledCandidatesCountIth gives the number of candidates that the backend
-// sampler made for the output at i.
+// GetSampledCandidatesCountIth returns the number of candidates the backend
+// sampler produced for output i.
 func GetSampledCandidatesCountIth(ctx Context, i int32) (int32, error) {
 	return sampledCount("_yzma_get_sampled_candidates_count_ith", ctx, i)
 }
 
-// GetSampledProbsIth gives the probabilities of the output at i. The n
-// argument is GetSampledProbsCountIth of the same output.
+// GetSampledProbsIth returns the probabilities for output i. The n argument
+// is GetSampledProbsCountIth of the same output.
 func GetSampledProbsIth(ctx Context, i, n int32) ([]float32, error) {
 	return sampledFloats("_yzma_get_sampled_probs_ith", ctx, i, n)
 }
 
-// GetSampledLogitsIth gives the logits of the output at i. The n argument is
+// GetSampledLogitsIth returns the logits for output i. The n argument is
 // GetSampledLogitsCountIth of the same output.
 func GetSampledLogitsIth(ctx Context, i, n int32) ([]float32, error) {
 	return sampledFloats("_yzma_get_sampled_logits_ith", ctx, i, n)
 }
 
-// GetSampledCandidatesIth gives the tokens that the backend sampler kept for
-// the output at i. The n argument is GetSampledCandidatesCountIth of the same
-// output.
+// GetSampledCandidatesIth returns the tokens the backend sampler kept for
+// output i. The n argument is GetSampledCandidatesCountIth of the same output.
 func GetSampledCandidatesIth(ctx Context, i, n int32) ([]Token, error) {
 	if !Loaded() {
 		return nil, ErrNotLoaded
@@ -97,7 +96,7 @@ func GetSampledCandidatesIth(ctx Context, i, n int32) ([]Token, error) {
 	return readTokens(ptr, int(n)), nil
 }
 
-// sampledCount reads one of the three counts of the backend sampler.
+// sampledCount reads one of the three backend sampler counts.
 func sampledCount(name string, ctx Context, i int32) (int32, error) {
 	if !Loaded() {
 		return 0, ErrNotLoaded
@@ -108,7 +107,7 @@ func sampledCount(name string, ctx Context, i int32) (int32, error) {
 	return callErr(name, int(ctx), int(i))
 }
 
-// sampledFloats reads one of the two float arrays of the backend sampler.
+// sampledFloats reads one of the two backend sampler float arrays.
 func sampledFloats(name string, ctx Context, i, n int32) ([]float32, error) {
 	if !Loaded() {
 		return nil, ErrNotLoaded

@@ -33,7 +33,7 @@ type Options struct {
 	EnableThinking bool
 
 	// Tools are the tool definitions offered to the model. When empty the tools
-	// variable stays undefined, thus a template takes its plain path.
+	// variable stays undefined, so a template takes its plain path.
 	Tools []message.ToolDefinition
 }
 
@@ -87,8 +87,8 @@ func ApplyWithOptions(tmpl string, messages []message.Message, addAssistantPromp
 	return t.Render(vars)
 }
 
-// ApplyWithTools applies a jinja chat template and offers the tool definitions
-// to it. A template that has no tools branch ignores them.
+// ApplyWithTools applies a jinja chat template and passes it the tool definitions.
+// A template with no tools branch ignores them.
 func ApplyWithTools(tmpl string, messages []message.Message, tools []message.ToolDefinition, addAssistantPrompt bool) (string, error) {
 	opts := DefaultOptions()
 	opts.Tools = tools
@@ -96,9 +96,8 @@ func ApplyWithTools(tmpl string, messages []message.Message, tools []message.Too
 	return ApplyWithOptions(tmpl, messages, addAssistantPrompt, opts)
 }
 
-// toolsContext turns the tool definitions into the plain values that a template
-// needs. It goes through JSON, thus tojson gives the form that the templates of
-// the models expect.
+// toolsContext converts the tool definitions into the plain values a template
+// needs. It goes through JSON, so tojson produces the form model templates expect.
 func toolsContext(tools []message.ToolDefinition) ([]any, error) {
 	raw, err := json.Marshal(tools)
 	if err != nil {

@@ -9,13 +9,12 @@ import (
 
 var procGetLogicalProcessorInformationEx = windows.NewLazySystemDLL("kernel32.dll").NewProc("GetLogicalProcessorInformationEx")
 
-// relationProcessorCore asks for one record for each physical core.
+// relationProcessorCore requests one record per physical core.
 const relationProcessorCore = 0
 
-// mathCores counts the cores of this machine that do the arithmetic well. It
-// is the number of physical cores, and on a machine with performance cores and
-// efficiency cores it leaves the efficiency cores out. The count is 0 when
-// the system says nothing, and then the caller uses its own default.
+// mathCores counts the compute cores on this machine. It is the number of
+// physical cores, leaving out efficiency cores on a hybrid machine. It returns
+// 0 when the system reports nothing, and the caller then uses its own default.
 func mathCores() int {
 	buf := processorCores()
 	if buf == nil {
@@ -24,12 +23,12 @@ func mathCores() int {
 	return countPerformanceCores(buf)
 }
 
-// mathCPUs gives nothing on Windows. This package does not hold threads to a
-// CPU there.
+// mathCPUs returns nil on Windows. This package does not pin threads to CPUs
+// there.
 func mathCPUs() []int32 { return nil }
 
-// processorCores gives the SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX records of
-// the physical cores, or nil when the call fails.
+// processorCores returns the SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX records
+// for the physical cores, or nil when the call fails.
 func processorCores() []byte {
 	if procGetLogicalProcessorInformationEx.Find() != nil {
 		return nil
@@ -49,7 +48,7 @@ func processorCores() []byte {
 }
 
 // countPerformanceCores counts the cores with the highest EfficiencyClass. A
-// machine with one kind of core gives 0 to each core, thus all of them count.
+// machine with one kind of core reports 0 for every core, so all of them count.
 func countPerformanceCores(buf []byte) int {
 	counts := map[byte]int{}
 	best := -1

@@ -29,23 +29,23 @@ On Linux and macOS.
 ./benchmarks/run.sh
 ```
 
-On Windows. Use a PowerShell prompt in the directory of the repository. A
-Command Prompt opens the file in an editor and does not run it. PowerShell does
-not run a script until the policy of the machine permits it. This command gives
-the policy for one run.
+On Windows, use a PowerShell prompt in the repository directory. A Command
+Prompt opens the file in an editor instead of running it. PowerShell won't run a
+script unless the machine's execution policy allows it, so this command sets the
+policy for one run.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\benchmarks\run.ps1
 ```
 
-A full run is long. The first go command builds the packages, and each suite
-takes many minutes. The script shows each command and each line of the
-benchmarks when they come.
+A full run takes a while. The first go command builds the packages, and each
+suite takes many minutes. The script prints each command and each benchmark line
+as it arrives.
 
-The script asks llama.cpp which devices the machine has, runs the text
-benchmark and the multimodal benchmark for each one, and puts each result in the
-file of the platform. The tag of the llama.cpp build comes from
-`yzma-install.json` of the library directory.
+The script asks llama.cpp which devices the machine has, runs the text and
+multimodal benchmarks on each one, and writes each result to the platform's
+file. The llama.cpp build tag comes from `yzma-install.json` in the library
+directory.
 
 Useful flags.
 
@@ -54,52 +54,51 @@ Useful flags.
 ./benchmarks/run.sh --suite text            # one suite only
 ./benchmarks/run.sh --machine jetson-orin-nano --label "Jetson Orin Nano 8GB"
 ./benchmarks/run.sh --llamacpp b10964       # when the library came from elsewhere
-./benchmarks/run.sh --threads 24            # a thread count of your own
-./benchmarks/run.sh --threadpool            # hold each thread to a core
+./benchmarks/run.sh --threads 24            # a custom thread count
+./benchmarks/run.sh --threadpool            # pin each thread to a core
 ./benchmarks/run.sh --dry-run               # print the result, change no file
 ```
 
-The text benchmark uses the thread count of `llama.ModelThreads`, which is 4 for
-SmolLM-135M on each machine with 4 or more cores. The model is too small to
-use more threads. Each token has little arithmetic, and the threads wait for
-each other after each operation, thus more threads make it slower. On an Apple
-M4 Pro, 4 threads give more than 900 tokens a second and 10 threads give much
-less. With the same count on each machine, the text tables measure the same
-work, and they agree with the older rows, which used the 4 threads of llama.cpp.
+The text benchmark uses the thread count from `llama.ModelThreads`, which is 4
+for SmolLM-135M on any machine with 4 or more cores. The model is too small to
+use more threads. Each token needs little arithmetic, and the threads wait for
+each other after each operation, so more threads make it slower. On an Apple M4
+Pro, 4 threads reach more than 900 tokens a second and 10 threads are much
+slower. With the same count on every machine, the text tables measure the same
+work, and they match the older rows, which used the llama.cpp default of 4.
 
-The multimodal benchmark uses one thread for each performance core of the
-machine, as a program of yzma does. Its model does more work for each token,
-thus this suite shows what a large processor can do.
+The multimodal benchmark uses one thread per performance core, as a yzma
+program does. Its model does more work per token, so this suite shows what a
+large processor can do.
 
-Use `--threads` to try another count for both suites. `--threads 0` gives the
-default of yzma. For text, this count comes from the model size. For
-multimodal, it is one thread for each performance core.
+Use `--threads` to try another count for both suites. `--threads 0` uses the
+yzma default. For text, that count comes from the model size. For multimodal,
+it is one thread per performance core.
 
-`--threadpool` holds each thread to a performance CPU of its own. Without it the
-system moves the threads while the work goes on, which makes a short run read
-low and gives a different answer each time. It works only on Linux. macOS and
-Windows do not say which CPUs are performance CPUs, thus the benchmark stops
-with an error there.
+`--threadpool` pins each thread to its own performance CPU. Without it the
+system moves threads around during the run, which makes a short run read low
+and vary from run to run. It works only on Linux. macOS and Windows don't report
+which CPUs are performance CPUs, so the benchmark fails with an error there.
 
-The PowerShell script takes the same names with one dash and a capital, as
-`-Machine`, `-Backend`, `-DryRun` and so on. The flags go after the name of the
-file.
+The PowerShell script takes the same flags with one dash and a capital
+letter, such as `-Machine`, `-Backend` and `-DryRun`. The flags go after the
+file name.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\benchmarks\run.ps1 -Backend vulkan -DryRun
 ```
 
-The machine name is part of the key of a section. Give the same name each time,
+The machine name is part of each section key. Use the same name every time,
 or the file gets two sections for one machine. The default is the host name.
 
-## Comparing engines to engines
+## Comparing engines
 
 This suite measures yzma against a model server. yzma calls llama.cpp in the
 same process. ollama and Docker Model Runner answer over an OpenAI compatible
 REST interface. The suite shows what that round trip costs.
 
-It is a separate script, because its needs are different. The servers must run,
-and each one must have the model.
+It is a separate script because it has different needs. The servers must be
+running, and each one must have the model.
 
 ```shell
 make download-compare-models
@@ -107,28 +106,28 @@ docker model pull hf.co/qwen/qwen3-vl-4b-instruct-gguf:q4_k_m
 ./benchmarks/compare.sh
 ```
 
-Each engine must read the same GGUF file. Thus the commands take the file of
-Hugging Face and not `gemma4:e4b` or `ai/gemma3`, which are the conversions of a
-vendor. The script says which command gets a model that is absent.
+Each engine must read the same GGUF file. So the commands use the Hugging
+Face file and not `gemma4:e4b` or `ai/gemma3`, which are vendor conversions. The
+script tells you which command fetches a missing model.
 
 Two things about the servers.
 
-- The reference of Docker Model Runner must be lower case. An upper case
-  reference gives "Invalid model reference".
-- ollama 0.34 does not follow the redirect of Hugging Face to its CDN, thus
-  `ollama pull hf.co/...` fails. The script gives ollama the file of
-  `MODELS_DIR` instead, which makes sure that it reads the same bytes. Mount
-  that directory in the container of ollama.
+- Docker Model Runner model references must be lower case. An upper case
+  reference fails with "Invalid model reference".
+- ollama 0.34 doesn't follow the Hugging Face redirect to its CDN, so
+  `ollama pull hf.co/...` fails. The script gives ollama the file from
+  `MODELS_DIR` instead, which makes sure it reads the same bytes. Mount that
+  directory in the ollama container.
 
 ```shell
 docker run -d --gpus all -v ollama:/root/.ollama -v "$HOME/models:/models:ro" \
   -p 11434:11434 --name ollama ollama/ollama:latest
 ```
 
-`OLLAMA_CONTAINER` names that container, and `OLLAMA_MODELS_DIR` says where the
+`OLLAMA_CONTAINER` names that container, and `OLLAMA_MODELS_DIR` is where the
 models are inside it. Set `OLLAMA_CONTAINER=` when ollama runs on the host.
 
-Useful flags. They are the flags of `run.sh` where they mean the same thing.
+Useful flags. They match the `run.sh` flags where the meaning is the same.
 
 ```shell
 ./benchmarks/compare.sh --engine yzma            # one engine only
@@ -144,13 +143,13 @@ Useful flags. They are the flags of `run.sh` where they mean the same thing.
 | Gemma 4 E2B Q4_K_M | `gemma4-e2b` | `unsloth/gemma-4-E2B-it-GGUF` |
 | SmolVLM-256M-Instruct Q8_0 | `smolvlm-256m` | `ggml-org/SmolVLM-256M-Instruct-GGUF` |
 
-`smolvlm-256m` is the model of the other suites. Use it for a quick check of
-the engines, because it needs no large download.
+`smolvlm-256m` is the model the other suites use. Use it for a quick check of
+the engines, since it needs no large download.
 
 ### The llama.cpp build of each engine
 
-Each engine brings its own build of llama.cpp, thus the same GGUF file does not
-give the same work.
+Each engine ships its own llama.cpp build, so the same GGUF file does not mean
+the same work.
 
 | Engine | Build |
 | --- | --- |
@@ -158,7 +157,7 @@ give the same work.
 | Docker Model Runner | pinned in its image, b9879 in version 1.2 |
 | ollama | its own fork |
 
-Ask the server which build it has. The answer of Docker Model Runner gives it in
+Ask the server which build it has. Docker Model Runner returns it in
 `system_fingerprint`.
 
 ```shell
@@ -168,18 +167,18 @@ curl -s http://localhost:12434/engines/v1/chat/completions \
   sed -n 's/.*"system_fingerprint":"\([^"]*\)".*/\1/p'
 ```
 
-The runner of Docker Model Runner is a container. `docker model install-runner`
-does nothing when that container runs already, thus a new plugin can keep an old
-engine. To make it new again, remove it first. The models stay, because they are
-in a volume of their own.
+The Docker Model Runner runner is a container. `docker model install-runner`
+does nothing when that container is already running, so a new plugin can keep an
+old engine. To update it, remove it first. The models stay, because they live in
+their own volume.
 
 ```shell
 docker model uninstall-runner
 docker model install-runner
 ```
 
-A new runner can have a different user than the old one. When the models then
-give "permission denied", give the volume to the user of the new runner.
+A new runner can run as a different user than the old one. If the models then
+fail with "permission denied", give the volume to the new runner's user.
 
 ```shell
 docker run --rm -v docker-model-runner-models:/models alpine chown -R 995:995 /models
@@ -187,66 +186,66 @@ docker run --rm -v docker-model-runner-models:/models alpine chown -R 995:995 /m
 
 ### ollama and chat templates
 
-ollama does not use the chat template from the GGUF model that it imports. It gives
-the model `TEMPLATE {{ .Prompt }}`, which sends the words of the prompt with no
-User turn and no Assistant turn. The model then answers something else than the
-other engines.
+ollama doesn't use the chat template from the GGUF model it imports. It gives
+the model `TEMPLATE {{ .Prompt }}`, which sends the prompt text with no user turn
+and no assistant turn. The model then answers differently from the other
+engines.
 
-For an architecture that ollama knows, such as gemma4, it gives a `RENDERER`
-instead, which frames the chat correctly. For an architecture that it does not
-know, such as idefics3 of SmolVLM, the template of `modelFiles` in
-`compare.sh` gives the frame.
+For an architecture ollama knows, such as gemma4, it uses a `RENDERER`
+instead, which frames the chat correctly. For one it doesn't know, such as
+SmolVLM's idefics3, the template in `modelFiles` in `compare.sh` provides the
+framing.
 
-The script refuses a model that has no renderer and no template, thus this
-fault cannot reach a table without notice.
+The script refuses a model that has no renderer and no template, so this
+fault can't slip into a table unnoticed.
 
-Both models take text and images, thus one model covers both suites. The
-addresses of the servers come from `OLLAMA_URL` and `DMR_URL`.
+Both models take text and images, so one model covers both suites. The server
+addresses come from `OLLAMA_URL` and `DMR_URL`.
 
 This script is for Linux and macOS. There is no PowerShell twin yet.
 
-After a run, read what the script prints. It gives the answer of each engine
-and the count of the prompt tokens of each engine.
+After a run, read what the script prints. It shows each engine's answer and
+prompt token count.
 
 Each run gets an image and a prompt that no engine has seen. A server answers a
-repeat of the same request from its cache, 40 times faster in one measurement,
-while yzma empties its cache after each generation. The benchmark would else
-compare a warm server with a cold yzma.
+repeated request from its cache, 40 times faster in one measurement, while yzma
+clears its cache after each generation. Otherwise the benchmark would compare a
+warm server with a cold yzma.
 
-The number of a request counts across each `-count` of a run, thus no count
-repeats the requests of the one before. The warmup request is not timed and
-no timed request repeats it. Before this, ollama answered the images of the
-second count from its cache in 190 ms, against 540 ms for a new image.
+Request numbers keep counting across each `-count` of a run, so no count repeats
+the requests of the one before. The warmup request is not timed and no timed
+request repeats it. Before this, ollama answered the second count's images from
+its cache in 190 ms, against 540 ms for a new image.
 
-The count of the prompt tokens is the check that matters. Two engines can give
-a similar answer and still do different work. A different count always means a
-different prompt, or a different preprocessing of the image. The script says so
-and the numbers must not go in a table.
+The prompt token count is the check that matters. Two engines can give similar
+answers and still do different work. A different count always means a different
+prompt, or different image preprocessing. The script flags it, and those numbers
+must not go in a table.
 
-One gap is known and accepted. ollama counts 5 tokens more than yzma and Docker
-Model Runner for an image, on each model and at each image size, while the
-answers agree. That is less than 3 percent of the image suite prompt.
+One gap is known and accepted. ollama counts 5 more tokens per image than yzma
+and Docker Model Runner, on every model and at every image size, while the
+answers match. That is less than 3 percent of the image suite prompt.
 
-An image gives most of the prompt tokens. A projector that cuts the image into
-tiles gives three times the tokens of one that does not, thus it does three
-times the work of the vision model. Use `-image-min-tokens` and
-`-image-max-tokens` to set that budget for yzma.
+The image makes up most of the prompt tokens. A projector that cuts the image
+into tiles produces three times the tokens of one that doesn't, so the vision
+model does three times the work. Use `-image-min-tokens` and `-image-max-tokens`
+to set that budget for yzma.
 
-Each engine scales an image in its own way. ollama scales a small Qwen3-VL image
-up to about 1000 tokens. The llama.cpp of Docker Model Runner scales a Gemma 4
-image down to 280 tokens, and a newer build does not. The script therefore
-gives each model an image of a size that no engine changes, 1280x960 for
-qwen3-vl-2b and 768x576 for gemma4-e2b. `-image-size` sets it.
+Each engine scales images its own way. ollama scales a small Qwen3-VL image up
+to about 1000 tokens. The llama.cpp in Docker Model Runner scales a Gemma 4
+image down to 280 tokens, and a newer build does not. So the script gives each
+model an image size that no engine changes, 1280x960 for qwen3-vl-2b and 768x576
+for gemma4-e2b. `-image-size` sets it.
 
-The multimodal suite makes the GPU of a laptop hot, and a hot GPU lowers its
-clock. Before each engine the script waits until the GPU is at 60 degrees or
-less. Give `--cool` another limit for a machine that stays warmer when idle.
+The multimodal suite heats up a laptop GPU, and a hot GPU lowers its clock.
+Before each engine the script waits until the GPU is at 60 degrees or less. Pass
+`--cool` a different limit for a machine that idles warmer.
 
-The image goes before the text in each engine. The count of the prompt tokens
-does not show the order, but the model answers another prompt.
+Every engine gets the image before the text. The prompt token count doesn't
+show the order, but the model sees a different prompt.
 
-The code is in [benchmarks/compare](compare). The conditions that make the
-engines equal are in [comparison.md](comparison.md).
+The code is in [benchmarks/compare](compare). The conditions that keep the
+engines on equal terms are in [comparison.md](comparison.md).
 
 ## WebAssembly
 
@@ -259,10 +258,10 @@ make wasm-example
 ```
 
 WebGPU needs a browser, which no script here can drive. Serve the example, open
-the page, paste [browser-bench.js](browser-bench.js) in the console, and give
-the result to the tool. Set `gpu` in the script and `--device` in the tool on a
-machine with two GPUs. The output gives the llama.cpp build, which the page
-reads from `yzma-install.json` of the build directory.
+the page, paste [browser-bench.js](browser-bench.js) into the console, and pass
+the result to the tool. On a machine with two GPUs, set `gpu` in the script and
+`--device` in the tool. The output includes the llama.cpp build, which the page
+reads from `yzma-install.json` in the build directory.
 
 ```shell
 make serve-wasm
@@ -273,11 +272,11 @@ go run ./cmd/yzma-bench update --file benchmarks/webassembly.md \
 
 ## How results are saved
 
-Each result is a section between markers, and the key is
-`<suite>/<backend>/<arch>/<machine>[/<device>]`. A new run of the same key
-replaces that section only. The table of each suite is a generated block, which
-[cmd/yzma-bench](../cmd/yzma-bench) makes again from the sections. Thus a table
-and its sections cannot disagree.
+Each result is a section between markers, with the key
+`<suite>/<backend>/<arch>/<machine>[/<device>]`. A new run with the same key
+replaces only that section. Each suite's table is a generated block that
+[cmd/yzma-bench](../cmd/yzma-bench) rebuilds from the sections, so a table and
+its sections can't disagree.
 
 Do not edit a table by hand. To check a file after an edit:
 
@@ -285,11 +284,11 @@ Do not edit a table by hand. To check a file after an edit:
 go run ./cmd/yzma-bench check benchmarks/*.md
 ```
 
-Each section must say which llama.cpp build made it. The tool refuses a result
-that has no tag, thus the numbers of a table always compare the same thing.
+Each section must record which llama.cpp build produced it. The tool refuses a
+result with no tag, so the numbers in a table always compare the same thing.
 
-To delete a result that is not comparable any more, for example after a change
-of the model, give its key to `remove`.
+To delete a result that is no longer comparable, for example after a model
+change, pass its key to `remove`.
 
 ```shell
 go run ./cmd/yzma-bench remove --file benchmarks/linux.md \
@@ -298,9 +297,9 @@ go run ./cmd/yzma-bench remove --file benchmarks/linux.md \
 
 ## What is measured
 
-The benchmarks report tokens a second with `b.ReportMetric`, and the table gives
-the median of the runs. The comparison suite reports two more metrics, the time
-to the first token and the time of a whole request.
+The benchmarks report tokens a second with `b.ReportMetric`, and the table
+shows the median of the runs. The comparison suite reports two more metrics,
+time to first token and total request time.
 
 | Suite | Code | Model |
 | --- | --- | --- |
@@ -309,5 +308,5 @@ to the first token and the time of a whole request.
 | multimodal | [pkg/mtmd/benchmark_test.go](../pkg/mtmd/benchmark_test.go) | SmolVLM-256M-Instruct Q8_0 with its projector |
 | node, browser | [examples/wasm/chat](../examples/wasm/chat) | SmolLM-135M Q2_K |
 
-The WebAssembly numbers come from the generation loop of the example, thus they
-are not comparable with the native tables.
+The WebAssembly numbers come from the example's generation loop, so they are
+not comparable with the native tables.

@@ -53,7 +53,7 @@ var (
 	// releasePattern is the format of a llama.cpp tagged release, for example "v0.3.0".
 	releasePattern = regexp.MustCompile(`^v[0-9]+\.[0-9]+\.[0-9]+`)
 
-	// nightlyTagURL is the URL of the asset in a tagged llama.cpp release that gives
+	// nightlyTagURL is the URL of the asset in a tagged llama.cpp release that holds
 	// the nightly build tag. A tagged release has no binaries of its own.
 	// https://github.com/ggml-org/llama.cpp/releases
 	nightlyTagURL = "https://github.com/ggml-org/llama.cpp/releases/download/%s/nightly-tag.txt"
@@ -83,8 +83,8 @@ func getLatestVersion() (string, error) {
 	return file.TagName, nil
 }
 
-// versionFile is what version.json and previous.json hold. Only the tag has always
-// been there, so a file with no digest is a file for a release that published none.
+// versionFile is the content of version.json and previous.json. Only the tag has always
+// been there, so a file with no digest is for a release that published none.
 type versionFile struct {
 	// TagName is the llama.cpp release tag.
 	TagName string `json:"tag_name"`
@@ -97,8 +97,8 @@ type versionFile struct {
 	Pin string `json:"pin"`
 }
 
-// getVersionFile reads one of the version files. The tag must be valid, because that
-// is the field every caller needs.
+// getVersionFile reads one of the version files. The tag must be valid, because every
+// caller needs it.
 func getVersionFile(url string) (versionFile, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -243,7 +243,7 @@ func get(ctx context.Context, asset Asset, dest string, progress getter.Progress
 	}
 
 	// Use go-getter for other file types (e.g., .zip). go-getter checks the digest
-	// itself and does not unpack an archive that does not agree.
+	// itself and does not unpack an archive that fails the check.
 	src := url
 	if asset.SHA256 != "" {
 		src += "?checksum=sha256:" + asset.SHA256
@@ -270,8 +270,8 @@ func get(ctx context.Context, asset Asset, dest string, progress getter.Progress
 	return nil
 }
 
-// isNotFound tells if go-getter stopped because the server answered 404. It reads the
-// message of go-getter, which gives no error value of its own.
+// isNotFound reports whether go-getter stopped because the server returned 404. It
+// parses the go-getter message, since go-getter has no error value for this.
 func isNotFound(err error) bool {
 	return strings.Contains(err.Error(), "bad response code: 404")
 }
@@ -423,14 +423,14 @@ func VersionIsValid(version string) error {
 	return nil
 }
 
-// IsTaggedRelease tells if version is a tagged llama.cpp release such as "v0.3.0",
+// IsTaggedRelease reports whether version is a tagged llama.cpp release such as "v0.3.0",
 // which needs [LlamaNightlyTag] to find the build with the binaries.
 func IsTaggedRelease(version string) bool {
 	return releasePattern.MatchString(version)
 }
 
 // LlamaNightlyTag returns the nightly build tag that has the binaries for a llama.cpp
-// version. A nightly tag such as "b10620" gives itself. A tagged release such as
+// version. A nightly tag such as "b10620" returns itself. A tagged release such as
 // "v0.3.0" has no binaries of its own, so the nightly build tag comes from the
 // nightly-tag.txt asset of that release.
 func LlamaNightlyTag(version string) (string, error) {

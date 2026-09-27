@@ -7,37 +7,36 @@ import (
 	"fmt"
 )
 
-// Errors of [Batch.Add] and [Batch.SetLogit]. They agree with the errors of the
-// llama package, thus the same code builds for a native platform and for a
-// browser.
+// Errors from [Batch.Add] and [Batch.SetLogit]. They match the llama package
+// errors, so the same code builds for a native platform and for a browser.
 var (
-	// ErrBatchFull means that the batch already holds the tokens that
+	// ErrBatchFull means the batch already holds as many tokens as
 	// BatchInit gave it room for.
 	ErrBatchFull = errors.New("batch is full")
 
-	// ErrTooManySeqIDs means that the call gave more sequence identifiers
-	// than the nSeqMax of the batch.
+	// ErrTooManySeqIDs means the call passed more sequence IDs than the
+	// batch nSeqMax.
 	ErrTooManySeqIDs = errors.New("too many sequence IDs for batch")
 
-	// ErrBatchNotWritable means that the batch holds no arrays to write. A
-	// batch of the zero value and a batch from BatchGetOne do not.
+	// ErrBatchNotWritable means the batch has no arrays to write. A zero
+	// value batch and a batch from BatchGetOne have none.
 	ErrBatchNotWritable = errors.New("batch owns no writable token arrays")
 
-	// ErrBatchIndexRange means that the index does not address a token of the
+	// ErrBatchIndexRange means the index does not point to a token in the
 	// batch.
 	ErrBatchIndexRange = errors.New("batch index out of range")
 
-	// ErrNoBatch says that the module is from a release before the calls that
-	// take a batch with positions, which are in ABI version 6 and later.
+	// ErrNoBatch means the module predates the calls that take a batch with
+	// positions, which arrived in ABI version 6.
 	ErrNoBatch = errors.New("llamawasm: this llama.cpp module has no batch calls, install a newer build")
 )
 
-// BatchGetOne makes a batch that holds the given tokens. The positions of the
-// tokens continue from the state of the context that decodes the batch, and
-// every token goes to sequence 0.
+// BatchGetOne creates a batch that holds the given tokens. Token positions
+// continue from the state of the context that decodes the batch, and every
+// token goes to sequence 0.
 //
-// The batch holds no arrays of its own, thus [Batch.Add] and [Batch.SetLogit]
-// report [ErrBatchNotWritable] on it. Use [BatchInit] for a batch to fill in.
+// The batch has no arrays of its own, so [Batch.Add] and [Batch.SetLogit]
+// return [ErrBatchNotWritable] on it. Use [BatchInit] for a batch to fill in.
 func BatchGetOne(tokens []Token) Batch {
 	return Batch{
 		NTokens: int32(len(tokens)),
@@ -45,14 +44,14 @@ func BatchGetOne(tokens []Token) Batch {
 	}
 }
 
-// BatchInit makes a batch with room for nTokens tokens, each one with a
-// maximum of nSeqMax sequence identifiers. Fill it with [Batch.Add].
+// BatchInit creates a batch with room for nTokens tokens, each with up to
+// nSeqMax sequence IDs. Fill it with [Batch.Add].
 //
 // The embd argument is always 0 here. A WebAssembly module cannot take an
-// embedding as the input of a batch, because the shim has no call for it.
+// embedding as batch input, because the shim has no call for it.
 //
-// The batch is an ordinary Go value, thus [BatchFree] is not necessary. It
-// exists so that the same code builds for a native platform.
+// The batch is an ordinary Go value, so [BatchFree] is not needed. It
+// exists so the same code builds for a native platform.
 func BatchInit(nTokens int32, embd int32, nSeqMax int32) Batch {
 	if nTokens < 1 || nSeqMax < 1 || embd != 0 {
 		return Batch{}
@@ -71,33 +70,33 @@ func BatchInit(nTokens int32, embd int32, nSeqMax int32) Batch {
 	}
 }
 
-// BatchFree does nothing. The memory of a batch belongs to Go here, thus the
-// garbage collector takes it.
+// BatchFree does nothing. Batch memory belongs to Go here, so the garbage
+// collector reclaims it.
 func BatchFree(batch Batch) error {
 	return nil
 }
 
-// Tokens gives the tokens of the batch.
+// Tokens returns the tokens in the batch.
 func (b Batch) Tokens() []Token {
 	return b.tokens[:b.NTokens]
 }
 
-// Clear sets the number of tokens of the batch to zero.
+// Clear sets the batch token count to zero.
 func (b *Batch) Clear() error {
 	b.NTokens = 0
 
 	return nil
 }
 
-// writable tells if the batch holds the arrays that Add and SetLogit write.
+// writable reports whether the batch has the arrays that Add and SetLogit write.
 func (b *Batch) writable() bool {
 	return b.capTokens > 0 && b.pos != nil && b.nSeqID != nil && b.seqIDs != nil && b.logits != nil
 }
 
-// SetLogit sets if the model computes the logits of the token at index idx.
+// SetLogit sets whether the model computes logits for the token at index idx.
 //
-// The index must address a token that the batch already holds, thus it must be
-// below NTokens. llama.cpp reads a flag only inside that range.
+// The index must point to a token the batch already holds, so it must be
+// below NTokens. llama.cpp only reads flags inside that range.
 func (b *Batch) SetLogit(idx int32, logits bool) error {
 	if !b.writable() {
 		return ErrBatchNotWritable
@@ -115,13 +114,12 @@ func (b *Batch) SetLogit(idx int32, logits bool) error {
 	return nil
 }
 
-// Add puts a token in the batch with its position, its sequences, and its
-// logit flag.
+// Add appends a token to the batch with its position, sequences, and logit
+// flag.
 //
-// It writes nothing and gives an error if the batch is full ([ErrBatchFull]),
-// if seqIDs holds more identifiers than the nSeqMax of the batch
-// ([ErrTooManySeqIDs]), or if the batch holds no arrays to write
-// ([ErrBatchNotWritable]).
+// It writes nothing and returns an error if the batch is full ([ErrBatchFull]),
+// if seqIDs has more IDs than the batch nSeqMax ([ErrTooManySeqIDs]), or if
+// the batch has no arrays to write ([ErrBatchNotWritable]).
 func (b *Batch) Add(token Token, pos Pos, seqIDs []SeqId, logits bool) error {
 	if !b.writable() {
 		return ErrBatchNotWritable
@@ -143,8 +141,8 @@ func (b *Batch) Add(token Token, pos Pos, seqIDs []SeqId, logits bool) error {
 	start := int(i) * int(b.capSeq)
 	copy(b.seqIDs[start:start+int(b.capSeq)], seqIDs)
 
-	// SetLogit measures the index against NTokens, thus the count must hold
-	// the new token before the flag of it can change.
+	// SetLogit checks the index against NTokens, so the count must include
+	// the new token before its flag can change.
 	b.NTokens++
 
 	return b.SetLogit(i, logits)

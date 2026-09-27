@@ -1,6 +1,6 @@
-// loader-test.js tests the choice that yzma-loader.js makes, with no browser
-// and no llama.cpp. It gives the loader a false document and false builds, so
-// the tests cover the paths that need a GPU that computes wrong values.
+// loader-test.js tests which build yzma-loader.js picks, without a browser or
+// llama.cpp. It gives the loader a fake document and fake builds, so the tests
+// can cover a GPU that computes wrong values.
 //
 // Run it with: node wasm/node/loader-test.js
 
@@ -11,8 +11,8 @@ const fs = require("node:fs");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "yzma-loader.js"), "utf8");
 
-// fakeWorld makes the globals that the loader reads. The adapter and the result
-// of the self test come from the options, thus each test describes one machine.
+// fakeWorld creates the globals the loader reads. The adapter and the self test
+// result come from the options, so each test describes one machine.
 function fakeWorld({ mode, power, gpu, f16, jspi, threads, check, agent }) {
   const loaded = [];
   const requests = [];
@@ -41,8 +41,8 @@ function fakeWorld({ mode, power, gpu, f16, jspi, threads, check, agent }) {
     };
   }
 
-  // The loader appends a script tag. Answer it with a factory that gives a
-  // false module of the build that the name asks for.
+  // The loader appends a script tag. Answer it with a factory that returns a
+  // fake module for the named build.
   world.document = {
     head: {
       appendChild(element) {
@@ -87,7 +87,7 @@ async function main() {
     }
   };
 
-  // A GPU that agrees with the CPU keeps the build on the GPU.
+  // A GPU that matches the CPU keeps the GPU build.
   {
     const r = await run({ gpu: true, check: "ok" });
     console.log("a GPU that computes correct values");
@@ -97,7 +97,7 @@ async function main() {
     check("no reason to reject", r.world.yzmaGPUReject, undefined);
   }
 
-  // A GPU that computes wrong values gives the build on the CPU instead.
+  // A GPU that computes wrong values falls back to the CPU build.
   {
     const r = await run({ gpu: true, check: "wrong" });
     console.log("a GPU that computes wrong values");
@@ -108,7 +108,7 @@ async function main() {
     check("gives the reason", typeof r.world.yzmaGPUReject, "string");
   }
 
-  // The same machine with the headers for threads takes the faster CPU build.
+  // The same machine with the thread headers picks the faster CPU build.
   {
     const r = await run({ gpu: true, check: "wrong", threads: true });
     console.log("a GPU that computes wrong values, with threads");
@@ -118,7 +118,7 @@ async function main() {
     check("says it has threads", r.world.yzmaThreaded, true);
   }
 
-  // A self test that throws counts as a GPU that is not usable.
+  // A self test that throws counts as an unusable GPU.
   {
     const r = await run({ gpu: true, check: "throws" });
     console.log("a self test that throws");
@@ -126,7 +126,7 @@ async function main() {
     check("gives the reason", typeof r.world.yzmaGPUReject, "string");
   }
 
-  // A build from before ABI version 8 has no self test, thus it stays.
+  // A build before ABI version 8 has no self test, so it stays.
   {
     const r = await run({ gpu: true, check: "missing" });
     console.log("a build with no self test");
@@ -151,7 +151,7 @@ async function main() {
     check("llama.cpp asks with its own options", r.requests[1], { powerPreference: undefined });
   }
 
-  // A preference goes to the test of the loader and to the request of llama.cpp.
+  // A preference applies to the loader test and to the llama.cpp request.
   {
     const r = await run({ power: "high-performance", gpu: true, check: "ok" });
     await r.world.navigator.gpu.requestAdapter({ powerPreference: undefined });

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# run.sh runs the benchmarks of this machine and puts each result in the
-# markdown file of the platform. See benchmarks/README.md.
+# run.sh runs the benchmarks on this machine and writes each result to the
+# platform's markdown file. See benchmarks/README.md.
 set -euo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -24,17 +24,17 @@ usage() {
 usage: benchmarks/run.sh [flags]
 
   --machine NAME     short name of this machine, default the host name
-  --label TEXT       name of the machine to show, default the CPU
+  --label TEXT       display name of the machine, default the CPU
   --backend LIST     all, cpu, cuda, rocm, vulkan, metal, wasm
   --suite LIST       text, multimodal, or both
   --llamacpp TAG     tag of the llama.cpp build, default from yzma-install.json
   --nctx N           context tokens, default 8192 on the CPU and 32000 on a GPU
   --threads N        CPU threads, default from the model size for text and
-                     one for each performance core for multimodal
-  --threadpool       hold the CPU threads to the performance cores
-  --count N          runs of each benchmark, default 5
-  --benchtime D      time of each run, default 10s
-  --tokens N         tokens of each run, WebAssembly only, default 64
+                     one per performance core for multimodal
+  --threadpool       pin the CPU threads to the performance cores
+  --count N          runs per benchmark, default 5
+  --benchtime D      time per run, default 10s
+  --tokens N         tokens per run, WebAssembly only, default 64
   --dry-run          print the result and change no file
 EOF
 }
@@ -74,12 +74,12 @@ case "$(uname -s)" in
   *) echo "this script is for Linux and macOS, use run.ps1 on Windows" >&2; exit 2 ;;
 esac
 
-# jsonValue takes one value of a flat JSON file, thus the script needs no jq.
+# jsonValue reads one value from a flat JSON file, so the script needs no jq.
 jsonValue() {
   sed -n 's/.*"'"$2"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$1" 2>/dev/null | head -1
 }
 
-# installTag gives the llama.cpp build of a library directory. A nightly build
+# installTag returns the llama.cpp build of a library directory. A nightly build
 # has no upstream_tag, because its own tag names the assets.
 installTag() {
   local record=$1/yzma-install.json
@@ -102,7 +102,7 @@ machine=$(echo "$machine" | tr '[:upper:] ' '[:lower:]-' | tr -cd 'a-z0-9._-')
 
 has() { command -v "$1" >/dev/null 2>&1; }
 
-# deviceInfo collects what the machine says about the device of a backend.
+# deviceInfo collects what the machine reports about a backend's device.
 deviceInfo() {
   case "$1" in
     cuda)
@@ -141,7 +141,7 @@ update() {
 yzma_version=$(sed -n 's/.*currentVersion = "\(.*\)".*/\1/p' version.go)
 
 # runNative BACKEND DEVICE INFO [RECORD]. DEVICE goes to go test, RECORD goes
-# in the table. The CPU gets no device in the table, because a machine has one.
+# in the table. The CPU gets no device in the table, since a machine has only one.
 runNative() {
   local backend=$1 device=$2 info=$3 record=${4-$2}
   local ctx=$nctx
@@ -172,20 +172,20 @@ runNative() {
       *) echo "unknown suite: $suite" >&2; exit 2 ;;
     esac
     if [ "$suite" = multimodal ] && [ ! -f "$YZMA_BENCHMARK_MMMODEL" ]; then
-      echo "no multimodal model at $YZMA_BENCHMARK_MMMODEL, the suite is not run" >&2
+      echo "no multimodal model at $YZMA_BENCHMARK_MMMODEL, skipping the suite" >&2
       continue
     fi
 
     local out=$work/$suite-$backend-${device:-cpu}.txt
     echo "==> $suite, $backend ${device:+($device)}"
-    # The benchmarks take -nctx and -device, which go test only gives to the
-    # test binary of the package that it runs in.
+    # The benchmarks take -nctx and -device, which go test only passes to the
+    # test binary of the package it runs in.
     if ! {
       echo "\$ cd $pkg && go test -benchtime=$benchtime -count=$count -run=nada -bench $bench -nctx=$ctx ${tflag:+$tflag} ${pflag:+$pflag} ${flag:+$flag}"
       (cd "$root/$pkg" && go test -benchtime="$benchtime" -count="$count" -run=nada \
         -bench "$bench" -nctx="$ctx" ${tflag:+"$tflag"} ${pflag:+"$pflag"} ${flag:+"$flag"} 2>&1)
     } | tee "$out"; then
-      echo "the run of $suite on $backend failed, the file keeps the numbers it has" >&2
+      echo "the $suite run on $backend failed, the file keeps its current numbers" >&2
       continue
     fi
 
@@ -195,13 +195,13 @@ runNative() {
 
 runWasm() {
   file=benchmarks/webassembly.md
-  # The WebAssembly modules come from their own install, thus the tag of the
-  # native library does not apply here.
+  # The WebAssembly modules come from their own install, so the native
+  # library tag does not apply here.
   if [ -z "$llamacpp" ]; then
     llamacpp=$(installTag "$WASM_DIR")
   fi
   if [ -z "$llamacpp" ]; then
-    echo "no tag of the llama.cpp build, run make download-llama.cpp-wasm or give --llamacpp" >&2
+    echo "no llama.cpp build tag, run make download-llama.cpp-wasm or pass --llamacpp" >&2
     exit 2
   fi
   if [ ! -f "$WASM_DIR/yzma.wasm" ]; then
@@ -221,7 +221,7 @@ runWasm() {
     echo "==> WebAssembly in Node, $mode"
     if ! node wasm/node/bench.js --dir "${WASM_DIR#"$root"/}" --model "$YZMA_BENCHMARK_MODEL" \
       --tokens "$tokens" --count "$count" $flag | tee "$out"; then
-      echo "the run of $mode failed, the file keeps the numbers it has" >&2
+      echo "the $mode run failed, the file keeps its current numbers" >&2
       continue
     fi
 
@@ -241,7 +241,7 @@ if [ -z "$llamacpp" ]; then
   llamacpp=$(installTag "$YZMA_LIB")
 fi
 if [ -z "$llamacpp" ]; then
-  echo "no tag of the llama.cpp build, run make download-llama.cpp or give --llamacpp" >&2
+  echo "no llama.cpp build tag, run make download-llama.cpp or pass --llamacpp" >&2
   exit 2
 fi
 
@@ -250,14 +250,14 @@ if [ ! -f "$YZMA_BENCHMARK_MODEL" ]; then
   exit 2
 fi
 
-# The device list of llama.cpp says which backends this machine has.
+# The llama.cpp device list shows which backends this machine has.
 devices=$work/devices.txt
 go run . system -lib "$YZMA_LIB" > "$devices"
 
 if [ -z "$label" ]; then
   label=$(awk '/Backend:[[:space:]]*CPU/{found=1} found && /Description:/{sub(/.*Description:[[:space:]]*/,""); print; exit}' "$devices")
-  # Some builds give "CPU" as the description, which is no name for a machine.
-  # A board gives its name in the device tree.
+  # Some builds report "CPU" as the description, which is no use as a machine
+  # name. A board has its name in the device tree.
   if [ -z "$label" ] || [ "$label" = CPU ]; then
     label=$(tr -d '\000' < /proc/device-tree/model 2>/dev/null || true)
   fi

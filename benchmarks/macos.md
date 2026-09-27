@@ -1,9 +1,9 @@
 # macOS benchmarks
 
-Benchmarks of yzma on macOS. Each table gives the median of five runs. The output
-of each run, and of the device, is below the tables.
+Benchmarks of yzma on macOS. Each table shows the median of five runs. The output
+of each run, and the device details, are below the tables.
 
-To add a machine or to make these numbers again, see
+To add a machine or to regenerate these numbers, see
 [how to run the benchmarks](README.md).
 
 ## Summary
@@ -15,7 +15,7 @@ Tokens a second on each machine.
 | Apple M4 Pro | 903.5 | 511.5 | 503.2 | 904.3 | 1091.0 | 571.0 |
 
 - For text, the CPU is the fastest backend, 1.8 times faster than Metal. The
-  text model is very small, thus the GPU has too little work for each token.
+  text model is very small, so the GPU has too little work per token.
 - For multimodal, Metal is the fastest backend, 21 percent faster than the CPU.
 - BLAS is the slowest backend for both suites.
 

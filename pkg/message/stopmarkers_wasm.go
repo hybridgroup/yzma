@@ -6,9 +6,9 @@ import (
 	"github.com/hybridgroup/yzma/pkg/llamawasm"
 )
 
-// eotCandidates are the end of turn tokens of the usual instruct models. A
-// module from a release before ABI version 5 has no call that gives this token,
-// thus the vocabulary decides which of these are real.
+// eotCandidates are the end of turn tokens of common instruct models. A module
+// from a release before ABI version 5 cannot return this token, so the
+// vocabulary decides which of these are real.
 var eotCandidates = []string{
 	"<|im_end|>",
 	"<end_of_turn>",
@@ -23,11 +23,10 @@ func StopMarkers(vocab llamawasm.Vocab, format Format) []string {
 	return StopMarkersFor(eotMarkers(vocab), format)
 }
 
-// eotMarkers gives the end of turn text of the model.
+// eotMarkers returns the model's end of turn text.
 //
-// It takes the token of the vocabulary, the same as the version for a host. A
-// module from a release before ABI version 5, or a model with no such token,
-// goes to guessEOTMarkers.
+// It uses the vocabulary token, like the host version. A module from a release
+// before ABI version 5, or a model with no such token, falls back to guessEOTMarkers.
 func eotMarkers(vocab llamawasm.Vocab) []string {
 	eot := llamawasm.VocabEOT(vocab)
 	if eot < 0 {
@@ -47,9 +46,9 @@ func eotMarkers(vocab llamawasm.Vocab) []string {
 	return markers
 }
 
-// guessEOTMarkers takes the text of the end of sequence token, which is the
-// same token for most instruct models, and adds each candidate that the
-// vocabulary holds as one token.
+// guessEOTMarkers uses the end of sequence token text, which is the same token
+// for most instruct models, and adds each candidate that the vocabulary has as
+// a single token.
 func guessEOTMarkers(vocab llamawasm.Vocab) []string {
 	buf := make([]byte, 64)
 

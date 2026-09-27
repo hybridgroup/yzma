@@ -15,7 +15,7 @@ const (
 	TypeChoice Type = "choice"
 	// TypeScore picks one of 2 to 10 ordered levels.
 	TypeScore Type = "score"
-	// TypeNoul decides if a statement is false or true.
+	// TypeNoul decides whether a statement is false or true.
 	TypeNoul Type = "noul"
 )
 

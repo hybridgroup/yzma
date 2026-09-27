@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// coreRecord makes one record of GetLogicalProcessorInformationEx for a core.
+// coreRecord builds one GetLogicalProcessorInformationEx record for a core.
 func coreRecord(class byte) []byte {
 	b := make([]byte, 48)
 	binary.LittleEndian.PutUint32(b[0:], relationProcessorCore)

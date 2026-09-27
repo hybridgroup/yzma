@@ -53,7 +53,7 @@ func TestMedian(t *testing.T) {
 	}
 }
 
-// newDocument copies the base file, because put and buildTables change it.
+// newDocument copies the base file, because put and buildTables modify it.
 func newDocument(t *testing.T) *document {
 	t.Helper()
 
@@ -280,14 +280,14 @@ func TestParseBenchmarkTakesEveryMetric(t *testing.T) {
 	if result.totalMs != 411.6 {
 		t.Errorf("total_ms = %v, want 411.6", result.totalMs)
 	}
-	// The count of the prompt tokens says if the engines do the same work.
+	// The prompt token count shows whether the engines do the same work.
 	if result.promptTokens != 215 {
 		t.Errorf("prompt_tokens = %v, want 215", result.promptTokens)
 	}
 }
 
-// The suites that came before report tokens/s only, thus the new metrics stay
-// empty and the parser must not fail.
+// The older suites report only tokens/s, so the new metrics stay empty and the
+// parser must not fail.
 func TestParseBenchmarkWithoutTheNewMetrics(t *testing.T) {
 	result, err := parseBenchmark(readTestdata(t, "text-cuda.txt"))
 	if err != nil {
@@ -347,8 +347,8 @@ func TestCompareSuitePutsTheEnginesOfOneModelTogether(t *testing.T) {
 	}
 }
 
-// A model server has no llama.cpp tag of ours, thus the release of the engine
-// takes that place.
+// A model server has no llama.cpp tag of ours, so the engine release takes
+// its place.
 func TestCompareSuiteTakesTheReleaseOfTheEngine(t *testing.T) {
 	m := compareMeta()
 	m.Backend = "ollama"

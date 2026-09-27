@@ -20,7 +20,7 @@ import (
 // manifest keyed only by name would be ambiguous. See llama-cpp-builder b10783.
 const collidingName = "llama-b10783-bin-ubuntu-vulkan-arm64.tar.gz"
 
-// testManifest builds a manifest that holds one asset for each source.
+// testManifest builds a manifest with one asset per source.
 func testManifest() *manifest {
 	return &manifest{
 		Version:     1,
@@ -112,7 +112,7 @@ func TestVerifyFile(t *testing.T) {
 		t.Errorf("verifyFile() with an upper case digest failed: %v", err)
 	}
 
-	// An empty digest checks nothing, which VerifyIfAvailable permits.
+	// An empty digest checks nothing, which VerifyIfAvailable allows.
 	if err := verifyFile(path, ""); err != nil {
 		t.Errorf("verifyFile() with no digest failed: %v", err)
 	}
@@ -156,10 +156,10 @@ func TestFetchManifest(t *testing.T) {
 	}
 }
 
-// serveManifest starts a server that gives a manifest naming the assets in digests,
-// and points both manifest URLs at it for the length of the test, as a release that
-// publishes both copies does. It gives back the SHA-256 of the manifest bytes, in
-// hexadecimal, which a test pins with [Target.ManifestSHA256].
+// serveManifest starts a server that returns a manifest listing the assets in digests,
+// and points both manifest URLs at it for the test, like a release that publishes both
+// copies. It returns the SHA-256 of the manifest bytes, in hexadecimal, which a test
+// pins with [Target.ManifestSHA256].
 func serveManifest(t *testing.T, tag string, digests map[string]string) string {
 	t.Helper()
 
@@ -215,8 +215,8 @@ func TestDefaultResolverWithNoManifest(t *testing.T) {
 	digestsURL = server.URL + "/digests/%s.json"
 	defer func() { digestsURL = original }()
 
-	// A manifest that is not there must not stop the resolver. The policy decides
-	// what happens to an asset that has no digest.
+	// A missing manifest must not stop the resolver. The policy decides what
+	// happens to an asset without a digest.
 	assets, err := defaultResolver{}.ResolveAssets(Target{
 		Arch: ARM64, OS: Linux, Processor: CPU, Version: "b10783",
 	})
@@ -276,8 +276,8 @@ func TestInstallStopsOnADigestThatDoesNotAgree(t *testing.T) {
 	}
 }
 
-// A destination whose name holds "404" must not make a digest that does not agree
-// look like a file that is not there.
+// A destination whose name contains "404" must not make a digest mismatch look like
+// a missing file.
 func TestInstallStopsOnADigestThatDoesNotAgreeUnderA404Path(t *testing.T) {
 	body := createMockTarGz(t, "b10783")
 
@@ -432,8 +432,8 @@ func TestVerifyOffDoesNotFetchAManifest(t *testing.T) {
 }
 
 func TestFetchManifestPrefersTheReleaseAsset(t *testing.T) {
-	// The two copies hold the same bytes in a real release. They differ here only so
-	// that the manifest says which one answered.
+	// In a real release the two copies have the same bytes. They differ here only so
+	// the test can tell which one answered.
 	asset := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"version":1,"tag":"b10783","upstream_tag":"asset"}`)
 	}))
@@ -481,7 +481,7 @@ func TestFetchManifestFallsBackToTheVersionSite(t *testing.T) {
 		t.Errorf("the manifest came from %q, want the version site", m.UpstreamTag)
 	}
 
-	// A manifest in neither place is an error, and only then.
+	// Only a manifest missing from both places is an error.
 	digestsURL = asset.URL + "/digests/%s.json"
 	if _, err := fetchManifest(context.Background(), "b10783", ""); err == nil {
 		t.Error("fetchManifest() with no manifest anywhere returned no error")
@@ -489,7 +489,7 @@ func TestFetchManifestFallsBackToTheVersionSite(t *testing.T) {
 }
 
 // serveVersionFile points currentVersionURL and previousVersionURL at a server that
-// gives the two bodies for the length of the test.
+// returns the two bodies for the rest of the test.
 func serveVersionFile(t *testing.T, current, previous string) {
 	t.Helper()
 
@@ -562,7 +562,7 @@ func TestManifestDigestFromTheVersionFiles(t *testing.T) {
 func TestManifestDigestFromTheRelease(t *testing.T) {
 	digest := strings.Repeat("cd", 32)
 
-	// The version files name another tag, so the release has the answer.
+	// The version files name another tag, so the answer comes from the release.
 	serveVersionFile(t, `{"tag_name":"b10784"}`, `{"tag_name":"b10782"}`)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	// ErrDigestMismatch means a downloaded asset does not have the bytes that the
+	// ErrDigestMismatch means a downloaded asset does not match the digest the
 	// publisher recorded for it.
 	ErrDigestMismatch = errors.New("digest does not match")
 
@@ -29,7 +29,7 @@ var (
 	ErrInvalidDigest = errors.New("invalid digest")
 
 	// ErrVerifyDisabled means a pinned digest was given with [VerifyOff]. A pin asks
-	// for a check, so the two do not agree.
+	// for a check, so the two conflict.
 	ErrVerifyDisabled = errors.New("a pinned digest needs verification, which is off")
 
 	// ErrNoManifestDigest means a release published no digest manifest, so there is no
@@ -37,46 +37,45 @@ var (
 	ErrNoManifestDigest = errors.New("no manifest digest is published")
 )
 
-// manifestAssetURL is the URL of the digest manifest for a llama.cpp release tag as an
-// asset of the release that it describes. GitHub publishes a SHA-256 for every release
-// asset, so this is the copy whose digest a caller can know before the download. The
-// tag names both the release and the asset.
+// manifestAssetURL is the URL of the digest manifest for a llama.cpp release tag, stored
+// as an asset of that release. GitHub publishes a SHA-256 for every release asset, so a
+// caller can know this copy's digest before the download. The tag names both the
+// release and the asset.
 var manifestAssetURL = "https://github.com/hybridgroup/llama-cpp-builder/releases/download/%[1]s/%[1]s.json"
 
 // digestsURL is the same manifest on the site that serves the version files. It is the
-// fallback for a release that was published before the manifest was an asset, and it
-// does not use the GitHub API, which rate limits. See the llama-cpp-builder repo for
-// how the manifests are made.
+// fallback for releases published before the manifest was an asset, and it avoids the
+// rate limited GitHub API. See the llama-cpp-builder repo for how the manifests are made.
 var digestsURL = "https://hybridgroup.github.io/llama-cpp-builder/digests/%s.json"
 
-// releaseAPIURL is the GitHub release for a tag. It gives the digest that GitHub
-// recorded for each asset, including the manifest. This rate limits, so it is only
-// read when the version files do not name the tag.
+// releaseAPIURL is the GitHub release for a tag. It returns the digest GitHub recorded
+// for each asset, including the manifest. It is rate limited, so it is only read when
+// the version files do not name the tag.
 var releaseAPIURL = "https://api.github.com/repos/hybridgroup/llama-cpp-builder/releases/tags/%s"
 
-// VerifyPolicy says what [Install] does about the digest of an asset.
+// VerifyPolicy controls how [Install] checks the digest of an asset.
 type VerifyPolicy int
 
 const (
-	// VerifyIfAvailable checks an asset that has a digest and permits one that does
+	// VerifyIfAvailable checks assets that have a digest and allows those that do
 	// not. This is the default.
 	VerifyIfAvailable VerifyPolicy = iota
 
-	// VerifyRequired makes an asset with no digest an error. Use it where the
-	// libraries must be known, such as a deployment that is measured.
+	// VerifyRequired makes an asset with no digest an error. Use it when the
+	// libraries must be known, such as in a measured deployment.
 	VerifyRequired
 
 	// VerifyOff checks nothing.
 	VerifyOff
 )
 
-// VerifyWarning is called for each asset that installs with no digest under
-// [VerifyIfAvailable]. Set it to nil to say nothing.
+// VerifyWarning is called for each asset installed without a digest under
+// [VerifyIfAvailable]. Set it to nil to silence it.
 var VerifyWarning = func(url string) {
 	fmt.Fprintf(os.Stderr, "yzma: no digest for %s, installed with no check\n", url)
 }
 
-// Asset is a release asset to install and, when it is known, the digest of its bytes.
+// Asset is a release asset to install and, when known, the digest of its bytes.
 type Asset struct {
 	// URL is where the asset is downloaded from.
 	URL string `json:"url"`
@@ -87,8 +86,8 @@ type Asset struct {
 }
 
 // AssetResolver reports the assets to install for a Target with their expected
-// digests. [Install] takes it in place of [Resolver] when a resolver has both, so an
-// existing [Resolver] keeps working and gives no digests.
+// digests. [Install] prefers it over [Resolver] when a resolver implements both, so an
+// existing [Resolver] keeps working and just reports no digests.
 type AssetResolver interface {
 	ResolveAssets(target Target) (assets []Asset, err error)
 }
@@ -96,16 +95,16 @@ type AssetResolver interface {
 // sha256Pattern matches the hexadecimal form of a SHA-256 digest.
 var sha256Pattern = regexp.MustCompile(`^[0-9a-fA-F]{64}$`)
 
-// ParsePinnedVersion splits a version that carries the expected digest of its digest
-// manifest. It takes either form.
+// ParsePinnedVersion splits a version that carries the expected digest of its
+// manifest. It accepts either form.
 //
 //	b10785
 //	b10785@sha256:<64 hexadecimal characters>
 //
-// A version with no digest gives an empty digest and no error, so a caller can pass
-// any version through this. What a digest pins is the manifest that names the digest
-// of every asset of the release. One version selects a different set of assets for
-// each target, so no single archive digest covers them all.
+// A version with no digest returns an empty digest and no error, so a caller can pass
+// any version through it. The digest pins the manifest, which lists the digest of every
+// asset in the release. One version selects different assets for each target, so no
+// single archive digest covers them all.
 //
 // "latest" and an empty version name whichever release is newest at the time, so
 // neither can carry a digest.
@@ -135,8 +134,8 @@ func ParsePinnedVersion(version string) (tag string, digest string, err error) {
 	return tag, strings.ToLower(value), nil
 }
 
-// manifest holds the digests that a llama.cpp release publishes. The assets come from
-// more than one repository, and an asset name can occur in more than one of them with
+// manifest holds the digests a llama.cpp release publishes. The assets come from
+// several repositories, and the same asset name can appear in more than one with
 // different bytes, so the assets are grouped by the repository that published them.
 type manifest struct {
 	Version     int                       `json:"version"`
@@ -151,20 +150,20 @@ type manifestSource struct {
 	Assets map[string]manifestAsset `json:"assets"`
 }
 
-// manifestAsset holds the digest of one asset. Files and Links describe what the
-// asset holds, which only the repository that built it can report.
+// manifestAsset holds the digest of one asset. Files and Links describe its contents,
+// which only the repository that built it can report.
 type manifestAsset struct {
 	SHA256 string            `json:"sha256"`
 	Files  map[string]string `json:"files,omitempty"`
 	Links  map[string]string `json:"links,omitempty"`
 }
 
-// assetURLPattern matches a GitHub release asset URL, and gives the repository, the
+// assetURLPattern matches a GitHub release asset URL and captures the repository, the
 // release tag, and the asset name.
 var assetURLPattern = regexp.MustCompile(`^https://github\.com/([^/]+/[^/]+)/releases/download/([^/]+)/([^?]+)`)
 
-// digestFor gives the expected digest of an asset URL, or "" when the manifest does
-// not name it. The repository and the tag must both agree, because the same name can
+// digestFor returns the expected digest of an asset URL, or "" when the manifest does
+// not list it. The repository and the tag must both match, because the same name can
 // belong to a different asset in another repository.
 func (m *manifest) digestFor(url string) string {
 	asset, ok := m.assetFor(url)
@@ -191,23 +190,23 @@ func (m *manifest) assetFor(url string) (manifestAsset, bool) {
 }
 
 // maxManifestSize is the largest digest manifest that fetchManifest reads. A release
-// names about twenty assets, so this is far more than enough.
+// lists about twenty assets, so this is plenty.
 const maxManifestSize = 8 << 20
 
-// fetchManifest gets the digest manifest for a llama.cpp release tag. A want that is
-// not empty is the expected SHA-256 of the raw manifest bytes, in hexadecimal. The
-// bytes are checked before they are decoded.
+// fetchManifest gets the digest manifest for a llama.cpp release tag. A non-empty want
+// is the expected SHA-256 of the raw manifest bytes, in hexadecimal. The bytes are
+// checked before they are decoded.
 //
-// The release asset comes first, because that is the copy whose digest GitHub
-// publishes. A release that has no manifest asset falls back to the site that serves
-// the version files. Both copies hold the same bytes, so a pin checks either one, and
-// a location that does not answer only costs the try.
+// The release asset is tried first, because GitHub publishes its digest. If a release
+// has no manifest asset, it falls back to the site that serves the version files. Both
+// copies have the same bytes, so a pin checks either one, and a location that does
+// not answer only costs one attempt.
 func fetchManifest(ctx context.Context, tag string, want string) (*manifest, error) {
 	m, _, err := fetchManifestBody(ctx, tag, want)
 	return m, err
 }
 
-// fetchManifestBody does the work of [fetchManifest] and gives the raw bytes as well, so
+// fetchManifestBody does the work of [fetchManifest] and also returns the raw bytes, so
 // a caller can keep them for a later check.
 func fetchManifestBody(ctx context.Context, tag string, want string) (*manifest, []byte, error) {
 	var body []byte
@@ -233,9 +232,9 @@ func fetchManifestBody(ctx context.Context, tag string, want string) (*manifest,
 	return m, body, nil
 }
 
-// parseManifest checks the bytes of a manifest against a digest and then decodes them. A
-// want that is not empty is the expected SHA-256, in hexadecimal. The check is on the
-// bytes as they came, because that is what a pin names.
+// parseManifest checks the manifest bytes against a digest and then decodes them. A
+// non-empty want is the expected SHA-256, in hexadecimal. The check runs on the raw
+// bytes, because that is what a pin refers to.
 func parseManifest(body []byte, tag string, want string) (*manifest, error) {
 	if want != "" {
 		sum := sha256.Sum256(body)
@@ -253,9 +252,9 @@ func parseManifest(body []byte, tag string, want string) (*manifest, error) {
 	return &m, nil
 }
 
-// loadCachedManifest reads the manifest that an install left in libPath. It gives false
-// when there is no manifest there, when the bytes do not agree with want, or when the
-// manifest is for another release. A caller then fetches the manifest instead.
+// loadCachedManifest reads the manifest an install left in libPath. It returns false
+// when there is no manifest, when the bytes do not match want, or when the manifest is
+// for another release. The caller then fetches the manifest instead.
 func loadCachedManifest(libPath string, tag string, want string) (*manifest, []byte, bool) {
 	body, err := ReadInstallManifest(libPath)
 	if err != nil {
@@ -303,16 +302,16 @@ func fetchManifestBytes(ctx context.Context, url string, tag string) ([]byte, er
 	return body, nil
 }
 
-// ManifestDigest gives the SHA-256 of the digest manifest for a llama.cpp release tag,
-// in hexadecimal, so that a caller can pin the tag before it installs anything. See
-// [PinnedVersion] for the value that [Install] takes.
+// ManifestDigest returns the SHA-256 of the digest manifest for a llama.cpp release tag,
+// in hexadecimal, so a caller can pin the tag before installing anything. See
+// [PinnedVersion] for the value [Install] accepts.
 //
-// It reads the version files first, because those are the two tags that most callers
-// ask for and they cost no GitHub API request. Any other tag comes from the release,
-// where GitHub publishes the digest of the manifest asset.
+// It reads the version files first, because they cover the two tags most callers ask
+// for and need no GitHub API request. Any other tag is looked up on the release, where
+// GitHub publishes the digest of the manifest asset.
 //
-// A tag whose release published no manifest gives [ErrNoManifestDigest]. That is an
-// answer and not a failure: such a version still installs, without a pin.
+// If the release published no manifest, it returns [ErrNoManifestDigest]. That is an
+// answer, not a failure, and such a version still installs without a pin.
 func ManifestDigest(ctx context.Context, tag string) (string, error) {
 	if err := VersionIsValid(tag); err != nil {
 		return "", fmt.Errorf("%w: %s", err, tag)
@@ -331,8 +330,8 @@ func ManifestDigest(ctx context.Context, tag string) (string, error) {
 	return releaseManifestDigest(ctx, tag)
 }
 
-// PinnedVersion gives the tag with the digest of its manifest, "<tag>@sha256:<digest>",
-// which is the form that [Target.Version] takes. It reports [ErrNoManifestDigest] when
+// PinnedVersion returns the tag with its manifest digest, "<tag>@sha256:<digest>",
+// which is the form [Target.Version] accepts. It returns [ErrNoManifestDigest] when
 // the release published no manifest.
 func PinnedVersion(ctx context.Context, tag string) (string, error) {
 	digest, err := ManifestDigest(ctx, tag)
@@ -343,8 +342,8 @@ func PinnedVersion(ctx context.Context, tag string) (string, error) {
 	return tag + "@sha256:" + digest, nil
 }
 
-// digest gives the manifest digest that a version file names, or "" when it names
-// none. The pin is read when the digest field is absent, so either field is enough.
+// digest returns the manifest digest in a version file, or "" when there is none. The
+// pin is used when the digest field is absent, so either field is enough.
 func (f versionFile) digest() string {
 	if sha256Pattern.MatchString(f.ManifestSHA256) {
 		return strings.ToLower(f.ManifestSHA256)
@@ -388,7 +387,7 @@ func releaseManifestDigest(ctx context.Context, tag string) (string, error) {
 		return "", err
 	}
 
-	// GitHub gives the digest as "sha256:<hex>", and leaves it out while an asset is
+	// GitHub reports the digest as "sha256:<hex>", and omits it while an asset is
 	// still uploading.
 	name := tag + ".json"
 	for _, asset := range release.Assets {
@@ -406,7 +405,7 @@ func releaseManifestDigest(ctx context.Context, tag string) (string, error) {
 }
 
 // verifyFile checks that a file has the expected digest. An empty digest checks
-// nothing, because [VerifyIfAvailable] permits an asset that has none.
+// nothing, because [VerifyIfAvailable] allows assets without one.
 func verifyFile(path, want string) error {
 	if want == "" {
 		return nil
@@ -433,7 +432,7 @@ func verifyFile(path, want string) error {
 
 // ParseVerifyPolicy reads a verify policy name. The names are "available" for
 // [VerifyIfAvailable], "require" for [VerifyRequired], and "off" for [VerifyOff]. An
-// empty name gives the default.
+// empty name returns the default.
 func ParseVerifyPolicy(name string) (VerifyPolicy, error) {
 	switch strings.ToLower(strings.TrimSpace(name)) {
 	case "", "available", "if-available":
@@ -447,7 +446,7 @@ func ParseVerifyPolicy(name string) (VerifyPolicy, error) {
 	}
 }
 
-// String gives the name of a policy.
+// String returns the name of a policy.
 func (p VerifyPolicy) String() string {
 	switch p {
 	case VerifyRequired:

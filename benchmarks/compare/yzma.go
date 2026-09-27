@@ -11,32 +11,32 @@ import (
 	"github.com/hybridgroup/yzma/pkg/mtmd"
 )
 
-// YzmaOptions says which library, model and device the in process engine takes.
+// YzmaOptions sets the library, model and device for the in process engine.
 type YzmaOptions struct {
 	Library   string
 	Model     string
 	Projector string // empty for the text suite
-	Device    string // comma separated, as the other benchmarks take it
+	Device    string // comma separated, as in the other benchmarks
 	NCtx      int
 	NBatch    int
 
-	// ImageMinTokens and ImageMaxTokens give the budget of tokens of an image.
-	// They decide if the projector splits the image into tiles, thus they
+	// ImageMinTokens and ImageMaxTokens set the token budget for an image.
+	// They decide whether the projector splits the image into tiles, so they
 	// decide how much work the engine does. Zero keeps the default.
 	ImageMinTokens int32
 	ImageMaxTokens int32
 
-	// Threads is how many threads the vision model uses. The default of
-	// llama.cpp is 4, while a server takes the count of the machine.
+	// Threads is how many threads the vision model uses. The llama.cpp
+	// default is 4, while a server uses the machine's core count.
 	Threads int32
 
-	// Embeddings makes a context that gives vectors and not tokens. An
-	// embedding model needs it, and a context of one kind cannot do the other.
+	// Embeddings creates a context that returns vectors and not tokens. An
+	// embedding model needs it, and one kind of context can't do the other.
 	Embeddings bool
 }
 
 // yzmaEngine calls llama.cpp in the same process. It has no server and no
-// socket, thus it is the baseline of the comparison.
+// socket, so it is the baseline for the comparison.
 type yzmaEngine struct {
 	opts     YzmaOptions
 	model    llama.Model
@@ -44,16 +44,15 @@ type yzmaEngine struct {
 	mctx     mtmd.Context
 	template string
 
-	// compiled holds the chat template of the model, ready to render. A server
-	// compiles its template one time when it loads the model, thus yzma must
-	// not compile it again for each request. The compiling costs 97 us, and the
-	// rendering alone costs 5 us.
+	// compiled holds the model's chat template, ready to render. A server
+	// compiles its template once at load, so yzma must not recompile it for
+	// each request. Compiling costs 97 us, and rendering alone costs 5 us.
 	compiled *jinja.Template
 	sampler  llama.Sampler
 	loaded   bool
 }
 
-// NewYzma gives the in process engine.
+// NewYzma returns the in process engine.
 func NewYzma(opts YzmaOptions) Engine {
 	return &yzmaEngine{opts: opts}
 }
@@ -123,7 +122,7 @@ func (e *yzmaEngine) Load(req Request) error {
 		e.compiled = t
 	}
 
-	// One sampler for the whole run, as a server also keeps one.
+	// One sampler for the whole run, as a server keeps.
 	e.sampler = llama.SamplerChainInit(llama.SamplerChainDefaultParams())
 	llama.SamplerChainAdd(e.sampler, llama.SamplerInitGreedy())
 
@@ -152,7 +151,7 @@ func (e *yzmaEngine) Load(req Request) error {
 
 	e.loaded = true
 
-	// One request before the timed runs, as the servers also get.
+	// One request before the timed runs, as the servers get.
 	if e.opts.Embeddings {
 		_, err = e.Embed(req)
 
@@ -166,8 +165,8 @@ func (e *yzmaEngine) Load(req Request) error {
 	return err
 }
 
-// Embed turns the prompt into a vector. An embedding model takes the plain
-// text, thus there is no chat template here and no template on the servers.
+// Embed turns the prompt into a vector. An embedding model takes plain text,
+// so there is no chat template here or on the servers.
 func (e *yzmaEngine) Embed(req Request) (Result, error) {
 	defer e.reset()
 
@@ -275,8 +274,8 @@ func (e *yzmaEngine) generateWithImage(req Request) (Result, error) {
 	vocab := llama.ModelGetVocab(e.model)
 	prompt := e.render(mtmd.DefaultMarker() + req.Prompt)
 
-	// The bitmap comes from the bytes of this run. The servers read the same
-	// bytes out of the request, thus both pay for the decoding of the image.
+	// The bitmap comes from this run's bytes. The servers read the same bytes
+	// from the request, so both pay for decoding the image.
 	bitmap := mtmd.BitmapInitFromBuf(e.mctx, &req.Image[0], uint64(len(req.Image)), false, mtmd.InitOptDefault())
 	if bitmap.Bitmap == 0 {
 		return Result{}, fmt.Errorf("unable to read the image")
@@ -333,8 +332,8 @@ func (e *yzmaEngine) generateWithImage(req Request) (Result, error) {
 	return result, nil
 }
 
-// reset empties the KV cache, thus the next generation starts as this one did.
-// The servers do the same between requests.
+// reset clears the KV cache, so the next generation starts the same way this
+// one did. The servers do the same between requests.
 func (e *yzmaEngine) reset() {
 	llama.Synchronize(e.ctx)
 
@@ -345,13 +344,10 @@ func (e *yzmaEngine) reset() {
 	llama.MemoryClear(mem, true)
 }
 
-// applyTemplate renders the chat template of the model. It takes the jinja
-// path, because that is what the servers do. The built in template of
-// llama.cpp is an approximation, and for Gemma 4 it gives 14 tokens where the
-// servers give 22. Thinking is off, thus the engines answer the same way.
-// render puts the text in the chat template of the model. It renders the
-// template that Load compiled, and it does not think, thus the answer matches
-// the servers, which also get no thinking.
+// render puts the text in the model's chat template. It renders the jinja
+// template that Load compiled, as the servers do. The built in llama.cpp
+// template gives 14 tokens on Gemma 4 where the servers give 22. Thinking is
+// off, so the answer matches the servers.
 func (e *yzmaEngine) render(text string) string {
 	if e.compiled != nil {
 		out, err := e.compiled.Render(map[string]any{

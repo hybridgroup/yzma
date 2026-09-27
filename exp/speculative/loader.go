@@ -27,8 +27,8 @@ var (
 	setNextNLayerOffsetFunc ffi.Fun
 )
 
-// prepAny gets the first name that the library exports. It returns the zero
-// ffi.Fun when the library has none of them.
+// prepAny binds the first name that the library exports. It returns the zero
+// ffi.Fun when the library exports none of them.
 func prepAny(lib loader.Lib, names []string, ret *ffi.Type, args ...*ffi.Type) ffi.Fun {
 	for _, name := range names {
 		if fn, err := lib.Prep(name, ret, args...); err == nil {
@@ -39,11 +39,11 @@ func prepAny(lib loader.Lib, names []string, ret *ffi.Type, args ...*ffi.Type) f
 	return ffi.Fun{}
 }
 
-// Load loads the shared llama.cpp library and gets the NextN functions from
-// it. An empty path uses the path that [llama.Load] used, then the YZMA_LIB
-// env variable.
+// Load loads the shared llama.cpp library and binds its NextN functions. An
+// empty path uses the path that [llama.Load] used, then the YZMA_LIB env
+// variable.
 //
-// Load reports an error only when the library does not open. A function that
+// Load returns an error only when the library fails to open. A function that
 // the library does not export stays unbound, and [Available] then reports
 // false. This keeps older llama.cpp builds usable.
 func Load(path string) error {
@@ -89,8 +89,8 @@ func Load(path string) error {
 	return nil
 }
 
-// Available tells if the loaded llama.cpp library exports all of the NextN
-// functions. Callers must use it to select an MTP path.
+// Available reports whether the loaded llama.cpp library exports all of the
+// NextN functions. Callers must check it before they take an MTP path.
 func Available() bool {
 	return setEmbeddingsNextNFunc.Cif != nil &&
 		getEmbeddingsNextNFunc.Cif != nil &&

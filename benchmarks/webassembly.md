@@ -1,28 +1,28 @@
 # WebAssembly benchmarks
 
-Benchmarks of yzma in WebAssembly. Each table gives the median of five runs. The
+Benchmarks of yzma in WebAssembly. Each table shows the median of five runs. The
 output of each run is below the tables.
 
 There are two kinds of run.
 
-- **Node**, which `benchmarks/run.sh --backend wasm` makes with
-  [wasm/node/bench.js](../wasm/node/bench.js). It covers the build with one
-  thread and the build with more threads.
+- **Node**, which `benchmarks/run.sh --backend wasm` runs with
+  [wasm/node/bench.js](../wasm/node/bench.js). It covers the single threaded
+  build and the multithreaded build.
 - **A browser**, which no script here can drive. Serve the example with
-  `make serve-wasm`, paste [browser-bench.js](browser-bench.js) in the console
-  of the page, and give the result to `yzma-bench update`. WebGPU needs this,
-  because `bench.js` has no WebGPU. Set `gpu` in the script to select the GPU
-  on a machine with two.
+  `make serve-wasm`, paste [browser-bench.js](browser-bench.js) into the page
+  console, and pass the result to `yzma-bench update`. WebGPU needs this,
+  because `bench.js` has no WebGPU. On a machine with two GPUs, set `gpu` in
+  the script to pick one.
 
-Both kinds read the llama.cpp build from `yzma-install.json` of the build
-directory, thus each result says which build made it.
+Both kinds read the llama.cpp build from `yzma-install.json` in the build
+directory, so each result records which build produced it.
 
 The model is
 [SmolLM-135M.Q2_K.gguf](https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf)
-and the tokens a second come from the generation loop of
-[examples/wasm/chat](../examples/wasm/chat), which is the loop that the page
-uses. These numbers are not comparable with the native tables, because the
-prompt and the count of tokens are different.
+and the tokens a second come from the generation loop in
+[examples/wasm/chat](../examples/wasm/chat), which is the loop the page uses.
+These numbers are not comparable with the native tables, because the prompt
+and the token count are different.
 
 ## Summary
 
@@ -32,11 +32,10 @@ Tokens a second on each machine.
 | --- | --- | --- | --- | --- | --- |
 | Intel Core i9-13900HX | 13.8 | 105.7 | 92.8 | 19.9 | 69.8 |
 
-- The build with more threads is 7.7 times faster than the build with one
-  thread.
-- In Chrome, the build with more threads gives 88 percent of the speed in Node.
-- On this small model the CPU with more threads is faster than WebGPU. Each
-  operation is too small to pay for the trip to the GPU. The GPU is worth more
+- The multithreaded build is 7.7 times faster than the single threaded build.
+- In Chrome, the multithreaded build reaches 88 percent of its speed in Node.
+- On this small model the multithreaded CPU build is faster than WebGPU. Each
+  operation is too small to pay for the trip to the GPU. The GPU pays off more
   with a larger model and with images.
 - The RTX 4070 is 3.5 times faster than the Intel RPL-S. Chrome on Linux needs
   three switches for WebGPU with Vulkan, see

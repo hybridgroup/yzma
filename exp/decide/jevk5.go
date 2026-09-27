@@ -56,8 +56,8 @@ func ParseJevK5Config(data []byte) (*JevK5Config, error) {
 	return &c, nil
 }
 
-// NewJevK5 loads a JevK5 model and its jevk5_config.json. JevK5 reads the
-// probability of each option from the logit of its letter after a chat prompt.
+// NewJevK5 loads a JevK5 model and its jevk5_config.json. JevK5 takes each
+// option's probability from the logit of its letter after a chat prompt.
 // Load and init llama.cpp first, and call [Decider.Close] when done.
 //
 // As in the reference runtime, the whole prompt is tokenized with special
@@ -183,8 +183,8 @@ func jevK5Prompt(state any, criterion string, texts []string) (string, error) {
 		"<|im_start|>assistant\n<think>\n\n</think>\n\n", nil
 }
 
-// stateLen is the number of leading tokens that prompts about state share no
-// matter the criterion. Passes share at most these, so the kept state is the
+// stateLen is the number of leading tokens that prompts about state share
+// regardless of the criterion. Passes share at most these, so the kept state is the
 // same for every pass.
 func (k *jevK5) stateLen(state any) (int, error) {
 	a, err := jevK5Prompt(state, "a", []string{"a"})
@@ -358,7 +358,7 @@ func (k *jevK5) result(names []string, opts []jevK5Option, p, logits []float64, 
 // passReader reads passes of at most 16 option texts and returns their probabilities.
 type passReader func(passes [][]string) ([][]float64, error)
 
-// knockout gives a probability to each of more than 16 options, as the JevK5
+// knockout assigns a probability to each of more than 16 options, as the JevK5
 // runtime does. The options are split in order into near equal groups of at
 // most 16 and each group is read. A final pass then reads the top options of
 // every group. Finalists keep their final share, times the chance the answer

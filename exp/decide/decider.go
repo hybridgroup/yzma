@@ -27,8 +27,8 @@ type Options struct {
 type ManyMode int
 
 const (
-	// ManyExact decodes the whole ubatches of the state once and each question
-	// on its own. Results are identical to [Decider.Decide].
+	// ManyExact decodes the full ubatches of the state once and each question
+	// separately. Results are identical to [Decider.Decide].
 	ManyExact ManyMode = iota
 	// ManyBatched decodes the whole state once and up to 16 questions in one
 	// decode. It is faster, but probabilities can differ from [Decider.Decide]
@@ -37,7 +37,7 @@ const (
 	// options reach the final pass, which moves its probabilities more.
 	ManyBatched
 
-	// manySeparate decodes each question on its own from an empty memory.
+	// manySeparate decodes each question separately from an empty memory.
 	manySeparate ManyMode = -1
 )
 
@@ -208,7 +208,7 @@ func (d *Decider) DecideMany(state any, qs []Question, category string) ([]*Resu
 }
 
 // score decodes the rendered inputs, which share one state, and returns the
-// logits at each slot for each row token. mode manySeparate decodes each on its own.
+// logits at each slot for each row token. mode manySeparate decodes each separately.
 func (d *Decider) score(rs []*rendered, mode ManyMode) ([][][]float64, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -268,7 +268,7 @@ func sharedLen(rs []*rendered) int {
 	return n
 }
 
-// exact decodes the whole ubatches of the shared state once into sequence 0
+// exact decodes the full ubatches of the shared state once into sequence 0
 // and each input on a copy of it in sequence 1. The ubatch splits are the same
 // as in separate, so the results are identical.
 func (d *Decider) exact(rs []*rendered) ([][][]float64, error) {

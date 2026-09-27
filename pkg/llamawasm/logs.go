@@ -2,9 +2,9 @@
 
 package llamawasm
 
-// The llama.cpp module cannot use a Go function as its log callback. Thus the
-// shim holds the callback and this package only sets the quantity of output.
-// The values below replace the function pointer of llama.LogSet, thus the same
+// The llama.cpp module cannot use a Go function as its log callback. So the
+// shim holds the callback and this package only sets how much it prints.
+// The values below replace the llama.LogSet function pointer, so the same
 // program builds for both.
 const (
 	// LogNormal lets llama.cpp print its messages to the console.
@@ -19,7 +19,7 @@ const (
 )
 
 // LogSet sets how much llama.cpp prints. Pass LogSilent to stop the messages,
-// or LogNormal to let them go to the console of the browser.
+// or LogNormal to send them to the browser console.
 func LogSet(cb uintptr) {
 	if !Loaded() {
 		return
@@ -32,8 +32,7 @@ func LogSet(cb uintptr) {
 	callVoid("_yzma_log_set_verbosity", level)
 }
 
-// LogSilent gives the value that stops the messages of llama.cpp. Pass it to
-// LogSet.
+// LogSilent returns the value that silences llama.cpp. Pass it to LogSet.
 func LogSilent() uintptr {
 	return logSilentValue
 }

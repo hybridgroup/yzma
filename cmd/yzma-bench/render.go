@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// renderSection makes the markdown of one result, between the markers that let
-// an update find it again.
+// renderSection creates the markdown for one result, between the markers that
+// let an update find it again.
 func renderSection(m meta, notes, device, output string) string {
 	encoded, err := json.Marshal(m)
 	if err != nil {

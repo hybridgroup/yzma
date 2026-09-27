@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// backendNames gives the name to show for a backend.
+// backendNames holds the display name for each backend.
 var backendNames = map[string]string{
 	"cpu":         "CPU",
 	"cpu-threads": "CPU, more threads",
@@ -27,7 +27,7 @@ func backendName(backend string) string {
 	return backend
 }
 
-// buildTables makes every table block of the file again from the sections.
+// buildTables rebuilds every table block in the file from the sections.
 func (d *document) buildTables() error {
 	for pass := 0; ; pass++ {
 		block, ok := d.nextTable()
@@ -49,7 +49,7 @@ type tableBlock struct {
 	rows  []string
 }
 
-// nextTable gives the first table block whose rows are not correct yet.
+// nextTable returns the first table block whose rows are not up to date.
 func (d *document) nextTable() (tableBlock, bool) {
 	var blocks []tableBlock
 	var current *tableBlock
@@ -131,7 +131,7 @@ func tableRow(m meta) string {
 		formatRate(m.TokensPerSecond), orUnknown(m.LlamaCPP), orUnknown(m.Date))
 }
 
-// formatCount shows a count of tokens, which is a whole number.
+// formatCount formats a token count, which is a whole number.
 func formatCount(value float64) string {
 	if value == 0 {
 		return "unknown"

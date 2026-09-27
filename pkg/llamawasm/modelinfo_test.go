@@ -99,7 +99,7 @@ func TestModelInfo(t *testing.T) {
 func TestModelSizeAndParams(t *testing.T) {
 	fakeInfo(t)
 
-	// These do not fit an int32, thus the shim gives them as a double.
+	// These do not fit in an int32, so the shim returns them as a double.
 	if got := ModelSize(Model(1)); got != 532517120 {
 		t.Errorf("ModelSize gave %d, want 532517120", got)
 	}
@@ -117,7 +117,7 @@ func TestModelRopeTypeAndStartToken(t *testing.T) {
 	if got := ModelRopeType(Model(1)); got != RopeScalingTypeYARN {
 		t.Errorf("ModelRopeType gave %v, want RopeScalingTypeYARN", got)
 	}
-	// A model with no decoder to start gives -1, which is a value.
+	// A model with no decoder start token returns -1, which is a valid value.
 	if got := ModelDecoderStartToken(Model(1)); got != TokenNull {
 		t.Errorf("ModelDecoderStartToken gave %v, want TokenNull", got)
 	}
@@ -178,7 +178,7 @@ func TestModelMeta(t *testing.T) {
 	if got, ok := ModelMetaKeyByIndex(m, 0); !ok || got != "general.name" {
 		t.Errorf("ModelMetaKeyByIndex gave %q and %v", got, ok)
 	}
-	// This value is larger than the first buffer, thus it needs a second call.
+	// This value is larger than the first buffer, so it needs a second call.
 	if got, ok := ModelMetaValStrByIndex(m, 1); !ok || len(got) != 40000 {
 		t.Errorf("ModelMetaValStrByIndex gave %d bytes and %v, want 40000", len(got), ok)
 	}

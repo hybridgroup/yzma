@@ -3,21 +3,21 @@
 package llamawasm
 
 // The calls here describe llama.cpp and the machine. Each one follows the same
-// call in pkg/llama. A module before ABI version 9 has none of them, thus each
-// gives a zero value.
+// call in pkg/llama. A module before ABI version 9 has none of them, so each
+// returns a zero value.
 
-// PrintSystemInfo gives the features of the CPU and of the backends that
+// PrintSystemInfo returns the features of the CPU and the backends that
 // llama.cpp uses.
 func PrintSystemInfo() string {
 	return callString("_yzma_print_system_info", 1024)
 }
 
-// FtypeName gives the name of a kind of quantization, as ModelFtype gives it.
+// FtypeName returns the name of a quantization type, as returned by ModelFtype.
 func FtypeName(ftype Ftype) string {
 	return callString("_yzma_ftype_name", 64, int(ftype))
 }
 
-// TimeUs gives the time of llama.cpp in microseconds.
+// TimeUs returns the llama.cpp time in microseconds.
 func TimeUs() int64 {
 	if !has("_yzma_time_us") {
 		return 0
@@ -25,13 +25,13 @@ func TimeUs() int64 {
 	return int64(callValue("_yzma_time_us").Float())
 }
 
-// MaxDevices gives the largest number of devices that llama.cpp can use.
+// MaxDevices returns the maximum number of devices llama.cpp can use.
 func MaxDevices() uint64 { return systemUint64("_yzma_max_devices") }
 
-// MaxParallelSequences gives the largest number of sequences of a context.
+// MaxParallelSequences returns the maximum number of sequences in a context.
 func MaxParallelSequences() uint64 { return systemUint64("_yzma_max_parallel_sequences") }
 
-// SupportsGpuOffload tells if the module has a backend that is not the CPU.
+// SupportsGpuOffload reports whether the module has a non CPU backend.
 func SupportsGpuOffload() bool { return systemUint64("_yzma_supports_gpu_offload") == 1 }
 
 func systemUint64(name string) uint64 {

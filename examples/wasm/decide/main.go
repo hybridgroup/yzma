@@ -11,7 +11,7 @@
 //
 //	GOOS=js GOARCH=wasm go build -o build/wasm/yzma-decide.wasm ./examples/wasm/decide
 //
-// See wasm/README.md for the method to serve the result.
+// See wasm/README.md for how to serve the result.
 package main
 
 import (
@@ -51,8 +51,8 @@ func main() {
 	<-make(chan struct{})
 }
 
-// load(modelURL, configURL, readout, manyMode) gets a model and its config
-// over the network. readout is "jev" or "jevk5", and manyMode is "exact" or
+// load(modelURL, configURL, readout, manyMode) downloads a model and its
+// config. readout is "jev" or "jevk5", and manyMode is "exact" or
 // "batched".
 func load(this js.Value, args []js.Value) any {
 	if len(args) < 3 {
@@ -88,7 +88,7 @@ func load(this js.Value, args []js.Value) any {
 }
 
 // openModel(path, configJSON, readout, manyMode) loads a model that is already
-// in the file system of the llama.cpp module. A test puts the file there itself.
+// in the llama.cpp module's filesystem. A test puts the file there itself.
 func openModel(this js.Value, args []js.Value) any {
 	if len(args) < 3 {
 		post("error", "yzmaDecideOpen needs a model path, the config JSON and a readout")
@@ -210,8 +210,8 @@ func decideMany(this js.Value, args []js.Value) any {
 	return nil
 }
 
-// parseState keeps a JSON object or list as it is written, so its key order
-// stays, and uses any other text as a string.
+// parseState keeps a JSON object or list as written, so its key order is
+// preserved, and treats any other text as a string.
 func parseState(s string) any {
 	t := bytes.TrimSpace([]byte(s))
 	if len(t) > 0 && (t[0] == '{' || t[0] == '[') && json.Valid(t) {
@@ -301,7 +301,7 @@ func parseOptions(data []byte) ([]string, []decide.Option, error) {
 	return nil, opts, nil
 }
 
-// fetchText gets a URL with fetch and gives its body as text.
+// fetchText fetches a URL and returns its body as text.
 func fetchText(url string) (string, error) {
 	type reply struct {
 		text string
@@ -354,7 +354,7 @@ func postResult(res any, elapsed time.Duration) {
 	post("result", string(out))
 }
 
-// backendReport gives the name of the backend that computes.
+// backendReport returns the name of the compute backend.
 func backendReport() string {
 	if device := llamawasm.GPUDevice(); device != "" {
 		return fmt.Sprintf("backend: %s (%s)", llamawasm.Backend(), device)
@@ -369,8 +369,8 @@ func arg(args []js.Value, i int) string {
 	return ""
 }
 
-// post sends a message to the container of this module. In a worker that is
-// the page, and in Node it is the console.
+// post sends a message to the module's host. In a worker that is the page,
+// and in Node it is the console.
 func post(kind, text string) {
 	message := map[string]any{"kind": kind, "text": text}
 

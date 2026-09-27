@@ -19,8 +19,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-      # TinyGo 0.41.1 works with Go 1.26 and not with Go 1.27. Go back to
-      # 'stable' after the release of TinyGo that adds Go 1.27.
+      # TinyGo 0.41.1 works with Go 1.26 but not Go 1.27. Go back to 'stable'
+      # once a TinyGo release supports Go 1.27.
       - name: Install Go
         uses: actions/setup-go@v6
         with:
@@ -73,10 +73,10 @@ jobs:
             --dir $GITHUB_WORKSPACE/$WASM_DIR \
             --model $GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf \
             --tokens 12
-      # Node has no WebGPU, so this checks the other half of that story: asking
-      # for WebGPU where there is none must quietly take a build on the CPU and
-      # still make text. The runner has no GPU, so make test-wasm-dawn and
-      # make test-wasm-wgpu run the WebGPU build on a machine that has one.
+      # Node has no WebGPU, so this checks the fallback. Asking for WebGPU where
+      # there is none must quietly load a CPU build and still generate text.
+      # The runner has no GPU, so run make test-wasm-dawn and make test-wasm-wgpu
+      # on a machine that has one.
       - name: Check the fallback from WebGPU
         run: |
           node wasm/node/run.js \
@@ -84,7 +84,7 @@ jobs:
             --model $GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf \
             --tokens 12 --webgpu
       # Node has no canvas, so the harness makes its own pixels. This checks the
-      # whole path: the pixels, the projector, and the tokens that come out.
+      # whole path from pixels through the projector to the output tokens.
       - name: Ask about an image in Node
         run: |
           node wasm/node/vlm.js \
@@ -92,8 +92,8 @@ jobs:
             --model $GITHUB_WORKSPACE/models/SmolVLM-256M-Instruct-Q8_0.gguf \
             --mmproj $GITHUB_WORKSPACE/models/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf \
             --tokens 24 --mt
-      # A model of this size makes no tool call, thus this checks the round trip
-      # only: the chat template renders, tokens come out, and the program ends.
+      # A model this small makes no tool call, so this only checks the round trip.
+      # The chat template renders, tokens come out, and the program exits.
       - name: Call tools in Node
         run: |
           node wasm/node/tools.js \

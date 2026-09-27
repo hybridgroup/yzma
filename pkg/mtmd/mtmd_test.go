@@ -190,8 +190,8 @@ func TestTokenizeFromParts(t *testing.T) {
 		t.Fatalf("TokenizeFromParts failed with result: %d", result)
 	}
 
-	// A model that slices an image gives more than one image chunk, with text
-	// chunks between the slices, thus only the order of the parts is checked.
+	// A model that slices an image returns several image chunks with text
+	// chunks between them, so only the order of the parts is checked.
 	size := InputChunksSize(chunks)
 	if size < 3 {
 		t.Fatalf("TokenizeFromParts expected at least 3 chunks, got %d", size)

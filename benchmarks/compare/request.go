@@ -1,7 +1,7 @@
 // Package compare measures yzma against a model server. yzma calls llama.cpp
 // in the same process. The servers answer over an OpenAI compatible REST
-// interface. That interface is the only permitted difference. The model, the
-// prompt, the image and the sampler must be the same everywhere.
+// interface. That interface is the only allowed difference. The model,
+// prompt, image and sampler must be the same everywhere.
 package compare
 
 import (
@@ -18,15 +18,15 @@ import (
 )
 
 // EmbedPrompt is the text that the embeddings suite turns into a vector. An
-// embedding gives no tokens back, thus the cost of a request is almost all
-// transport, and that is what this suite measures.
+// embedding returns no tokens, so a request costs almost only transport, and
+// that is what this suite measures.
 const EmbedPrompt = "A llama farm sits high on the altiplano, where the air is thin and the grass is short."
 
-// The prompt and the image that every engine gets.
+// The prompt and image that every engine gets.
 const (
-	// The text prompt asks for a long answer. A short answer stops at the end
-	// of generation, and the engines do not agree on that last token, thus one
-	// token of difference would move tokens a second by a tenth or more.
+	// The text prompt asks for a long answer. A short answer stops at end of
+	// generation, and the engines disagree on that last token, so a one token
+	// difference would move tokens a second by a tenth or more.
 	TextPrompt  = "Write a long description of a llama farm."
 	ImagePrompt = "What is in this image?"
 	ImageFile   = "../../images/domestic_llama.jpg"
@@ -35,69 +35,68 @@ const (
 // Request is one generation. Every engine gets the same one.
 type Request struct {
 	Prompt    string
-	Image     []byte // the bytes of an image, empty for the text suite
+	Image     []byte // image bytes, empty for the text suite
 	MaxTokens int
 	Seed      uint32
 
-	// Embeddings says that this request wants a vector and not tokens.
+	// Embeddings means this request wants a vector and not tokens.
 	Embeddings bool
 }
 
-// Result is what one generation gives.
+// Result is the outcome of one generation.
 type Result struct {
 	Text         string
-	Tokens       int           // tokens that the engine made, without the prompt
-	PromptTokens int           // tokens of the prompt, with the image
-	Dimensions   int           // size of the vector of the embeddings suite
+	Tokens       int           // tokens the engine generated, without the prompt
+	PromptTokens int           // prompt tokens, including the image
+	Dimensions   int           // vector size for the embeddings suite
 	FirstToken   time.Duration // from the call to the first token
 	Total        time.Duration // the whole request
 }
 
-// The count of the prompt tokens says if the engines do the same work. An
-// image gives most of them, and a projector that splits the image into tiles
-// gives three times the tokens of one that does not.
+// The prompt token count shows whether the engines do the same work. The image
+// makes up most of it, and a projector that splits the image into tiles
+// produces three times the tokens of one that doesn't.
 
-// Engine makes text with a model.
+// Engine generates text with a model.
 type Engine interface {
 	Name() string
 
-	// Load makes the engine ready and puts the model in memory. A timed run
+	// Load prepares the engine and loads the model into memory. A timed run
 	// must never pay for the load.
 	Load(Request) error
 
 	Generate(Request) (Result, error)
 
-	// Embed turns the prompt into a vector. Result holds no made tokens, thus
-	// FirstToken and Total are the same, because there is no stream.
+	// Embed turns the prompt into a vector. Result holds no generated tokens,
+	// and FirstToken equals Total because there is no stream.
 	Embed(Request) (Result, error)
 
 	Close()
 }
 
-// A server keeps the prompt of the last request, and the image with it. A
-// second request with the same bytes then costs almost nothing, while yzma
-// empties its cache after each generation. To compare the engines, each run
-// must therefore get an image and a prompt that no engine has seen.
+// A server keeps the last request's prompt and image. A second request with
+// the same bytes then costs almost nothing, while yzma clears its cache after
+// each generation. So to compare the engines fairly, each run must get an
+// image and a prompt that no engine has seen.
 
-// EmbedVariant gives the text of one run of the embeddings suite. Each one is
-// different, thus no engine answers from a cache.
+// EmbedVariant returns the text for one embeddings suite run. Each one is
+// different, so no engine answers from a cache.
 func EmbedVariant(n int) string {
 	return fmt.Sprintf("Request %d. %s", n, EmbedPrompt)
 }
 
-// TextVariant gives the prompt of one run. Each one is different, thus no
+// TextVariant returns the prompt for one run. Each one is different, so no
 // engine answers from a cache.
-// The number goes first. A server keeps a prompt that begins as the last one
-// did and reuses those tokens, thus a common start would give it most of the
-// prompt for free while yzma reads all of it again.
+// The number goes first. A server reuses the tokens a prompt shares with the
+// last one, so a common prefix would give it most of the prompt for free while
+// yzma reads all of it again.
 func TextVariant(n int) string {
 	return fmt.Sprintf("Request %d. %s", n, TextPrompt)
 }
 
-// Images makes a different image for each run from one file. Each one has the
-// size and the content of the file, with a small block of pixels that only it
-// has. The vision model therefore does the same work for each, and no cache of
-// a server can answer for another.
+// Images makes a different image for each run from one file. Each has the
+// file's size and content plus a small unique block of pixels. So the vision
+// model does the same work for each, and no server cache can answer for another.
 type Images struct {
 	src image.Image
 }
@@ -121,15 +120,15 @@ func NewImages(path string, size image.Point) (*Images, error) {
 	return &Images{src: src}, nil
 }
 
-// Variant gives the image of run n. No two runs get the same bytes.
+// Variant returns the image for run n. No two runs get the same bytes.
 func (im *Images) Variant(n int) ([]byte, error) {
 	bounds := im.src.Bounds()
 	canvas := image.NewRGBA(bounds)
 	draw.Draw(canvas, bounds, im.src, bounds.Min, draw.Src)
 
-	// One block of 8 by 8 pixels in a corner carries the number of the run,
-	// a white pixel for each bit that is set. JPEG keeps a change of black and
-	// white, and the block is too small to change what the model sees.
+	// An 8 by 8 pixel block in a corner encodes the run number, with a white
+	// pixel for each set bit. JPEG preserves black and white edges, and the
+	// block is too small to change what the model sees.
 	for bit := range 64 {
 		shade := color.RGBA{A: 255}
 		if uint64(n)>>bit&1 == 1 {
@@ -146,8 +145,8 @@ func (im *Images) Variant(n int) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// scale gives the image at the size, with bilinear sampling. The engines scale
-// an image each in their own way, thus an image that they take as it is makes
+// scale returns the image at the given size, with bilinear sampling. Each
+// engine scales images its own way, so an image none of them resizes makes
 // them do the same work.
 func scale(src image.Image, size image.Point) image.Image {
 	b := src.Bounds()

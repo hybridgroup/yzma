@@ -15,15 +15,15 @@ import (
 )
 
 var (
-	// ErrNoInstallRecord means a library directory has no record of an install, so
-	// there is nothing to say which release should be there.
+	// ErrNoInstallRecord means a library directory has no install record, so
+	// nothing says which release should be there.
 	ErrNoInstallRecord = errors.New("no install record")
 
-	// ErrNoFileDigests means the manifest for a release gives the digest of each
-	// archive but not of the files in them, so an installation cannot be checked.
+	// ErrNoFileDigests means the release manifest has a digest for each archive
+	// but not for the files inside, so the installation cannot be checked.
 	ErrNoFileDigests = errors.New("the digests of this release do not cover files")
 
-	// ErrRecordMismatch means the install record does not agree with the release it
+	// ErrRecordMismatch means the install record does not match the release it
 	// is checked against.
 	ErrRecordMismatch = errors.New("the install record does not agree")
 )
@@ -35,18 +35,18 @@ const (
 	// FileVerified means the file on disk has the bytes the publisher recorded.
 	FileVerified FileState = iota
 
-	// FileChanged means the file is there and the bytes are not the same.
+	// FileChanged means the file exists but its bytes are different.
 	FileChanged
 
-	// FileMissing means the install should have put the file there and it is gone.
+	// FileMissing means the install should have created the file but it is gone.
 	FileMissing
 
-	// FileUnexpected means the file is in the directory and no asset of this
-	// install holds it. Another install in the same directory makes these.
+	// FileUnexpected means the file is in the directory but no asset of this
+	// install contains it. Another install in the same directory causes these.
 	FileUnexpected
 )
 
-// String gives the name of a state.
+// String returns the name of a state.
 func (s FileState) String() string {
 	switch s {
 	case FileVerified:
@@ -91,8 +91,8 @@ type VerifyReport struct {
 	Unexpected int `json:"unexpected"`
 }
 
-// OK reports whether every file the install put there is still what the publisher
-// recorded. A file that belongs to something else does not make it false.
+// OK reports whether every installed file still matches what the publisher recorded.
+// Files that belong to something else do not make it false.
 func (r *VerifyReport) OK() bool {
 	return r.Changed == 0 && r.Missing == 0
 }
@@ -100,14 +100,14 @@ func (r *VerifyReport) OK() bool {
 // VerifyInstall checks the files in libPath against the digests that the publisher
 // recorded for the release installed there.
 //
-// An empty tag takes the tag from the install record. Give a tag to name the release
-// that must be there, which does not trust the record. The tag may carry the expected
-// digest of the digest manifest, in the form "b10785@sha256:<digest>", which does not
-// trust the site that serves the manifest either.
+// An empty tag uses the tag from the install record. Pass a tag to name the release
+// that must be installed, without trusting the record. The tag may carry the expected
+// digest of the manifest, in the form "b10785@sha256:<digest>", so the site that
+// serves the manifest is not trusted either.
 //
-// An install keeps the manifest of its release beside the record, so a check needs no
-// network. The manifest is read again against the same digest, and a manifest that is
-// not there or does not agree is fetched as before.
+// An install saves its release manifest next to the record, so a check needs no
+// network. The saved manifest is checked against the same digest, and if it is
+// missing or does not match it is fetched as before.
 func VerifyInstall(ctx context.Context, libPath, tag string) (*VerifyReport, error) {
 	tag, manifestDigest, err := ParsePinnedVersion(tag)
 	if err != nil {
@@ -137,16 +137,16 @@ func VerifyInstall(ctx context.Context, libPath, tag string) (*VerifyReport, err
 		return nil, err
 	}
 
-	// A caller that names a tag gets the assets of that tag, resolved again. The
-	// recorded URLs are never used then, because a record that says the wrong tag
-	// can name the wrong assets as easily.
+	// When the caller names a tag, resolve that tag's assets again. The recorded
+	// URLs are not used, because a record with the wrong tag can just as easily
+	// list the wrong assets.
 	assets := record.Assets
 	if named {
 		target.Version = tag
 		target.UpstreamVersion = ""
 		if IsTaggedRelease(tag) {
-			// The manifest names the nightly build that holds the binaries of a
-			// tagged release, so the release page is not necessary.
+			// The manifest names the nightly build that holds the binaries for a
+			// tagged release, so the release page is not needed.
 			target.UpstreamVersion = m.UpstreamTag
 			if target.UpstreamVersion == "" {
 				upstream, err := LlamaNightlyTag(tag)
@@ -167,7 +167,7 @@ func VerifyInstall(ctx context.Context, libPath, tag string) (*VerifyReport, err
 		}
 	}
 
-	// Gather what the assets of this install should have put in the directory.
+	// Collect the files that the assets of this install should have created.
 	wantFiles := make(map[string]string)
 	wantLinks := make(map[string]string)
 	found := 0
@@ -185,8 +185,8 @@ func VerifyInstall(ctx context.Context, libPath, tag string) (*VerifyReport, err
 		}
 	}
 
-	// A record that names assets of another release cannot be checked against this
-	// one. A record that was changed by hand looks like this.
+	// A record that lists assets of another release cannot be checked against this
+	// one. This is what a hand edited record looks like.
 	if found == 0 {
 		return nil, fmt.Errorf("%w: the install record names assets that %s does not publish",
 			ErrRecordMismatch, tag)
@@ -277,13 +277,12 @@ func VerifyInstall(ctx context.Context, libPath, tag string) (*VerifyReport, err
 	return report, nil
 }
 
-// installManifest gives the digest manifest of a release. The copy that the install left
-// beside the record comes first, so a check needs no network. A manifest that is not
-// there or does not agree with the digest is fetched, and what comes back is kept for the
-// next check.
+// installManifest returns the digest manifest of a release. It tries the copy saved next
+// to the record first, so a check needs no network. If that copy is missing or does not
+// match the digest, it fetches the manifest and saves it for the next check.
 func installManifest(ctx context.Context, libPath string, record *InstallRecord, tag, want string) (*manifest, error) {
-	// A caller that gives no digest gets the one the install recorded, so a manifest
-	// that changed on disk is not trusted.
+	// Without a digest from the caller, use the one the install recorded, so a
+	// manifest that changed on disk is not trusted.
 	cached := want
 	if cached == "" {
 		cached = record.ManifestSHA256
@@ -302,8 +301,8 @@ func installManifest(ctx context.Context, libPath string, record *InstallRecord,
 	return m, nil
 }
 
-// cacheManifest keeps a manifest beside the install record. It only makes the next check
-// faster, so a directory that cannot be written gives no error.
+// cacheManifest saves a manifest next to the install record. It only speeds up the next
+// check, so an unwritable directory is not an error.
 func cacheManifest(libPath string, record *InstallRecord, tag string, body []byte) {
 	if record.Tag != tag {
 		return
@@ -322,7 +321,7 @@ func cacheManifest(libPath string, record *InstallRecord, tag string, body []byt
 	_ = WriteInstallRecord(libPath, *record)
 }
 
-// add puts one result in the report and counts it.
+// add adds one result to the report and counts it.
 func (r *VerifyReport) add(name string, state FileState) {
 	r.Files = append(r.Files, FileReport{Name: name, State: state})
 
@@ -338,7 +337,7 @@ func (r *VerifyReport) add(name string, state FileState) {
 	}
 }
 
-// hashFile gives the SHA-256 of a file, in hexadecimal.
+// hashFile returns the SHA-256 of a file, in hexadecimal.
 func hashFile(path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {

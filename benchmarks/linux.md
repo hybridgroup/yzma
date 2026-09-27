@@ -1,14 +1,14 @@
 # Linux benchmarks
 
-Benchmarks of yzma on Linux. Each table gives the median of five runs. The output
-of each run, and of the device, is below the tables.
+Benchmarks of yzma on Linux. Each table shows the median of five runs. The output
+of each run, and the device details, are below the tables.
 
-To add a machine or to make these numbers again, see
+To add a machine or to regenerate these numbers, see
 [how to run the benchmarks](README.md).
 
 ## Summary
 
-Tokens a second on each machine. The GPU columns give the fastest GPU backend.
+Tokens a second on each machine. The GPU columns show the fastest GPU backend.
 
 | Machine | GPU | Text, CPU | Text, GPU | Multimodal, CPU | Multimodal, GPU |
 | --- | --- | --- | --- | --- | --- |
@@ -17,18 +17,18 @@ Tokens a second on each machine. The GPU columns give the fastest GPU backend.
 | Raspberry Pi 4 Model B | none | 35.4 | none | 5.6 | none |
 | Arduino UNO Q | none | 32.2 | none | 4.1 | none |
 
-- CUDA on the RTX 4070 gives the fastest results of all Linux machines.
-- Vulkan on the same RTX 4070 gives 87 percent of CUDA for text and 94 percent
+- CUDA on the RTX 4070 is the fastest of all the Linux machines.
+- Vulkan on the same RTX 4070 reaches 87 percent of CUDA for text and 94 percent
   for multimodal.
-- The integrated Intel GPU of the i9-13900HX is slower than its CPU. On Vulkan0
-  it gives 95.5 for text and 476.8 for multimodal.
+- The integrated Intel GPU on the i9-13900HX is slower than its CPU. On Vulkan0
+  it reaches 95.5 for text and 476.8 for multimodal.
 - On the Jetson Orin Nano, the GPU is 2.3 times faster than the CPU for text and
-  2.1 times faster for multimodal. Vulkan gives 90 percent of CUDA for text and
+  2.1 times faster for multimodal. Vulkan reaches 90 percent of CUDA for text and
   99 percent for multimodal.
 - The Raspberry Pi 4 and the Arduino UNO Q have no GPU backend. They run text at
   more than 30 tokens a second, but multimodal is slow.
-- The text suite uses 4 threads on each machine. The multimodal suite uses one
-  thread for each performance core, thus its CPU column shows the size of the
+- The text suite uses 4 threads on every machine. The multimodal suite uses one
+  thread per performance core, so its CPU column reflects the size of the
   processor.
 
 ## Text model benchmarks

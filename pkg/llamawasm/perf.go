@@ -5,7 +5,7 @@ package llamawasm
 import "fmt"
 
 // PerfContextData holds the performance counters of a context. The times stay
-// 0 unless the context has NoPerf 0 in its [ContextParams].
+// 0 unless NoPerf is 0 in its [ContextParams].
 type PerfContextData struct {
 	TStartMs      float64 // absolute start time
 	TLoadMs       float64 // time needed for loading the model
@@ -17,26 +17,26 @@ type PerfContextData struct {
 	NReused int32 // number of times a ggml compute graph had been reused
 }
 
-// String gives the counters as text.
+// String returns the counters as text.
 func (p PerfContextData) String() string {
 	return fmt.Sprintf("PerfContextData{Start: %.2fms, Load: %.2fms, Prompt Eval: %.2fms, Eval: %.2fms, Prompt Tokens: %d, Gen Tokens: %d, Reused: %d}",
 		p.TStartMs, p.TLoadMs, p.TPromptEvalMs, p.TEvalMs, p.NPEval, p.NEval, p.NReused)
 }
 
-// PerfSamplerData holds the performance counters of a chain of samplers.
+// PerfSamplerData holds the performance counters of a sampler chain.
 type PerfSamplerData struct {
 	TSampleMs float64 // time needed for sampling in ms
 
 	NSample int32 // number of sampled tokens
 }
 
-// String gives the counters as text.
+// String returns the counters as text.
 func (p PerfSamplerData) String() string {
 	return fmt.Sprintf("PerfSamplerData{Sample Time: %.2fms, Samples: %d}", p.TSampleMs, p.NSample)
 }
 
-// PerfContext gives the performance counters of the context. A module before
-// ABI version 9 gives zero values.
+// PerfContext returns the performance counters of the context. A module before
+// ABI version 9 returns zero values.
 func PerfContext(ctx Context) PerfContextData {
 	v, err := perfValues("_yzma_perf_context", 7, int(ctx))
 	if err != nil {
@@ -58,8 +58,8 @@ func PerfContextReset(ctx Context) error {
 	return perfReset("_yzma_perf_context_reset", int(ctx))
 }
 
-// PerfSampler gives the performance counters of a chain of samplers. A sampler
-// that is not a chain gives zero values.
+// PerfSampler returns the performance counters of a sampler chain. A sampler
+// that is not a chain returns zero values.
 func PerfSampler(chain Sampler) PerfSamplerData {
 	v, err := perfValues("_yzma_perf_sampler", 2, int(chain))
 	if err != nil {
@@ -68,8 +68,7 @@ func PerfSampler(chain Sampler) PerfSamplerData {
 	return PerfSamplerData{TSampleMs: v[0], NSample: int32(v[1])}
 }
 
-// PerfSamplerReset sets the performance counters of a chain of samplers to
-// zero.
+// PerfSamplerReset sets the performance counters of a sampler chain to zero.
 func PerfSamplerReset(chain Sampler) {
 	perfReset("_yzma_perf_sampler_reset", int(chain))
 }

@@ -509,7 +509,7 @@ func SamplerInitXTC(p float32, t float32, minKeep uint32, seed uint32) Sampler {
 }
 
 // SamplerInitTemp initializes a new temperature sampler. A value below 1.0
-// makes the output more sure, and a value above 1.0 makes it more varied. A
+// makes the output more deterministic, and a value above 1.0 makes it more varied. A
 // value of 0.0 or less keeps the largest logit and sets the rest to -inf.
 func SamplerInitTemp(t float32) Sampler {
 	var s Sampler

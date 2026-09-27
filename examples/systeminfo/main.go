@@ -50,8 +50,8 @@ func main() {
 	fmt.Println(sysInfo)
 }
 
-// showThreads prints what yzma makes of the cores of this machine. Call it
-// after llama.Init, because the register of the CPU backend exists only then.
+// showThreads prints how yzma sees the CPU cores on this machine. Call it
+// after llama.Init, since the CPU backend is only registered then.
 func showThreads() {
 	fmt.Println("-- CPU Threads --")
 	fmt.Printf("Logical CPUs:      %d\n", runtime.NumCPU())
@@ -59,7 +59,7 @@ func showThreads() {
 
 	cpus := llama.PerformanceCPUs()
 	if len(cpus) == 0 {
-		fmt.Println("Performance CPUs:  the system does not say")
+		fmt.Println("Performance CPUs:  not reported by the system")
 	} else {
 		fmt.Printf("Performance CPUs:  %v\n", cpus)
 	}
@@ -68,7 +68,7 @@ func showThreads() {
 	if err != nil {
 		fmt.Printf("Thread pool:       none, %v\n", err)
 	} else {
-		fmt.Printf("Thread pool:       %d threads, each held to a CPU\n", len(cpus))
+		fmt.Printf("Thread pool:       %d threads, each pinned to a CPU\n", len(cpus))
 		llama.ThreadpoolFree(tp)
 	}
 

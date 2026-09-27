@@ -1,7 +1,7 @@
-// wgpu.cjs runs run.js in Deno, which has wgpu, the WebGPU of Firefox. Thus
-// the WebGPU build of llama.cpp runs with no browser.
+// wgpu.cjs runs run.js in Deno, which uses wgpu, the WebGPU implementation in
+// Firefox. This runs the WebGPU build of llama.cpp without a browser.
 //
 // Usage.
-//   deno run -A wasm/node/wgpu.cjs <arguments of run.js> --webgpu
+//   deno run -A wasm/node/wgpu.cjs <run.js arguments> --webgpu
 
 require("./run.js");

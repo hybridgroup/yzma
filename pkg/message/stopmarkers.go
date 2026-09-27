@@ -3,9 +3,8 @@ package message
 // StopMarkersFor returns the set of string markers that should halt text
 // generation when any of them appears in the accumulated output.
 //
-// The eot argument holds the end of turn text of the model, which a caller gets
-// from the vocabulary. StopMarkers gives it for a vocabulary of the backend of
-// the build.
+// The eot argument holds the model's end of turn text, which a caller gets from
+// the vocabulary. StopMarkers supplies it from a vocabulary of the current backend.
 //
 // The caller should stop generation and discard everything from the first
 // matching marker onwards.
@@ -63,7 +62,7 @@ func StopMarkersFor(eot []string, format Format) []string {
 	return markers
 }
 
-// dedupe removes the empty strings and the repeated values, and keeps the order.
+// dedupe removes empty strings and duplicates while keeping the order.
 func dedupe(values []string) []string {
 	seen := map[string]bool{}
 	var out []string

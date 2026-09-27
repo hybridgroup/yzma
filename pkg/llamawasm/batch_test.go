@@ -39,8 +39,8 @@ func TestBatchInit(t *testing.T) {
 	}
 }
 
-// An embedding cannot be the input of a batch here, and a size below one has no
-// meaning. Each one gives a batch that holds nothing.
+// An embedding cannot be batch input here, and a size below one has no
+// meaning. Each returns an empty batch.
 func TestBatchInitBadArguments(t *testing.T) {
 	tests := []struct {
 		name                   string
@@ -94,8 +94,8 @@ func TestBatchAdd(t *testing.T) {
 		t.Errorf("nSeqID = %v, want [2 1]", batch.nSeqID[:2])
 	}
 
-	// The identifiers of each token take capSeq places, one token after the
-	// other, which is the shape that the shim takes.
+	// Each token's IDs take capSeq slots, one token after the other, which is
+	// the layout the shim expects.
 	if batch.seqIDs[0] != 0 || batch.seqIDs[1] != 1 || batch.seqIDs[2] != 1 {
 		t.Errorf("seqIDs = %v, want [0 1 1 ...]", batch.seqIDs)
 	}
@@ -140,8 +140,8 @@ func TestBatchSetLogitOutOfRange(t *testing.T) {
 		t.Fatalf("Add gave %v", err)
 	}
 
-	// Index 1 has room in the arrays, but the batch does not hold a token
-	// there yet, and llama.cpp reads no flag beyond NTokens.
+	// Index 1 has room in the arrays, but the batch has no token there yet,
+	// and llama.cpp reads no flag beyond NTokens.
 	for _, idx := range []int32{-1, 1, 4} {
 		if err := batch.SetLogit(idx, true); !errors.Is(err, ErrBatchIndexRange) {
 			t.Errorf("SetLogit(%d) gave %v, want ErrBatchIndexRange", idx, err)
@@ -170,7 +170,7 @@ func TestBatchClear(t *testing.T) {
 		t.Errorf("NTokens = %d, want 0", batch.NTokens)
 	}
 
-	// A batch that is clear takes tokens again from the start.
+	// A cleared batch takes tokens again from the start.
 	if err := batch.Add(2, 0, []SeqId{0}, true); err != nil {
 		t.Fatalf("Add gave %v", err)
 	}

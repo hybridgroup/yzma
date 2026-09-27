@@ -3,60 +3,60 @@
 package llamawasm
 
 // The calls here describe a loaded model. Each one follows the same call in
-// pkg/llama. A module before ABI version 7 has none of them, thus each gives a
+// pkg/llama. A module before ABI version 7 has none of them, so each returns a
 // zero value.
 
-// ModelNEmbdInp gives the number of values in an embedding that goes in.
+// ModelNEmbdInp returns the input embedding size.
 func ModelNEmbdInp(model Model) int32 { return modelInt("_yzma_model_n_embd_inp", model) }
 
-// ModelNEmbdOut gives the number of values in an embedding that comes out.
+// ModelNEmbdOut returns the output embedding size.
 func ModelNEmbdOut(model Model) int32 { return modelInt("_yzma_model_n_embd_out", model) }
 
-// ModelNLayer gives the number of layers.
+// ModelNLayer returns the number of layers.
 func ModelNLayer(model Model) int32 { return modelInt("_yzma_model_n_layer", model) }
 
-// ModelNLayerNextN gives the number of layers that predict more than one token.
+// ModelNLayerNextN returns the number of layers that predict extra tokens.
 func ModelNLayerNextN(model Model) int32 { return modelInt("_yzma_model_n_layer_nextn", model) }
 
-// ModelNHead gives the number of attention heads.
+// ModelNHead returns the number of attention heads.
 func ModelNHead(model Model) int32 { return modelInt("_yzma_model_n_head", model) }
 
-// ModelNHeadKV gives the number of heads of the keys and the values.
+// ModelNHeadKV returns the number of key and value heads.
 func ModelNHeadKV(model Model) int32 { return modelInt("_yzma_model_n_head_kv", model) }
 
-// ModelNSWA gives the size of the window of the attention that slides. It is 0
-// when the attention of the model does not slide.
+// ModelNSWA returns the sliding window attention size. It is 0 when the model
+// does not use sliding window attention.
 func ModelNSWA(model Model) int32 { return modelInt("_yzma_model_n_swa", model) }
 
-// ModelNClsOut gives the number of outputs of a classifier model.
+// ModelNClsOut returns the number of outputs of a classifier model.
 func ModelNClsOut(model Model) int32 { return modelInt("_yzma_model_n_cls_out", model) }
 
-// ModelHasEncoder tells if the model has an encoder, which needs Encode.
+// ModelHasEncoder reports whether the model has an encoder, which needs Encode.
 func ModelHasEncoder(model Model) bool { return modelInt("_yzma_model_has_encoder", model) == 1 }
 
-// ModelHasDecoder tells if the model has a decoder, which needs Decode.
+// ModelHasDecoder reports whether the model has a decoder, which needs Decode.
 func ModelHasDecoder(model Model) bool { return modelInt("_yzma_model_has_decoder", model) == 1 }
 
-// ModelIsRecurrent tells if the model is recurrent, as Mamba and RWKV are.
+// ModelIsRecurrent reports whether the model is recurrent, like Mamba and RWKV.
 func ModelIsRecurrent(model Model) bool { return modelInt("_yzma_model_is_recurrent", model) == 1 }
 
-// ModelIsHybrid tells if the model is hybrid, as Jamba and Granite are.
+// ModelIsHybrid reports whether the model is hybrid, like Jamba and Granite.
 func ModelIsHybrid(model Model) bool { return modelInt("_yzma_model_is_hybrid", model) == 1 }
 
-// ModelIsDiffusion tells if the model is a diffusion model, as LLaDA is.
+// ModelIsDiffusion reports whether the model is a diffusion model, like LLaDA.
 func ModelIsDiffusion(model Model) bool { return modelInt("_yzma_model_is_diffusion", model) == 1 }
 
-// ModelFtype gives the kind of the quantization of the model.
+// ModelFtype returns the quantization type of the model.
 func ModelFtype(model Model) Ftype { return Ftype(modelInt("_yzma_model_ftype", model)) }
 
-// ModelRopeType gives how the model scales the positions of RoPE. It gives
+// ModelRopeType returns how the model scales RoPE positions. It returns
 // RopeScalingTypeUnspecified when the module has no such call.
 func ModelRopeType(model Model) RopeScalingType {
 	if !has("_yzma_model_rope_type") {
 		return RopeScalingTypeUnspecified
 	}
 
-	// A rope type can be -1, thus only the value of a bad handle is a failure.
+	// A rope type can be -1, so only the bad handle value is a failure.
 	rc := call("_yzma_model_rope_type", int(model))
 	if rc <= errBadHandle {
 		return RopeScalingTypeUnspecified
@@ -64,8 +64,8 @@ func ModelRopeType(model Model) RopeScalingType {
 	return RopeScalingType(rc)
 }
 
-// ModelDecoderStartToken gives the token that starts the decoder of a model
-// that has an encoder and a decoder. Every other model gives TokenNull.
+// ModelDecoderStartToken returns the decoder start token of an encoder decoder
+// model. Every other model returns TokenNull.
 func ModelDecoderStartToken(model Model) Token {
 	if !has("_yzma_model_decoder_start_token") {
 		return TokenNull
@@ -78,14 +78,14 @@ func ModelDecoderStartToken(model Model) Token {
 	return Token(rc)
 }
 
-// ModelSize gives the size of every tensor of the model in bytes.
+// ModelSize returns the total size of all model tensors in bytes.
 func ModelSize(model Model) uint64 { return modelUint64("_yzma_model_size", model) }
 
-// ModelNParams gives the number of parameters of the model.
+// ModelNParams returns the number of model parameters.
 func ModelNParams(model Model) uint64 { return modelUint64("_yzma_model_n_params", model) }
 
-// ModelRopeFreqScaleTrain gives the scale of the frequency of RoPE that the
-// model was trained with.
+// ModelRopeFreqScaleTrain returns the RoPE frequency scale the model was
+// trained with.
 func ModelRopeFreqScaleTrain(model Model) float32 {
 	if !has("_yzma_model_rope_freq_scale_train") {
 		return 0
@@ -93,8 +93,8 @@ func ModelRopeFreqScaleTrain(model Model) float32 {
 	return float32(callValue("_yzma_model_rope_freq_scale_train", int(model)).Float())
 }
 
-// modelInt reads a whole number of a model. It gives 0 when the module has no
-// such call and when the call fails.
+// modelInt reads an integer model property. It returns 0 when the module has
+// no such call or when the call fails.
 func modelInt(name string, model Model) int32 {
 	if !has(name) {
 		return 0
@@ -106,8 +106,8 @@ func modelInt(name string, model Model) int32 {
 	return n
 }
 
-// modelUint64 reads a number that does not fit an int32. The shim gives it as
-// a double, which holds every whole number to 2^53.
+// modelUint64 reads a number that does not fit in an int32. The shim returns it
+// as a double, which holds every integer up to 2^53.
 func modelUint64(name string, model Model) uint64 {
 	if !has(name) {
 		return 0
@@ -119,21 +119,20 @@ func modelUint64(name string, model Model) uint64 {
 	return uint64(v)
 }
 
-// ModelMetaCount gives the number of key and value pairs in the metadata of the
-// model.
+// ModelMetaCount returns the number of key value pairs in the model metadata.
 func ModelMetaCount(model Model) int32 { return modelInt("_yzma_model_meta_count", model) }
 
-// ModelMetaKeyByIndex gives the key of pair i of the metadata.
+// ModelMetaKeyByIndex returns the key of metadata pair i.
 func ModelMetaKeyByIndex(model Model, i int32) (string, bool) {
 	return metaString("_yzma_model_meta_key_by_index", 128, int(model), int(i))
 }
 
-// ModelMetaValStrByIndex gives the value of pair i of the metadata as a string.
+// ModelMetaValStrByIndex returns the value of metadata pair i as a string.
 func ModelMetaValStrByIndex(model Model, i int32) (string, bool) {
 	return metaString("_yzma_model_meta_val_str_by_index", 32768, int(model), int(i))
 }
 
-// ModelMetaValStr gives the value of a key of the metadata as a string.
+// ModelMetaValStr returns the value of a metadata key as a string.
 func ModelMetaValStr(model Model, key string) (string, bool) {
 	if !has("_yzma_model_meta_val_str") {
 		return "", false
@@ -148,21 +147,21 @@ func ModelMetaValStr(model Model, key string) (string, bool) {
 	return metaString("_yzma_model_meta_val_str", 32768, int(model), keyPtr)
 }
 
-// ModelMetaKeyStr gives the name of a key of the metadata, or an empty string
-// if the key is not known.
+// ModelMetaKeyStr returns the name of a metadata key, or an empty string if
+// the key is unknown.
 func ModelMetaKeyStr(key ModelMetaKey) string {
 	return callString("_yzma_model_meta_key_str", 64, int(key))
 }
 
-// ModelClsLabel gives the label of output i of a classifier model, or an empty
-// string if the model has none.
+// ModelClsLabel returns the label of output i of a classifier model, or an
+// empty string if the model has none.
 func ModelClsLabel(model Model, i uint32) string {
 	return callString("_yzma_model_cls_label", 256, int(model), int(i))
 }
 
-// metaString runs a meta call of the shim. These give the length of the whole
-// value as snprintf does, thus a length that is not less than the size of the
-// buffer needs a second call with a larger buffer.
+// metaString runs a shim meta call. These return the full value length like
+// snprintf does, so a length at or above the buffer size needs a second call
+// with a larger buffer.
 func metaString(name string, size int, args ...any) (string, bool) {
 	if !has(name) {
 		return "", false

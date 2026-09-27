@@ -36,7 +36,7 @@
       A System One model answers a typed question about a state with a
       probability for each option, from one forward pass and with no generated
       text. llama.cpp runs as a WebAssembly module, and the
-      <code>exp/decide</code> package of yzma, compiled by TinyGo, renders the
+      yzma <code>exp/decide</code> package, compiled by TinyGo, renders the
       questions and reads the logits.
     </p>
     <p id="backend">looking for a backend</p>
@@ -106,7 +106,7 @@
 
       let asked = [];
 
-      // show draws one bar for each option of each question.
+      // show draws one bar per option for each question.
       function show(list) {
         results.textContent = "";
         list.forEach((r, i) => {

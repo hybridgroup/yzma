@@ -310,7 +310,7 @@ func ImageTokensGetNTokens(imageTokens ImageTokens) uint64 {
 // ImageTokensGetNX returns the x size of the image tokens.
 //
 // Deprecated: use [ImageTokensGetDecoderPos] instead. A rectangular grid cannot
-// show all of the layouts that a projector makes.
+// describe every layout that a projector produces.
 func ImageTokensGetNX(imageTokens ImageTokens) uint64 {
 	if imageTokens == 0 {
 		return 0
@@ -323,7 +323,7 @@ func ImageTokensGetNX(imageTokens ImageTokens) uint64 {
 // ImageTokensGetNY returns the y size of the image tokens.
 //
 // Deprecated: use [ImageTokensGetDecoderPos] instead. A rectangular grid cannot
-// show all of the layouts that a projector makes.
+// describe every layout that a projector produces.
 func ImageTokensGetNY(imageTokens ImageTokens) uint64 {
 	if imageTokens == 0 {
 		return 0

@@ -4,7 +4,7 @@ The model information is now on the yzma website:
 
 **https://yzma.ai/docs/guides/models/**
 
-That page gives the download command and the run command for each model, in three groups.
+That page has the download and run commands for each model, in three groups.
 
 - Vision Language Models (VLM)
 - Text generation models

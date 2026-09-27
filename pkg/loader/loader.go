@@ -19,7 +19,7 @@ func (l Lib) Prep(name string, ret *ffi.Type, args ...*ffi.Type) (ffi.Fun, error
 	return l.lib.Prep(name, ret, args...)
 }
 
-// LoadLibrary The path can be an empty string to use the location as set by the YZMA_LIB env variable.
+// LoadLibrary loads a shared library. The path can be empty to use the location set by the YZMA_LIB env variable.
 // The lib should be the "short name" for the library, for example:
 // gguf, llama, mtmd
 func LoadLibrary(path, lib string) (Lib, error) {

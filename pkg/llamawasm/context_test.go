@@ -51,13 +51,13 @@ func TestGetPoolingType(t *testing.T) {
 		t.Errorf("GetPoolingType gave %v, want PoolingTypeCLS", got)
 	}
 
-	// A pooling type of -1 is a value and not a failure.
+	// A pooling type of -1 is a valid value, not a failure.
 	helper.Call("setPooling", -1)
 	if got := GetPoolingType(Context(1)); got != PoolingTypeUnspecified {
 		t.Errorf("GetPoolingType gave %v, want PoolingTypeUnspecified", got)
 	}
 
-	// Only the value of a bad handle means that the call failed.
+	// Only the bad handle value means the call failed.
 	helper.Call("setPooling", errBadHandle)
 	if got := GetPoolingType(Context(9)); got != PoolingTypeUnspecified {
 		t.Errorf("GetPoolingType gave %v, want PoolingTypeUnspecified", got)

@@ -139,8 +139,8 @@ func TestFetchManifestChecksTheRawBytes(t *testing.T) {
 	}
 }
 
-// recordAssets makes getFunc collect the assets it is given rather than download
-// them, and gives back the collected slice.
+// recordAssets makes getFunc collect the assets it receives instead of downloading
+// them, and returns the collected slice.
 func recordAssets(t *testing.T) *[]Asset {
 	t.Helper()
 
@@ -262,7 +262,7 @@ func TestInstallRefusesAPinThatDisagreesWithTheTargetField(t *testing.T) {
 }
 
 func TestInstallRefusesAnAssetThePinnedManifestDoesNotName(t *testing.T) {
-	// The manifest names another asset, so the one that resolves has no digest.
+	// The manifest lists another asset, so the resolved one has no digest.
 	manifestDigest := serveManifest(t, "b10783", map[string]string{
 		"llama-b10783-bin-ubuntu-cpu-x64.tar.gz": "abcd",
 	})
@@ -285,7 +285,7 @@ func TestInstallRefusesAnAssetThePinnedManifestDoesNotName(t *testing.T) {
 }
 
 func TestInstallPinsEveryAssetOfATargetThatTakesMoreThanOne(t *testing.T) {
-	// A WebAssembly target takes all three browser builds.
+	// A WebAssembly target gets all three browser builds.
 	manifestDigest := serveManifest(t, "b10783", map[string]string{
 		"llama-b10783-bin-wasm-simd.tar.gz":    "aaaa",
 		"llama-b10783-bin-wasm-simd-mt.tar.gz": "bbbb",
@@ -331,8 +331,8 @@ func TestAPinMakesAManifestThatCannotBeReadFatal(t *testing.T) {
 }
 
 func TestAPlainVersionStillInstallsWithoutAManifest(t *testing.T) {
-	// The same conditions as the test above, but with no pin, so the install goes
-	// ahead with a warning. This is what keeps an air-gapped mirror working.
+	// Same conditions as the test above, but without a pin, so the install goes
+	// ahead with a warning. This keeps an air-gapped mirror working.
 	originalWarning := VerifyWarning
 	VerifyWarning = nil
 	defer func() { VerifyWarning = originalWarning }()
@@ -356,8 +356,8 @@ func TestAPinWorksWithACustomResolver(t *testing.T) {
 	})
 	got := recordAssets(t)
 
-	// A resolver that names an asset of the release still gets the pinned digest,
-	// because the manifest is read by Install and not by the resolver.
+	// A resolver that names a release asset still gets the pinned digest,
+	// because Install reads the manifest, not the resolver.
 	resolver := ResolverFunc(func(target Target) ([]string, error) {
 		return []string{
 			"https://github.com/hybridgroup/llama-cpp-builder/releases/download/" +

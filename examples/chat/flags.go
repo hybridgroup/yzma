@@ -52,8 +52,8 @@ func handleFlags() error {
 	predictSize = flag.Int("n", -1, "number of tokens to predict")
 	batchSize = flag.Int("b", 2048, "logical max batch size for model")
 	uBatchSize = flag.Int("ub", 2048, "physical max batch size for model")
-	cmoe = flag.Bool("cmoe", false, "keep all Mixture of Experts (MoE) weights in the CPU")
-	ncmoe = flag.Int("ncmoe", 0, "keep the Mixture of Experts (MoE) weights of the first N layers in the CPU")
+	cmoe = flag.Bool("cmoe", false, "keep all Mixture of Experts (MoE) weights on the CPU")
+	ncmoe = flag.Int("ncmoe", 0, "keep the Mixture of Experts (MoE) weights of the first N layers on the CPU")
 
 	flag.Parse()
 

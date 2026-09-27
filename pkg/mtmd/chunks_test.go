@@ -341,8 +341,8 @@ func TestInputChunkGetTokensImage(t *testing.T) {
 	t.Logf("n_pos:   %d", nPos)
 }
 
-// TestDecoderPosLayout keeps the Go struct at the 16 byte layout of the C struct
-// mtmd_decoder_pos. A reordered or resized field makes the FFI return buffer wrong.
+// TestDecoderPosLayout checks that the Go struct matches the 16 byte layout of
+// mtmd_decoder_pos. A reordered or resized field breaks the FFI return buffer.
 func TestDecoderPosLayout(t *testing.T) {
 	var pos DecoderPos
 
@@ -412,14 +412,14 @@ func TestImageTokensGetDecoderPos(t *testing.T) {
 		t.Fatal("ImageTokensGetNTokens returned 0")
 	}
 
-	// The deprecated grid gives the values that the M-RoPE layout must agree with.
+	// The M-RoPE layout must match the values from the deprecated grid.
 	nx := ImageTokensGetNX(tokens)
 	ny := ImageTokensGetNY(tokens)
 	mrope := DecodeUseMRope(ctx)
 
 	t.Logf("n_tokens: %d nx: %d ny: %d mrope: %v", nTokens, nx, ny, mrope)
 
-	// A position other than 0 shows that the call uses pos_0.
+	// A nonzero position shows that the call uses pos_0.
 	pos0 := llama.Pos(7)
 
 	for i := uint64(0); i < nTokens; i++ {
@@ -450,7 +450,7 @@ func TestImageTokensGetDecoderPos(t *testing.T) {
 		}
 	}
 
-	// An index out of range returns the zero value instead of an abort in C.
+	// An out of range index returns the zero value instead of aborting in C.
 	if got := ImageTokensGetDecoderPos(tokens, pos0, nTokens); got != (DecoderPos{}) {
 		t.Fatalf("ImageTokensGetDecoderPos of an out of range index = %+v, want the zero value", got)
 	}

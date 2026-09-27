@@ -261,8 +261,8 @@ func DefaultMarker() string {
 
 // ContextParamsDefault returns the default context parameters for mtmd.
 //
-// Threads comes from [llama.Threads]. The four threads of llama.cpp are slow
-// on a machine with many cores.
+// Threads comes from [llama.Threads]. The llama.cpp default of four threads is
+// slow on a machine with many cores.
 func ContextParamsDefault() ContextParamsType {
 	var ctx ContextParamsType
 	contextParamsDefaultFunc.Call(unsafe.Pointer(&ctx))
@@ -361,7 +361,7 @@ func SupportVision(ctx Context) bool {
 // for example:
 //
 //	"here is an image: <__media__>\ndescribe it in detail."
-//	this will gives 3 chunks:
+//	this gives 3 chunks:
 //	1. "here is an image: <start_of_image>"
 //	2. (image/audio tokens)
 //	3. "<end_of_image>\ndescribe it in detail."

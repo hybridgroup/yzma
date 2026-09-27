@@ -120,8 +120,8 @@ func benchmarkSetupOnce(b *testing.B) {
 		benchThreadpool = tp
 	}
 
-	// The projector decides the count of tokens of an image. A minimum here
-	// makes a projector with a fixed count fail.
+	// The projector decides the image token count. Setting a minimum here
+	// breaks projectors with a fixed count.
 	mprms := ContextParamsDefault()
 	if nThreads > 0 {
 		mprms.Threads = int32(nThreads)
@@ -146,8 +146,8 @@ func benchmarkSetupOnce(b *testing.B) {
 	benchReady = true
 }
 
-// newBenchThreadpool holds n threads to the first n performance CPUs, thus the
-// pool has the thread count of the context.
+// newBenchThreadpool pins n threads to the first n performance CPUs, so the
+// pool matches the context thread count.
 func newBenchThreadpool(n int32) (llama.Threadpool, error) {
 	cpus := llama.PerformanceCPUs()
 	if len(cpus) == 0 {

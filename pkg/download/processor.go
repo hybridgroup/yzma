@@ -7,8 +7,8 @@ var (
 	CPU  = newProcessor("cpu")
 	CUDA = newProcessor("cuda")
 
-	// CUDA12 and CUDA13 name a CUDA release. CUDA alone follows the CUDA version
-	// that the machine reports, or the default of the platform if it reports none.
+	// CUDA12 and CUDA13 select a CUDA release. CUDA alone uses the CUDA version the
+	// machine reports, or the platform default if it reports none.
 	CUDA12 = newProcessor("cuda-12")
 	CUDA13 = newProcessor("cuda-13")
 
@@ -17,7 +17,7 @@ var (
 	ROCm     = newProcessor("rocm")
 	Vulkan   = newProcessor("vulkan")
 
-	// WebGPU is the GPU of a browser. It goes with the Wasm target only.
+	// WebGPU is the browser GPU. It works with the Wasm target only.
 	WebGPU = newProcessor("webgpu")
 )
 

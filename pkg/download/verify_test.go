@@ -24,7 +24,7 @@ type installedBundle struct {
 	links   map[string]string
 }
 
-// writeBundle puts a bundle on disk and gives the digests that describe it.
+// writeBundle writes a bundle to disk and returns the digests that describe it.
 func writeBundle(t *testing.T) installedBundle {
 	t.Helper()
 
@@ -60,9 +60,9 @@ func writeBundle(t *testing.T) installedBundle {
 	return bundle
 }
 
-// bundleManifest gives the manifest that describes a bundle, and the assets it covers.
-// The assets are the ones the resolver names, so a check that resolves them again finds
-// the same ones. upstream is the nightly build that holds the binaries of a tagged
+// bundleManifest returns the manifest that describes a bundle, and the assets it covers.
+// The assets match what the resolver names, so a check that resolves them again finds
+// the same ones. upstream is the nightly build that holds the binaries for a tagged
 // release, and is empty for a nightly tag.
 func bundleManifest(t *testing.T, bundle installedBundle, tag, upstream string) ([]byte, []Asset) {
 	t.Helper()
@@ -88,7 +88,7 @@ func bundleManifest(t *testing.T, bundle installedBundle, tag, upstream string) 
 			source.Assets = map[string]manifestAsset{}
 		}
 
-		// Only the first asset holds the bundle.
+		// Only the first asset contains the bundle.
 		entry := manifestAsset{SHA256: "aaaa"}
 		if i == 0 {
 			entry.Files, entry.Links = bundle.files, bundle.links
@@ -114,7 +114,7 @@ func bundleManifest(t *testing.T, bundle installedBundle, tag, upstream string) 
 	return body, assets
 }
 
-// serveManifestBody publishes manifest bytes for the length of the test.
+// serveManifestBody serves manifest bytes for the rest of the test.
 func serveManifestBody(t *testing.T, body []byte) *httptest.Server {
 	t.Helper()
 
@@ -143,9 +143,9 @@ func writeBundleRecord(t *testing.T, bundle installedBundle, tag, upstream strin
 	}
 }
 
-// serveBundleManifest publishes a manifest that describes a bundle, and writes the
-// install record that points at it. The record has no manifest beside it, as the records
-// that earlier releases wrote do.
+// serveBundleManifest serves a manifest that describes a bundle, and writes the install
+// record that points at it. No manifest is saved next to the record, like the records
+// earlier releases wrote.
 func serveBundleManifest(t *testing.T, bundle installedBundle, tag string) (*httptest.Server, []byte) {
 	t.Helper()
 
@@ -156,9 +156,9 @@ func serveBundleManifest(t *testing.T, bundle installedBundle, tag string) (*htt
 	return server, body
 }
 
-// installBundle writes the record and the manifest that an install leaves beside a
-// bundle, and gives the digest of the manifest to pin with. Nothing is published, so a
-// check that reaches the network fails.
+// installBundle writes the record and manifest that an install leaves next to a bundle,
+// and returns the manifest digest to pin with. Nothing is served, so a check that
+// reaches the network fails.
 func installBundle(t *testing.T, bundle installedBundle, tag, upstream string) string {
 	t.Helper()
 
@@ -174,8 +174,8 @@ func installBundle(t *testing.T, bundle installedBundle, tag, upstream string) s
 	return digest
 }
 
-// blockNightlyTag points the nightly tag asset at a port that answers nothing, so a
-// lookup that must not happen fails the test rather than reaching GitHub.
+// blockNightlyTag points the nightly tag asset at a port that does not answer, so an
+// unwanted lookup fails the test instead of reaching GitHub.
 func blockNightlyTag(t *testing.T) {
 	t.Helper()
 
@@ -312,8 +312,8 @@ func TestVerifyInstallDoesNotTrustTheRecordTag(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The operator says which release must be there, so the assets are resolved
-	// again for that release instead of taken from the record.
+	// The operator names the release that must be installed, so its assets are
+	// resolved again instead of read from the record.
 	report, err := VerifyInstall(context.Background(), bundle.libPath, "b10783")
 	if err != nil {
 		t.Fatalf("VerifyInstall() failed: %v", err)
@@ -370,7 +370,7 @@ func TestVerifyInstallReadsTheManifestBesideTheRecord(t *testing.T) {
 	bundle := writeBundle(t)
 	installBundle(t, bundle, "b10783", "")
 
-	// Nothing is published, so a fetch of the manifest fails the test.
+	// Nothing is served, so fetching the manifest fails the test.
 	report, err := VerifyInstall(context.Background(), bundle.libPath, "")
 	if err != nil {
 		t.Fatalf("VerifyInstall() failed: %v", err)
@@ -390,8 +390,8 @@ func TestVerifyInstallOfAPinnedTaggedReleaseNeedsNoNetwork(t *testing.T) {
 	bundle := writeBundle(t)
 	digest := installBundle(t, bundle, "v0.4.0", "b10783")
 
-	// The manifest names the nightly build, so neither it nor the release page is
-	// fetched.
+	// The manifest names the nightly build, so neither the manifest nor the release
+	// page is fetched.
 	report, err := VerifyInstall(context.Background(), bundle.libPath, "v0.4.0@sha256:"+digest)
 	if err != nil {
 		t.Fatalf("VerifyInstall() failed: %v", err)
@@ -429,8 +429,8 @@ func TestVerifyInstallIgnoresAManifestForAnotherRelease(t *testing.T) {
 	body, _ := bundleManifest(t, bundle, "b10783", "")
 	serveManifestBody(t, body)
 
-	// A manifest of another release does not describe this install, even when the
-	// bytes are whole.
+	// A manifest for another release does not describe this install, even when its
+	// bytes are intact.
 	other, _ := bundleManifest(t, bundle, "b10780", "")
 	if err := WriteInstallManifest(bundle.libPath, other); err != nil {
 		t.Fatal(err)
@@ -478,7 +478,7 @@ func TestVerifyInstallKeepsTheManifestItFetches(t *testing.T) {
 		t.Errorf("record = %+v, want the rest of it unchanged", record)
 	}
 
-	// The next check reads what was kept.
+	// The next check reads the saved copy.
 	server.Close()
 	report, err := VerifyInstall(context.Background(), bundle.libPath, "")
 	if err != nil {
@@ -542,7 +542,7 @@ func TestInstallWritesARecord(t *testing.T) {
 	}
 }
 
-// stateOf gives the state a report holds for a name.
+// stateOf returns the state a report holds for a name.
 func stateOf(report *VerifyReport, name string) FileState {
 	for _, file := range report.Files {
 		if file.Name == name {

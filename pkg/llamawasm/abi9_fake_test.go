@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-// The fake module of ABI version 9 has a real heap, thus the tests cover the
-// strings, the doubles, and the buffers of state that cross the boundary.
+// The fake ABI version 9 module has a real heap, so the tests cover the
+// strings, doubles, and state buffers that cross the boundary.
 const fakeABI9Source = `
 globalThis.__yzmaABI9 = (function () {
 	const heap = new Uint8Array(1 << 20);
@@ -96,7 +96,7 @@ func fakeABI9(t *testing.T) js.Value {
 	return helper
 }
 
-// fakeOld puts a module in place that has none of the calls of ABI version 9.
+// fakeOld installs a module that has none of the ABI version 9 calls.
 func fakeOld(t *testing.T) {
 	t.Helper()
 

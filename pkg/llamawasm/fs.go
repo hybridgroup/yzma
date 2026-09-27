@@ -10,12 +10,12 @@ import (
 	"syscall/js"
 )
 
-// The llama.cpp module has its own filesystem in memory and opens the model as
-// a usual file in it. Thus a program must put the file there before
+// The llama.cpp module has its own in memory filesystem and opens the model as
+// a normal file in it. So a program must put the file there before
 // ModelLoadFromFile.
 
-// WriteModelFile writes data to name in the filesystem of the llama.cpp
-// module. It makes the directories of the path that are not there.
+// WriteModelFile writes data to name in the llama.cpp module filesystem. It
+// creates any missing directories in the path.
 func WriteModelFile(name string, data []byte) error {
 	fs, err := filesystem()
 	if err != nil {
@@ -32,8 +32,8 @@ func WriteModelFile(name string, data []byte) error {
 	return err
 }
 
-// RemoveModelFile removes name from the filesystem of the llama.cpp module and
-// releases the memory of the file.
+// RemoveModelFile removes name from the llama.cpp module filesystem and frees
+// the file memory.
 func RemoveModelFile(name string) error {
 	fs, err := filesystem()
 	if err != nil {
@@ -43,7 +43,7 @@ func RemoveModelFile(name string) error {
 	return err
 }
 
-// filesystem gives the FS object of the llama.cpp module.
+// filesystem returns the FS object of the llama.cpp module.
 func filesystem() (js.Value, error) {
 	if !Loaded() {
 		return js.Undefined(), ErrNotLoaded
@@ -56,16 +56,16 @@ func filesystem() (js.Value, error) {
 	return fs, nil
 }
 
-// makeDir makes the directories of the path of name. The filesystem of the
-// module is almost empty at the start, thus a path such as /models/model.gguf
-// needs its directory first.
+// makeDir creates the directories in the path of name. The module filesystem
+// starts almost empty, so a path such as /models/model.gguf needs its
+// directory first.
 func makeDir(fs js.Value, name string) error {
 	dir := path.Dir(name)
 	if dir == "." || dir == "/" || dir == "" {
 		return nil
 	}
 	if _, err := fsCall(fs, "mkdirTree", dir); err != nil {
-		// A directory that is already there is not a failure.
+		// A directory that already exists is not a failure.
 		if strings.Contains(err.Error(), "EEXIST") {
 			return nil
 		}
@@ -74,9 +74,9 @@ func makeDir(fs js.Value, name string) error {
 	return nil
 }
 
-// fsCall calls a function of the filesystem of the module and changes a
-// JavaScript exception into an error. A failed call throws, and a throw in a
-// call from Go is a panic that stops the program.
+// fsCall calls a module filesystem function and turns a JavaScript exception
+// into an error. A failed call throws, and a throw in a call from Go is a panic
+// that stops the program.
 func fsCall(fs js.Value, name string, args ...any) (result js.Value, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -87,22 +87,20 @@ func fsCall(fs js.Value, name string, args ...any) (result js.Value, err error) 
 	return fs.Call(name, args...), nil
 }
 
-// FetchModelFile gets a model over the network and writes it to name in the
-// filesystem of the llama.cpp module. It makes the directories of the path that
-// are not there.
+// FetchModelFile downloads a model and writes it to name in the llama.cpp
+// module filesystem. It creates any missing directories in the path.
 //
-// The body of the response goes into the file in small parts. Thus the memory
-// stays near the size of the model and not two times that size.
+// The response body goes into the file in small chunks. So memory use stays
+// near the model size and not twice that.
 //
-// If the progress function is not nil, it receives the number of bytes to this
-// point and the total number of bytes. The total is 0 if the server gives no
-// length.
+// If progress is not nil, it receives the bytes read so far and the total
+// bytes. The total is 0 if the server sends no length.
 //
-// A body that stops before the length that the server gives is an error,
-// because llama.cpp can load a model file that is not complete.
+// A body that ends before the length the server sent is an error, because
+// llama.cpp can load an incomplete model file.
 //
-// One JavaScript ArrayBuffer holds a maximum of 2 GB, thus a larger model must
-// be in splits.
+// One JavaScript ArrayBuffer holds at most 2 GB, so a larger model must be
+// split.
 func FetchModelFile(name, url string, progress func(done, total int64)) error {
 	fs, err := filesystem()
 	if err != nil {
@@ -113,8 +111,8 @@ func FetchModelFile(name, url string, progress func(done, total int64)) error {
 	}
 
 	// Firefox writes the response to its cache while the program reads the
-	// stream. A model is larger than the maximum size of a cache entry, thus the
-	// browser stops the stream with an error. no-store keeps the model out of
+	// stream. A model is larger than the maximum cache entry size, so the
+	// browser aborts the stream with an error. no-store keeps the model out of
 	// the cache.
 	options := js.Global().Get("Object").New()
 	options.Set("cache", "no-store")
@@ -127,8 +125,8 @@ func FetchModelFile(name, url string, progress func(done, total int64)) error {
 		return fmt.Errorf("llamawasm: cannot fetch %s: status %d", url, response.Get("status").Int())
 	}
 
-	// A body that the server compresses gives a content-length of the
-	// compressed size, which is not the number of bytes that arrive here.
+	// A compressed body has a content-length of the compressed size, which is
+	// not the number of bytes that arrive here.
 	encoded := response.Get("headers").Call("get", "content-encoding").Truthy()
 
 	var total int64
@@ -162,8 +160,8 @@ func FetchModelFile(name, url string, progress func(done, total int64)) error {
 		value := chunk.Get("value")
 		n := value.Get("length").Int()
 
-		// FS.write takes the position in the file, thus the full model is never
-		// in memory at one time.
+		// FS.write takes the file position, so the full model is never in
+		// memory at once.
 		if _, err := fsCall(fs, "write", stream, value, 0, n, done); err != nil {
 			return err
 		}
@@ -174,8 +172,8 @@ func FetchModelFile(name, url string, progress func(done, total int64)) error {
 		}
 	}
 
-	// A body that stops early leaves a file that is not complete. llama.cpp
-	// can load such a file and then compute wrong values, thus fail here.
+	// A body that ends early leaves an incomplete file. llama.cpp can load
+	// such a file and then compute wrong values, so fail here.
 	if total > 0 && !encoded && done != total {
 		return fmt.Errorf("llamawasm: %s gave %d bytes of %d", url, done, total)
 	}
@@ -183,8 +181,8 @@ func FetchModelFile(name, url string, progress func(done, total int64)) error {
 	return nil
 }
 
-// ReleaseScratch returns the scratch memory of this package to the llama.cpp
-// module. The next call takes it again, thus use this only after the last
+// ReleaseScratch returns this package's scratch memory to the llama.cpp
+// module. The next call allocates it again, so use this only after the last
 // inference.
 func ReleaseScratch() {
 	if !Loaded() {
@@ -198,7 +196,7 @@ func ReleaseScratch() {
 	}
 }
 
-// await waits for a JavaScript promise and gives its value.
+// await waits for a JavaScript promise and returns its value.
 func await(promise js.Value) (js.Value, error) {
 	type result struct {
 		value js.Value

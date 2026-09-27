@@ -13,7 +13,7 @@ import (
 )
 
 // server talks to one OpenAI compatible model server. ollama and Docker Model
-// Runner both give this interface, thus one client covers them.
+// Runner both provide this interface, so one client covers them.
 type server struct {
 	name    string
 	baseURL string
@@ -21,13 +21,13 @@ type server struct {
 	client  *http.Client
 }
 
-// NewServer gives an engine that talks to a model server over HTTP.
+// NewServer returns an engine that talks to a model server over HTTP.
 func NewServer(name, baseURL, model string) Engine {
 	return &server{
 		name:    name,
 		baseURL: strings.TrimRight(baseURL, "/"),
 		model:   model,
-		// A load of a large model can be slow, thus the timeout is generous.
+		// Loading a large model can be slow, so the timeout is generous.
 		client: &http.Client{Timeout: 10 * time.Minute},
 	}
 }
@@ -36,7 +36,7 @@ func (s *server) Name() string { return s.name }
 
 func (s *server) Close() {}
 
-// Load asks for one token, which makes the server put the model in memory.
+// Load asks for one token, which makes the server load the model into memory.
 func (s *server) Load(req Request) error {
 	if req.Embeddings {
 		if _, err := s.Embed(req); err != nil {
@@ -68,11 +68,10 @@ type chatRequest struct {
 	Stream      bool          `json:"stream"`
 	StreamOpts  streamOptions `json:"stream_options"`
 
-	// A model that thinks, such as Gemma 4, answers with its reasoning and
-	// leaves the content empty. yzma applies the template of llama.cpp, which
-	// does not think, thus the servers must not think either. ollama takes
-	// reasoning_effort and Docker Model Runner takes chat_template_kwargs, and
-	// each one leaves the field of the other alone.
+	// A thinking model such as Gemma 4 answers with its reasoning and leaves
+	// the content empty. yzma renders the template with thinking off, so the
+	// servers must not think either. ollama takes reasoning_effort and Docker
+	// Model Runner takes chat_template_kwargs, and each ignores the other.
 	ReasoningEffort    string         `json:"reasoning_effort,omitempty"`
 	ChatTemplateKwargs map[string]any `json:"chat_template_kwargs,omitempty"`
 }
@@ -100,10 +99,10 @@ type chatChunk struct {
 	Choices []struct {
 		Delta struct {
 			Content string `json:"content"`
-			// A model that thinks, such as Gemma 4, puts its tokens here and
-			// leaves the content empty. They are tokens all the same, thus the
-			// timing and the count must see them. ollama calls the field
-			// reasoning and Docker Model Runner calls it reasoning_content.
+			// A thinking model such as Gemma 4 puts its tokens here and leaves
+			// the content empty. They are still tokens, so the timing and the
+			// count must include them. ollama calls the field reasoning and
+			// Docker Model Runner calls it reasoning_content.
 			Reasoning        string `json:"reasoning"`
 			ReasoningContent string `json:"reasoning_content"`
 		} `json:"delta"`
@@ -114,13 +113,13 @@ type chatChunk struct {
 	} `json:"usage"`
 }
 
-// Generate posts one streaming request. The stream is what gives a true time
-// to the first token. A whole answer would only give the time of the request.
+// Generate posts one streaming request. Only a stream gives a true time to
+// first token, since a whole answer gives only the request time.
 func (s *server) Generate(req Request) (Result, error) {
 	// The clock starts here, not at the request. An application that uses a
-	// server must turn the image into base64 and the whole message into JSON,
-	// thus that work belongs to the cost of the REST interface. yzma pays for
-	// the decoding of its image inside its own measurement.
+	// server must encode the image as base64 and the message as JSON, so that
+	// work is part of the REST interface cost. yzma pays for decoding its image
+	// inside its own measurement.
 	start := time.Now()
 
 	content, err := messageContent(req)
@@ -221,8 +220,8 @@ func readStream(body io.Reader, start time.Time) (Result, error) {
 
 	result.Total = time.Since(start)
 
-	// A server that sends no usage leaves the count of the frames, which is
-	// near the count of the tokens but not the same.
+	// A server that sends no usage leaves the frame count, which is close to
+	// the token count but not the same.
 	if result.Tokens == 0 {
 		result.Tokens = chunks
 	}
@@ -233,9 +232,9 @@ func readStream(body io.Reader, start time.Time) (Result, error) {
 	return result, nil
 }
 
-// messageContent gives a plain string for the text suite and the two part form
-// for an image. The image goes as a data URL of the same bytes that yzma reads.
-// The image goes first, as the marker does in the prompt of yzma.
+// messageContent returns a plain string for the text suite and the two part
+// form for an image. The image is a data URL of the same bytes yzma reads, and
+// it goes first, as the marker does in the yzma prompt.
 func messageContent(req Request) (any, error) {
 	if len(req.Image) == 0 {
 		return req.Prompt, nil
@@ -264,9 +263,9 @@ type embedResponse struct {
 }
 
 // Embed posts one request to the embeddings interface. The answer is a vector
-// and not a stream, thus the time to the first token is the time of the whole
-// request. An embedding gives no token back, thus almost all of that time is
-// the round trip, which is what this suite measures.
+// and not a stream, so time to first token is the whole request time. An
+// embedding returns no tokens, so almost all of that time is the round trip,
+// which is what this suite measures.
 func (s *server) Embed(req Request) (Result, error) {
 	start := time.Now()
 

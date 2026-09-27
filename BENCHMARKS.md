@@ -1,6 +1,6 @@
 # Benchmarks
 
-yzma benchmarks, one file for each platform.
+yzma benchmarks, one file per platform.
 
 | Platform | Numbers |
 | --- | --- |
@@ -9,16 +9,16 @@ yzma benchmarks, one file for each platform.
 | Windows | [benchmarks/windows.md](benchmarks/windows.md) |
 | WebAssembly | [benchmarks/webassembly.md](benchmarks/webassembly.md) |
 
-yzma against a model server, on one machine.
+yzma compared with model servers on the same machine.
 
 | Comparison | Numbers |
 | --- | --- |
 | yzma, ollama, Docker Model Runner | [benchmarks/comparison.md](benchmarks/comparison.md) |
 
-Each file has a table for each suite, with the median of five runs, and the
+Each file has a table per suite with the median of five runs, and the raw
 output of each run below the tables.
 
-To make these numbers again on your machine, or to add a machine, see
+To reproduce these numbers on your machine, or to add a new machine, see
 [how to run the benchmarks](benchmarks/README.md).
 
 ```shell
