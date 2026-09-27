@@ -39,6 +39,9 @@ func main() {
 		w.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 		w.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
 
+		// The browser checks each file again, so it does not run an old build.
+		w.Header().Set("Cache-Control", "no-cache")
+
 		// A browser runs a .wasm file only with the correct type.
 		if filepath.Ext(r.URL.Path) == ".wasm" {
 			w.Header().Set("Content-Type", "application/wasm")
