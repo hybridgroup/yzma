@@ -463,7 +463,7 @@ page's origin.
 
 `decide.html` and `examples/wasm/decide` run the `exp/decide` package, which
 answers a typed question about a state with a probability for each option. It
-takes Jev-Style and JevK5 models, the same as on the host. The page fetches the
+takes Jev-Style, JevK5 and decider models, the same as on the host. The page fetches the
 model and its config, and asks every question about the state with
 `DecideMany`.
 
