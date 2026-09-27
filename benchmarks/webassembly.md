@@ -11,7 +11,8 @@ There are two kinds of run.
 - **A browser**, which no script here can drive. Serve the example with
   `make serve-wasm`, paste [browser-bench.js](browser-bench.js) in the console
   of the page, and give the result to `yzma-bench update`. WebGPU needs this,
-  because Node has no WebGPU.
+  because `bench.js` has no WebGPU. Set `gpu` in the script to select the GPU
+  on a machine with two.
 
 Both kinds read the llama.cpp build from `yzma-install.json` of the build
 directory, thus each result says which build made it.
@@ -27,14 +28,20 @@ prompt and the count of tokens are different.
 
 Tokens a second on each machine.
 
-| Machine | Node, CPU | Node, more threads | Chrome, more threads |
-| --- | --- | --- | --- |
-| Intel Core i9-13900HX | 13.8 | 105.7 | 91.8 |
+| Machine | Node, CPU | Node, more threads | Chrome, more threads | Chrome, WebGPU Intel | Chrome, WebGPU NVIDIA |
+| --- | --- | --- | --- | --- | --- |
+| Intel Core i9-13900HX | 13.8 | 105.7 | 92.8 | 19.9 | 69.8 |
 
 - The build with more threads is 7.7 times faster than the build with one
   thread.
-- In Chrome, the build with more threads gives 87 percent of the speed in Node.
-- There is no WebGPU result yet.
+- In Chrome, the build with more threads gives 88 percent of the speed in Node.
+- On this small model the CPU with more threads is faster than WebGPU. Each
+  operation is too small to pay for the trip to the GPU. The GPU is worth more
+  with a larger model and with images.
+- The RTX 4070 is 3.5 times faster than the Intel RPL-S. Chrome on Linux needs
+  three switches for WebGPU with Vulkan, see
+  [wasm/README.md](../wasm/README.md).
+- The Node numbers use b11146 and the Chrome numbers use b11202.
 
 ## In Node
 
@@ -106,33 +113,95 @@ ok	github.com/hybridgroup/yzma/examples/wasm/chat	3.033s
 <!-- yzma:bench table browser -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
-| CPU, more threads | wasm | Intel Core i9-13900HX, Chrome | - | 91.8 | b11146 | 2026-09-24 |
+| CPU, more threads | wasm | Intel Core i9-13900HX, Chrome | - | 92.8 | b11202 | 2026-09-27 |
+| WebGPU | wasm | Intel Core i9-13900HX, Chrome | Intel-RPL-S | 19.9 | b11202 | 2026-09-27 |
+| WebGPU | wasm | Intel Core i9-13900HX, Chrome | RTX-4070 | 69.8 | b11202 | 2026-09-27 |
 <!-- yzma:bench table end browser -->
 
 <!-- yzma:bench start browser/cpu-threads/wasm/i9-13900hx -->
 ### CPU, more threads, wasm, Intel Core i9-13900HX, Chrome
-<!-- yzma:bench meta {"suite":"browser","backend":"cpu-threads","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX, Chrome","cpu":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36","tokens_per_second":91.8,"llamacpp":"b11146","date":"2026-09-24"} -->
+<!-- yzma:bench meta {"suite":"browser","backend":"cpu-threads","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX, Chrome","cpu":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36","tokens_per_second":92.8,"llamacpp":"b11202","date":"2026-09-27"} -->
 
-Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36. 91.8 tokens a second.
+Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36. 92.8 tokens a second.
 
 <details><summary>The output of go test</summary>
 
 ```
-$ browser-bench.js mode=auto tokens=64
+$ browser-bench.js mode=cpu tokens=64
 goos: js
 goarch: wasm
 pkg: github.com/hybridgroup/yzma/examples/wasm/chat
-cpu: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36
+cpu: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36
 backend: cpu-threads, 16 threads
-llama.cpp: b11146
-BenchmarkInference-32	1	690995465 ns/op	92.6 tokens/s
-BenchmarkInference-32	1	700755502 ns/op	91.3 tokens/s
-BenchmarkInference-32	1	696864111 ns/op	91.8 tokens/s
-BenchmarkInference-32	1	693316000 ns/op	92.3 tokens/s
-BenchmarkInference-32	1	722266110 ns/op	88.6 tokens/s
+llama.cpp: b11202
+BenchmarkInference-32	1	689506572 ns/op	92.8 tokens/s
+BenchmarkInference-32	1	674252002 ns/op	94.9 tokens/s
+BenchmarkInference-32	1	700065631 ns/op	91.4 tokens/s
+BenchmarkInference-32	1	683833743 ns/op	93.6 tokens/s
+BenchmarkInference-32	1	703528636 ns/op	91.0 tokens/s
 PASS
-ok	github.com/hybridgroup/yzma/examples/wasm/chat	3.527s
+ok	github.com/hybridgroup/yzma/examples/wasm/chat	3.471s
 ```
 
 </details>
 <!-- yzma:bench end browser/cpu-threads/wasm/i9-13900hx -->
+
+<!-- yzma:bench start browser/webgpu/wasm/i9-13900hx/intel-rpl-s -->
+### WebGPU, wasm, Intel Core i9-13900HX, Chrome, Intel-RPL-S
+<!-- yzma:bench meta {"suite":"browser","backend":"webgpu","arch":"wasm","machine":"i9-13900hx","device":"Intel-RPL-S","label":"Intel Core i9-13900HX, Chrome","cpu":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36","tokens_per_second":19.9,"llamacpp":"b11202","date":"2026-09-27"} -->
+
+Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36. 19.9 tokens a second.
+
+Chrome 154 with --enable-unsafe-webgpu --enable-features=Vulkan --enable-dawn-features=vulkan_enable_f16_on_nvidia, and ?gpu=low-power.
+
+<details><summary>The output of go test</summary>
+
+```
+$ browser-bench.js mode=webgpu gpu=low-power tokens=64
+goos: js
+goarch: wasm
+pkg: github.com/hybridgroup/yzma/examples/wasm/chat
+cpu: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36
+backend: webgpu (WebGPU)
+llama.cpp: b11202
+BenchmarkInference-32	1	3247082699 ns/op	19.7 tokens/s
+BenchmarkInference-32	1	3261977574 ns/op	19.6 tokens/s
+BenchmarkInference-32	1	3219315895 ns/op	19.9 tokens/s
+BenchmarkInference-32	1	2996254682 ns/op	21.4 tokens/s
+BenchmarkInference-32	1	2752688172 ns/op	23.3 tokens/s
+PASS
+ok	github.com/hybridgroup/yzma/examples/wasm/chat	15.483s
+```
+
+</details>
+<!-- yzma:bench end browser/webgpu/wasm/i9-13900hx/intel-rpl-s -->
+
+<!-- yzma:bench start browser/webgpu/wasm/i9-13900hx/rtx-4070 -->
+### WebGPU, wasm, Intel Core i9-13900HX, Chrome, RTX-4070
+<!-- yzma:bench meta {"suite":"browser","backend":"webgpu","arch":"wasm","machine":"i9-13900hx","device":"RTX-4070","label":"Intel Core i9-13900HX, Chrome","cpu":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36","tokens_per_second":69.8,"llamacpp":"b11202","date":"2026-09-27"} -->
+
+Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36. 69.8 tokens a second.
+
+Chrome 154 with --enable-unsafe-webgpu --enable-features=Vulkan --enable-dawn-features=vulkan_enable_f16_on_nvidia, and ?gpu=high-performance.
+
+<details><summary>The output of go test</summary>
+
+```
+$ browser-bench.js mode=webgpu gpu=high-performance tokens=64
+goos: js
+goarch: wasm
+pkg: github.com/hybridgroup/yzma/examples/wasm/chat
+cpu: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36
+backend: webgpu (WebGPU)
+llama.cpp: b11202
+BenchmarkInference-32	1	856875084 ns/op	74.7 tokens/s
+BenchmarkInference-32	1	925791986 ns/op	69.1 tokens/s
+BenchmarkInference-32	1	1102118133 ns/op	58.1 tokens/s
+BenchmarkInference-32	1	884955752 ns/op	72.3 tokens/s
+BenchmarkInference-32	1	916511528 ns/op	69.8 tokens/s
+PASS
+ok	github.com/hybridgroup/yzma/examples/wasm/chat	4.691s
+```
+
+</details>
+<!-- yzma:bench end browser/webgpu/wasm/i9-13900hx/rtx-4070 -->
