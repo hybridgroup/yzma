@@ -33,9 +33,9 @@
     <h1>A model with eyes, in WebAssembly</h1>
     <p>
       llama.cpp and its multimodal library run as a WebAssembly module. The
-      program that drives them is Go, compiled by TinyGo, through the
-      <code>pkg/llamawasm</code> package of yzma. This page decodes the image and
-      sends the pixels to the program, which puts them in the prompt beside the
+      program that drives them is Go, compiled by TinyGo, using the yzma
+      <code>pkg/llamawasm</code> package. This page decodes the image and sends
+      the pixels to the program, which puts them in the prompt next to the
       question.
     </p>
     <p id="backend">looking for a backend</p>
@@ -55,14 +55,14 @@
 
     <label for="file">Image</label>
     <input id="file" type="file" accept="image/*" />
-    <img id="preview" alt="the image that goes to the model" />
+    <img id="preview" alt="the image sent to the model" />
 
     <label for="prompt">Question</label>
     <textarea id="prompt" rows="2">Describe this image.</textarea>
     <button id="ask" disabled>Ask</button>
 
     <p>
-      On the CPU the image itself takes half a minute or more: the projector is
+      On the CPU the image itself takes half a minute or more. The projector is
       the slow part, not the answer. With WebGPU it takes a second or two.
     </p>
 
@@ -75,8 +75,8 @@
       const askButton = document.getElementById("ask");
       const preview = document.getElementById("preview");
 
-      // The maximum side of the image that goes to the model. A projector uses
-      // a small image, thus a larger image only uses more memory.
+      // The longest side of the image sent to the model. A projector uses a small
+      // image, so a larger one only costs more memory.
       const maxSide = 896;
 
       let picture = null;
@@ -105,7 +105,7 @@
         }
       };
 
-      // Change the file that the reader selected into RGBA pixels.
+      // Convert the selected file into RGBA pixels.
       document.getElementById("file").onchange = async (event) => {
         const file = event.target.files[0];
         if (!file) {

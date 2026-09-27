@@ -4,8 +4,8 @@ package llamawasm
 
 import "fmt"
 
-// ModelLoadFromFile loads a model from a file in the filesystem of the
-// llama.cpp module.
+// ModelLoadFromFile loads a model from a file in the llama.cpp module
+// filesystem.
 //
 // The file must be there before this call. Use WriteModelFile or
 // FetchModelFile to put it there.
@@ -36,7 +36,7 @@ func ModelFree(model Model) error {
 	return nil
 }
 
-// ModelGetVocab gives the vocabulary of a model.
+// ModelGetVocab returns the vocabulary of a model.
 func ModelGetVocab(model Model) Vocab {
 	if !Loaded() {
 		return 0
@@ -44,7 +44,7 @@ func ModelGetVocab(model Model) Vocab {
 	return Vocab(call("_yzma_model_get_vocab", int(model)))
 }
 
-// ModelNEmbd gives the number of values in an embedding of the model.
+// ModelNEmbd returns the embedding size of the model.
 func ModelNEmbd(model Model) int32 {
 	if !Loaded() {
 		return 0
@@ -52,8 +52,7 @@ func ModelNEmbd(model Model) int32 {
 	return call("_yzma_model_n_embd", int(model))
 }
 
-// ModelNCtxTrain gives the size of the context that the model was trained
-// with.
+// ModelNCtxTrain returns the context size the model was trained with.
 func ModelNCtxTrain(model Model) int32 {
 	if !Loaded() {
 		return 0
@@ -61,21 +60,21 @@ func ModelNCtxTrain(model Model) int32 {
 	return call("_yzma_model_n_ctx_train", int(model))
 }
 
-// ModelDesc gives a short description of the type of the model.
+// ModelDesc returns a short description of the model type.
 func ModelDesc(model Model) string {
 	return modelString("_yzma_model_desc", model, 256)
 }
 
-// ModelChatTemplate gives the chat template that is in the model, or an empty
+// ModelChatTemplate returns the chat template stored in the model, or an empty
 // string if the model has none.
 //
-// The name argument is not used. It is here to keep the same shape as
+// The name argument is unused. It keeps the same signature as
 // llama.ModelChatTemplate.
 func ModelChatTemplate(model Model, name string) string {
 	return modelString("_yzma_model_chat_template", model, 8192)
 }
 
-// modelString reads a string of a model that the shim writes into a buffer.
+// modelString reads a model string that the shim writes into a buffer.
 func modelString(name string, model Model, size int) string {
 	if !Loaded() {
 		return ""
@@ -83,19 +82,19 @@ func modelString(name string, model Model, size int) string {
 	return callString(name, size, int(model))
 }
 
-// String gives the handle of the model as text, which is an aid to debugging.
+// String returns the model handle as text, for debugging.
 func (m Model) String() string {
 	return fmt.Sprintf("model(%d)", int32(m))
 }
 
-// ChatApplyTemplate puts one message into the chat format of the model.
+// ChatApplyTemplate formats one message with the model chat template.
 //
-// One message is sufficient for a prompt with a question about an image. For a
-// chat with turns or for tool calling, render the template that
-// [ModelChatTemplate] gives with the template package of yzma.
+// One message is enough for a prompt with a question about an image. For a
+// multi turn chat or tool calling, render the template from
+// [ModelChatTemplate] with the yzma template package.
 //
-// addAssistant adds the start of the turn of the assistant. This makes the model
-// answer and not continue the message.
+// addAssistant adds the start of the assistant turn. This makes the model
+// answer instead of continuing the message.
 func ChatApplyTemplate(model Model, role, content string, addAssistant bool) (string, error) {
 	if !Loaded() {
 		return "", ErrNotLoaded

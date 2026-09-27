@@ -347,7 +347,7 @@ var (
 
 // ContextDefaultParams returns the default params to initialize a model context.
 //
-// NThreadsBatch comes from [Threads]. NThreads is 0, thus [InitFromModel] sets
+// NThreadsBatch comes from [Threads]. NThreads is 0, so [InitFromModel] sets
 // it from the model with [ModelThreads].
 func ContextDefaultParams() ContextParams {
 	var p ContextParams

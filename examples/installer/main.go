@@ -21,8 +21,8 @@ func main() {
 		}
 	}
 
-	// The CUDA version selects the CUDA build, so it is read for a CUDA install that
-	// was asked for as well as for one that is found here.
+	// The CUDA version selects the CUDA build, so detect it whether CUDA was
+	// requested or found on this machine.
 	var cudaVersion string
 	if *processor == "" || *processor == download.CUDA.String() {
 		cudaInstalled, detected := download.HasCUDA()

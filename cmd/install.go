@@ -72,9 +72,8 @@ func runInstall(c *cli.Context) error {
 		return fmt.Errorf("missing lib flag or YZMA_LIB env var")
 	}
 
-	// A wasm install puts the WebAssembly build of llama.cpp in place, which has
-	// its own file name, so the check for an existing install follows the target
-	// and not the machine that runs the command.
+	// A wasm install uses the WebAssembly build of llama.cpp, which has its own
+	// file name, so the existing install check uses the target, not the host.
 	if !upgrade {
 		if _, err := os.Stat(filepath.Join(libPath, download.LibraryName(osInstall))); !os.IsNotExist(err) {
 			fmt.Println("llama.cpp already installed at", libPath)
@@ -82,15 +81,15 @@ func runInstall(c *cli.Context) error {
 		}
 	}
 
-	// The digest comes off the version here as well, so bad input fails before
-	// anything is downloaded and the message names the tag rather than the pin.
+	// Strip the digest here too, so bad input fails before any download and the
+	// message names the tag rather than the pin.
 	tag, manifestDigest, err := download.ParsePinnedVersion(version)
 	if err != nil {
 		return err
 	}
 
-	// An empty version installs the release that this yzma release pins, which carries
-	// its own digest, so the messages report that pin rather than nothing.
+	// An empty version installs the release pinned by this yzma release, which has
+	// its own digest, so the messages report that pin instead of nothing.
 	if tag == "" && download.DefaultVersion != "" {
 		tag, manifestDigest, err = download.ParsePinnedVersion(download.DefaultVersion)
 		if err != nil {
@@ -118,8 +117,8 @@ func runInstall(c *cli.Context) error {
 		processor = download.CPU.String()
 	}
 
-	// The CUDA version selects the CUDA build, so it is read for a CUDA install that
-	// was asked for as well as for one that is found here.
+	// The CUDA version selects the CUDA build, so read it both for a requested
+	// CUDA install and for one detected here.
 	var cudaVersion string
 	if processor == "" || processor == download.CUDA.String() {
 		cudaInstalled, detected := download.HasCUDA()
@@ -165,8 +164,8 @@ func runInstall(c *cli.Context) error {
 	return nil
 }
 
-// showWasmRequirements says what to do with a WebAssembly install. YZMA_LIB has
-// no part in it, because a browser loads the files over HTTP.
+// showWasmRequirements explains how to use a WebAssembly install. YZMA_LIB does
+// not apply, because a browser loads the files over HTTP.
 func showWasmRequirements(libPath string) {
 	fmt.Println(`
 The WebAssembly build of llama.cpp is in ` + libPath + `

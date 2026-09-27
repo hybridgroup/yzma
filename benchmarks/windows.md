@@ -1,14 +1,14 @@
 # Windows benchmarks
 
-Benchmarks of yzma on Windows. Each table gives the median of five runs. The output
-of each run, and of the device, is below the tables.
+Benchmarks of yzma on Windows. Each table shows the median of five runs. The output
+of each run, and the device details, are below the tables.
 
-To add a machine or to make these numbers again, see
+To add a machine or to regenerate these numbers, see
 [how to run the benchmarks](README.md).
 
 ## Summary
 
-Tokens a second on each machine. The GPU columns give the fastest GPU backend.
+Tokens a second on each machine. The GPU columns show the fastest GPU backend.
 
 | Machine | GPU | Text, CPU | Text, GPU | Multimodal, CPU | Multimodal, GPU |
 | --- | --- | --- | --- | --- | --- |
@@ -16,11 +16,11 @@ Tokens a second on each machine. The GPU columns give the fastest GPU backend.
 
 - On the RTX 3070, Vulkan is faster than CUDA. It is 15 percent faster for text
   and 13 percent faster for multimodal.
-- The integrated AMD Radeon GPU on Vulkan0 gives 115.6 for text, which is
-  almost the same as the CPU. For multimodal it gives 448.9, which is faster
+- The integrated AMD Radeon GPU on Vulkan0 reaches 115.6 for text, which is
+  almost the same as the CPU. For multimodal it reaches 448.9, which is faster
   than the CPU.
-- The CPU runs change much from one run to the next, because Windows cannot
-  hold a thread to a core. The multimodal runs on the CPU go from 286.7 to
+- The CPU results vary a lot from run to run, because Windows can't pin a
+  thread to a core. The multimodal runs on the CPU go from 286.7 to
   339.9.
 
 ## Text model benchmarks

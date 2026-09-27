@@ -99,7 +99,7 @@ export YZMA_LIB=/path/to/lib
 
 The `yzma` command line tool downloads the `llama.cpp` prebuilt libraries for your platform. Your application can also download them itself, with auto-detection for CUDA and ROCm.
 
-Each file that comes down is checked against the SHA-256 digest that the release publishes, and the `yzma verify` command checks an installation later.
+Each downloaded file is checked against the SHA-256 digest published with the release, and the `yzma verify` command checks an existing installation.
 
 See **[yzma.ai/getting-started/install](https://yzma.ai/getting-started/install/)** for the instructions for [macOS](https://yzma.ai/getting-started/install/macos/), [Linux](https://yzma.ai/getting-started/install/linux/), [Windows](https://yzma.ai/getting-started/install/windows/), [Raspberry Pi](https://yzma.ai/getting-started/install/raspberry-pi/), [NVIDIA Jetson Orin](https://yzma.ai/getting-started/install/jetson-orin/), the [Arduino UNO Q](https://yzma.ai/getting-started/install/arduino-uno-q/), and a [browser](https://yzma.ai/getting-started/install/browser/).
 
@@ -144,7 +144,7 @@ Sure! Let's go to the zoo and feed the llama. What kind of llama are you interes
 
 ### WebAssembly Example
 
-`yzma` also runs in a browser, with text or with images. `llama.cpp` becomes a WebAssembly module of its own, and a Go program compiled by [TinyGo](https://tinygo.org) drives it through the [`pkg/llamawasm`](./pkg/llamawasm) package. The model never leaves the machine of the reader, and no server does any of the work.
+`yzma` also runs in a browser, with text or with images. `llama.cpp` runs as its own WebAssembly module, and a Go program compiled by [TinyGo](https://tinygo.org) drives it through the [`pkg/llamawasm`](./pkg/llamawasm) package. The model never leaves the user's machine, and no server does any of the work.
 
 ```shell
 $ make download-llama.cpp-wasm
@@ -153,27 +153,27 @@ $ make wasm-vlm-example
 $ make serve-wasm
 ```
 
-Then open http://localhost:8080 for chat, or http://localhost:8080/vlm.html to ask a question about an image. Each page says which backend it got:
+Then open http://localhost:8080 for chat, or http://localhost:8080/vlm.html to ask a question about an image. Each page shows which backend it loaded:
 
 ```
 backend: webgpu (WebGPU)
 ```
 
-There are three builds of `llama.cpp`, and the JavaScript glue takes the best one the browser can run:
+There are three builds of `llama.cpp`, and the JavaScript glue picks the best one the browser can run:
 
 | Build | What the browser needs |
 |-------|------------------------|
-| WebGPU | WebGPU with f16 shaders, and JSPI: Chrome or Edge 137 and later, or Firefox 153 and later with two switches in `about:config`. Chrome on Linux needs [three switches](./wasm/README.md#vulkan-in-chrome-on-linux). In Firefox the loader takes the CPU, which is faster there. |
-| More threads | `SharedArrayBuffer`, so a page with the COOP and COEP headers |
-| One thread | Nothing. It works everywhere. |
+| WebGPU | WebGPU with f16 shaders, and JSPI: Chrome or Edge 137 and later, or Firefox 153 and later with two switches in `about:config`. Chrome on Linux needs [three switches](./wasm/README.md#vulkan-in-chrome-on-linux). In Firefox the loader picks the CPU, which is faster there. |
+| Multithreaded | `SharedArrayBuffer`, so a page served with the COOP and COEP headers |
+| Single thread | Nothing. It works everywhere. |
 
-So a browser without WebGPU still works, on the CPU. The GPU is worth the most to a page that takes images: putting one through the projector of a model takes a second or two on the GPU against half a minute or more on the CPU.
+So a browser without WebGPU still works, on the CPU. The GPU helps most with images. Running one through the model's projector takes a second or two on the GPU, compared with half a minute or more on the CPU.
 
-The API in a browser is the smaller one of [`pkg/llamawasm`](./pkg/llamawasm): the calls that text generation, embeddings, and images need. The names and the order of the calls are the same as in [`pkg/llama`](./pkg/llama) and [`pkg/mtmd`](./pkg/mtmd), so a program moves over with a change of the import.
+In a browser you use the smaller API in [`pkg/llamawasm`](./pkg/llamawasm), with the calls needed for text generation, embeddings, and images. The call names and order match [`pkg/llama`](./pkg/llama) and [`pkg/mtmd`](./pkg/mtmd), so porting a program only takes a change of import.
 
-[See the code here](./examples/wasm/chat/main.go), or [the one that takes an image](./examples/wasm/vlm/main.go).
+[See the code here](./examples/wasm/chat/main.go), or [the image example](./examples/wasm/vlm/main.go).
 
-See [wasm/README.md](./wasm/README.md) for how it works, what each build costs in speed, and what a page must do to use one.
+See [wasm/README.md](./wasm/README.md) for how it works, how fast each build is, and what a page must do to use one.
 
 ### Additional Examples
 
@@ -197,7 +197,7 @@ For example, this downloads the `gemma-3-1b-it-GGUF` model:
 $ yzma model get -u https://huggingface.co/ggml-org/gemma-3-1b-it-GGUF/resolve/main/gemma-3-1b-it-Q4_K_M.gguf
 ```
 
-Check out the [Models](https://yzma.ai/docs/guides/models/) page for the download command and the run command for each model.
+Check out the [Models](https://yzma.ai/docs/guides/models/) page for the download and run commands for each model.
 
 ## Support
 
@@ -217,7 +217,7 @@ A browser is also a target:
 | ------- | ------------ | ---- |
 | Browser | wasm32 SIMD, one or more threads | WebGPU |
 
-There the API is the smaller one of the [`pkg/llamawasm`](./pkg/llamawasm) package: text generation, embeddings, and images, with no audio, video, LoRA adapters, saved state, or quantization. See the [WebAssembly example](#webassembly-example) above and [wasm/README.md](./wasm/README.md).
+There you use the smaller API in the [`pkg/llamawasm`](./pkg/llamawasm) package. It covers text generation, embeddings, and images, but not audio, video, LoRA adapters, saved state, or quantization. See the [WebAssembly example](#webassembly-example) above and [wasm/README.md](./wasm/README.md).
 
 Whenever there is a new release of `llama.cpp`, the tests for `yzma` are run automatically. This helps us stay up to date with the latest code and models.
 
@@ -276,8 +276,8 @@ ok  	github.com/hybridgroup/yzma/pkg/mtmd	76.644s
 ```
 
 Want to see more benchmarks? Take a look at the [BENCHMARKS.md](./BENCHMARKS.md)
-document, which has one file for each platform. To make these numbers again on
-your own machine, run `./benchmarks/run.sh`. See
+document, which has one file per platform. To reproduce these numbers on your
+own machine, run `./benchmarks/run.sh`. See
 [how to run the benchmarks](./benchmarks/README.md).
 
 ## More Info

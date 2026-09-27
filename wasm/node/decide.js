@@ -3,14 +3,14 @@
 // It loads a System One model, asks every question about the state with
 // yzmaDecideMany, then asks each one alone with yzmaDecide, then asks them all
 // again, and prints the results as JSON. In the exact mode the first two must
-// be the same.
+// match.
 //
 // Usage.
 //   node wasm/node/decide.js --dir build/wasm --model <gguf> --config <json> \
 //       --readout jev|jevk5 [--mode exact|batched] [--state <text>] \
 //       [--questions <json list>] [--category <name>] [--expect a,b,c] [--mt]
 //
-// --expect lists the answer that each question must get.
+// --expect lists the expected answer for each question.
 
 const fs = require("node:fs");
 const path = require("node:path");
@@ -76,7 +76,7 @@ function next() {
 }
 
 async function main() {
-  // This harness replaces yzma-loader.js, with a build on the CPU.
+  // This harness replaces yzma-loader.js and uses a CPU build.
   const moduleName = mt ? "yzma_wasm_mt.js" : "yzma_wasm.js";
   globalThis.crossOriginIsolated = mt;
   globalThis.yzmaBase = dir;

@@ -67,7 +67,7 @@ func TestApplyWithoutToolsHasNoToolsBlock(t *testing.T) {
 		t.Errorf("a tools block with no tools:\n%s", got)
 	}
 
-	// An empty slice must give the same result as none at all.
+	// An empty slice must give the same result as nil.
 	empty, err := ApplyWithTools(tmpl, msgs, nil, true)
 	if err != nil {
 		t.Fatal(err)
@@ -78,8 +78,8 @@ func TestApplyWithoutToolsHasNoToolsBlock(t *testing.T) {
 	}
 }
 
-// The template writes each tool with tojson, thus the result must parse and
-// must keep the fields of the definition.
+// The template writes each tool with tojson, so the result must parse and
+// keep the fields of the definition.
 func TestToolsContextKeepsFields(t *testing.T) {
 	got, err := toolsContext(testTools())
 	if err != nil {

@@ -107,9 +107,9 @@ func TestDefaultResolverWindowsCUDA(t *testing.T) {
 	}
 }
 
-// A wasm target takes every build from the llama-cpp-builder release page,
+// A wasm target gets every build from the llama-cpp-builder release page,
 // because the JavaScript glue chooses at run time: WebGPU where the browser has
-// it, more than one thread where the page is isolated, one thread otherwise.
+// it, multiple threads where the page is isolated, one thread otherwise.
 func TestDefaultResolverWasm(t *testing.T) {
 	for _, prcssr := range []Processor{CPU, WebGPU} {
 		urls, err := DefaultResolver.Resolve(Target{Arch: AMD64, OS: Wasm, Processor: prcssr, Version: "b7974"})
@@ -564,8 +564,8 @@ func TestDefaultResolverWindowsCUDATaggedRelease(t *testing.T) {
 	}
 }
 
-// The CUDA version of the machine selects the Linux CUDA build. A machine that
-// reports none keeps the default of the arch.
+// The machine's CUDA version selects the Linux CUDA build. A machine that reports
+// none gets the arch default.
 func TestDefaultResolverLinuxCUDAVersion(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -602,7 +602,7 @@ func TestDefaultResolverLinuxCUDAVersion(t *testing.T) {
 	}
 }
 
-// Bookworm ARM64 takes the CUDA build of the machine as well.
+// Bookworm ARM64 also uses the machine's CUDA build.
 func TestDefaultResolverBookwormCUDAVersion(t *testing.T) {
 	urls, err := DefaultResolver.Resolve(Target{
 		Arch: ARM64, OS: Bookworm, Processor: CUDA, Version: "b11053", CUDAVersion: "13.0",

@@ -82,7 +82,7 @@ wasm-decide-example: wasm-assets
 	cp "$(shell tinygo env TINYGOROOT)/targets/wasm_exec.js" $(WASM_DIR)/
 
 # make wasm-example-go to build the same examples with the standard toolchain.
-# The binaries are larger, which helps when TinyGo cannot build a dependency.
+# The binaries are larger, but this helps when TinyGo cannot build a dependency.
 wasm-example-go: wasm-assets
 	GOOS=js GOARCH=wasm go build -o $(WASM_DIR)/yzma.wasm ./examples/wasm/chat
 	GOOS=js GOARCH=wasm go build -o $(WASM_DIR)/yzma-vlm.wasm ./examples/wasm/vlm
@@ -91,8 +91,7 @@ wasm-example-go: wasm-assets
 	cp "$(shell go env GOROOT)/lib/wasm/wasm_exec.js" $(WASM_DIR)/
 
 # wasm-assets copies the JavaScript glue and the page into the build directory.
-# The two wasm_exec.js files are not the same, so the target that builds the
-# program copies the correct one.
+# The two wasm_exec.js files differ, so each build target copies its own.
 wasm-assets:
 	mkdir -p $(WASM_DIR)
 	cp wasm/yzma-loader.js wasm/worker.js wasm/index.html wasm/vlm.html wasm/tools.html wasm/decide.html $(WASM_DIR)/
@@ -102,13 +101,13 @@ download-llama.cpp-wasm:
 	mkdir -p $(WASM_DIR)
 	yzma install -lib $(WASM_DIR) -os wasm $(if $(VERSION),-v $(VERSION))
 
-# make serve-wasm to serve the example with the headers that a build with more
-# than one thread needs.
+# make serve-wasm to serve the example with the headers the multithreaded
+# build needs.
 serve-wasm:
 	go run ./wasm/serve -dir $(WASM_DIR)
 
-# make vet-wasm to check the WebAssembly code. It does not run in go test,
-# because the tests of the repo build for the machine they run on.
+# make vet-wasm to check the WebAssembly code. go test does not cover it,
+# because the repo tests build for the host machine.
 vet-wasm:
 	GOOS=js GOARCH=wasm go build -o /dev/null ./examples/wasm/chat
 	GOOS=js GOARCH=wasm go build -o /dev/null ./examples/wasm/vlm
@@ -117,36 +116,36 @@ vet-wasm:
 	GOOS=js GOARCH=wasm go vet ./pkg/llamawasm ./pkg/message ./pkg/template ./exp/decide \
 		./examples/wasm/chat ./examples/wasm/vlm ./examples/wasm/tools ./examples/wasm/decide
 
-# make test-wasm-unit to run the tests of pkg/llamawasm and exp/decide in Node.
-# They cover the part that needs no llama.cpp module, such as a batch of tokens.
+# make test-wasm-unit to run the pkg/llamawasm and exp/decide tests in Node.
+# They cover the code that needs no llama.cpp module, such as token batches.
 test-wasm-unit:
 	PATH="$(PATH):$(shell go env GOROOT)/lib/wasm" GOOS=js GOARCH=wasm go test ./pkg/llamawasm ./exp/decide
 
-# make test-wasm-loader to test the choice that yzma-loader.js makes. It needs
-# no llama.cpp module and no browser, so it covers the GPU that computes wrong
-# values, which no test with a real module can reach.
+# make test-wasm-loader to test which build yzma-loader.js picks. It needs no
+# llama.cpp module or browser, so it can cover a GPU that computes wrong values,
+# which no test with a real module can reach.
 test-wasm-loader:
 	node wasm/node/loader-test.js
 
-# make test-wasm to run the WebAssembly build in Node, with no browser.
+# make test-wasm to run the WebAssembly build in Node, without a browser.
 test-wasm:
 	node wasm/node/run.js --dir $(WASM_DIR) --model $(MODELS_DIR)/SmolLM-135M.Q2_K.gguf --tokens 12
 
-# make test-wasm-mt to run the build with more than one thread in Node. Node has
-# SharedArrayBuffer without the headers that a browser needs.
+# make test-wasm-mt to run the multithreaded build in Node. Node has
+# SharedArrayBuffer without the headers a browser needs.
 test-wasm-mt:
 	node wasm/node/run.js --dir $(WASM_DIR) --model $(MODELS_DIR)/SmolLM-135M.Q2_K.gguf --tokens 12 --mt
 
-# make test-wasm-webgpu to check what happens where there is no WebGPU. Node has
-# none, so this must fall back to a build on the CPU and still make text. Only a
-# browser can run the WebGPU build itself.
+# make test-wasm-webgpu to check what happens when there is no WebGPU. Node has
+# none, so this must fall back to a CPU build and still generate text. Use
+# test-wasm-dawn or test-wasm-wgpu to run the WebGPU build itself.
 test-wasm-webgpu:
 	node wasm/node/run.js --dir $(WASM_DIR) --model $(MODELS_DIR)/SmolLM-135M.Q2_K.gguf --tokens 12 --webgpu
 
 # make test-wasm-dawn to run the WebGPU build on a real GPU with Dawn, the
-# WebGPU of Chrome, with no browser. It needs Node 25 or later for JSPI. Set
-# GPU=high-performance or GPU=low-power to select the GPU, and DAWN_FLAGS to give
-# flags to Dawn.
+# WebGPU implementation in Chrome, without a browser. It needs Node 25 or later
+# for JSPI. Set GPU=high-performance or GPU=low-power to select the GPU, and
+# DAWN_FLAGS to pass flags to Dawn.
 NODE ?= node
 NODE_DIR ?= $(MAKEFILE_DIR)build/node
 GPU ?=
@@ -161,34 +160,34 @@ test-wasm-dawn: $(NODE_DIR)/node_modules/webgpu/index.js
 		--tokens 12 --webgpu --require-gpu $(if $(GPU),--gpu $(GPU))
 
 # make test-wasm-wgpu to run the WebGPU build on a real GPU with wgpu, the
-# WebGPU of Firefox, in Deno. Set GPU as for test-wasm-dawn.
+# WebGPU implementation in Firefox, in Deno. Set GPU as for test-wasm-dawn.
 DENO ?= deno
 
 test-wasm-wgpu:
 	$(DENO) run -A wasm/node/wgpu.cjs --dir $(WASM_DIR) --model $(MODELS_DIR)/SmolLM-135M.Q2_K.gguf \
 		--tokens 12 --webgpu --require-gpu $(if $(GPU),--gpu $(GPU))
 
-# make test-wasm-vlm to answer a question about an image in Node, with no
+# make test-wasm-vlm to answer a question about an image in Node, without a
 # browser. Node has no canvas, so the harness makes the pixels itself.
 #
-# It takes the build with more threads, because putting an image through a
-# projector is slow: about 30 seconds with threads and 80 with one.
+# It uses the multithreaded build, because running an image through the
+# projector is slow, about 30 seconds with threads and 80 with one.
 test-wasm-vlm:
 	node wasm/node/vlm.js --dir $(WASM_DIR) \
 		--model $(MODELS_DIR)/SmolVLM-256M-Instruct-Q8_0.gguf \
 		--mmproj $(MODELS_DIR)/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf \
 		--tokens 24 --mt
 
-# make test-wasm-tools to call a tool in Node, with no browser.
+# make test-wasm-tools to call a tool in Node, without a browser.
 #
-# The default only checks the round trip, because a small model does not make a
-# tool call. Add --expect-tool get_weather with a model that is trained for it,
+# The default only checks the round trip, because a small model makes no tool
+# call. Add --expect-tool get_weather with a model trained for tool calls,
 # for example Qwen2.5-0.5B-Instruct.
 test-wasm-tools:
 	node wasm/node/tools.js --dir $(WASM_DIR) --model $(MODELS_DIR)/SmolLM-135M.Q2_K.gguf --tokens 32
 
-# make test-wasm-decide to ask a Jev-Style model three questions in Node, with
-# no browser. DecideMany must match Decide in the exact mode.
+# make test-wasm-decide to ask a Jev-Style model three questions in Node,
+# without a browser. DecideMany must match Decide in the exact mode.
 test-wasm-decide:
 	node wasm/node/decide.js --dir $(WASM_DIR) --readout jev \
 		--model $(MODELS_DIR)/Jev-Style-0.8B-Decision-v3-Q4_K_M.gguf \
@@ -197,9 +196,8 @@ test-wasm-decide:
 clean-wasm:
 	rm -rf $(WASM_DIR)
 
-# make check-ffi to audit the FFI bindings against the headers of the current
-# llama.cpp release. The gate runs first: if it fails, do not use what the
-# audit reports.
+# make check-ffi to audit the FFI bindings against the current llama.cpp
+# release headers. The gate runs first. If it fails, ignore the audit results.
 check-ffi:
 	cd cmd/yzma-checker && go test ./... && go run .
 
@@ -211,8 +209,8 @@ roadmap:
 	@echo "Total checklist items:"
 	@grep -E '^\s*[-*]\s*\[(x| )\]' ROADMAP.md | wc -l
 
-# make download-compare-models to download the models that the comparison
-# benchmarks use. The servers get the same files, see benchmarks/README.md.
+# make download-compare-models to download the models for the comparison
+# benchmarks. The servers use the same files, see benchmarks/README.md.
 download-compare-models:
 	mkdir -p $(MODELS_DIR)
 	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3VL-2B-Instruct-Q4_K_M.gguf
@@ -221,8 +219,8 @@ download-compare-models:
 	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/mmproj-F16.gguf
 	yzma model get -y --show-progress=false -o $(MODELS_DIR) -u https://huggingface.co/ggml-org/bge-small-en-v1.5-Q8_0-GGUF/resolve/main/bge-small-en-v1.5-q8_0.gguf
 
-# make benchmarks to run the benchmarks of this machine and put the result in
-# benchmarks/. Run make download-benchmark-models first. On Windows use
+# make benchmarks to run the benchmarks on this machine and write the results
+# to benchmarks/. Run make download-benchmark-models first. On Windows use
 # benchmarks/run.ps1.
 benchmarks:
 	./benchmarks/run.sh
@@ -232,12 +230,12 @@ benchmarks:
 benchmarks-wasm:
 	./benchmarks/run.sh --backend wasm
 
-# make benchmarks-compare to measure yzma against ollama and Docker Model
+# make benchmarks-compare to compare yzma with ollama and Docker Model
 # Runner. Run make download-compare-models first, and start both servers.
 benchmarks-compare:
 	./benchmarks/compare.sh
 
-# make check-benchmarks to verify that each table agrees with its sections.
+# make check-benchmarks to verify that each table matches its sections.
 check-benchmarks:
 	go run ./cmd/yzma-bench check benchmarks/linux.md benchmarks/macos.md \
 		benchmarks/windows.md benchmarks/webassembly.md benchmarks/comparison.md

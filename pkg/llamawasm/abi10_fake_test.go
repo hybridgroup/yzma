@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// The fake module of ABI version 10 records the arguments of the new context call.
+// The fake ABI version 10 module records the arguments of the new context call.
 const fakeABI10Source = `
 globalThis.__yzmaABI10 = (function () {
 	let last = null;
@@ -75,7 +75,7 @@ func TestContextKVUnifiedOld(t *testing.T) {
 		t.Errorf("InitFromModel gave %v, want ErrNoKVUnified", err)
 	}
 
-	// Without KVUnified the old call still makes the context.
+	// Without KVUnified the old call still creates the context.
 	params.KVUnified = 0
 	if _, err := InitFromModel(Model(1), params); err != nil {
 		t.Errorf("InitFromModel gave %v", err)

@@ -172,7 +172,7 @@ func GGMLBackendDeviceDescription(device GGMLBackendDevice) string {
 }
 
 // GGMLBackendDevType returns the type of the given backend device.
-// A device that is not valid gives GGMLBackendDeviceTypeCPU.
+// An invalid device returns GGMLBackendDeviceTypeCPU.
 func GGMLBackendDevType(device GGMLBackendDevice) GGMLBackendDeviceType {
 	if device == 0 {
 		return GGMLBackendDeviceTypeCPU

@@ -1,5 +1,5 @@
-// yzma-bench puts the result of a benchmark run into the markdown file of the
-// platform. See benchmarks/README.md.
+// yzma-bench writes the result of a benchmark run into the platform's markdown
+// file. See benchmarks/README.md.
 package main
 
 import (
@@ -52,21 +52,21 @@ check verifies that the tables agree with the sections.
 
 func runUpdate(args []string) error {
 	fs := flag.NewFlagSet("update", flag.ExitOnError)
-	file := fs.String("file", "", "markdown file of the platform")
-	suite := fs.String("suite", "", "suite of the benchmark (text, multimodal, compare)")
+	file := fs.String("file", "", "markdown file for the platform")
+	suite := fs.String("suite", "", "benchmark suite (text, multimodal, compare)")
 	backend := fs.String("backend", "", "backend (cpu, cuda, rocm, vulkan, metal, webgpu) or engine (yzma, ollama, dmr)")
 	arch := fs.String("arch", "", "architecture, empty to take goarch from the output")
 	machine := fs.String("machine", "", "short name of the machine, used in the key")
-	device := fs.String("device", "", "device of the run, as go test takes it (CUDA0, VULKAN1)")
+	device := fs.String("device", "", "device for the run, in go test format (CUDA0, VULKAN1)")
 	model := fs.String("model", "", "short name of the model, needed by the comparison suite")
-	label := fs.String("label", "", "name of the machine to show, empty to take the short name")
-	llamacpp := fs.String("llamacpp", "", "tag of the llama.cpp build")
-	engineVersion := fs.String("engine-version", "", "release of the engine, for the comparison suite")
-	yzma := fs.String("yzma", "", "version of yzma")
-	date := fs.String("date", "", "date of the run, today when the flag is not there")
-	output := fs.String("output", "-", "file with the output of go test, - for stdin")
-	deviceInfo := fs.String("device-info", "", "file with the information of the device")
-	notes := fs.String("notes", "", "one line of text to put above the output")
+	label := fs.String("label", "", "display name of the machine, empty to use the short name")
+	llamacpp := fs.String("llamacpp", "", "llama.cpp build tag")
+	engineVersion := fs.String("engine-version", "", "engine release, for the comparison suite")
+	yzma := fs.String("yzma", "", "yzma version")
+	date := fs.String("date", "", "date of the run, default today")
+	output := fs.String("output", "-", "file with the go test output, - for stdin")
+	deviceInfo := fs.String("device-info", "", "file with the device information")
+	notes := fs.String("notes", "", "one line of text to show above the output")
 	dryRun := fs.Bool("dry-run", false, "print the result and change no file")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -83,7 +83,7 @@ func runUpdate(args []string) error {
 		return fmt.Errorf("--machine is needed")
 	}
 
-	// A date that the flag does not give is today.
+	// Default the date to today.
 	if !isSet(fs, "date") {
 		*date = time.Now().Format("2006-01-02")
 	}
@@ -150,11 +150,11 @@ func runUpdate(args []string) error {
 	return doc.save()
 }
 
-// runRemove deletes one section or more. Use it when a result is not
-// comparable with the others, for example after a change of the model.
+// runRemove deletes one or more sections. Use it when a result is no longer
+// comparable with the others, for example after a model change.
 func runRemove(args []string) error {
 	fs := flag.NewFlagSet("remove", flag.ExitOnError)
-	file := fs.String("file", "", "markdown file of the platform")
+	file := fs.String("file", "", "markdown file for the platform")
 	dryRun := fs.Bool("dry-run", false, "print the result and change no file")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -164,7 +164,7 @@ func runRemove(args []string) error {
 		return fmt.Errorf("--file is needed")
 	}
 	if fs.NArg() == 0 {
-		return fmt.Errorf("give one key or more, as the markers of the file show them")
+		return fmt.Errorf("pass one or more keys, as shown in the file markers")
 	}
 
 	doc, err := loadDocument(*file)
@@ -195,7 +195,7 @@ func runCheck(args []string) error {
 		return err
 	}
 	if fs.NArg() == 0 {
-		return fmt.Errorf("give one file or more")
+		return fmt.Errorf("pass one or more files")
 	}
 
 	bad := 0

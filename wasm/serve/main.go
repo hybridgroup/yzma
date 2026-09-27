@@ -1,10 +1,8 @@
-// Serve puts the files of the WebAssembly build of yzma on a local HTTP
-// server.
+// Serve serves the WebAssembly build of yzma on a local HTTP server.
 //
 // The server sets the Cross-Origin-Opener-Policy and
-// Cross-Origin-Embedder-Policy headers. Without them a browser does not give
-// the page SharedArrayBuffer, and the build with more than one thread cannot
-// run.
+// Cross-Origin-Embedder-Policy headers. Without them the browser does not
+// expose SharedArrayBuffer, and the multithreaded build cannot run.
 //
 //	go run ./wasm/serve -dir build/wasm -port 8080
 package main
@@ -34,15 +32,15 @@ func main() {
 	files := http.FileServer(http.Dir(path))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// These two headers isolate the page, which gives it SharedArrayBuffer
-		// and thus more than one thread.
+		// These two headers isolate the page, which enables SharedArrayBuffer
+		// and so multiple threads.
 		w.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 		w.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
 
-		// The browser checks each file again, so it does not run an old build.
+		// The browser revalidates each file, so it never runs a stale build.
 		w.Header().Set("Cache-Control", "no-cache")
 
-		// A browser runs a .wasm file only with the correct type.
+		// A browser only runs a .wasm file served with the correct type.
 		if filepath.Ext(r.URL.Path) == ".wasm" {
 			w.Header().Set("Content-Type", "application/wasm")
 		}

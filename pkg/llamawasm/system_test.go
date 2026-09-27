@@ -13,7 +13,7 @@ func TestSystemInfo(t *testing.T) {
 	if got := FtypeName(FtypeMostlyQ4_K_M); got != "Q4_K - Medium" {
 		t.Errorf("FtypeName gave %q", got)
 	}
-	// This does not fit an int32, thus the shim gives it as a double.
+	// This does not fit in an int32, so the shim returns it as a double.
 	if got := TimeUs(); got != 5000000000123 {
 		t.Errorf("TimeUs gave %d", got)
 	}

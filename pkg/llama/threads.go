@@ -6,15 +6,13 @@ import (
 	"strconv"
 )
 
-// Threads gives a good number of threads for inference on the CPU of this
-// machine. It counts the cores that do the arithmetic well, which is one
-// thread for each physical core, and only the performance cores of a machine
-// that has two kinds. The count comes from the operating system, and a machine
-// that tells nothing gets half of its logical CPUs.
+// Threads returns a good thread count for CPU inference on this machine. It
+// counts one thread per physical core, and only the performance cores on a
+// hybrid machine. The count comes from the operating system. If the system
+// reports nothing, it uses half of the logical CPUs.
 //
-// llama.cpp asks for four threads unless a caller changes it, which is slow on
-// a machine with many cores. Thus [ContextDefaultParams] sends this value for
-// a batch. For one token, [InitFromModel] uses [ModelThreads].
+// llama.cpp defaults to four threads, which is slow on a machine with many
+// cores. So [ContextDefaultParams] uses this value for batch processing. For one token, [InitFromModel] uses [ModelThreads].
 func Threads() int32 {
 	if n := mathCores(); n > 0 {
 		return int32(n)
@@ -22,21 +20,19 @@ func Threads() int32 {
 	return int32(defaultThreads())
 }
 
-// ErrNoPerformanceCPUs says that the system does not tell which CPUs belong
-// to the performance cores.
+// ErrNoPerformanceCPUs means the system does not report which CPUs belong to
+// the performance cores.
 var ErrNoPerformanceCPUs = errors.New("the system does not name the performance CPUs")
 
-// PerformanceCPUs gives one CPU for each core that does the arithmetic well,
-// which is one CPU of each performance core. It gives nothing when the system
-// says nothing. Use it to hold the threads of a pool to a core, see
+// PerformanceCPUs returns one CPU for each performance core, or nil when the
+// system does not report them. Use it to pin pool threads to cores, see
 // [NewPerformanceThreadpool].
 func PerformanceCPUs() []int32 {
 	return mathCPUs()
 }
 
-// defaultThreads is the count that llama.cpp uses when it can read nothing
-// about the cores. Half of the logical CPUs is one thread for each physical
-// core of a machine with SMT.
+// defaultThreads is the count llama.cpp uses when it cannot read the core
+// topology. Half the logical CPUs is one thread per physical core with SMT.
 func defaultThreads() int {
 	n := runtime.NumCPU()
 	if n > 4 {
@@ -48,23 +44,23 @@ func defaultThreads() int {
 	return n
 }
 
-// bytesPerThread is the weight size that one thread reads for each token. More
-// threads than this make the generation slower, because each has too little work.
+// bytesPerThread is the weight size one thread reads per token. More threads
+// than this slow generation down, because each one has too little work.
 const bytesPerThread = 80 << 20
 
-// minModelThreads is the smallest count that [ModelThreads] gives.
+// minModelThreads is the smallest count that [ModelThreads] returns.
 const minModelThreads = 4
 
-// ModelThreads gives a good number of threads to generate one token with the
-// model. The generation waits on memory, thus the count comes from the bytes
-// that one token reads. A MoE model reads only the experts that it uses. The
-// count is at least 4 and no more than [Threads].
+// ModelThreads returns a good thread count for generating one token with the
+// model. Generation is memory bound, so the count comes from the bytes each
+// token reads. A MoE model reads only the experts it uses. The count is at
+// least 4 and at most [Threads].
 func ModelThreads(model Model) int32 {
 	return int32(threadsForSize(activeBytes(model), int(Threads())))
 }
 
-// threadsForSize gives the thread count for a model that reads size bytes for
-// each token, on a machine with limit good cores.
+// threadsForSize returns the thread count for a model that reads size bytes
+// per token, on a machine with limit usable cores.
 func threadsForSize(size uint64, limit int) int {
 	n := min(int(size/bytesPerThread), limit)
 	n = max(n, min(minModelThreads, limit))
@@ -77,7 +73,7 @@ type moeParams struct {
 	ffn, embd, layers     uint64
 }
 
-// activeBytes gives the bytes of weights that one token reads.
+// activeBytes returns the weight bytes that one token reads.
 func activeBytes(model Model) uint64 {
 	size := ModelSize(model)
 	arch, ok := ModelMetaValStr(model, "general.architecture")
@@ -103,15 +99,15 @@ func activeBytes(model Model) uint64 {
 		embd:    key("embedding_length"),
 		layers:  key("block_count"),
 	}
-	// A Mixtral model gives the expert size as the size of the dense layer.
+	// Mixtral stores the expert size as the dense layer size.
 	if moe.ffn == 0 {
 		moe.ffn = key("feed_forward_length")
 	}
 	return moe.activeBytes(size, ModelNParams(model))
 }
 
-// activeBytes gives the part of size that one token reads. Each expert has
-// three matrices of embd by ffn in each layer.
+// activeBytes returns the part of size that one token reads. Each expert has
+// three embd by ffn matrices per layer.
 func (m moeParams) activeBytes(size, params uint64) uint64 {
 	if m.experts == 0 || m.used == 0 || m.used >= m.experts {
 		return size

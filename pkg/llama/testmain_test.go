@@ -109,8 +109,8 @@ func benchmarkSetupOnce(b *testing.B) {
 	benchReady = true
 }
 
-// newBenchThreadpool holds n threads to the first n performance CPUs, thus the
-// pool has the thread count of the context.
+// newBenchThreadpool pins n threads to the first n performance CPUs, so the
+// pool matches the context thread count.
 func newBenchThreadpool(n int32) (Threadpool, error) {
 	cpus := PerformanceCPUs()
 	if len(cpus) == 0 {

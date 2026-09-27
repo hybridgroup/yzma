@@ -15,7 +15,7 @@ type (
 )
 
 // backend holds the llama.cpp objects of a Decider, here through pkg/llamawasm.
-// The memory calls of that package take the context.
+// That package's memory calls take the context.
 type backend struct {
 	model  llama.Model
 	vocab  llama.Vocab
@@ -29,8 +29,8 @@ type ctxParams struct {
 	threads                                     int32
 }
 
-// load reads a model that is already in the file system of the module, for
-// example with [llama.FetchModelFile]. It goes on the GPU when there is one.
+// load reads a model that is already in the module's filesystem, for example
+// from [llama.FetchModelFile]. It uses the GPU when there is one.
 func (b *backend) load(modelPath string) error {
 	params := llama.ModelDefaultParams()
 	if llama.GPUDevice() != "" {
@@ -51,9 +51,9 @@ func (b *backend) load(modelPath string) error {
 	return nil
 }
 
-// newContext makes the context and gives the number of sequences it holds. A
+// newContext creates the context and returns how many sequences it holds. A
 // module before ABI version 10 has no unified cache, so the context then holds
-// one sequence and every question is decoded on its own.
+// one sequence and each question is decoded separately.
 func (b *backend) newContext(p ctxParams) (uint32, error) {
 	params := llama.ContextDefaultParams()
 	params.NCtx = p.nCtx
@@ -143,7 +143,7 @@ func (b *backend) decode(bt *batch) error {
 	return nil
 }
 
-// logits gives the logits of the output at batch index i.
+// logits returns the output logits at batch index i.
 func (b *backend) logits(i int32) ([]float32, error) {
 	return llama.GetLogitsIth(b.ctx, i, b.nVocab)
 }

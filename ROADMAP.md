@@ -3,9 +3,9 @@
 `yzma` currently has support for over 96% of `llama.cpp` functionality.
 
 This is a list of all functions exposed by `llama.cpp` and the current state of
-the associated `yzma` wrapper. The WebAssembly column gives the state of the same
-function in a browser, which the [WebAssembly support](#webassembly-support)
-section at the end explains.
+the associated `yzma` wrapper. The WebAssembly column shows the state of the same
+function in a browser, as explained in the [WebAssembly support](#webassembly-support)
+section at the end.
 
 ## Completed wrappers
 
@@ -157,7 +157,7 @@ section at the end explains.
 ### Speculative Decoding Functions (Experimental)
 
 These come from the `src/llama-ext.h` staging header of `llama.cpp`, not from
-the public API. The [`exp/speculative`](./exp/speculative) package has them.
+the public API. They live in the [`exp/speculative`](./exp/speculative) package.
 
 | Function | `yzma` | WebAssembly |
 | --- | :-: | :-: |
@@ -391,13 +391,13 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 
 ## WebAssembly support
 
-The `pkg/llamawasm` package drives a build of `llama.cpp` for WebAssembly. It
-does not use the C API directly. A C shim in the
+The `pkg/llamawasm` package drives a WebAssembly build of `llama.cpp`. It does
+not use the C API directly. A C shim in the
 [llama-cpp-builder](https://github.com/hybridgroup/llama-cpp-builder) repository
-gives it a small set of calls with a version, which is ABI 9 now. Thus a function
-of `llama.cpp` reaches the browser only after the shim exports it.
+exposes a small, versioned set of calls, currently ABI 9. So a `llama.cpp`
+function only reaches the browser after the shim exports it.
 
-The WebAssembly column of each table above gives the state of the wrapper.
+The WebAssembly column of each table above shows the state of the wrapper.
 
 | Value | Meaning |
 | --- | --- |
@@ -406,52 +406,51 @@ The WebAssembly column of each table above gives the state of the wrapper.
 | no | The shim does not export it. |
 
 170 functions reach WebAssembly, 163 complete and 7 partial, all of them among
-the 272 that have a wrapper on a host. That is sufficient for text generation,
-embeddings, images, chat templates, tool calling with a grammar, every sampler
-that a host has, batches that carry more than one sequence, a context that
-shifts when it becomes full, the logits and the metadata of a model, the state
-of a context in memory, and the performance counters.
+the 272 that have a host wrapper. That is enough for text generation,
+embeddings, images, chat templates, tool calling with a grammar, every host
+sampler, batches with more than one sequence, context shifting when the context
+is full, logits and model metadata, in-memory context state, and the
+performance counters.
 
 ### Notes on the partial wrappers
 
-- `llama_detokenize` has no call in the shim. The Go side builds the text from
-  `llama_token_to_piece` of each token, and it ignores `removeSpecial`.
-- `llama_chat_apply_template` takes one message, which is sufficient for a
-  question about an image. Render the template that `llama_model_chat_template`
-  gives with the `template` package for a conversation with turns.
+- `llama_detokenize` has no call in the shim. The Go side builds the text by
+  calling `llama_token_to_piece` on each token, and it ignores `removeSpecial`.
+- `llama_chat_apply_template` takes one message, which is enough for a
+  question about an image. For a multi-turn conversation, render the template
+  from `llama_model_chat_template` with the `template` package.
 - `llama_log_set` cannot take a Go function as a callback. The shim holds the
   callback and the Go side only sets how much llama.cpp prints.
 - `llama_sampler_init_logit_bias` takes two slices, the tokens and the biases,
-  and not a pointer to an array of `LogitBias`. A struct cannot cross the
-  boundary of the module.
+  instead of a pointer to an array of `LogitBias`. A struct cannot cross the
+  module boundary.
 - `llama_model_default_params` has `NGpuLayers` only.
 - `llama_context_default_params` has `NCtx`, `NBatch`, `NUbatch`, `NSeqMax`,
   `NThreads`, `PoolingType`, `Embeddings`, and `NoPerf`.
 - `llama_batch_init` takes no `embd`. The shim has no call that puts an
-  embedding in a batch, thus a batch carries tokens only. `llama_batch_free`
-  does nothing, because the arrays of a batch belong to Go here.
+  embedding in a batch, so a batch only carries tokens. `llama_batch_free`
+  does nothing, because Go owns the batch arrays here.
 
 ### What WebAssembly still needs
 
-In order of the value that each one adds.
+In order of value.
 
-1. **A stop from the page.** `llama_set_abort_callback` cannot take a Go
-   function, but a flag in shared memory that the shim reads can stop a long
+1. **Stopping from the page.** `llama_set_abort_callback` cannot take a Go
+   function, but a flag in shared memory that the shim reads could stop a long
    prompt. `llama_set_warmup` goes with it.
-2. **The parts of `mtmd`.** The shim does the whole pipeline of an image in two
-   coarse calls, `mtmd_tokenize` and `mtmd_helper_eval_chunks`. Thus the calls
-   that build or examine one piece are absent: the getters of a bitmap, the
-   accessors of a chunk and of the tokens of an image, `mtmd_encode`,
-   `mtmd_get_output_embd`, and the batch calls. A program in a browser cannot
-   place the embeddings of an image itself.
-3. **A chat with turns in `llama_chat_apply_template`.** The shim takes one
-   message now.
+2. **The rest of `mtmd`.** The shim runs the whole image pipeline in two
+   coarse calls, `mtmd_tokenize` and `mtmd_helper_eval_chunks`. So the calls
+   that build or inspect a single piece are missing, such as the bitmap getters,
+   the chunk and image token accessors, `mtmd_encode`, `mtmd_get_output_embd`,
+   and the batch calls. A browser program cannot place image embeddings itself.
+3. **Multi-turn chat in `llama_chat_apply_template`.** The shim only takes one
+   message for now.
 
 `llama_sampler_apply` is not planned. It takes a `llama_token_data_array`, and no
-struct crosses the boundary of the module. A program in a browser can read the
-logits with `llama_get_logits_ith` and sample them in Go.
+struct can cross the module boundary. A browser program can read the logits with
+`llama_get_logits_ith` and sample them in Go.
 
-Audio, video, LoRA adapters, the state calls that use a file, quantization, and
-the calls that print the performance counters are not planned for WebAssembly.
-The state calls that use memory give the same result, and a page can keep the
-bytes in IndexedDB or OPFS.
+Audio, video, LoRA adapters, file based state calls, quantization, and the calls
+that print the performance counters are not planned for WebAssembly. The
+in-memory state calls do the same job, and a page can store the bytes in
+IndexedDB or OPFS.

@@ -31,12 +31,12 @@ var (
 
 	engine Engine
 
-	// images give a different image for each run, thus no engine answers
+	// images holds a different image for each run, so no engine answers
 	// from its cache.
 	images *Images
 
 	// sent counts the requests of this process. Each -count of a benchmark
-	// runs the loop again, thus a count of its own would repeat the requests.
+	// runs the loop again, so a per loop count would repeat the requests.
 	sent int
 )
 
@@ -47,18 +47,18 @@ func init() {
 	flag.StringVar(&modelFile, "model", "", "GGUF file of the model, for yzma")
 	flag.StringVar(&projector, "mmproj", "", "GGUF file of the projector, for yzma with images")
 	flag.StringVar(&device, "device", "", "comma separated devices, for yzma (CUDA0)")
-	flag.StringVar(&serverModel, "server-model", "", "name of the model in the server")
+	flag.StringVar(&serverModel, "server-model", "", "model name on the server")
 	flag.StringVar(&ollamaURL, "ollama-url", "http://localhost:11434/v1", "OpenAI compatible address of ollama")
 	flag.StringVar(&dmrURL, "dmr-url", "http://localhost:12434/engines/v1", "OpenAI compatible address of Docker Model Runner")
 	flag.IntVar(&nCtx, "nctx", 8192, "context tokens, for yzma")
 	flag.IntVar(&nBatch, "nbatch", 1024, "batch tokens, for yzma")
-	flag.IntVar(&maxTokens, "tokens", 16, "tokens to make in one request")
-	flag.UintVar(&seed, "seed", 1234, "seed of the sampler")
-	flag.StringVar(&imageFile, "image", ImageFile, "image file of the multimodal suite")
+	flag.IntVar(&maxTokens, "tokens", 16, "tokens to generate per request")
+	flag.UintVar(&seed, "seed", 1234, "sampler seed")
+	flag.StringVar(&imageFile, "image", ImageFile, "image file for the multimodal suite")
 	flag.StringVar(&imageSize, "image-size", "", "size to scale the image to, such as 1280x960, empty keeps the size")
-	flag.IntVar(&threads, "threads", 0, "threads of the vision model, for yzma, 0 keeps the default")
-	flag.IntVar(&imgMin, "image-min-tokens", 0, "least tokens of an image, for yzma, 0 keeps the default")
-	flag.IntVar(&imgMax, "image-max-tokens", 0, "most tokens of an image, for yzma, 0 keeps the default")
+	flag.IntVar(&threads, "threads", 0, "vision model threads, for yzma, 0 keeps the default")
+	flag.IntVar(&imgMin, "image-min-tokens", 0, "minimum tokens per image, for yzma, 0 keeps the default")
+	flag.IntVar(&imgMax, "image-max-tokens", 0, "maximum tokens per image, for yzma, 0 keeps the default")
 }
 
 func TestMain(m *testing.M) {
@@ -73,10 +73,9 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// request gives the request of run n. Each run gets a prompt and an image
-// that no engine has seen, thus every engine does the whole work every time.
-// A server keeps the prompts and images it has seen and answers a repeat of
-// them almost at once, while yzma empties its cache after each generation.
+// request returns the request for run n. Each run gets a prompt and image no
+// engine has seen, so every engine does all the work every time. A server
+// answers a repeat almost at once, while yzma clears its cache each time.
 func request(n int) (Request, error) {
 	req := Request{
 		Prompt:    TextVariant(n),
@@ -100,8 +99,8 @@ func request(n int) (Request, error) {
 	return req, nil
 }
 
-// next gives a request that this process has not sent yet. Request 0 is the
-// one of the load, thus the first one of next is 1.
+// next returns a request this process has not sent yet. Request 0 is the
+// load request, so next starts at 1.
 func next(t skipper) Request {
 	sent++
 	req, err := request(sent)
@@ -112,7 +111,7 @@ func next(t skipper) Request {
 	return req
 }
 
-// call sends one request of the suite to the engine.
+// call sends one suite request to the engine.
 func call(eng Engine, req Request) (Result, error) {
 	if req.Embeddings {
 		return eng.Embed(req)
@@ -126,7 +125,7 @@ type skipper interface {
 	Fatalf(string, ...any)
 }
 
-// setup makes the engine one time and puts the model in memory.
+// setup creates the engine once and loads the model into memory.
 func setup(t skipper) Engine {
 	if engine != nil {
 		return engine
@@ -208,7 +207,7 @@ func BenchmarkCompare(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		// The request is made before the call, thus its image is not timed.
+		// The request is built before the call, so its image is not timed.
 		result, err := call(eng, next(b))
 		if err != nil {
 			b.Fatalf("%s failed: %v", eng.Name(), err)
@@ -221,17 +220,16 @@ func BenchmarkCompare(b *testing.B) {
 		runs++
 	}
 
-	// The tokens a second come from the time of the requests, not from the
-	// time of the whole loop. The loop also holds the work of the harness, and
-	// the emptying of the cache of yzma, which costs 4 ms and which a server
-	// does inside its own request. Both engines are therefore measured from the
-	// call to the answer and from nothing else.
+	// Tokens a second come from the request times, not the whole loop. The
+	// loop also includes harness work and clearing the yzma cache, which costs
+	// 4 ms and which a server does inside its own request. So both engines are
+	// measured from the call to the answer and nothing else.
 	seconds := total.Seconds()
 	if seconds == 0 {
 		seconds = b.Elapsed().Seconds()
 	}
-	// The embeddings suite makes no token, thus it counts the tokens of the
-	// prompt that the engine read each second.
+	// The embeddings suite generates no tokens, so it counts the prompt tokens
+	// the engine reads each second.
 	made := tokens
 	if suite == "embeddings" {
 		made = promptTokens * runs
@@ -239,7 +237,7 @@ func BenchmarkCompare(b *testing.B) {
 	b.ReportMetric(float64(made)/seconds, "tokens/s")
 	b.ReportMetric(millis(ttft, runs), "ttft_ms")
 	b.ReportMetric(millis(total, runs), "total_ms")
-	// The count of the prompt tokens says if the engines do the same work.
+	// The prompt token count shows whether the engines do the same work.
 	b.ReportMetric(float64(promptTokens), "prompt_tokens")
 }
 
@@ -251,8 +249,8 @@ func millis(d time.Duration, runs int) float64 {
 	return float64(d.Microseconds()) / 1000 / float64(runs)
 }
 
-// TestAnswer prints what the engine says. The engines must agree, or the
-// numbers of the benchmark compare different work.
+// TestAnswer prints the engine's answer. The engines must match, or the
+// benchmark numbers compare different work.
 func TestAnswer(t *testing.T) {
 	eng := setup(t)
 

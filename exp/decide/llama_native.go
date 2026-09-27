@@ -43,7 +43,7 @@ func (b *backend) load(modelPath string) error {
 	return nil
 }
 
-// newContext makes the context. It gives the number of sequences it holds,
+// newContext creates the context and returns how many sequences it holds,
 // which is always p.nSeqMax here.
 func (b *backend) newContext(p ctxParams) (uint32, error) {
 	params := llama.ContextDefaultParams()
@@ -133,7 +133,7 @@ func (b *backend) decode(bt *batch) error {
 	return nil
 }
 
-// logits gives the logits of the output at batch index i.
+// logits returns the output logits at batch index i.
 func (b *backend) logits(i int32) ([]float32, error) {
 	return llama.GetLogitsIth(b.ctx, i, b.nVocab)
 }

@@ -8,19 +8,19 @@ import (
 	"time"
 )
 
-// InstallRecordName is the file that [Install] writes in the library directory to say
-// what it put there. [VerifyInstall] reads it.
+// InstallRecordName is the file that [Install] writes in the library directory to
+// record what it installed. [VerifyInstall] reads it.
 const InstallRecordName = "yzma-install.json"
 
-// InstallManifestName is the file that [Install] writes in the library directory to keep
-// the digest manifest of the release. [VerifyInstall] reads it in place of a fetch.
+// InstallManifestName is the file that [Install] writes in the library directory to save
+// the release's digest manifest. [VerifyInstall] reads it instead of fetching one.
 const InstallManifestName = "yzma-manifest.json"
 
-// InstallRecord says which llama.cpp release is installed in a library directory, and
-// which assets it came from.
+// InstallRecord describes which llama.cpp release is installed in a library directory,
+// and which assets it came from.
 //
-// The record is beside the libraries, so anything that can change them can change it.
-// Give [VerifyInstall] a tag to check against instead.
+// The record sits next to the libraries, so anything that can change them can change
+// it too. Give [VerifyInstall] a tag to check against instead.
 type InstallRecord struct {
 	Version int `json:"version"`
 
@@ -43,13 +43,13 @@ type InstallRecord struct {
 
 	Installed time.Time `json:"installed"`
 
-	// Assets are the assets that were downloaded, in the order they installed.
+	// Assets are the downloaded assets, in install order.
 	Assets []Asset `json:"assets"`
 }
 
 // recordVersion is the format of the records this release writes. Version 2 added the
-// manifest digest. A version 1 record has no digest and no manifest beside it, which
-// makes [VerifyInstall] fetch the manifest as before.
+// manifest digest. A version 1 record has no digest and no saved manifest, so
+// [VerifyInstall] fetches the manifest as before.
 const recordVersion = 2
 
 // WriteInstallRecord writes the record of an install into libPath.
@@ -85,8 +85,8 @@ func ReadInstallRecord(libPath string) (*InstallRecord, error) {
 	return &record, nil
 }
 
-// WriteInstallManifest keeps the raw digest manifest of a release in libPath. The bytes
-// are kept as they came, because a pin is the digest of those bytes.
+// WriteInstallManifest saves the raw digest manifest of a release in libPath. The bytes
+// are saved unchanged, because a pin is the digest of those exact bytes.
 func WriteInstallManifest(libPath string, body []byte) error {
 	path := filepath.Join(libPath, InstallManifestName)
 	if err := os.WriteFile(path, body, 0644); err != nil {

@@ -1,9 +1,9 @@
-// vlm.js answers a question about an image in Node, with no browser.
+// vlm.js answers a question about an image in Node, without a browser.
 //
-// Node has no canvas, thus this makes the pixels itself. A simple shape on a
-// simple ground is sufficient to test the full path, from the pixels through
-// the projector to the tokens. Use a browser and a real image to see if the
-// answer is a good description.
+// Node has no canvas, so this makes the pixels itself. A simple shape on a
+// plain background is enough to test the full path, from the pixels through
+// the projector to the tokens. Use a browser and a real image to judge whether
+// the answer is a good description.
 //
 // Usage.
 //   node wasm/node/vlm.js --dir build/wasm --model <model.gguf> \
@@ -38,8 +38,8 @@ if (!modelFile || !mmprojFile) {
   process.exit(2);
 }
 
-// This harness replaces yzma-loader.js. Node has no WebGPU, thus a request for
-// it must fall back in the same way as the loader.
+// This harness replaces yzma-loader.js. Node has no WebGPU, so a request for
+// it must fall back the same way the loader does.
 let moduleName = "yzma_wasm.js";
 if (mt) {
   moduleName = "yzma_wasm_mt.js";
@@ -52,8 +52,8 @@ if (webgpu) {
   }
 }
 
-// makeImage draws a dark square on a light ground and gives the same RGBA that
-// a canvas gives.
+// makeImage draws a dark square on a light background and returns RGBA in the
+// same layout a canvas does.
 function makeImage(width, height) {
   const rgba = new Uint8Array(width * height * 4);
   for (let y = 0; y < height; y++) {
@@ -98,7 +98,7 @@ function readPPM(file) {
   const height = parseInt(h, 10);
   const rgb = bytes.subarray(i, i + width * height * 3);
 
-  // The program takes RGBA, which is the format that a canvas gives.
+  // The program takes RGBA, the format a canvas returns.
   const rgba = new Uint8Array(width * height * 4);
   for (let p = 0; p < width * height; p++) {
     rgba[p * 4] = rgb[p * 3];
@@ -133,8 +133,8 @@ async function main() {
   globalThis.yzmaBase = dir;
 
   const factory = require(path.join(dir, moduleName));
-  // The same values that the JavaScript glue selects. The pool follows the
-  // machine and the Go side reads the thread count.
+  // The same values the JavaScript glue picks. The pool matches the machine
+  // and the Go side reads the thread count.
   const threads = threadsOverride > 0
     ? threadsOverride
     : mt ? Math.max(1, Math.min(require("node:os").cpus().length, 16)) : 1;
@@ -153,7 +153,7 @@ async function main() {
   globalThis.yzmaThreads = threads;
   globalThis.yzmaBackend = moduleName.includes("webgpu") ? "webgpu" : "cpu";
 
-  // A browser gets both files from the network. Here they go in directly.
+  // A browser fetches both files from the network. Here they are written directly.
   llamaModule.FS.mkdirTree("/models");
   llamaModule.FS.writeFile("/models/model.gguf", fs.readFileSync(modelFile));
   llamaModule.FS.writeFile("/models/mmproj.gguf", fs.readFileSync(mmprojFile));
@@ -183,8 +183,8 @@ async function main() {
     };
   });
 
-  // The files are in place, thus this only opens them. A browser instead gets
-  // them from the network with yzmaLoadModel.
+  // The files are in place, so this only opens them. A browser fetches them
+  // from the network with yzmaLoadModel instead.
   globalThis.yzmaOpenModel(imageMaxTokens);
 
   const last = await done;

@@ -1,18 +1,18 @@
 // bench.js measures the WebAssembly build of yzma in Node, without a browser.
 //
-// It makes text more than one time and prints the result in the shape that
-// go test -bench prints, thus cmd/yzma-bench can read it.
+// It generates text several times and prints the result in the go test -bench
+// format, so cmd/yzma-bench can read it.
 //
 // Usage.
 //   node wasm/node/bench.js --dir build/wasm --model ~/models/SmolLM-135M.Q2_K.gguf \
 //       --prompt "Are you ready to go?" --tokens 64 --count 5 [--mt] [--webgpu]
 //
-// --mt selects the build with more than one thread. --webgpu asks for the
-// WebGPU build, which Node does not have, thus it falls back to the CPU.
+// --mt picks the multithreaded build. --webgpu asks for the WebGPU build,
+// which Node does not have, so it falls back to the CPU.
 //
-// The tokens a second come from the Go side, which times the loop of decode
-// and sample. A browser shows the same value. The output also gives the
-// llama.cpp build, which comes from yzma-install.json of the directory.
+// The tokens per second come from the Go side, which times the decode and
+// sample loop. A browser shows the same value. The output also includes the
+// llama.cpp build, read from yzma-install.json in the directory.
 
 const fs = require("node:fs");
 const os = require("node:os");
@@ -49,7 +49,7 @@ if (!modelFile) {
   process.exit(2);
 }
 
-// installTag gives the llama.cpp build of the WebAssembly install. A nightly
+// installTag returns the llama.cpp build of the WebAssembly install. A nightly
 // build has no upstream_tag, because its own tag names the assets.
 function installTag(dir) {
   try {
@@ -67,8 +67,8 @@ const programReady = new Promise((resolve) => {
   programIsReady = resolve;
 });
 
-// The messages of the Go program come here. Only the last one of a generation
-// matters, because it carries the count of tokens and the rate.
+// Messages from the Go program land here. Only the last one of a generation
+// matters, because it carries the token count and the rate.
 let onDone = () => {};
 globalThis.yzmaOnMessage = (message) => {
   if (message.kind === "ready" || message.kind === "error") {
@@ -153,7 +153,7 @@ async function main() {
   globalThis.yzmaOpenModel("/models/model.gguf");
   await loaded;
 
-  // The first generation warms the build up and is not in the result.
+  // The first generation warms up the build and is left out of the result.
   await generateOnce();
 
   const runs = [];

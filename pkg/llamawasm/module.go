@@ -10,13 +10,13 @@ import (
 	"syscall/js"
 )
 
-// The version of the interface of the shim, which is YZMA_ABI_VERSION in
-// wasm/yzma_wasm.cpp of the llama-cpp-builder repo.
+// The shim interface version, which is YZMA_ABI_VERSION in wasm/yzma_wasm.cpp
+// of the llama-cpp-builder repo.
 //
-// This package drives a module of each version from abiVersionMin to
-// abiVersion. Thus a new yzma operates with the modules of an older release.
-// A call from a later version is present only in a module that has it, thus
-// this package makes a test before each use.
+// This package supports every module version from abiVersionMin to
+// abiVersion, so a new yzma works with modules from an older release. A call
+// from a later version exists only in modules that have it, so this package
+// checks for it before each use.
 const (
 	abiVersionMin = 1  // 1 has the calls for text generation and embeddings
 	abiVersion    = 10 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
@@ -29,7 +29,7 @@ const (
 	//                    10 contexts with a unified cache and a cap on outputs
 )
 
-// Error codes that the shim returns. These agree with the values in
+// Error codes that the shim returns. These match the values in
 // wasm/yzma_wasm.cpp.
 const (
 	errGeneric  = -1
@@ -40,69 +40,66 @@ const (
 )
 
 var (
-	// ErrNotLoaded says that Load did not run, or that it failed.
+	// ErrNotLoaded means Load did not run or failed.
 	ErrNotLoaded = errors.New("llamawasm: the llama.cpp module is not loaded, call Load first")
 
-	// ErrNoModule says that the JavaScript glue did not run before Load.
+	// ErrNoModule means the JavaScript glue did not run before Load.
 	ErrNoModule = errors.New("llamawasm: globalThis.yzmaReady is missing, load yzma-loader.js first")
 
-	// ErrNoMultimodal says that the module is from a release before the
-	// multimodal calls, which are in ABI version 3 and later.
+	// ErrNoMultimodal means the module predates the multimodal calls, which
+	// arrived in ABI version 3.
 	ErrNoMultimodal = errors.New("llamawasm: this llama.cpp module has no multimodal calls, install a newer build")
 
-	// ErrNoOutputs says that the module is from a release before the calls
-	// that read the logits and the embeddings of a batch, which are in ABI
-	// version 7 and later.
+	// ErrNoOutputs means the module predates the calls that read the logits
+	// and embeddings of a batch, which arrived in ABI version 7.
 	ErrNoOutputs = errors.New("llamawasm: this llama.cpp module has no calls for the logits and the embeddings of a batch, install a newer build")
 
-	// ErrNoBackendSampling says that the module is from a release before the
-	// calls for the sampling of the backend, which are in ABI version 7 and
-	// later.
+	// ErrNoBackendSampling means the module predates the backend sampling
+	// calls, which arrived in ABI version 7.
 	ErrNoBackendSampling = errors.New("llamawasm: this llama.cpp module has no calls for the sampling of the backend, install a newer build")
 
-	// ErrNoContextFlags says that the module is from a release before the
-	// calls that change a context after it is made, which are in ABI version 7
-	// and later.
+	// ErrNoContextFlags means the module predates the calls that change a
+	// context after it is created, which arrived in ABI version 7.
 	ErrNoContextFlags = errors.New("llamawasm: this llama.cpp module cannot change a context after it is made, install a newer build")
 
-	// ErrNoKVUnified says that the module is from a release before contexts
-	// with a unified cache, which are in ABI version 10 and later.
+	// ErrNoKVUnified means the module predates contexts with a unified cache,
+	// which arrived in ABI version 10.
 	ErrNoKVUnified = errors.New("llamawasm: this llama.cpp module cannot make a context with a unified cache, install a newer build")
 
-	// ErrNoPerf says that the module is from a release before the performance
-	// counters, which are in ABI version 9 and later.
+	// ErrNoPerf means the module predates the performance counters, which
+	// arrived in ABI version 9.
 	ErrNoPerf = errors.New("llamawasm: this llama.cpp module has no performance counters, install a newer build")
 )
 
 // mod is the Emscripten module instance of llama.cpp.
 var mod js.Value
 
-// threaded tells if the module of the page uses more than one thread.
+// threaded reports whether the page module uses more than one thread.
 var threaded bool
 
-// moduleABI is the version of the interface of the module that is loaded.
+// moduleABI is the interface version of the loaded module.
 var moduleABI int
 
-// gpuDevice is the name of the device of llama.cpp that is not the CPU, or an
-// empty string if there is none. Init sets it.
+// gpuDevice is the name of the non CPU llama.cpp device, or an empty string if
+// there is none. Init sets it.
 var gpuDevice string
 
-// backendOK tells if the device of llama.cpp agrees with the CPU. Init sets it.
+// backendOK reports whether the llama.cpp device matches the CPU. Init sets it.
 var backendOK = true
 
 // Load waits for the llama.cpp WebAssembly module and attaches to it.
 //
-// The path argument is not used. It keeps the same form as llama.Load, thus the
-// same code builds for a native platform and for a browser.
+// The path argument is unused. It keeps the same signature as llama.Load, so
+// the same code builds for a native platform and for a browser.
 //
 // The JavaScript glue must run first. It puts a promise in
-// globalThis.yzmaReady, and the value of that promise is the module.
+// globalThis.yzmaReady, and that promise resolves to the module.
 func Load(path string) error {
 	global := js.Global()
 
 	ready := global.Get("yzmaReady")
 	if ready.IsUndefined() || ready.IsNull() {
-		// The glue can put the instance in place without a promise.
+		// The glue can set the instance directly without a promise.
 		if m := global.Get("yzmaModule"); !m.IsUndefined() && !m.IsNull() {
 			return attach(m)
 		}
@@ -148,7 +145,7 @@ func Load(path string) error {
 	return attach(r.value)
 }
 
-// attach keeps the module and makes sure that it has the necessary interface.
+// attach stores the module and checks that it has the required interface.
 func attach(m js.Value) error {
 	if m.IsUndefined() || m.IsNull() {
 		return ErrNoModule
@@ -173,29 +170,29 @@ func attach(m js.Value) error {
 	return nil
 }
 
-// has tells if the module has a call. An earlier module does not have the calls
-// of a later version.
+// has reports whether the module has a call. An earlier module does not have
+// the calls of a later version.
 func has(name string) bool {
 	return Loaded() && mod.Get(name).Type() == js.TypeFunction
 }
 
-// Loaded tells if the llama.cpp module is ready to use.
+// Loaded reports whether the llama.cpp module is ready to use.
 func Loaded() bool {
 	return !mod.IsUndefined() && !mod.IsNull()
 }
 
-// Threaded tells if the module of the page uses more than one thread. A browser
-// gives more than one thread only to a page with the Cross-Origin-Opener-Policy
-// and Cross-Origin-Embedder-Policy headers.
+// Threaded reports whether the page module uses more than one thread. A browser
+// only allows threads on a page with the Cross-Origin-Opener-Policy and
+// Cross-Origin-Embedder-Policy headers.
 func Threaded() bool {
 	return threaded
 }
 
-// Threads gives the number of threads that the module can use, which the
-// JavaScript glue reads from the machine. The value is 1 for a build with one
-// thread and for the WebGPU build, where the GPU does the work.
+// Threads returns the number of threads the module can use, which the
+// JavaScript glue reads from the machine. The value is 1 for a single thread
+// build and for the WebGPU build, where the GPU does the work.
 //
-// llama.cpp asks for four threads unless a caller changes it. Thus
+// llama.cpp asks for four threads unless a caller changes it. So
 // [ContextDefaultParams] and [MtmdContextParamsDefault] send this value.
 func Threads() int32 {
 	if !Loaded() {
@@ -216,16 +213,16 @@ func Init() {
 	}
 	callVoid("_yzma_backend_init")
 
-	// The devices of llama.cpp exist only after the backend starts. This request
+	// llama.cpp devices only exist after the backend starts. This request
 	// makes the WebGPU backend look for an adapter.
 	gpuDevice = readGPUDevice()
 
 	backendOK = readBackendCheck()
 }
 
-// readBackendCheck asks the shim to compare the device that is not the CPU
-// against the CPU. A module from before ABI version 8 has no such call, thus
-// the answer is that nothing is known to be wrong.
+// readBackendCheck asks the shim to compare the non CPU device against the
+// CPU. A module before ABI version 8 has no such call, so the answer is that
+// nothing is known to be wrong.
 func readBackendCheck() bool {
 	if !has("_yzma_backend_check") {
 		return true
@@ -233,22 +230,22 @@ func readBackendCheck() bool {
 	return call("_yzma_backend_check") == 0
 }
 
-// BackendOK says if the device of llama.cpp agrees with the CPU. Call it after
+// BackendOK reports whether the llama.cpp device matches the CPU. Call it after
 // Init.
 //
-// Some drivers give a WebGPU adapter that llama.cpp accepts and that then
-// computes wrong values. A model on such a device answers with random tokens of
-// the vocabulary. Init runs one small matrix multiply on the device and the
-// same one on the CPU and compares the results, thus a page can warn or take
-// the CPU instead of showing nonsense.
+// Some drivers expose a WebGPU adapter that llama.cpp accepts but that
+// computes wrong values. A model on such a device answers with random
+// vocabulary tokens. Init runs one small matrix multiply on the device and on
+// the CPU and compares the results, so a page can warn or fall back to the CPU
+// instead of showing nonsense.
 //
-// The answer is true for a build that has only the CPU, and for a module from
-// before ABI version 8, which has no such test.
+// It returns true for a CPU only build, and for a module before ABI version 8,
+// which has no such test.
 func BackendOK() bool {
 	return backendOK
 }
 
-// readGPUDevice asks the shim for the name of the device that is not the CPU.
+// readGPUDevice asks the shim for the name of the non CPU device.
 func readGPUDevice() string {
 	if !has("_yzma_gpu_device") {
 		return ""
@@ -267,17 +264,17 @@ func readGPUDevice() string {
 	return string(readBytes(ptr, int(n)))
 }
 
-// GPUDevice gives the name of the device of llama.cpp that is not the CPU, or
-// an empty string if the computation is on the CPU. Call it after Init.
+// GPUDevice returns the name of the non CPU llama.cpp device, or an empty
+// string if the computation runs on the CPU. Call it after Init.
 //
 // A page can ask for WebGPU and still get the CPU, because the backend needs an
-// adapter with f16 shaders. This gives the true condition of llama.cpp.
+// adapter with f16 shaders. This reports what llama.cpp actually uses.
 func GPUDevice() string {
 	return gpuDevice
 }
 
-// Backend gives the name of the part that computes. The values are "webgpu",
-// "cpu-threads" for the CPU build with more than one thread, and "cpu". Call it
+// Backend returns the name of the compute backend. The values are "webgpu",
+// "cpu-threads" for the multithreaded CPU build, and "cpu". Call it
 // after Init.
 func Backend() string {
 	switch {
@@ -312,22 +309,22 @@ func BackendFree() {
 // calls into the module
 //
 
-// call runs a function of the shim and returns the result as an int32.
+// call runs a shim function and returns the result as an int32.
 func call(name string, args ...any) int32 {
 	return int32(callValue(name, args...).Int())
 }
 
-// callVoid runs a function of the shim that has no result.
+// callVoid runs a shim function that has no result.
 func callVoid(name string, args ...any) {
 	callValue(name, args...)
 }
 
-// callValue runs a function of the shim and gives the result.
+// callValue runs a shim function and returns the result.
 //
-// A module with the WebGPU backend needs the GPU of the browser, and a request
-// for a GPU is asynchronous. Emscripten builds that module with JSPI, thus such
-// a call gives a promise and not a number. This function waits for the promise.
-// A CPU build gives the number directly, which is the fast path.
+// A module with the WebGPU backend needs the browser GPU, and a GPU request is
+// asynchronous. Emscripten builds that module with JSPI, so such a call returns
+// a promise and not a number. This function waits for the promise. A CPU build
+// returns the number directly, which is the fast path.
 func callValue(name string, args ...any) js.Value {
 	return settle(mod.Call(name, args...))
 }
@@ -340,15 +337,15 @@ func settle(v js.Value) js.Value {
 
 	resolved, err := await(v)
 	if err != nil {
-		// The shim cannot report this. Leave the value undefined, thus the
+		// The shim cannot report this. Leave the value undefined, so the
 		// caller sees a result that is not a number.
 		return js.Undefined()
 	}
 	return resolved
 }
 
-// callErr runs a function of the shim and changes a negative result into an
-// error with the text of the shim.
+// callErr runs a shim function and turns a negative result into an error with
+// the shim error text.
 func callErr(name string, args ...any) (int32, error) {
 	rc := call(name, args...)
 	if rc < 0 {
@@ -358,7 +355,7 @@ func callErr(name string, args ...any) (int32, error) {
 }
 
 // callString runs a call that copies a string into a buffer and reads the
-// string. The args come before the pointer and the size that the call takes
+// string. The args come before the pointer and size that the call takes
 // last. It uses a larger buffer if the first buffer is too small.
 func callString(name string, size int, args ...any) string {
 	if !has(name) {
@@ -384,7 +381,7 @@ func callString(name string, size int, args ...any) string {
 	}
 }
 
-// shimError makes an error from a return code and the last error of the shim.
+// shimError creates an error from a return code and the last shim error.
 func shimError(name string, rc int32) error {
 	if text := lastError(); text != "" {
 		return fmt.Errorf("llamawasm: %s: %s (%d)", name, text, rc)
@@ -392,7 +389,7 @@ func shimError(name string, rc int32) error {
 	return fmt.Errorf("llamawasm: %s failed with code %d", name, rc)
 }
 
-// lastError reads the text of the last error of the shim.
+// lastError reads the text of the last shim error.
 func lastError() string {
 	const size = 512
 	ptr, err := errScratch.reserve(size)
@@ -409,10 +406,10 @@ func lastError() string {
 //
 // memory of the module
 //
-// The two WebAssembly modules do not share memory, thus each value that goes
-// into llama.cpp is a copy. ALLOW_MEMORY_GROWTH makes a new buffer each time
-// the memory increases, which detaches the old views. Thus each read and write
-// gets the view again.
+// The two WebAssembly modules do not share memory, so each value that goes
+// into llama.cpp is a copy. ALLOW_MEMORY_GROWTH creates a new buffer each time
+// the memory grows, which detaches the old views. So each read and write gets
+// the view again.
 //
 
 func heapU8() js.Value {
@@ -455,8 +452,8 @@ func readBytes(ptr, n int) []byte {
 	return b
 }
 
-// writeString writes s and a zero byte at ptr. The space at ptr must be a
-// minimum of len(s)+1 bytes.
+// writeString writes s and a zero byte at ptr. The space at ptr must be at
+// least len(s)+1 bytes.
 func writeString(ptr int, s string) {
 	b := make([]byte, len(s)+1)
 	copy(b, s)
@@ -505,9 +502,9 @@ func writeFloats(ptr int, values []float32) {
 	writeBytes(ptr, b)
 }
 
-// writeStrings writes each string with a zero byte after it and gives the
-// number of bytes that it wrote. The shim reads a list of strings in this
-// shape, because an array of pointers cannot cross the boundary.
+// writeStrings writes each string followed by a zero byte and returns the
+// number of bytes written. The shim reads string lists in this layout, because
+// an array of pointers cannot cross the boundary.
 func writeStrings(ptr int, values []string) int {
 	n := 0
 	for _, s := range values {
@@ -524,7 +521,7 @@ func writeStrings(ptr int, values []string) int {
 	return n
 }
 
-// stringsSize gives the number of bytes that writeStrings needs.
+// stringsSize returns the number of bytes that writeStrings needs.
 func stringsSize(values []string) int {
 	n := 0
 	for _, s := range values {
@@ -554,13 +551,13 @@ func readFloats(ptr, n int) []float32 {
 //
 // memory for one call
 //
-// A sampler that takes a grammar or a list of strings is made once, outside the
-// loop that generates the tokens. Thus each of these allocates and frees rather
-// than hold a permanent scratch area.
+// A sampler that takes a grammar or a list of strings is created once, outside
+// the token generation loop. So each of these allocates and frees rather than
+// hold a permanent scratch area.
 //
 
-// allocString puts s with a zero byte after it in the module. The second result
-// frees the memory.
+// allocString copies s and a trailing zero byte into the module. The second
+// result frees the memory.
 func allocString(s string) (int, func(), error) {
 	ptr, err := malloc(len(s) + 1)
 	if err != nil {
@@ -570,9 +567,9 @@ func allocString(s string) (int, func(), error) {
 	return ptr, func() { free(ptr) }, nil
 }
 
-// allocStrings puts each string with a zero byte after it in the module, which
-// is the shape that the shim reads. An empty list gives a pointer of 0, which
-// the shim sees as a null pointer.
+// allocStrings copies each string and a trailing zero byte into the module,
+// which is the layout the shim reads. An empty list returns a pointer of 0,
+// which the shim sees as a null pointer.
 func allocStrings(values []string) (int, func(), error) {
 	if len(values) == 0 {
 		return 0, func() {}, nil
@@ -586,7 +583,7 @@ func allocStrings(values []string) (int, func(), error) {
 	return ptr, func() { free(ptr) }, nil
 }
 
-// allocTokens puts the tokens in the module. An empty list gives a pointer of 0.
+// allocTokens copies the tokens into the module. An empty list returns 0.
 func allocTokens(tokens []Token) (int, func(), error) {
 	if len(tokens) == 0 {
 		return 0, func() {}, nil
@@ -600,7 +597,7 @@ func allocTokens(tokens []Token) (int, func(), error) {
 	return ptr, func() { free(ptr) }, nil
 }
 
-// allocFloats puts the values in the module. An empty list gives a pointer of 0.
+// allocFloats copies the values into the module. An empty list returns 0.
 func allocFloats(values []float32) (int, func(), error) {
 	if len(values) == 0 {
 		return 0, func() {}, nil
@@ -617,9 +614,9 @@ func allocFloats(values []float32) (int, func(), error) {
 //
 // scratch memory
 //
-// The loop that makes tokens calls into the module many times for each token.
-// A permanent scratch area prevents an allocation in the module, which also
-// prevents an increase of the module memory during generation.
+// The generation loop calls into the module many times for each token. A
+// permanent scratch area avoids allocations in the module, which also keeps the
+// module memory from growing during generation.
 //
 
 type scratch struct {
@@ -627,7 +624,7 @@ type scratch struct {
 	size int
 }
 
-// reserve gives a pointer to a minimum of n bytes. The contents of an earlier
+// reserve returns a pointer to at least n bytes. The contents of an earlier
 // reserve on the same scratch are lost.
 func (s *scratch) reserve(n int) (int, error) {
 	if !Loaded() {
@@ -637,8 +634,8 @@ func (s *scratch) reserve(n int) (int, error) {
 		return s.ptr, nil
 	}
 
-	// Get more space than the request, thus a loop that increases by a small
-	// quantity does not allocate each time.
+	// Reserve more space than requested, so a loop that grows by small
+	// amounts does not allocate each time.
 	size := n * 2
 	ptr, err := malloc(size)
 	if err != nil {
@@ -650,18 +647,18 @@ func (s *scratch) reserve(n int) (int, error) {
 	return ptr, nil
 }
 
-// release returns the memory of the scratch to the module.
+// release returns the scratch memory to the module.
 func (s *scratch) release() {
 	free(s.ptr)
 	s.ptr, s.size = 0, 0
 }
 
-// Each purpose has its own scratch, because more than one is in use at the same
-// time. tokenScratch holds input tokens, textScratch holds an input string, and
+// Each purpose has its own scratch, because several are in use at once.
+// tokenScratch holds input tokens, textScratch holds an input string, and
 // pieceScratch holds output bytes.
 // posScratch, seqScratch, and logitScratch hold the other arrays of a batch,
 // which go into the module beside the tokens. outScratch is different and holds
-// the logits and the embeddings that come out of the module.
+// the logits and embeddings that come out of the module.
 var (
 	tokenScratch scratch
 	textScratch  scratch

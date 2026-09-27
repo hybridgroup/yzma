@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// allFormats holds each format, so a test covers the whole switch.
+// allFormats lists every format, so a test covers the whole switch.
 var allFormats = []Format{
 	FormatAuto, FormatStandard, FormatQwen, FormatGLM,
 	FormatMistral, FormatGemma3, FormatGemma, FormatGPT, FormatPhi,
@@ -54,7 +54,7 @@ func TestStopMarkersForFormatMarkers(t *testing.T) {
 	}
 }
 
-// StopMarkersFor must not write into the slice of the caller.
+// StopMarkersFor must not write into the caller's slice.
 func TestStopMarkersForCopiesEOT(t *testing.T) {
 	eot := make([]string, 1, 8)
 	eot[0] = "<|im_end|>"

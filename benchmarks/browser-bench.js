@@ -1,13 +1,13 @@
-// browser-bench.js measures yzma in a browser. A browser cannot be driven from
-// a script here, thus paste this file in the console of the page that
-// `make serve-wasm` gives, and put the result in webassembly.md.
+// browser-bench.js measures yzma in a browser. No script here can drive a
+// browser, so paste this file into the console of the page that
+// `make serve-wasm` serves, and put the result in webassembly.md.
 //
 // Change model, mode, and gpu below. The modes are auto, cpu and webgpu, and
-// gpu is high-performance, low-power, or empty for the choice of the browser.
+// gpu is high-performance, low-power, or empty to let the browser choose.
 // yzma-loader.js reads both.
 //
-// The output has the same shape as go test -bench, and it gives the llama.cpp
-// build, which the page reads from yzma-install.json. Thus you can give it to
+// The output has the same format as go test -bench and includes the llama.cpp
+// build, which the page reads from yzma-install.json. So you can pass it to
 // cmd/yzma-bench:
 //
 //   go run ./cmd/yzma-bench update --file benchmarks/webassembly.md \
@@ -22,7 +22,7 @@
   const maxTokens = 64;
   const count = 5;
 
-  // installTag gives the llama.cpp build of the files that the page serves. A
+  // installTag returns the llama.cpp build of the files the page serves. A
   // nightly build has no upstream_tag, because its own tag names the assets.
   const installTag = async () => {
     try {
@@ -63,7 +63,7 @@
     return done;
   };
 
-  // The first generation warms the build up and is not in the result.
+  // The first generation is a warmup and is not in the result.
   await generate();
 
   const runs = [];
@@ -90,7 +90,7 @@
   if (tag) {
     lines.push("llama.cpp: " + tag);
   } else {
-    console.warn("no yzma-install.json, give the tag with --llamacpp");
+    console.warn("no yzma-install.json, pass the tag with --llamacpp");
   }
   for (const run of runs) {
     lines.push(
@@ -111,6 +111,6 @@
   console.log(out);
   if (typeof copy === "function") {
     copy(out);
-    console.log("the result is in the clipboard");
+    console.log("result copied to the clipboard");
   }
 })();

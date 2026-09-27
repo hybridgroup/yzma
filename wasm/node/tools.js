@@ -1,17 +1,16 @@
 // tools.js runs the tool calling build of yzma in Node, without a browser.
 //
-// CI uses this test. It loads a model, asks a question, and checks that the
-// round trip works: the chat template renders, tokens come out, and the program
-// finishes. A model that is trained for tool calls also calls one, which
-// --expect-tool checks.
+// CI uses this test. It loads a model, asks a question, and checks the round
+// trip. The chat template renders, tokens come out, and the program finishes.
+// A model trained for tool calls also makes one, which --expect-tool checks.
 //
 // Usage.
 //   node wasm/node/tools.js --dir build/wasm --model ~/models/model.gguf \
 //       --question "What is the weather in Paris?" --tokens 96 \
 //       [--expect-tool get_weather] [--mt] [--webgpu]
 //
-// --mt selects the build with more than one thread, and --webgpu asks for the
-// WebGPU build. See run.js for what those mean in Node.
+// --mt picks the multithreaded build, and --webgpu asks for the WebGPU
+// build. See run.js for what those mean in Node.
 
 const fs = require("node:fs");
 const path = require("node:path");
@@ -29,8 +28,8 @@ const expectTool = option("expect-tool", "");
 const mt = process.argv.includes("--mt");
 const webgpu = process.argv.includes("--webgpu");
 
-// This harness replaces yzma-loader.js. It makes the same choice as the loader
-// where there is no WebGPU, thus it falls back to the CPU.
+// This harness replaces yzma-loader.js. Without WebGPU it makes the same choice
+// as the loader and falls back to the CPU.
 let moduleName = "yzma_wasm.js";
 if (mt) {
   moduleName = "yzma_wasm_mt.js";
@@ -48,7 +47,7 @@ if (!modelFile) {
   process.exit(2);
 }
 
-// The output of the Go program comes here, because Node has no postMessage.
+// The Go program output lands here, because Node has no postMessage.
 const output = [];
 const toolCalls = [];
 
@@ -73,14 +72,14 @@ globalThis.yzmaOnMessage = (message) => {
 };
 
 async function main() {
-  // Select the build with one thread. Node has no crossOriginIsolated, thus
-  // the loader makes the same choice.
+  // Pick the single thread build. Node has no crossOriginIsolated, so the
+  // loader would make the same choice.
   globalThis.crossOriginIsolated = mt;
   globalThis.yzmaBase = dir;
 
   const factory = require(path.join(dir, moduleName));
-  // The same values that the JavaScript glue selects. The pool follows the
-  // machine and the Go side reads the thread count.
+  // The same values the JavaScript glue picks. The pool matches the machine
+  // and the Go side reads the thread count.
   const threads = mt ? Math.max(1, Math.min(require("node:os").cpus().length, 16)) : 1;
 
   const llamaModule = await factory({
@@ -100,8 +99,8 @@ async function main() {
       ? "cpu-threads"
       : "cpu";
 
-  // Put the model in the filesystem of the module. A browser instead gets it
-  // from the network with FetchModelFile.
+  // Put the model in the module filesystem. A browser fetches it from the
+  // network with FetchModelFile instead.
   llamaModule.FS.mkdirTree("/models");
   llamaModule.FS.writeFile("/models/model.gguf", fs.readFileSync(modelFile));
 
@@ -111,7 +110,7 @@ async function main() {
   const binary = fs.readFileSync(path.join(dir, "yzma-tools.wasm"));
   const result = await WebAssembly.instantiate(binary, go.importObject);
 
-  // The program blocks at the end of main, thus do not wait for this.
+  // The program blocks at the end of main, so do not wait for this.
   go.run(result.instance);
 
   // Wait for the ready message. The backend needs time to start, and more
@@ -131,7 +130,7 @@ async function main() {
     };
   });
 
-  // The name of the file of the model selects the format of the tool calls.
+  // The model file name selects the tool call format.
   globalThis.yzmaOpenModel("/models/model.gguf", path.basename(modelFile));
 
   const last = await done;
@@ -146,8 +145,8 @@ async function main() {
     process.exit(1);
   }
 
-  // Only a model that is trained for tool calls makes one, thus this is a
-  // choice of the caller and not the default.
+  // Only a model trained for tool calls makes one, so the caller opts in to
+  // this check instead of it being the default.
   if (expectTool && !toolCalls.some((call) => call.startsWith(expectTool))) {
     console.error("the model did not call " + expectTool);
     console.error("  calls: " + JSON.stringify(toolCalls));

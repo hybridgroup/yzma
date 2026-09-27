@@ -2,7 +2,7 @@
 
 package llamawasm
 
-// errBadHandle is what a function of the shim returns for a bad handle if its
+// errBadHandle is what a shim function returns for a bad handle when its
 // normal result can also be negative. It is the same value as
 // YZMA_ERR_BAD_HANDLE in wasm/yzma_wasm.cpp.
 const errBadHandle = -1000000
@@ -19,8 +19,8 @@ func Tokenize(vocab Vocab, text string, addSpecial bool, parseSpecial bool) []To
 	}
 	writeString(textPtr, text)
 
-	// One token holds a minimum of one byte of text. Thus the number of bytes
-	// with space for the special tokens is always sufficient.
+	// Each token holds at least one byte of text. So the byte count plus room
+	// for the special tokens is always enough.
 	max := len(text) + 8
 
 	for {
@@ -35,8 +35,7 @@ func Tokenize(vocab Vocab, text string, addSpecial bool, parseSpecial bool) []To
 		case n <= errBadHandle:
 			return nil
 		case n < 0:
-			// The shim gives the negative of the number of tokens that it
-			// needs.
+			// The shim returns the negated number of tokens it needs.
 			max = int(-n)
 			continue
 		default:
@@ -47,8 +46,8 @@ func Tokenize(vocab Vocab, text string, addSpecial bool, parseSpecial bool) []To
 
 // Detokenize turns tokens back into text.
 //
-// The shim has no call for this. Thus the text comes from TokenToPiece of each
-// token, which is the method that a generation loop uses.
+// The shim has no call for this. So the text comes from TokenToPiece on each
+// token, which is what a generation loop uses.
 func Detokenize(vocab Vocab, tokens []Token, removeSpecial bool, unparseSpecial bool) string {
 	if !Loaded() {
 		return ""
@@ -66,9 +65,9 @@ func Detokenize(vocab Vocab, tokens []Token, removeSpecial bool, unparseSpecial 
 	return string(out)
 }
 
-// TokenToPiece writes the text of one token into buf and gives the number of
-// bytes that it wrote. A negative result is the negative of the number of
-// bytes that buf needs.
+// TokenToPiece writes the text of one token into buf and returns the number of
+// bytes written. A negative result is the negated number of bytes that buf
+// needs.
 func TokenToPiece(vocab Vocab, token Token, buf []byte, lstrip int32, special bool) int32 {
 	if !Loaded() {
 		return 0
@@ -92,7 +91,7 @@ func TokenToPiece(vocab Vocab, token Token, buf []byte, lstrip int32, special bo
 	return n
 }
 
-// VocabIsEOG tells if a token ends the generation.
+// VocabIsEOG reports whether a token ends generation.
 func VocabIsEOG(vocab Vocab, token Token) bool {
 	if !Loaded() {
 		return false
@@ -100,17 +99,17 @@ func VocabIsEOG(vocab Vocab, token Token) bool {
 	return call("_yzma_vocab_is_eog", int(vocab), int(token)) == 1
 }
 
-// VocabBOS gives the token that starts a sequence.
+// VocabBOS returns the beginning of sequence token.
 func VocabBOS(vocab Vocab) Token {
 	return vocabToken("_yzma_vocab_bos", vocab)
 }
 
-// VocabEOS gives the token that ends a sequence.
+// VocabEOS returns the end of sequence token.
 func VocabEOS(vocab Vocab) Token {
 	return vocabToken("_yzma_vocab_eos", vocab)
 }
 
-// VocabNTokens gives the number of tokens in the vocabulary.
+// VocabNTokens returns the number of tokens in the vocabulary.
 func VocabNTokens(vocab Vocab) int32 {
 	if !Loaded() {
 		return 0
@@ -122,7 +121,7 @@ func VocabNTokens(vocab Vocab) int32 {
 	return n
 }
 
-// VocabGetAddBOS tells if the vocabulary adds the token that starts a sequence.
+// VocabGetAddBOS reports whether the vocabulary adds a start of sequence token.
 func VocabGetAddBOS(vocab Vocab) bool {
 	if !Loaded() {
 		return false
@@ -130,10 +129,10 @@ func VocabGetAddBOS(vocab Vocab) bool {
 	return call("_yzma_vocab_get_add_bos", int(vocab)) == 1
 }
 
-// VocabEOT gives the token that ends a turn.
+// VocabEOT returns the end of turn token.
 //
-// The result is -1 if the vocabulary has no such token, or if the module is
-// from a release before ABI version 5.
+// It returns -1 if the vocabulary has no such token, or if the module predates
+// ABI version 5.
 func VocabEOT(vocab Vocab) Token {
 	if !has("_yzma_vocab_eot") {
 		return -1
@@ -141,10 +140,10 @@ func VocabEOT(vocab Vocab) Token {
 	return vocabToken("_yzma_vocab_eot", vocab)
 }
 
-// VocabSEP gives the token that separates two sentences.
+// VocabSEP returns the sentence separator token.
 //
-// The result is -1 if the vocabulary has no such token, or if the module is
-// from a release before ABI version 5.
+// It returns -1 if the vocabulary has no such token, or if the module predates
+// ABI version 5.
 func VocabSEP(vocab Vocab) Token {
 	if !has("_yzma_vocab_sep") {
 		return -1
@@ -152,10 +151,10 @@ func VocabSEP(vocab Vocab) Token {
 	return vocabToken("_yzma_vocab_sep", vocab)
 }
 
-// VocabNL gives the token of a new line.
+// VocabNL returns the newline token.
 //
-// The result is -1 if the vocabulary has no such token, or if the module is
-// from a release before ABI version 5.
+// It returns -1 if the vocabulary has no such token, or if the module predates
+// ABI version 5.
 func VocabNL(vocab Vocab) Token {
 	if !has("_yzma_vocab_nl") {
 		return -1
@@ -163,10 +162,10 @@ func VocabNL(vocab Vocab) Token {
 	return vocabToken("_yzma_vocab_nl", vocab)
 }
 
-// VocabPAD gives the token that fills a batch.
+// VocabPAD returns the padding token.
 //
-// The result is -1 if the vocabulary has no such token, or if the module is
-// from a release before ABI version 5.
+// It returns -1 if the vocabulary has no such token, or if the module predates
+// ABI version 5.
 func VocabPAD(vocab Vocab) Token {
 	if !has("_yzma_vocab_pad") {
 		return -1
@@ -174,10 +173,10 @@ func VocabPAD(vocab Vocab) Token {
 	return vocabToken("_yzma_vocab_pad", vocab)
 }
 
-// VocabMASK gives the token that hides a position.
+// VocabMASK returns the mask token.
 //
-// The result is -1 if the vocabulary has no such token, or if the module is
-// from a release before ABI version 5.
+// It returns -1 if the vocabulary has no such token, or if the module predates
+// ABI version 5.
 func VocabMASK(vocab Vocab) Token {
 	if !has("_yzma_vocab_mask") {
 		return -1
@@ -185,10 +184,10 @@ func VocabMASK(vocab Vocab) Token {
 	return vocabToken("_yzma_vocab_mask", vocab)
 }
 
-// VocabFIMPre gives the token before the text of a fill in the middle prompt.
+// VocabFIMPre returns the fill in the middle prefix token.
 //
-// The result is -1 if the vocabulary has no such token, or if the module is
-// from a release before ABI version 5.
+// It returns -1 if the vocabulary has no such token, or if the module predates
+// ABI version 5.
 func VocabFIMPre(vocab Vocab) Token {
 	if !has("_yzma_vocab_fim_pre") {
 		return -1
@@ -196,10 +195,10 @@ func VocabFIMPre(vocab Vocab) Token {
 	return vocabToken("_yzma_vocab_fim_pre", vocab)
 }
 
-// VocabFIMSuf gives the token after the text of a fill in the middle prompt.
+// VocabFIMSuf returns the fill in the middle suffix token.
 //
-// The result is -1 if the vocabulary has no such token, or if the module is
-// from a release before ABI version 5.
+// It returns -1 if the vocabulary has no such token, or if the module predates
+// ABI version 5.
 func VocabFIMSuf(vocab Vocab) Token {
 	if !has("_yzma_vocab_fim_suf") {
 		return -1
@@ -207,10 +206,10 @@ func VocabFIMSuf(vocab Vocab) Token {
 	return vocabToken("_yzma_vocab_fim_suf", vocab)
 }
 
-// VocabFIMMid gives the token of the middle of a fill in the middle prompt.
+// VocabFIMMid returns the fill in the middle middle token.
 //
-// The result is -1 if the vocabulary has no such token, or if the module is
-// from a release before ABI version 5.
+// It returns -1 if the vocabulary has no such token, or if the module predates
+// ABI version 5.
 func VocabFIMMid(vocab Vocab) Token {
 	if !has("_yzma_vocab_fim_mid") {
 		return -1
@@ -218,10 +217,10 @@ func VocabFIMMid(vocab Vocab) Token {
 	return vocabToken("_yzma_vocab_fim_mid", vocab)
 }
 
-// VocabFIMPad gives the token that fills a fill in the middle prompt.
+// VocabFIMPad returns the fill in the middle padding token.
 //
-// The result is -1 if the vocabulary has no such token, or if the module is
-// from a release before ABI version 5.
+// It returns -1 if the vocabulary has no such token, or if the module predates
+// ABI version 5.
 func VocabFIMPad(vocab Vocab) Token {
 	if !has("_yzma_vocab_fim_pad") {
 		return -1
@@ -229,10 +228,10 @@ func VocabFIMPad(vocab Vocab) Token {
 	return vocabToken("_yzma_vocab_fim_pad", vocab)
 }
 
-// VocabFIMRep gives the token of the repository of a fill in the middle prompt.
+// VocabFIMRep returns the fill in the middle repository token.
 //
-// The result is -1 if the vocabulary has no such token, or if the module is
-// from a release before ABI version 5.
+// It returns -1 if the vocabulary has no such token, or if the module predates
+// ABI version 5.
 func VocabFIMRep(vocab Vocab) Token {
 	if !has("_yzma_vocab_fim_rep") {
 		return -1
@@ -240,10 +239,10 @@ func VocabFIMRep(vocab Vocab) Token {
 	return vocabToken("_yzma_vocab_fim_rep", vocab)
 }
 
-// VocabFIMSep gives the token that separates the files of a fill in the middle prompt.
+// VocabFIMSep returns the fill in the middle file separator token.
 //
-// The result is -1 if the vocabulary has no such token, or if the module is
-// from a release before ABI version 5.
+// It returns -1 if the vocabulary has no such token, or if the module predates
+// ABI version 5.
 func VocabFIMSep(vocab Vocab) Token {
 	if !has("_yzma_vocab_fim_sep") {
 		return -1
@@ -251,18 +250,18 @@ func VocabFIMSep(vocab Vocab) Token {
 	return vocabToken("_yzma_vocab_fim_sep", vocab)
 }
 
-// VocabGetAddEOS tells if the vocabulary adds the token that ends a sequence.
+// VocabGetAddEOS reports whether the vocabulary adds an end of sequence token.
 func VocabGetAddEOS(vocab Vocab) bool {
 	return vocabFlag("_yzma_vocab_get_add_eos", vocab)
 }
 
-// VocabGetAddSEP tells if the vocabulary adds the token that separates two
-// sentences.
+// VocabGetAddSEP reports whether the vocabulary adds a sentence separator
+// token.
 func VocabGetAddSEP(vocab Vocab) bool {
 	return vocabFlag("_yzma_vocab_get_add_sep", vocab)
 }
 
-// VocabIsControl tells if a token controls the model instead of holding text.
+// VocabIsControl reports whether a token is a control token and not text.
 func VocabIsControl(vocab Vocab, token Token) bool {
 	if !has("_yzma_vocab_is_control") {
 		return false
@@ -270,7 +269,7 @@ func VocabIsControl(vocab Vocab, token Token) bool {
 	return call("_yzma_vocab_is_control", int(vocab), int(token)) == 1
 }
 
-// VocabGetAttr gives the attributes of a token.
+// VocabGetAttr returns the attributes of a token.
 func VocabGetAttr(vocab Vocab, token Token) TokenAttr {
 	if !has("_yzma_vocab_get_attr") {
 		return TokenAttrUndefined
@@ -283,7 +282,7 @@ func VocabGetAttr(vocab Vocab, token Token) TokenAttr {
 	return TokenAttr(attr)
 }
 
-// GetVocabType gives the kind of the tokenizer of the vocabulary.
+// GetVocabType returns the tokenizer type of the vocabulary.
 func GetVocabType(vocab Vocab) VocabType {
 	if !has("_yzma_vocab_type") {
 		return VocabTypeNone
@@ -296,7 +295,7 @@ func GetVocabType(vocab Vocab) VocabType {
 	return VocabType(t)
 }
 
-// VocabGetScore gives the score of a token, or 0 if the vocabulary has none.
+// VocabGetScore returns the score of a token, or 0 if the vocabulary has none.
 func VocabGetScore(vocab Vocab, token Token) float32 {
 	if !has("_yzma_vocab_get_score") {
 		return 0
@@ -304,9 +303,8 @@ func VocabGetScore(vocab Vocab, token Token) float32 {
 	return float32(callValue("_yzma_vocab_get_score", int(vocab), int(token)).Float())
 }
 
-// VocabGetText gives the text of a token as the vocabulary holds it, which
-// keeps the marks of the tokenizer. Use TokenToPiece for the text that a
-// program prints.
+// VocabGetText returns the raw token text from the vocabulary, including
+// tokenizer markers. Use TokenToPiece for text that a program prints.
 func VocabGetText(vocab Vocab, token Token) string {
 	if !has("_yzma_vocab_get_text") {
 		return ""
@@ -322,7 +320,7 @@ func VocabGetText(vocab Vocab, token Token) string {
 		n := call("_yzma_vocab_get_text", int(vocab), int(token), ptr, size)
 		switch {
 		case n == errTooSmall:
-			// The shim does not say how much it needs, thus ask for more.
+			// The shim does not report how much it needs, so ask for more.
 			size *= 4
 			if size > 1<<20 {
 				return ""
@@ -335,8 +333,8 @@ func VocabGetText(vocab Vocab, token Token) string {
 	}
 }
 
-// VocabGetSuppressTokens gives the tokens that the model stops the sampler from
-// taking, or nil if it names none.
+// VocabGetSuppressTokens returns the tokens the model keeps the sampler from
+// picking, or nil if there are none.
 func VocabGetSuppressTokens(vocab Vocab) []Token {
 	if !has("_yzma_vocab_get_suppress_tokens") {
 		return nil
@@ -354,8 +352,7 @@ func VocabGetSuppressTokens(vocab Vocab) []Token {
 		case n <= errBadHandle:
 			return nil
 		case n < 0:
-			// The shim gives the negative of the number of tokens that it
-			// needs.
+			// The shim returns the negated number of tokens it needs.
 			max = int(-n)
 		case n == 0:
 			return nil
@@ -365,7 +362,7 @@ func VocabGetSuppressTokens(vocab Vocab) []Token {
 	}
 }
 
-// vocabFlag reads a call of the shim that gives 1 or 0.
+// vocabFlag reads a shim call that returns 1 or 0.
 func vocabFlag(name string, vocab Vocab) bool {
 	if !has(name) {
 		return false

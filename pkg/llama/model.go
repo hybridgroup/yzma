@@ -924,9 +924,9 @@ func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
 // The caller must keep the slice alive (e.g., via runtime.KeepAlive) until
 // the model load call using these params completes.
 //
-// Do not name the CPU here to run on the CPU. Use [ModelParams.SetCPUOnly],
-// because llama.cpp makes a second CPU backend for a device list and runs the
-// graph on it, which leaves a thread pool of the context with no work.
+// To run on the CPU, use [ModelParams.SetCPUOnly] instead of naming the CPU
+// here. llama.cpp creates a second CPU backend for a device list and runs the
+// graph on it, which leaves the context's thread pool with no work.
 func (p *ModelParams) SetDevices(devices []GGMLBackendDevice) error {
 	if len(devices) == 0 {
 		p.Devices = uintptr(0)
@@ -942,14 +942,14 @@ func (p *ModelParams) SetDevices(devices []GGMLBackendDevice) error {
 	return nil
 }
 
-// SetCPUOnly makes the model run on the CPU. It keeps every layer in memory of
-// the machine and names no device.
+// SetCPUOnly makes the model run on the CPU. It keeps every layer in system
+// memory and names no device.
 //
-// This is the way to run on the CPU. A device list that names the CPU makes
-// llama.cpp build a second CPU backend and run the graph on it, while
-// [AttachThreadpool] gives the pool to the first one. The threads then go
-// where the system wants, which costs speed on a machine with two kinds of
-// core. See [NewPerformanceThreadpool].
+// This is the right way to run on the CPU. A device list that names the CPU
+// makes llama.cpp create a second CPU backend and run the graph on it, while
+// [AttachThreadpool] attaches the pool to the first one. The system then
+// places the threads, which costs speed on a hybrid machine. See
+// [NewPerformanceThreadpool].
 func (p *ModelParams) SetCPUOnly() {
 	p.NGpuLayers = 0
 	p.Devices = uintptr(0)

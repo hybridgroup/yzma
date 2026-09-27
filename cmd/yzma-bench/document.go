@@ -18,14 +18,14 @@ const (
 )
 
 // The suites that measure yzma against a model server. Their backend field
-// holds the engine, and they report more than one metric.
+// holds the engine, and they report several metrics.
 const (
 	suiteCompareText       = "compare-text"
 	suiteCompareMultimodal = "compare-multimodal"
 	suiteCompareEmbeddings = "compare-embeddings"
 )
 
-// isCompare says if a suite compares the engines with each other.
+// isCompare reports whether a suite compares engines with each other.
 func isCompare(suite string) bool {
 	return suite == suiteCompareText || suite == suiteCompareMultimodal ||
 		suite == suiteCompareEmbeddings
@@ -51,9 +51,9 @@ type meta struct {
 	Date            string  `json:"date,omitempty"`
 }
 
-// key names the section. The device is part of it, because one machine can
-// have more than one device of the same backend. The model is part of it,
-// because the comparison suite runs more than one model on one machine.
+// key names the section. It includes the device, because one machine can have
+// several devices on the same backend, and the model, because the comparison
+// suite runs several models on one machine.
 func (m meta) key() string {
 	parts := []string{m.Suite, m.Backend, m.Arch, m.Machine}
 	if m.Device != "" {
@@ -66,7 +66,7 @@ func (m meta) key() string {
 	return strings.Join(parts, "/")
 }
 
-// version gives the build or release that made the result.
+// version returns the build or release that produced the result.
 func (m meta) version() string {
 	if isCompare(m.Suite) && m.EngineVersion != "" {
 		return m.EngineVersion
@@ -92,27 +92,27 @@ func (m meta) validate() error {
 	if strings.ContainsAny(m.Model, "/ ") {
 		return fmt.Errorf("the model %q must have no space and no slash", m.Model)
 	}
-	// Each result must say which build made it, or the table cannot compare it
-	// with the others. A model server has no llama.cpp tag of ours, thus the
-	// comparison suite takes the release of the engine instead.
+	// Each result must record which build produced it, or the table can't
+	// compare it with the others. A model server has no llama.cpp tag of ours,
+	// so the comparison suite uses the engine release instead.
 	if isCompare(m.Suite) {
 		if m.Model == "" {
-			return fmt.Errorf("the comparison suite needs a model, give --model")
+			return fmt.Errorf("the comparison suite needs a model, pass --model")
 		}
 		if m.version() == "" {
-			return fmt.Errorf("the section needs the release of the engine, give --engine-version")
+			return fmt.Errorf("the section needs the engine release, pass --engine-version")
 		}
 
 		return nil
 	}
 	if m.LlamaCPP == "" {
-		return fmt.Errorf("the section needs the tag of the llama.cpp build, give --llamacpp")
+		return fmt.Errorf("the section needs the llama.cpp build tag, pass --llamacpp")
 	}
 
 	return nil
 }
 
-// backendOrder is the order of the backends in a file. A backend that is not
+// backendOrder is the order of the backends in a file. A backend not listed
 // here goes last, in alphabetical order.
 var backendOrder = []string{
 	"cpu", "cpu-threads", "metal", "cuda", "rocm", "vulkan", "webgpu",
@@ -125,8 +125,8 @@ func (m meta) rank() (int, string, string) {
 		i = len(backendOrder)
 	}
 
-	// The comparison suite puts the engines of one model together, because the
-	// table compares them with each other.
+	// The comparison suite groups the engines for one model together, because
+	// the table compares them with each other.
 	if isCompare(m.Suite) {
 		return i, m.Model + "/" + m.Machine, m.Arch
 	}
@@ -138,8 +138,8 @@ func (m meta) less(other meta) bool {
 	ai, ab, am := m.rank()
 	bi, bb, bm := other.rank()
 
-	// The comparison suite sorts by model first, thus one model gives one group
-	// of rows and the engines line up inside it.
+	// The comparison suite sorts by model first, so each model gets one group
+	// of rows with the engines lined up inside it.
 	if isCompare(m.Suite) && isCompare(other.Suite) {
 		switch {
 		case ab != bb:
@@ -190,7 +190,7 @@ func (d *document) save() error {
 	return os.WriteFile(d.path, []byte(d.String()), 0o644)
 }
 
-// sections gives every marked section of the file, in the order of the file.
+// sections returns every marked section in file order.
 func (d *document) sections() []section {
 	var found []section
 	var current *section
@@ -218,8 +218,8 @@ func markerValue(line, prefix string) string {
 	return strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(line, prefix), markerClose))
 }
 
-// put replaces the section that has the same key, or adds it in the correct
-// place of its suite.
+// put replaces the section with the same key, or adds it in the right place
+// within its suite.
 func (d *document) put(m meta, body string) error {
 	lines := strings.Split(body, "\n")
 
@@ -240,7 +240,7 @@ func (d *document) put(m meta, body string) error {
 	return nil
 }
 
-// remove deletes the section of a key and says if it found one.
+// remove deletes the section for a key and reports whether it found one.
 func (d *document) remove(key string) bool {
 	for _, s := range d.sections() {
 		if s.key != key {
@@ -248,7 +248,7 @@ func (d *document) remove(key string) bool {
 		}
 
 		last := s.last + 1
-		// A section has one empty line after it, which goes away with it.
+		// A section has one empty line after it, which is removed with it.
 		if last < len(d.lines) && strings.TrimSpace(d.lines[last]) == "" {
 			last++
 		}
@@ -260,7 +260,7 @@ func (d *document) remove(key string) bool {
 	return false
 }
 
-// insertPoint gives the line where a new section of the suite goes.
+// insertPoint returns the line where a new section for the suite goes.
 func (d *document) insertPoint(m meta) (int, error) {
 	last := -1
 	for _, s := range d.sections() {
@@ -277,7 +277,7 @@ func (d *document) insertPoint(m meta) (int, error) {
 		return min(last+2, len(d.lines)), nil
 	}
 
-	// The suite has no section yet, thus the new one goes after its table.
+	// The suite has no section yet, so the new one goes after its table.
 	for i, line := range d.lines {
 		if strings.TrimSpace(line) == markerTableEnd+m.Suite+markerClose {
 			return min(i+2, len(d.lines)), nil

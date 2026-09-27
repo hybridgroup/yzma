@@ -18,7 +18,7 @@ func testConfig(t *testing.T) *Config {
 	return cfg
 }
 
-// fakeEncode gives the slot tokens their config ids and one token per byte otherwise.
+// fakeEncode maps slot tokens to their config ids and every other byte to one token.
 func fakeEncode(s string) []token {
 	switch s {
 	case " yes":

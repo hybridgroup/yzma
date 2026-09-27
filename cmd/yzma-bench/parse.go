@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// Units that the benchmarks report with b.ReportMetric.
+// Units the benchmarks report with b.ReportMetric.
 const (
 	unitTokensPerSecond = "tokens/s"
 	unitTTFT            = "ttft_ms"
@@ -15,7 +15,7 @@ const (
 	unitPromptTokens    = "prompt_tokens"
 )
 
-// benchmarkResult is what the output of one go test run gives.
+// benchmarkResult holds the parsed output of one go test run.
 type benchmarkResult struct {
 	arch            string
 	cpu             string
@@ -27,9 +27,9 @@ type benchmarkResult struct {
 	promptTokens    float64
 }
 
-// parseBenchmark reads the output of go test -bench. It takes the median of
-// each metric on its own. Only tokens/s is needed. The comparison suite adds
-// the time to the first token and the time of a whole request.
+// parseBenchmark reads the output of go test -bench and takes the median of
+// each metric separately. Only tokens/s is required. The comparison suite adds
+// time to first token and total request time.
 func parseBenchmark(raw string) (benchmarkResult, error) {
 	var result benchmarkResult
 	passed := false
@@ -42,8 +42,8 @@ func parseBenchmark(raw string) (benchmarkResult, error) {
 			result.arch = strings.TrimSpace(strings.TrimPrefix(line, "goarch:"))
 		case strings.HasPrefix(line, "cpu:"):
 			result.cpu = strings.TrimSpace(strings.TrimPrefix(line, "cpu:"))
-		// The WebAssembly benchmarks put the tag of their build in the output,
-		// because it does not come from the library directory of the machine.
+		// The WebAssembly benchmarks put their build tag in the output, because
+		// it does not come from the machine's library directory.
 		case strings.HasPrefix(line, "llama.cpp:"):
 			result.llamaCPP = strings.TrimSpace(strings.TrimPrefix(line, "llama.cpp:"))
 		case strings.HasPrefix(line, "PASS"):
@@ -85,7 +85,7 @@ func parseBenchmark(raw string) (benchmarkResult, error) {
 	return result, nil
 }
 
-// metricValue takes the value before the given unit of a benchmark line.
+// metricValue returns the value before the given unit in a benchmark line.
 func metricValue(line, unit string) (float64, bool) {
 	fields := strings.Fields(line)
 	for i, f := range fields {

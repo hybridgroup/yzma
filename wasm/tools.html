@@ -45,13 +45,13 @@
     <h1>Tool calling, in WebAssembly</h1>
     <p>
       llama.cpp runs as a WebAssembly module. The program that drives it is Go,
-      compiled by TinyGo, through the <code>pkg/llamawasm</code> package of yzma.
-      The <code>pkg/template</code> package renders the chat template of the
-      model and offers it the tools, and <code>pkg/message</code> parses the tool
+      compiled by TinyGo, using the yzma <code>pkg/llamawasm</code> package.
+      The <code>pkg/template</code> package renders the model's chat template
+      and offers it the tools, and <code>pkg/message</code> parses the tool
       calls that come back. The page runs no model logic itself.
     </p>
     <p>
-      Two tools are available. <code>get_weather</code> gives the weather of a
+      Two tools are available. <code>get_weather</code> returns the weather for a
       city, and <code>calculate</code> does arithmetic on two numbers. Both
       answer from their arguments alone.
     </p>
@@ -85,8 +85,8 @@
 
       const worker = new Worker("./worker.js?program=yzma-tools.wasm&" + location.search.slice(1));
 
-      // step adds one line of the round trip, so a reader sees each tool call
-      // and its result apart from the text of the model.
+      // step adds one line of the round trip, so each tool call and its result
+      // show separately from the model's text.
       function step(kind, label, text) {
         const box = document.createElement("div");
         box.className = "step " + kind;

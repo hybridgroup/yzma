@@ -11,7 +11,7 @@ var (
 	Windows  = newOS("windows")
 
 	// Wasm is the WebAssembly build that a browser runs. It is not an
-	// operating system, but it is a target that has its own assets.
+	// operating system, but it is a target with its own assets.
 	Wasm = newOS("wasm")
 )
 

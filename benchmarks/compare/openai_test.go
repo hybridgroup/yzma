@@ -24,8 +24,8 @@ data: [DONE]
 `
 
 func TestReadStream(t *testing.T) {
-	// The clock of Windows has a low resolution, thus a start in the past
-	// keeps the times above zero.
+	// The Windows clock has low resolution, so starting in the past keeps the
+	// times above zero.
 	result, err := readStream(strings.NewReader(stream), time.Now().Add(-time.Second))
 	if err != nil {
 		t.Fatal(err)
@@ -34,7 +34,7 @@ func TestReadStream(t *testing.T) {
 	if result.Text != "Yes, I am" {
 		t.Errorf("text = %q, want %q", result.Text, "Yes, I am")
 	}
-	// The count of the server wins over the count of the frames.
+	// The server's count wins over the frame count.
 	if result.Tokens != 7 {
 		t.Errorf("tokens = %d, want 7", result.Tokens)
 	}
@@ -43,7 +43,7 @@ func TestReadStream(t *testing.T) {
 	}
 }
 
-// A server that sends no usage leaves the count of the frames.
+// A server that sends no usage leaves the frame count.
 func TestReadStreamWithoutUsage(t *testing.T) {
 	raw := `data: {"choices":[{"delta":{"content":"a"}}]}
 
@@ -68,7 +68,7 @@ func TestReadStreamWithoutAnyToken(t *testing.T) {
 }
 
 // Each run needs its own image, or a server answers the second run from the
-// cache of the first while yzma does the whole work again. A benchmark with
+// first run's cache while yzma does all the work again. A benchmark with
 // -count 5 sends more than 100 requests, and runs 1 and 257 must differ too.
 func TestImageVariantsDiffer(t *testing.T) {
 	images, err := NewImages("../../images/domestic_llama.jpg", image.Point{})
@@ -94,8 +94,8 @@ func TestImageVariantsDiffer(t *testing.T) {
 	}
 }
 
-// The engines scale an image each in their own way, thus the suite gives them
-// one at a size that they take as it is.
+// Each engine scales images its own way, so the suite gives them one at a
+// size none of them resizes.
 func TestImageVariantsHaveTheSize(t *testing.T) {
 	images, err := NewImages("../../images/domestic_llama.jpg", image.Pt(1280, 960))
 	if err != nil {
@@ -115,8 +115,8 @@ func TestImageVariantsHaveTheSize(t *testing.T) {
 	}
 }
 
-// The image goes as a data URL of the bytes that yzma also reads. It goes
-// before the text, as in the prompt of yzma, or the model gets another prompt.
+// The image is sent as a data URL of the bytes yzma also reads. It goes before
+// the text, as in the yzma prompt, or the model sees a different prompt.
 func TestMessageContentPutsTheImageInTheMessage(t *testing.T) {
 	images, err := NewImages("../../images/domestic_llama.jpg", image.Point{})
 	if err != nil {

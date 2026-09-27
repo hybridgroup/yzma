@@ -1,23 +1,21 @@
 // run.js runs the WebAssembly build of yzma in Node, without a browser.
 //
-// CI uses this test. It loads a small model, makes a fixed number of tokens
-// with the greedy sampler, and prints them. The greedy sampler always takes the
-// most probable token, thus the output does not change and a test can compare
-// it.
+// CI uses this test. It loads a small model, generates a fixed number of tokens
+// with the greedy sampler, and prints them. The greedy sampler always picks the
+// most probable token, so the output is stable and a test can compare it.
 //
 // Usage.
 //   node wasm/node/run.js --dir build/wasm --model ~/models/SmolLM-135M.Q2_K.gguf \
 //       --prompt "Are you ready to go?" --tokens 12 [--expect "<text>"] [--mt]
 //       [--webgpu] [--require-gpu] [--gpu high-performance]
 //
-// --mt selects the build with more than one thread. Node gives
-// SharedArrayBuffer without the headers that a browser needs, thus this tests
-// that build outside a browser.
+// --mt picks the multithreaded build. Node provides SharedArrayBuffer without
+// the headers a browser needs, so this tests that build outside a browser.
 //
-// --webgpu asks for the WebGPU build. Node has no WebGPU, thus this tests the
-// fallback. The loader must select a CPU build and the program must make text.
-// dawn.js and wgpu.cjs give this file a WebGPU, and --require-gpu makes the
-// test fail if the GPU is not usable. --gpu gives the power preference.
+// --webgpu asks for the WebGPU build. Node has no WebGPU, so this tests the
+// fallback. The loader must pick a CPU build and the program must generate text.
+// dawn.js and wgpu.cjs provide WebGPU for this file, and --require-gpu makes the
+// test fail if the GPU is not usable. --gpu sets the power preference.
 
 const fs = require("node:fs");
 const path = require("node:path");
@@ -37,15 +35,15 @@ const webgpu = process.argv.includes("--webgpu");
 const requireGPU = process.argv.includes("--require-gpu");
 const power = option("gpu", "");
 
-// This harness replaces yzma-loader.js. It makes the same choice as the loader
-// where there is no WebGPU, thus it falls back to the CPU.
+// This harness replaces yzma-loader.js. Without WebGPU it makes the same choice
+// as the loader and falls back to the CPU.
 let moduleName = "yzma_wasm.js";
 if (mt) {
   moduleName = "yzma_wasm_mt.js";
 }
 
-// usableGPU gives an empty string if llama.cpp can use the WebGPU here, or
-// the reason it cannot. It makes llama.cpp ask for the same adapter.
+// usableGPU returns an empty string if llama.cpp can use WebGPU here, or the
+// reason it cannot. It makes llama.cpp request the same adapter.
 async function usableGPU() {
   if (!globalThis.navigator || !globalThis.navigator.gpu) {
     return "no WebGPU here";
@@ -76,7 +74,7 @@ if (!modelFile) {
   process.exit(2);
 }
 
-// The output of the Go program comes here, because Node has no postMessage.
+// The Go program output lands here, because Node has no postMessage.
 const output = [];
 
 let programIsReady;
@@ -97,8 +95,8 @@ globalThis.yzmaOnMessage = (message) => {
 };
 
 async function main() {
-  // Select the build with one thread. Node has no crossOriginIsolated, thus
-  // the loader makes the same choice.
+  // Pick the single thread build. Node has no crossOriginIsolated, so the
+  // loader would make the same choice.
   globalThis.crossOriginIsolated = mt;
   globalThis.yzmaBase = dir;
 
@@ -115,8 +113,8 @@ async function main() {
   }
 
   const factory = require(path.join(dir, moduleName));
-  // The same values that the JavaScript glue selects. The pool follows the
-  // machine and the Go side reads the thread count.
+  // The same values the JavaScript glue picks. The pool matches the machine
+  // and the Go side reads the thread count.
   const threads = mt ? Math.max(1, Math.min(require("node:os").cpus().length, 16)) : 1;
 
   const llamaModule = await factory({
@@ -126,7 +124,7 @@ async function main() {
     pthreadPoolSize: threads,
   });
 
-  // The same test that yzma-loader.js makes before a page loads a model.
+  // The same test yzma-loader.js runs before a page loads a model.
   if (moduleName.includes("webgpu") && typeof llamaModule._yzma_backend_check === "function") {
     await llamaModule._yzma_backend_init();
     if ((await llamaModule._yzma_backend_check()) === 1) {
@@ -146,8 +144,8 @@ async function main() {
       ? "cpu-threads"
       : "cpu";
 
-  // Put the model in the filesystem of the module. A browser instead gets it
-  // from the network with FetchModelFile.
+  // Put the model in the module filesystem. A browser fetches it from the
+  // network with FetchModelFile instead.
   llamaModule.FS.mkdirTree("/models");
   llamaModule.FS.writeFile("/models/model.gguf", fs.readFileSync(modelFile));
 
@@ -157,7 +155,7 @@ async function main() {
   const binary = fs.readFileSync(path.join(dir, "yzma.wasm"));
   const result = await WebAssembly.instantiate(binary, go.importObject);
 
-  // The program blocks at the end of main, thus do not wait for this.
+  // The program blocks at the end of main, so do not wait for this.
   go.run(result.instance);
 
   // Wait for the ready message. The backend needs time to start, and more

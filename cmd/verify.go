@@ -76,8 +76,8 @@ func runVerify(c *cli.Context) error {
 	return nil
 }
 
-// showVerifyReport writes the report for a person to read. Only the files that need
-// attention are named, because an install holds many files.
+// showVerifyReport writes a human readable report. It names only the files that
+// need attention, because an install has many files.
 func showVerifyReport(report *download.VerifyReport) {
 	out := os.Stdout
 

@@ -2,7 +2,7 @@
 
 package llamawasm
 
-// SamplerChainInit makes a chain of samplers.
+// SamplerChainInit creates a sampler chain.
 func SamplerChainInit(params SamplerChainParams) Sampler {
 	if !Loaded() {
 		return 0
@@ -10,11 +10,11 @@ func SamplerChainInit(params SamplerChainParams) Sampler {
 	return Sampler(call("_yzma_sampler_chain_new", int(params.NoPerf)))
 }
 
-// SamplerChainAdd puts a sampler at the end of a chain.
+// SamplerChainAdd appends a sampler to a chain.
 //
-// The chain then owns the sampler. Thus the handle of the sampler is no longer
-// valid and SamplerFree of that handle has no result. When you free the chain,
-// you free each sampler in it.
+// The chain then owns the sampler. So the sampler handle is no longer valid
+// and SamplerFree on it does nothing. Freeing the chain frees every sampler
+// in it.
 func SamplerChainAdd(chain Sampler, smpl Sampler) {
 	if !Loaded() {
 		return
@@ -22,101 +22,100 @@ func SamplerChainAdd(chain Sampler, smpl Sampler) {
 	callVoid("_yzma_sampler_chain_add", int(chain), int(smpl))
 }
 
-// SamplerInitGreedy makes a sampler that always takes the token with the
-// highest probability.
+// SamplerInitGreedy creates a sampler that always picks the most probable
+// token.
 func SamplerInitGreedy() Sampler {
 	return newSampler("_yzma_sampler_greedy")
 }
 
-// SamplerInitDist makes a sampler that takes a token at random, following the
-// probability of each one. A seed of 0xFFFFFFFF takes a random seed.
+// SamplerInitDist creates a sampler that picks a token at random, weighted by
+// probability. A seed of 0xFFFFFFFF uses a random seed.
 func SamplerInitDist(seed uint32) Sampler {
 	return newSampler("_yzma_sampler_dist", int(seed))
 }
 
-// SamplerInitTemp makes a sampler that changes the shape of the distribution.
-// A value below 1.0 makes the output more sure, and a value above 1.0 makes it
+// SamplerInitTemp creates a sampler that reshapes the distribution. A value
+// below 1.0 makes the output more confident, and a value above 1.0 makes it
 // more varied.
 func SamplerInitTemp(t float32) Sampler {
 	return newSampler("_yzma_sampler_temp", float64(t))
 }
 
-// SamplerInitTopK makes a sampler that keeps only the k most probable tokens.
+// SamplerInitTopK creates a sampler that keeps only the k most probable tokens.
 func SamplerInitTopK(k int32) Sampler {
 	return newSampler("_yzma_sampler_top_k", int(k))
 }
 
-// SamplerInitTopP makes a sampler that keeps the most probable tokens up to a
+// SamplerInitTopP creates a sampler that keeps the most probable tokens up to a
 // total probability of p.
 func SamplerInitTopP(p float32, keep uint32) Sampler {
 	return newSampler("_yzma_sampler_top_p", float64(p), int(keep))
 }
 
-// SamplerInitMinP makes a sampler that removes every token whose probability
-// is below p of the probability of the most likely token.
+// SamplerInitMinP creates a sampler that removes every token whose probability
+// is below p times the probability of the most likely token.
 func SamplerInitMinP(p float32, keep uint32) Sampler {
 	return newSampler("_yzma_sampler_min_p", float64(p), int(keep))
 }
 
-// SamplerInitPenalties makes a sampler that lowers the probability of the
-// tokens that came before.
+// SamplerInitPenalties creates a sampler that lowers the probability of
+// tokens that already appeared.
 func SamplerInitPenalties(nVocab int32, lastN int32, repeat float32, freq float32, present float32) Sampler {
 	return newSampler("_yzma_sampler_penalties", int(nVocab), int(lastN),
 		float64(repeat), float64(freq), float64(present))
 }
 
-// SamplerInitTypical makes a sampler that keeps the tokens whose surprise is
+// SamplerInitTypical creates a sampler that keeps the tokens whose surprise is
 // near the average.
 func SamplerInitTypical(p float32, keep uint32) Sampler {
 	return newSampler("_yzma_sampler_typical", float64(p), int(keep))
 }
 
-// SamplerInitXTC makes a sampler that removes a probable token part of the
-// time, which gives more varied text.
+// SamplerInitXTC creates a sampler that sometimes removes a probable token,
+// which produces more varied text.
 func SamplerInitXTC(p float32, t float32, minKeep uint32, seed uint32) Sampler {
 	return newSampler("_yzma_sampler_xtc", float64(p), float64(t), int(minKeep), int(seed))
 }
 
-// SamplerInitTopNSigma makes a sampler that keeps the tokens whose logit is
+// SamplerInitTopNSigma creates a sampler that keeps the tokens whose logit is
 // within n standard deviations of the largest one.
 func SamplerInitTopNSigma(n float32) Sampler {
 	return newSampler("_yzma_sampler_top_n_sigma", float64(n))
 }
 
-// SamplerInitTempExt makes a sampler that changes the temperature with the
-// entropy of the distribution.
+// SamplerInitTempExt creates a sampler that adjusts the temperature based on
+// the entropy of the distribution.
 func SamplerInitTempExt(t float32, delta float32, exponent float32) Sampler {
 	return newSampler("_yzma_sampler_temp_ext", float64(t), float64(delta), float64(exponent))
 }
 
-// SamplerInitMirostat makes a sampler that holds the surprise of the text near
-// tau.
+// SamplerInitMirostat creates a sampler that keeps the surprise of the text
+// near tau.
 func SamplerInitMirostat(nVocab int32, seed uint32, tau, eta float32, m int32) Sampler {
 	return newSampler("_yzma_sampler_mirostat", int(nVocab), int(seed), float64(tau),
 		float64(eta), int(m))
 }
 
-// SamplerInitMirostatV2 makes a sampler that holds the surprise of the text
+// SamplerInitMirostatV2 creates a sampler that keeps the surprise of the text
 // near tau, and needs no vocabulary.
 func SamplerInitMirostatV2(seed uint32, tau, eta float32) Sampler {
 	return newSampler("_yzma_sampler_mirostat_v2", int(seed), float64(tau), float64(eta))
 }
 
-// SamplerInitAdaptiveP makes a sampler that takes the tokens whose probability
+// SamplerInitAdaptiveP creates a sampler that picks tokens whose probability
 // is near a target.
 func SamplerInitAdaptiveP(target float32, decay float32, seed uint32) Sampler {
 	return newSampler("_yzma_sampler_adaptive_p", float64(target), float64(decay), int(seed))
 }
 
-// SamplerInitInfill makes a sampler for a fill in the middle prompt. Put it
+// SamplerInitInfill creates a sampler for a fill in the middle prompt. Put it
 // after the top-k and top-p samplers.
 func SamplerInitInfill(vocab Vocab) Sampler {
 	return newSampler("_yzma_sampler_infill", int(vocab))
 }
 
-// SamplerInitGrammar makes a sampler that permits only the text that a GBNF
-// grammar describes. Give the name of the first rule in root, which is usually
-// "root".
+// SamplerInitGrammar creates a sampler that only allows text matching a GBNF
+// grammar. Pass the name of the start rule in root, which is usually "root".
 func SamplerInitGrammar(vocab Vocab, grammar, root string) Sampler {
 	if !has("_yzma_sampler_grammar") {
 		return 0
@@ -137,8 +136,8 @@ func SamplerInitGrammar(vocab Vocab, grammar, root string) Sampler {
 	return newSampler("_yzma_sampler_grammar", int(vocab), grammarPtr, rootPtr)
 }
 
-// SamplerInitGrammarLazyPatterns makes a grammar sampler that starts only after
-// a pattern or a token of the trigger appears.
+// SamplerInitGrammarLazyPatterns creates a grammar sampler that only starts
+// after a trigger pattern or token appears.
 func SamplerInitGrammarLazyPatterns(vocab Vocab, grammar, root string,
 	triggerPatterns []string, triggerTokens []Token) Sampler {
 	if !has("_yzma_sampler_grammar_lazy") {
@@ -173,9 +172,9 @@ func SamplerInitGrammarLazyPatterns(vocab Vocab, grammar, root string,
 		patternsPtr, len(triggerPatterns), tokensPtr, len(triggerTokens))
 }
 
-// SamplerInitDry makes a DRY sampler, which lowers the probability of a
-// sequence that came before. A penaltyLast below 0 becomes 0 in llama.cpp, thus
-// give the size of the context for the whole history.
+// SamplerInitDry creates a DRY sampler, which lowers the probability of a
+// repeated sequence. llama.cpp turns a negative penaltyLast into 0, so pass
+// the context size to cover the whole history.
 func SamplerInitDry(vocab Vocab, multiplier float32, base float32, allowedLength int32,
 	penaltyLast int32, seqBreakers []string) Sampler {
 	if !has("_yzma_sampler_dry") {
@@ -192,12 +191,12 @@ func SamplerInitDry(vocab Vocab, multiplier float32, base float32, allowedLength
 		int(allowedLength), int(penaltyLast), breakersPtr, len(seqBreakers))
 }
 
-// SamplerInitLogitBias makes a sampler that moves the logit of each token in
-// tokens by the value at the same position in biases.
+// SamplerInitLogitBias creates a sampler that shifts the logit of each token in
+// tokens by the value at the same index in biases.
 //
-// The signature is not the same as llama.SamplerInitLogitBias, which takes a
-// pointer to an array of llama.LogitBias. A struct cannot cross the boundary of
-// the module, thus this takes two slices. They must have the same length.
+// The signature differs from llama.SamplerInitLogitBias, which takes a pointer
+// to an array of llama.LogitBias. A struct cannot cross the module boundary,
+// so this takes two slices of the same length.
 func SamplerInitLogitBias(nVocab int32, tokens []Token, biases []float32) Sampler {
 	if !has("_yzma_sampler_logit_bias") || len(tokens) != len(biases) {
 		return 0
@@ -218,7 +217,7 @@ func SamplerInitLogitBias(nVocab int32, tokens []Token, biases []float32) Sample
 	return newSampler("_yzma_sampler_logit_bias", int(nVocab), tokensPtr, biasesPtr, len(tokens))
 }
 
-// SamplerName gives the name of a sampler.
+// SamplerName returns the name of a sampler.
 func SamplerName(smpl Sampler) string {
 	if !has("_yzma_sampler_name") {
 		return ""
@@ -237,8 +236,8 @@ func SamplerName(smpl Sampler) string {
 	return string(readBytes(ptr, int(n)))
 }
 
-// SamplerGetSeed gives the seed of a sampler. The result is 0xFFFFFFFF for a
-// sampler that has no seed.
+// SamplerGetSeed returns the seed of a sampler, or 0xFFFFFFFF for a sampler
+// that has no seed.
 func SamplerGetSeed(smpl Sampler) uint32 {
 	if !has("_yzma_sampler_get_seed") {
 		return 0xFFFFFFFF
@@ -246,7 +245,7 @@ func SamplerGetSeed(smpl Sampler) uint32 {
 	return uint32(call("_yzma_sampler_get_seed", int(smpl)))
 }
 
-// SamplerClone makes a copy of a sampler. The caller owns the copy and must
+// SamplerClone copies a sampler. The caller owns the copy and must
 // free it or put it in a chain.
 func SamplerClone(smpl Sampler) Sampler {
 	if !has("_yzma_sampler_clone") {
@@ -255,7 +254,7 @@ func SamplerClone(smpl Sampler) Sampler {
 	return newSampler("_yzma_sampler_clone", int(smpl))
 }
 
-// SamplerChainN gives the number of samplers in a chain.
+// SamplerChainN returns the number of samplers in a chain.
 func SamplerChainN(chain Sampler) int {
 	if !has("_yzma_sampler_chain_n") {
 		return 0
@@ -268,11 +267,11 @@ func SamplerChainN(chain Sampler) int {
 	return int(n)
 }
 
-// SamplerChainGet gives the sampler at position i of a chain. An i of -1 gives
-// the chain itself.
+// SamplerChainGet returns the sampler at position i of a chain. An i of -1
+// returns the chain itself.
 //
-// The chain keeps the sampler. Thus SamplerFree of the result frees nothing,
-// and the result becomes stale when the chain goes away.
+// The chain keeps the sampler. So SamplerFree on the result frees nothing,
+// and the result becomes stale when the chain is freed.
 func SamplerChainGet(chain Sampler, i int32) Sampler {
 	if !has("_yzma_sampler_chain_get") {
 		return 0
@@ -280,7 +279,7 @@ func SamplerChainGet(chain Sampler, i int32) Sampler {
 	return newSampler("_yzma_sampler_chain_get", int(chain), int(i))
 }
 
-// SamplerChainRemove takes the sampler at position i out of a chain. The caller
+// SamplerChainRemove removes the sampler at position i from a chain. The caller
 // then owns the sampler and must free it.
 func SamplerChainRemove(chain Sampler, i int32) Sampler {
 	if !has("_yzma_sampler_chain_remove") {
@@ -289,8 +288,8 @@ func SamplerChainRemove(chain Sampler, i int32) Sampler {
 	return newSampler("_yzma_sampler_chain_remove", int(chain), int(i))
 }
 
-// SamplerSample takes the next token. An idx of -1 uses the logits of the last
-// token of the batch.
+// SamplerSample samples the next token. An idx of -1 uses the logits of the
+// last token in the batch.
 func SamplerSample(smpl Sampler, ctx Context, idx int32) Token {
 	if !Loaded() {
 		return -1
@@ -298,8 +297,8 @@ func SamplerSample(smpl Sampler, ctx Context, idx int32) Token {
 	return Token(call("_yzma_sampler_sample", int(smpl), int(ctx), int(idx)))
 }
 
-// SamplerAccept gives the sampler the token that the program selected. The
-// samplers that examine the previous tokens need this.
+// SamplerAccept passes the selected token to the sampler. Samplers that look
+// at previous tokens need this.
 func SamplerAccept(smpl Sampler, token Token) {
 	if !Loaded() {
 		return
@@ -307,7 +306,7 @@ func SamplerAccept(smpl Sampler, token Token) {
 	callVoid("_yzma_sampler_accept", int(smpl), int(token))
 }
 
-// SamplerReset puts a sampler back to its starting state.
+// SamplerReset resets a sampler to its initial state.
 func SamplerReset(smpl Sampler) {
 	if !Loaded() {
 		return
@@ -315,7 +314,7 @@ func SamplerReset(smpl Sampler) {
 	callVoid("_yzma_sampler_reset", int(smpl))
 }
 
-// SamplerFree frees a sampler or a chain of samplers.
+// SamplerFree frees a sampler or a sampler chain.
 func SamplerFree(smpl Sampler) {
 	if !Loaded() {
 		return

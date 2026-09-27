@@ -74,12 +74,12 @@ yzma install -l /path/to/lib -v b1234 -p cuda -u
 yzma install --lib /path/to/lib --version b1234@sha256:<digest>
 ```
 
-A version with no digest keeps working exactly as before, so `--version b1234` and a
+A version with no digest works exactly as before, so `--version b1234` and a
 bare `yzma install` need nothing new.
 
-The digest to pin is the SHA-256 of the digest manifest of the release, which
-`llama-cpp-builder` publishes with the release. The release notes for the tag print the
-complete pin, and the version file carries it for the newest build:
+The digest to pin is the SHA-256 of the release's digest manifest, which
+`llama-cpp-builder` publishes with each release. The release notes for the tag print the
+full pin, and the version file has it for the newest build:
 
 ```console
 $ curl -s https://hybridgroup.github.io/llama-cpp-builder/version.json
@@ -88,8 +88,8 @@ $ curl -s https://hybridgroup.github.io/llama-cpp-builder/version.json
 $ yzma install --lib /path/to/lib --version b10816@sha256:<digest>
 ```
 
-The digest of a platform archive is not this value. Those digests are what the manifest
-holds, one for each asset. See [Verify an installation](https://yzma.ai/docs/guides/verifying/)
+This is not the digest of a platform archive. The manifest holds those, one per
+asset. See [Verify an installation](https://yzma.ai/docs/guides/verifying/)
 for the whole chain.
 
 ## Other commands
@@ -98,7 +98,7 @@ See the `yzma help` command for more information about the other things you can 
 
 ## `yzma-checker`
 
-The `yzma-checker` directory holds a separate developer tool, not a subcommand of the `yzma` CLI. It compares the FFI parameter and return types of each yzma binding, and the values of the constants yzma mirrors, with the llama.cpp headers. It is a nested Go module, so `go build ./...` and `go test ./...` at the repo root do not include it.
+The `yzma-checker` directory holds a separate developer tool, not a subcommand of the `yzma` CLI. It checks the FFI parameter and return types of each yzma binding, and the values of the constants yzma mirrors, against the llama.cpp headers. It is a nested Go module, so `go build ./...` and `go test ./...` at the repo root do not include it.
 
 ```shell
 make check-ffi
@@ -108,9 +108,9 @@ See [yzma-checker/README.md](./yzma-checker/README.md) for what it verifies and 
 
 ## Using the `yzma` command to check an installation
 
-`yzma install` checks the digest of each archive as it downloads it, but the archive is
-removed as soon as it is extracted. The `yzma verify` command checks the files that are
-in place, against the digests that the publisher recorded for the release.
+`yzma install` checks the digest of each archive as it downloads it, but deletes the
+archive once it is extracted. The `yzma verify` command checks the installed files
+against the digests the publisher recorded for the release.
 
 ```
 NAME:
@@ -134,7 +134,7 @@ llama.cpp b10783 in /path/to/lib
 ok.
 ```
 
-A file that was changed or removed makes the command exit with a status of 1:
+If a file was changed or removed, the command exits with status 1:
 
 ```
 $ yzma verify --lib /path/to/lib
@@ -146,22 +146,22 @@ llama.cpp b10783 in /path/to/lib
 
 Notes:
 
-- `yzma install` writes `yzma-install.json` beside the libraries to say what it put
-  there. `yzma verify` needs it, so an installation made by an older yzma has to be
-  installed again first.
-- `yzma install` also writes `yzma-manifest.json`, which holds the digests of the
-  release, so `yzma verify` needs no network. An installation that has no manifest beside
-  it makes the command fetch one and keep it, so only the first check needs a network.
-- The record is beside the libraries, so anything that can change the libraries can
-  change the record. Give `--version` to say which release must be there. The check then
-  resolves the assets of that release itself and does not read the tag from the record.
-- A directory can hold more than one install, so a file that is not part of this one is
-  reported but does not fail the check. Add `--strict` to fail on those too.
-- Only the assets that `llama-cpp-builder` builds carry digests for the files in them.
-  An install that came from the `llama.cpp` release page has an archive digest but no
-  file digests, so `yzma verify` says so instead of passing.
-- `--version` also takes `VERSION@sha256:<digest>`, where the digest is the SHA-256 of
-  the digest manifest of the release. The expected value then comes from where you keep
-  it, and not from the site that serves the manifest. A pin makes the check mandatory,
-  so it does not go with `--verify off`. See [Verify an installation](https://yzma.ai/docs/guides/verifying/)
+- `yzma install` writes `yzma-install.json` next to the libraries to record what it
+  installed. `yzma verify` needs this file, so an installation made by an older yzma
+  must be installed again first.
+- `yzma install` also writes `yzma-manifest.json`, which holds the release digests, so
+  `yzma verify` works offline. If an installation has no manifest, the command fetches
+  one and saves it, so only the first check needs the network.
+- The record sits next to the libraries, so anything that can change the libraries can
+  change the record too. Pass `--version` to say which release must be installed. The
+  check then resolves that release's assets itself and ignores the tag in the record.
+- A directory can hold more than one install, so files that are not part of this one are
+  reported but do not fail the check. Add `--strict` to fail on them too.
+- Only assets built by `llama-cpp-builder` have digests for the files inside them.
+  An install from the `llama.cpp` release page has an archive digest but no file
+  digests, so `yzma verify` reports that instead of passing.
+- `--version` also accepts `VERSION@sha256:<digest>`, where the digest is the SHA-256 of
+  the release's digest manifest. The expected value then comes from wherever you store
+  it, not from the site that serves the manifest. A pin makes the check mandatory,
+  so it cannot be combined with `--verify off`. See [Verify an installation](https://yzma.ai/docs/guides/verifying/)
   for what a pin does and does not show.

@@ -8,8 +8,8 @@ import (
 	"testing"
 )
 
-// The fake module has a real heap, thus the test covers the way that the
-// package writes and reads the memory of the module.
+// The fake module has a real heap, so the test covers how the package writes
+// and reads module memory.
 const fakeModuleSource = `
 globalThis.__yzmaModule = (function () {
 	const heap = new Uint8Array(1 << 20);
@@ -59,7 +59,7 @@ globalThis.__yzmaModule = (function () {
 })();
 `
 
-// fakeModule puts a module of the test in place and gives the helper back.
+// fakeModule installs a test module and returns the helper.
 func fakeModule(t *testing.T, values []any) js.Value {
 	t.Helper()
 
@@ -104,7 +104,7 @@ func TestGetLogitsIth(t *testing.T) {
 func TestGetLogits(t *testing.T) {
 	helper := fakeModule(t, []any{0.5})
 
-	// Two tokens of a vocabulary of three give six values.
+	// Two tokens with a vocabulary of three give six values.
 	got, err := GetLogits(Context(1), 2, 3)
 	if err != nil {
 		t.Fatalf("GetLogits gave %v, want no error", err)
@@ -156,7 +156,7 @@ func TestGetEmbeddingsIth(t *testing.T) {
 func TestGetEmbeddings(t *testing.T) {
 	helper := fakeModule(t, []any{1.0})
 
-	// Three outputs of an embedding of four values give twelve values.
+	// Three outputs with an embedding size of four give twelve values.
 	got, err := GetEmbeddings(Context(1), 3, 4)
 	if err != nil {
 		t.Fatalf("GetEmbeddings gave %v, want no error", err)

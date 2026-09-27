@@ -1,6 +1,6 @@
 # Engine comparison benchmarks
 
-These benchmarks are to compare inference performance using 3 different engines that support GGUF models:
+These benchmarks compare inference performance across 3 engines that support GGUF models:
 
 - yzma
 - ollama
@@ -359,10 +359,10 @@ ok  	github.com/hybridgroup/yzma/benchmarks/compare	10.582s
 
 ## Embeddings
 
-An embedding returns no tokens, thus almost all of the cost of a request is
-the round trip. The first token and the request contain the same number here,
-because the answer is a vector and not a stream. Tokens per second counts the
-tokens of the prompt that the engine read.
+An embedding returns no tokens, so almost all of the request cost is the
+round trip. First token and request time are the same here, because the answer
+is a vector and not a stream. Tokens per second counts the prompt tokens the
+engine reads.
 
 <!-- yzma:bench table compare-embeddings -->
 | Engine | Arch | Machine | Model | Prompt tokens | Tokens a second | First token ms | Request ms | Version | Date |
@@ -539,15 +539,15 @@ ok  	github.com/hybridgroup/yzma/benchmarks/compare	0.433s
 
 ## Images
 
-Each request has one image and a short question about it. The image gives most
-of the prompt tokens. Each run gets an image that no engine has seen, with the
-same size and nearly the same pixels, thus a server cannot answer from its
+Each request has one image and a short question about it. The image makes up
+most of the prompt tokens. Each run gets an image that no engine has seen, with
+the same size and nearly the same pixels, so a server can't answer from its
 cache. yzma decodes the image inside its own measurement, as a server does.
 
-Each engine scales an image in its own way, thus each model gets an image at
-a size that no engine changes, 1280x960 for qwen3-vl-2b and 768x576 for
-gemma4-e2b. ollama counts 5 prompt tokens more than the others for an image,
-on each model and at each size, while the answers agree.
+Each engine scales images its own way, so each model gets an image at a size
+that no engine changes, 1280x960 for qwen3-vl-2b and 768x576 for gemma4-e2b.
+ollama counts 5 more prompt tokens per image than the others, on every model
+and at every size, while the answers match.
 
 <!-- yzma:bench table compare-multimodal -->
 | Engine | Arch | Machine | Model | Prompt tokens | Tokens a second | First token ms | Request ms | Version | Date |
@@ -890,11 +890,11 @@ ok  	github.com/hybridgroup/yzma/benchmarks/compare	69.021s
 </details>
 <!-- yzma:bench end compare-multimodal/dmr/amd64/ron-tuxedo-gemini-gen2/qwen3-vl-2b -->
 
-## Each engine brings its own llama.cpp
+## Each engine ships its own llama.cpp
 
-The engines do not share one llama.cpp. yzma uses the build of its library
-directory. Docker Model Runner pins a build in its image. ollama has a fork of
-its own, with a version that does not map to a build of llama.cpp.
+The engines don't share one llama.cpp. yzma uses the build in its library
+directory. Docker Model Runner pins a build in its image. ollama has its own
+fork, with a version that doesn't map to a llama.cpp build.
 
 | Engine | llama.cpp |
 | --- | --- |
@@ -902,12 +902,11 @@ its own, with a version that does not map to a build of llama.cpp.
 | Docker Model Runner | pinned in the image, b9879 of July 2026 in version 1.2 |
 | ollama | a fork, version 0.4.1-dev here |
 
-Thus the same GGUF file does not always give the same work. The count of the
-prompt tokens shows it, and the script prints that count for each engine.
+So the same GGUF file doesn't always mean the same work. The prompt token count
+shows it, and the script prints that count for each engine.
 
 ## What is not measured yet
 
-The cold start is not here. Each table gives the numbers of an engine that has
-the model in memory already. yzma also wins the cold start, because it has no
-daemon to start, but that number needs a convention that these tables do not
-have yet.
+Cold start is not measured. Each table shows an engine that already has the
+model in memory. yzma also wins on cold start, because it has no daemon to
+start, but measuring it needs a convention these tables don't have yet.

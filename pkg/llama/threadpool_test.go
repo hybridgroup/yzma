@@ -7,8 +7,8 @@ import (
 )
 
 func TestThreadpoolParamsLayout(t *testing.T) {
-	// The struct crosses to C by address, thus a wrong size or a wrong place
-	// of a field gives a pool that ignores the mask without saying so.
+	// The struct goes to C by address, so a wrong size or field offset creates
+	// a pool that silently ignores the mask.
 	var p ThreadpoolParams
 	if got := unsafe.Sizeof(p); got != 528 {
 		t.Errorf("ThreadpoolParams is %d bytes, want 528", got)

@@ -237,7 +237,7 @@ func GGMLBackendLoadAllFromPath(path string) error {
 }
 
 // GGMLBackendLoadErrors opens each ggml backend library in path and returns the
-// errors of the ones that fail to open. ggml does not report these errors itself.
+// errors for the ones that fail to open. ggml does not report these errors itself.
 func GGMLBackendLoadErrors(path string) []error {
 	entries, err := os.ReadDir(path)
 	if err != nil {
