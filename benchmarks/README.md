@@ -260,14 +260,15 @@ make wasm-example
 
 WebGPU needs a browser, which no script here can drive. Serve the example, open
 the page, paste [browser-bench.js](browser-bench.js) in the console, and give
-the result to the tool. The output gives the llama.cpp build, which the page
+the result to the tool. Set `gpu` in the script and `--device` in the tool on a
+machine with two GPUs. The output gives the llama.cpp build, which the page
 reads from `yzma-install.json` of the build directory.
 
 ```shell
 make serve-wasm
 go run ./cmd/yzma-bench update --file benchmarks/webassembly.md \
   --suite browser --backend webgpu --arch wasm \
-  --machine <name> --label "<machine and browser>" --output run.txt
+  --machine <name> --device <gpu> --label "<machine and browser>" --output run.txt
 ```
 
 ## How results are saved

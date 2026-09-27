@@ -2,8 +2,9 @@
 // a script here, thus paste this file in the console of the page that
 // `make serve-wasm` gives, and put the result in webassembly.md.
 //
-// Change model and mode below. The modes are auto, cpu and webgpu, which
-// yzma-loader.js reads.
+// Change model, mode, and gpu below. The modes are auto, cpu and webgpu, and
+// gpu is high-performance, low-power, or empty for the choice of the browser.
+// yzma-loader.js reads both.
 //
 // The output has the same shape as go test -bench, and it gives the llama.cpp
 // build, which the page reads from yzma-install.json. Thus you can give it to
@@ -11,11 +12,12 @@
 //
 //   go run ./cmd/yzma-bench update --file benchmarks/webassembly.md \
 //     --suite browser --backend webgpu --arch wasm --machine <name> \
-//     --label "<machine and browser>" --output run.txt
+//     --device <gpu> --label "<machine and browser>" --output run.txt
 (async () => {
   const model =
     "https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf";
   const mode = "auto";
+  const gpu = "";
   const prompt = "Are you ready to go?";
   const maxTokens = 64;
   const count = 5;
@@ -31,7 +33,7 @@
     }
   };
 
-  const worker = new Worker("./worker.js?mode=" + mode);
+  const worker = new Worker("./worker.js?mode=" + mode + (gpu ? "&gpu=" + gpu : ""));
   let backend = "";
   let waiting = () => {};
   worker.onmessage = (event) => waiting(event.data || {});
@@ -77,7 +79,7 @@
 
   const threads = navigator.hardwareConcurrency || 1;
   const lines = [
-    "$ browser-bench.js mode=" + mode + " tokens=" + maxTokens,
+    "$ browser-bench.js mode=" + mode + (gpu ? " gpu=" + gpu : "") + " tokens=" + maxTokens,
     "goos: js",
     "goarch: wasm",
     "pkg: github.com/hybridgroup/yzma/examples/wasm/chat",
