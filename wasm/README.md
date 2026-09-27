@@ -4,8 +4,15 @@ This directory holds what a browser needs to run yzma: the JavaScript glue that
 picks the right WebAssembly build of llama.cpp, a Web Worker that runs the
 program, a page, a static server, and a Node test.
 
-The Go code is in [`pkg/llamawasm`](../pkg/llamawasm) and the example is in
-[`examples/wasm/chat`](../examples/wasm/chat).
+The Go code is in [`pkg/llamawasm`](../pkg/llamawasm). Each example has a
+README.
+
+| Example | Page |
+| --- | --- |
+| [`examples/wasm/chat`](../examples/wasm/chat/README.md) | `index.html` |
+| [`examples/wasm/vlm`](../examples/wasm/vlm/README.md) | `vlm.html` |
+| [`examples/wasm/tools`](../examples/wasm/tools/README.md) | `tools.html` |
+| [`examples/wasm/decide`](../examples/wasm/decide/README.md) | `decide.html` |
 
 This page is for people who work on this code. If you want to use yzma in a
 browser, read [Run yzma in a browser](https://yzma.ai/docs/tutorials/browser/)
