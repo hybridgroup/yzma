@@ -125,6 +125,9 @@ var (
 	// LLAMA_API void llama_set_causal_attn(struct llama_context * ctx, bool causal_attn);
 	setCausalAttnFunc ffi.Fun
 
+	// LLAMA_API bool llama_get_causal_attn(const struct llama_context * ctx);
+	getCausalAttnFunc ffi.Fun
+
 	// LLAMA_API int32_t llama_set_adapter_cvec(
 	//         struct llama_context * ctx,
 	//                  const float * data,
@@ -272,6 +275,10 @@ func loadContextFuncs(lib loader.Lib) error {
 
 	if setCausalAttnFunc, err = lib.Prep("llama_set_causal_attn", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeUint8); err != nil {
 		return loadError("llama_set_causal_attn", err)
+	}
+
+	if getCausalAttnFunc, err = lib.Prep("llama_get_causal_attn", &ffi.TypeUint8, &ffi.TypePointer); err != nil {
+		return loadError("llama_get_causal_attn", err)
 	}
 
 	if setAdapterCvecFunc, err = lib.Prep("llama_set_adapter_cvec", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint64, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32); err != nil {
@@ -591,6 +598,17 @@ func SetCausalAttn(ctx Context, causalAttn bool) {
 		return
 	}
 	setCausalAttnFunc.Call(nil, unsafe.Pointer(&ctx), &causalAttn)
+}
+
+// GetCausalAttn reports whether the context uses causal attention.
+func GetCausalAttn(ctx Context) bool {
+	if ctx == 0 {
+		return false
+	}
+	var result ffi.Arg
+	getCausalAttnFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+
+	return result.Bool()
 }
 
 // SetAdapterCvec sets a loaded control vector to a llama_context, or if data is nil, clears

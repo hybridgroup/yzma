@@ -118,6 +118,7 @@ section at the end.
 | `llama_detach_threadpool` | yes | no |
 | `llama_encode` | yes | yes |
 | `llama_free` | yes | yes |
+| `llama_get_causal_attn` | yes | no |
 | `llama_get_embeddings_ith` | yes | yes |
 | `llama_get_embeddings_seq` | yes | yes |
 | `llama_get_embeddings` | yes | yes |

@@ -491,13 +491,15 @@ func TestSetCausalAttn(t *testing.T) {
 	}
 	defer Free(ctx)
 
-	// Enable causal attention
 	SetCausalAttn(ctx, true)
-	t.Log("SetCausalAttn successfully set causal attention to true")
+	if !GetCausalAttn(ctx) {
+		t.Errorf("GetCausalAttn gave false after SetCausalAttn(true)")
+	}
 
-	// Disable causal attention
 	SetCausalAttn(ctx, false)
-	t.Log("SetCausalAttn successfully set causal attention to false")
+	if GetCausalAttn(ctx) {
+		t.Errorf("GetCausalAttn gave true after SetCausalAttn(false)")
+	}
 }
 
 func TestGetLogits(t *testing.T) {
