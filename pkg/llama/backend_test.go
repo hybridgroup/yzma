@@ -125,6 +125,11 @@ func TestLoadModeFromStr(t *testing.T) {
 		{"mlock", LoadModeMlock},
 		{"mmap+mlock", LoadModeMmapMlock},
 		{"dio", LoadModeDirectIO},
+		{"auto", LoadModeAuto},
+		{"bogus", LoadModeAuto},
+		{"MMAP", LoadModeAuto},
+		{"", LoadModeAuto},
+		{"mm\x00ap", LoadModeAuto},
 	}
 
 	for _, tc := range tests {

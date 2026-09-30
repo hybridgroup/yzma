@@ -216,7 +216,15 @@ func LoadModeName(loadMode LoadMode) string {
 }
 
 // LoadModeFromStr returns the load mode for a given string.
+// It returns LoadModeAuto for an unknown string.
 func LoadModeFromStr(str string) LoadMode {
+	// llama.cpp throws on an unknown string, so only known names reach it.
+	switch str {
+	case "auto", "none", "mmap", "mlock", "mmap+mlock", "dio":
+	default:
+		return LoadModeAuto
+	}
+
 	// libffi always stores a full 8-byte ffi_arg for an integer return, so
 	// the return buffer must be ffi.Arg-wide, not LoadMode-wide (int32).
 	var result ffi.Arg
