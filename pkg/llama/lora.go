@@ -2,6 +2,7 @@ package llama
 
 import (
 	"errors"
+	"slices"
 	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/loader"
@@ -98,16 +99,23 @@ func loadLoraFuncs(lib loader.Lib) error {
 	return nil
 }
 
-// LoraAdapterInit loads a LoRA adapter from file and applies it to the model.
+// AdapterLoraInit loads a LoRA adapter from file and applies it to the model.
 func AdapterLoraInit(model Model, pathLora string) (AdapterLora, error) {
 	var adapter AdapterLora
 	if model == 0 {
 		return adapter, errors.New("invalid model")
 	}
 
-	file := &[]byte(pathLora + "\x00")[0]
+	file, err := utils.BytePtrFromString(pathLora)
+	if err != nil {
+		return adapter, err
+	}
 
 	adapterLoraInitFunc.Call(&adapter, unsafe.Pointer(&model), unsafe.Pointer(&file))
+	if adapter == 0 {
+		return adapter, errors.New("failed to load LoRA adapter")
+	}
+
 	return adapter, nil
 }
 
@@ -200,9 +208,12 @@ func AdapterMetaValStrByIndex(adapter AdapterLora, i int32) (string, bool) {
 }
 
 // SetAdaptersLora sets LoRa adapters on the context. Will only modify if the adapters currently in context are different.
-// Returns 0 on success, or a negative value on failure.
+// Returns 0 on success, or -1 if ctx or any adapter is zero or the slices do not match.
 func SetAdaptersLora(ctx Context, adapters []AdapterLora, scales []float32) int32 {
 	if ctx == 0 || len(adapters) == 0 || len(adapters) != len(scales) {
+		return -1
+	}
+	if slices.Contains(adapters, 0) {
 		return -1
 	}
 
