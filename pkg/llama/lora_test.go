@@ -233,3 +233,37 @@ func TestAdapterGetAloraInvocationTokens(t *testing.T) {
 	tokens := AdapterGetAloraInvocationTokens(adapter)
 	t.Logf("AdapterGetAloraInvocationTokens returned %d tokens", len(tokens))
 }
+
+func TestAdapterLoraInitFailure(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
+	defer Free(ctx)
+
+	// A model file is not a LoRA adapter, so llama.cpp fails to load it.
+	for _, path := range []string{"/no/such/lora.gguf", modelFile, "lora\x00.gguf"} {
+		adapter, err := AdapterLoraInit(model, path)
+		if err == nil {
+			t.Errorf("AdapterLoraInit(%q) returned no error", path)
+		}
+		if adapter != 0 {
+			t.Errorf("AdapterLoraInit(%q) = %v, want 0", path, adapter)
+		}
+	}
+
+	if ret := SetAdaptersLora(ctx, []AdapterLora{0}, []float32{1.0}); ret != -1 {
+		t.Errorf("SetAdaptersLora with zero adapter = %d, want -1", ret)
+	}
+}
