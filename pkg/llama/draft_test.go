@@ -214,3 +214,57 @@ func TestDraftGenerateNonGreedy(t *testing.T) {
 		t.Logf("  dist[%d]: %d candidates", i, len(outDists[i]))
 	}
 }
+
+func TestDraftGenerateNonGreedyGrammar(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	modelFile := testModelFileName(t)
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
+	defer Free(ctx)
+
+	vocab := ModelGetVocab(model)
+	tokens := Tokenize(vocab, "Hello world", true, true)
+	if len(tokens) < 2 {
+		t.Skip("prompt tokenized to fewer than 2 tokens")
+	}
+
+	prefix := tokens[:len(tokens)-1]
+	Decode(ctx, BatchGetOne(prefix))
+
+	batch := BatchInit(1, 0, 1)
+	defer BatchFree(batch)
+
+	chain := SamplerChainInit(SamplerChainDefaultParams())
+	if chain == 0 {
+		t.Fatal("SamplerChainInit failed")
+	}
+	defer SamplerFree(chain)
+	SamplerChainAdd(chain, SamplerInitGrammar(vocab, `root ::= "x"`, "root"))
+	SamplerChainAdd(chain, SamplerInitDist(42))
+
+	// A token accepted twice empties the grammar stack and aborts the process.
+	const nDraft = 3
+	outTokens := make([]Token, nDraft)
+	outDists := make([][]DraftCandidate, nDraft)
+	drafted, _, err := DraftGenerate(
+		ctx, &batch, vocab, chain,
+		tokens[len(tokens)-1], Pos(len(prefix)), []SeqId{0}, nDraft,
+		false, outTokens, outDists,
+	)
+	if err != nil {
+		t.Fatalf("DraftGenerate failed: %v", err)
+	}
+	if drafted != 1 {
+		t.Fatalf("drafted = %d, want 1", drafted)
+	}
+}

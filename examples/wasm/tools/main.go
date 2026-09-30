@@ -317,7 +317,6 @@ func generate(prompt string, maxTokens int32) (string, int32, error) {
 		if llamawasm.VocabIsEOG(vocab, token) {
 			break
 		}
-		llamawasm.SamplerAccept(sampler, token)
 
 		if n := llamawasm.TokenToPiece(vocab, token, buf, 0, true); n > 0 {
 			piece := string(buf[:n])

@@ -123,9 +123,6 @@ func DraftGenerate(
 					}
 				}
 			}
-
-			// Accept token in sampler for non-greedy.
-			samplerAcceptFunc.Call(nil, unsafe.Pointer(&sampler), unsafe.Pointer(&token))
 		}
 
 		// Check for end of generation.
