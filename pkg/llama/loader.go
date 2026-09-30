@@ -104,8 +104,9 @@ func Init() {
 func Close() {
 	BackendFree()
 
-	for i := uint64(0); i < GGMLBackendRegCount(); i++ {
-		reg := GGMLBackendRegGet(i)
+	// Unloading removes the entry from the registry, so walk from the end.
+	for i := GGMLBackendRegCount(); i > 0; i-- {
+		reg := GGMLBackendRegGet(i - 1)
 		if reg == 0 {
 			continue
 		}
