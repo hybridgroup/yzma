@@ -451,3 +451,15 @@ func TestGGMLBackendLoadErrors(t *testing.T) {
 		t.Fatalf("expected the error to name ggml-broken, got %v", errs[0])
 	}
 }
+
+func TestGGMLBackendByNameNUL(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	if dev := GGMLBackendDeviceByName("CP\x00U"); dev != 0 {
+		t.Errorf("GGMLBackendDeviceByName with NUL = %v, want 0", dev)
+	}
+	if reg := GGMLBackendRegByName("CP\x00U"); reg != 0 {
+		t.Errorf("GGMLBackendRegByName with NUL = %v, want 0", reg)
+	}
+}

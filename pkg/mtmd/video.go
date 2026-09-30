@@ -140,7 +140,10 @@ func VideoInit(ctx Context, path string, params VideoInitParams) VideoContext {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return videoCtx
 	}
-	pathPtr, _ := utils.BytePtrFromString(path)
+	pathPtr, err := utils.BytePtrFromString(path)
+	if err != nil {
+		return videoCtx
+	}
 	helperVideoInitFunc.Call(unsafe.Pointer(&videoCtx), unsafe.Pointer(&ctx), unsafe.Pointer(&pathPtr), unsafe.Pointer(&params))
 	return videoCtx
 }

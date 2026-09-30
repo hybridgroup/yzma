@@ -598,3 +598,20 @@ func TestGetVocabType(t *testing.T) {
 	// No specific expected value, just ensure it doesn't fail
 	t.Logf("VocabType returned type: %d", vocabType)
 }
+
+func TestTokenizeNUL(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	modelFile := testModelFileName(t)
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	vocab := ModelGetVocab(model)
+	if tokens := Tokenize(vocab, "Hello\x00world", true, true); tokens != nil {
+		t.Fatalf("Tokenize with NUL = %v, want nil", tokens)
+	}
+}

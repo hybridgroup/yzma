@@ -532,8 +532,14 @@ func SamplerInitGrammar(vocab Vocab, grammar, root string) Sampler {
 	if vocab == 0 {
 		return s
 	}
-	grmr, _ := utils.BytePtrFromString(grammar)
-	r, _ := utils.BytePtrFromString(root)
+	grmr, err := utils.BytePtrFromString(grammar)
+	if err != nil {
+		return s
+	}
+	r, err := utils.BytePtrFromString(root)
+	if err != nil {
+		return s
+	}
 
 	samplerInitGrammarFunc.Call(unsafe.Pointer(&s), unsafe.Pointer(&vocab), unsafe.Pointer(&grmr), unsafe.Pointer(&r))
 
@@ -551,8 +557,14 @@ func SamplerInitGrammarLazyPatterns(
 	if vocab == 0 {
 		return s
 	}
-	grmr, _ := utils.BytePtrFromString(grammar)
-	r, _ := utils.BytePtrFromString(root)
+	grmr, err := utils.BytePtrFromString(grammar)
+	if err != nil {
+		return s
+	}
+	r, err := utils.BytePtrFromString(root)
+	if err != nil {
+		return s
+	}
 
 	var tp unsafe.Pointer
 	numPatterns := uint64(len(triggerPatterns))
