@@ -183,7 +183,10 @@ func StateSaveFile(ctx Context, path string, tokens []Token) bool {
 	if ctx == 0 {
 		return false
 	}
-	pathPtr, _ := utils.BytePtrFromString(path)
+	pathPtr, err := utils.BytePtrFromString(path)
+	if err != nil {
+		return false
+	}
 	var toks *Token
 	if len(tokens) > 0 {
 		toks = unsafe.SliceData(tokens)
@@ -201,7 +204,10 @@ func StateLoadFile(ctx Context, path string, tokensOut []Token, nTokenCapacity u
 	if ctx == 0 {
 		return false
 	}
-	pathPtr, _ := utils.BytePtrFromString(path)
+	pathPtr, err := utils.BytePtrFromString(path)
+	if err != nil {
+		return false
+	}
 	var toks *Token
 	if len(tokensOut) > 0 {
 		toks = unsafe.SliceData(tokensOut)
@@ -306,7 +312,10 @@ func StateSeqSaveFile(ctx Context, filepath string, seqId SeqId, tokens []Token)
 	if ctx == 0 {
 		return 0
 	}
-	pathPtr, _ := utils.BytePtrFromString(filepath)
+	pathPtr, err := utils.BytePtrFromString(filepath)
+	if err != nil {
+		return 0
+	}
 	var toks *Token
 	if len(tokens) > 0 {
 		toks = unsafe.SliceData(tokens)
@@ -322,7 +331,10 @@ func StateSeqLoadFile(ctx Context, filepath string, destSeqId SeqId, tokensOut [
 	if ctx == 0 {
 		return 0
 	}
-	pathPtr, _ := utils.BytePtrFromString(filepath)
+	pathPtr, err := utils.BytePtrFromString(filepath)
+	if err != nil {
+		return 0
+	}
 	var toks *Token
 	if len(tokensOut) > 0 {
 		toks = unsafe.SliceData(tokensOut)

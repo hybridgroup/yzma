@@ -327,3 +327,39 @@ func TestStateSeqGetSizeDataExt(t *testing.T) {
 		t.Fatalf("StateSeqSetDataExt read unexpected number of bytes: %d", nRead)
 	}
 }
+
+func TestStateFileNULPath(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
+	defer Free(ctx)
+
+	path := "state\x00.bin"
+	tokens := make([]Token, 8)
+	var n uint64
+
+	if StateSaveFile(ctx, path, tokens) {
+		t.Error("StateSaveFile with NUL path succeeded")
+	}
+	if StateLoadFile(ctx, path, tokens, uint64(len(tokens)), &n) {
+		t.Error("StateLoadFile with NUL path succeeded")
+	}
+	if got := StateSeqSaveFile(ctx, path, 0, tokens); got != 0 {
+		t.Errorf("StateSeqSaveFile with NUL path = %d, want 0", got)
+	}
+	if got := StateSeqLoadFile(ctx, path, 0, tokens, uint64(len(tokens)), &n); got != 0 {
+		t.Errorf("StateSeqLoadFile with NUL path = %d, want 0", got)
+	}
+}

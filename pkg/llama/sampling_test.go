@@ -785,3 +785,31 @@ func TestPenaltyLastNPassedThrough(t *testing.T) {
 		SamplerFree(sampler)
 	}
 }
+
+func TestSamplerInitGrammarNUL(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	modelFile := testModelFileName(t)
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	vocab := ModelGetVocab(model)
+	cases := []struct{ grammar, root string }{
+		{"root ::= \"hel\x00lo\"", "root"},
+		{"root ::= \"hello\"", "ro\x00ot"},
+	}
+	for _, c := range cases {
+		if s := SamplerInitGrammar(vocab, c.grammar, c.root); s != 0 {
+			SamplerFree(s)
+			t.Errorf("SamplerInitGrammar(%q, %q) returned a sampler", c.grammar, c.root)
+		}
+		if s := SamplerInitGrammarLazyPatterns(vocab, c.grammar, c.root, []string{"hello"}, nil); s != 0 {
+			SamplerFree(s)
+			t.Errorf("SamplerInitGrammarLazyPatterns(%q, %q) returned a sampler", c.grammar, c.root)
+		}
+	}
+}
