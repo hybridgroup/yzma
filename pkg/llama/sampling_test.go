@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"slices"
 	"testing"
 	"unsafe"
 )
@@ -811,5 +812,68 @@ func TestSamplerInitGrammarNUL(t *testing.T) {
 			SamplerFree(s)
 			t.Errorf("SamplerInitGrammarLazyPatterns(%q, %q) returned a sampler", c.grammar, c.root)
 		}
+	}
+}
+
+func samplerChainNames(chain Sampler) []string {
+	names := make([]string, 0, SamplerChainN(chain))
+	for i := range SamplerChainN(chain) {
+		names = append(names, SamplerName(SamplerChainGet(chain, int32(i))))
+	}
+	return names
+}
+
+func TestNewSamplerChains(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := ModelLoadFromFile(testModelFileName(t), ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	if s := NewSampler(model, DefaultSamplers, nil); s != 0 {
+		SamplerFree(s)
+		t.Error("NewSampler with nil params returned a sampler")
+	}
+
+	bad := DefaultSamplerParams()
+	bad.Mirostat = 3
+	if s := NewSampler(model, DefaultSamplers, bad); s != 0 {
+		SamplerFree(s)
+		t.Error("NewSampler with Mirostat 3 returned a sampler")
+	}
+
+	ignoreEos := DefaultSamplerParams()
+	ignoreEos.IgnoreEos = true
+	mirostat := DefaultSamplerParams()
+	mirostat.Mirostat = 1
+	mirostatV2 := DefaultSamplerParams()
+	mirostatV2.Mirostat = 2
+
+	cases := []struct {
+		name     string
+		samplers []SamplerType
+		params   *SamplerParams
+		want     []string
+	}{
+		{"no bias by default", []SamplerType{SamplerTypeLogitBias, SamplerTypeTopK}, DefaultSamplerParams(), []string{"top-k", "dist"}},
+		{"ignore eos", []SamplerType{SamplerTypeTopK}, ignoreEos, []string{"logit-bias", "top-k", "dist"}},
+		{"infill", []SamplerType{SamplerTypeTopK, SamplerTypeInfill}, DefaultSamplerParams(), []string{"top-k", "infill", "dist"}},
+		{"adaptive-p last", []SamplerType{SamplerTypeAdaptiveP, SamplerTypeTopK}, DefaultSamplerParams(), []string{"top-k", "adaptive-p"}},
+		{"mirostat", DefaultSamplers, mirostat, []string{"temp", "mirostat"}},
+		{"mirostat v2", DefaultSamplers, mirostatV2, []string{"temp", "mirostat-v2"}},
+	}
+	for _, c := range cases {
+		s := NewSampler(model, c.samplers, c.params)
+		if s == 0 {
+			t.Errorf("%s: NewSampler returned a zero sampler", c.name)
+			continue
+		}
+		if got := samplerChainNames(s); !slices.Equal(got, c.want) {
+			t.Errorf("%s: chain is %v, want %v", c.name, got, c.want)
+		}
+		SamplerFree(s)
 	}
 }
