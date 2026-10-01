@@ -885,6 +885,7 @@ var (
 	progressCallbackFn   uintptr
 	progressCallbackOnce sync.Once
 	progressCallbacks    sync.Map // closure address to ProgressCallback
+	progressClosures     sync.Map // code address to *ffi.Closure
 	sizeOfClosure        = unsafe.Sizeof(ffi.Closure{})
 )
 
@@ -915,8 +916,21 @@ func initProgressCallback() {
 	}
 }
 
-// SetProgressCallback sets a progress callback for model loading.
+// freeProgressCallback frees a closure made by SetProgressCallback. Any other code address is left alone.
+func freeProgressCallback(code uintptr) {
+	v, ok := progressClosures.LoadAndDelete(code)
+	if !ok {
+		return
+	}
+	closure := v.(*ffi.Closure)
+	progressCallbacks.Delete(uintptr(unsafe.Pointer(closure)))
+	ffi.ClosureFree(closure)
+}
+
+// SetProgressCallback sets a progress callback for model loading. Pass nil to clear it.
+// It frees the closure set before, so do not load with a copy of p made before this call.
 func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
+	freeProgressCallback(p.ProgressCallback)
 	if cb == nil {
 		p.ProgressCallback = uintptr(0)
 		return
@@ -932,6 +946,7 @@ func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
 	}
 
 	progressCallbacks.Store(uintptr(unsafe.Pointer(closure)), cb)
+	progressClosures.Store(uintptr(progressCallbackCode), closure)
 	if status := ffi.PrepClosureLoc(closure, progressCallbackCif, progressCallbackFn, unsafe.Pointer(closure), progressCallbackCode); status != ffi.OK {
 		panic(status)
 	}

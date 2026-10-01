@@ -727,10 +727,24 @@ func TestSetProgressCallbackManyTimes(t *testing.T) {
 	var params ContextParamsType
 
 	// purego has 2000 callback slots, so a slot per call would panic here.
+	before := countClosures()
 	for range 2100 {
 		params.SetProgressCallback(func(float32, uintptr) bool { return true })
 	}
 	if params.ProgressCallback == 0 {
 		t.Fatal("SetProgressCallback did not set ProgressCallback")
 	}
+	if got := countClosures() - before; got != 1 {
+		t.Fatalf("SetProgressCallback kept %d closures, want 1", got)
+	}
+	params.SetProgressCallback(nil)
+	if got := countClosures() - before; got != 0 {
+		t.Fatalf("SetProgressCallback(nil) kept %d closures, want 0", got)
+	}
+}
+
+func countClosures() int {
+	n := 0
+	progressClosures.Range(func(any, any) bool { n++; return true })
+	return n
 }
