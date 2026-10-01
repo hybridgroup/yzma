@@ -2,6 +2,7 @@ package llama
 
 import (
 	"errors"
+	"sync"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -370,6 +371,7 @@ func Free(ctx Context) error {
 		return errInvalidContext
 	}
 	freeFunc.Call(nil, unsafe.Pointer(&ctx))
+	abortCallbacks.Delete(ctx)
 	return nil
 }
 
@@ -734,10 +736,21 @@ type AbortFunc func() bool
 // The data parameter is passed to the callback function on each invocation.
 // Pass nil for fn to clear the abort callback.
 func SetAbortCallback(ctx Context, fn AbortFunc) {
-	callback := newAbortCallback(fn)
+	if ctx == 0 {
+		return
+	}
 
-	var nilPtr uintptr
-	setAbortCallbackFunc.Call(nil, unsafe.Pointer(&ctx), unsafe.Pointer(&callback), unsafe.Pointer(&nilPtr))
+	var callback uintptr
+	if fn == nil {
+		abortCallbacks.Delete(ctx)
+	} else {
+		abortCallbacks.Store(ctx, fn)
+		abortCallbackOnce.Do(newAbortCallback)
+		callback = abortCallback
+	}
+
+	// The context is the user data, so the shared callback can find fn.
+	setAbortCallbackFunc.Call(nil, unsafe.Pointer(&ctx), unsafe.Pointer(&callback), unsafe.Pointer(&ctx))
 }
 
 // SetSampler attaches a sampler to the context for the given sequence ID,
@@ -823,10 +836,18 @@ func NCtxSeq(ctx Context) uint32 {
 	return uint32(result)
 }
 
-// newAbortCallback creates a C-compatible callback from a Go AbortFunc.
-func newAbortCallback(fn AbortFunc) uintptr {
-	return purego.NewCallback(func(data uintptr) uintptr {
-		if fn() {
+var (
+	abortCallback     uintptr
+	abortCallbackOnce sync.Once
+	abortCallbacks    sync.Map // Context to AbortFunc
+)
+
+// newAbortCallback creates the one C callback that every context shares,
+// since purego callback slots are never released.
+func newAbortCallback() {
+	abortCallback = purego.NewCallback(func(data uintptr) uintptr {
+		v, ok := abortCallbacks.Load(Context(data))
+		if ok && v.(AbortFunc)() {
 			return 1
 		}
 		return 0

@@ -50,3 +50,12 @@ func TestLogGet(t *testing.T) {
 		t.Error("expected non-zero callback after LogSet(LogSilent())")
 	}
 }
+
+func TestLogSilentReused(t *testing.T) {
+	first := LogSilent()
+	for range 2100 {
+		if cb := LogSilent(); cb != first {
+			t.Fatalf("LogSilent() = %#x, want %#x", cb, first)
+		}
+	}
+}
