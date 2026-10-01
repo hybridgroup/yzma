@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"os"
 	"testing"
 )
 
@@ -175,4 +176,19 @@ func TestVersion(t *testing.T) {
 		t.Fatal("Version returned empty string")
 	}
 	t.Logf("Version returned: %s", v)
+}
+
+func TestLoadEmptyPathUsesEnv(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	if err := Load(""); err != nil {
+		t.Fatalf("Load(\"\") failed: %v", err)
+	}
+	if got, want := LibPath(), os.Getenv("YZMA_LIB"); got != want {
+		t.Fatalf("LibPath() = %q, want %q", got, want)
+	}
+	if err := Init(); err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
 }

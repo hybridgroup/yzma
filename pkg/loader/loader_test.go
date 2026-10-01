@@ -186,3 +186,14 @@ func TestGetLibraryFilename_DifferentLibNames(t *testing.T) {
 		})
 	}
 }
+
+func TestResolvePath(t *testing.T) {
+	t.Setenv("YZMA_LIB", "/from/env")
+
+	if got := ResolvePath(""); got != "/from/env" {
+		t.Errorf("ResolvePath(\"\") = %q, want %q", got, "/from/env")
+	}
+	if got := ResolvePath("/given"); got != "/given" {
+		t.Errorf("ResolvePath(\"/given\") = %q, want %q", got, "/given")
+	}
+}
