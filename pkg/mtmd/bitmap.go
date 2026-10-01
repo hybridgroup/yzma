@@ -250,10 +250,8 @@ func BitmapGetData(bitmap Bitmap) []byte {
 		return nil
 	}
 
-	nx := BitmapGetNx(bitmap)
-	ny := BitmapGetNy(bitmap)
-	size := nx * ny * 3
-	return unsafe.Slice((*byte)(dataPtr), size)
+	// Audio holds float32 samples, so only the byte count from C is right for both.
+	return unsafe.Slice(dataPtr, BitmapGetNBytes(bitmap))
 }
 
 // BitmapIsAudio checks if the bitmap represents audio data.
