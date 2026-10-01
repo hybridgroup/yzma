@@ -722,3 +722,15 @@ func TestVideoInitZeroContext(t *testing.T) {
 		t.Fatal("VideoInit with zero context should return 0")
 	}
 }
+
+func TestSetProgressCallbackManyTimes(t *testing.T) {
+	var params ContextParamsType
+
+	// purego has 2000 callback slots, so a slot per call would panic here.
+	for range 2100 {
+		params.SetProgressCallback(func(float32, uintptr) bool { return true })
+	}
+	if params.ProgressCallback == 0 {
+		t.Fatal("SetProgressCallback did not set ProgressCallback")
+	}
+}

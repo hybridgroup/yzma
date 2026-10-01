@@ -3,6 +3,7 @@ package llama
 import (
 	"errors"
 	"os"
+	"sync"
 	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/loader"
@@ -879,9 +880,40 @@ func (p *ModelParams) SetTensorBufOverrides(overrides []TensorBuftOverride) erro
 	return nil
 }
 
-var progressCallbackCode unsafe.Pointer
-var progressCallbackCif *ffi.Cif
-var sizeOfClosure = unsafe.Sizeof(ffi.Closure{})
+var (
+	progressCallbackCif  *ffi.Cif
+	progressCallbackFn   uintptr
+	progressCallbackOnce sync.Once
+	progressCallbacks    sync.Map // closure address to ProgressCallback
+	sizeOfClosure        = unsafe.Sizeof(ffi.Closure{})
+)
+
+// initProgressCallback creates the one Go callback that every progress closure
+// shares, since purego callback slots are never released.
+func initProgressCallback() {
+	progressCallbackFn = ffi.NewCallback(func(cif *ffi.Cif, ret unsafe.Pointer, args *unsafe.Pointer, userData unsafe.Pointer) uintptr {
+		if args == nil || ret == nil {
+			return 1 // error
+		}
+
+		v, ok := progressCallbacks.Load(uintptr(userData))
+		if !ok {
+			*(*uint8)(ret) = 1
+			return 0
+		}
+
+		arg := unsafe.Slice(args, cif.NArgs)
+		progress := *(*float32)(arg[0])
+		userDataPtr := *(*uintptr)(arg[1])
+		*(*uint8)(ret) = v.(ProgressCallback)(progress, userDataPtr)
+		return 0
+	})
+
+	progressCallbackCif = new(ffi.Cif)
+	if status := ffi.PrepCif(progressCallbackCif, ffi.DefaultAbi, 2, &ffi.TypeUint8, &ffi.TypeFloat, &ffi.TypePointer); status != ffi.OK {
+		panic(status)
+	}
+}
 
 // SetProgressCallback sets a progress callback for model loading.
 func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
@@ -890,30 +922,18 @@ func (p *ModelParams) SetProgressCallback(cb ProgressCallback) {
 		return
 	}
 
+	progressCallbackOnce.Do(initProgressCallback)
+
+	var progressCallbackCode unsafe.Pointer
 	closure := ffi.ClosureAlloc(sizeOfClosure, &progressCallbackCode)
-
-	fn := ffi.NewCallback(func(cif *ffi.Cif, ret unsafe.Pointer, args *unsafe.Pointer, userData unsafe.Pointer) uintptr {
-		if args == nil || ret == nil {
-			return 1 // error
-		}
-
-		arg := unsafe.Slice(args, cif.NArgs)
-		progress := *(*float32)(arg[0])
-		userDataPtr := *(*uintptr)(arg[1])
-		result := cb(progress, userDataPtr)
-		*(*uint8)(ret) = result
-		return 0
-	})
-
-	progressCallbackCif = new(ffi.Cif)
-	if status := ffi.PrepCif(progressCallbackCif, ffi.DefaultAbi, 2, &ffi.TypeUint8, &ffi.TypeFloat, &ffi.TypePointer); status != ffi.OK {
-		panic(status)
+	if closure == nil {
+		p.ProgressCallback = uintptr(0)
+		return
 	}
 
-	if closure != nil {
-		if status := ffi.PrepClosureLoc(closure, progressCallbackCif, fn, nil, progressCallbackCode); status != ffi.OK {
-			panic(status)
-		}
+	progressCallbacks.Store(uintptr(unsafe.Pointer(closure)), cb)
+	if status := ffi.PrepClosureLoc(closure, progressCallbackCif, progressCallbackFn, unsafe.Pointer(closure), progressCallbackCode); status != ffi.OK {
+		panic(status)
 	}
 
 	p.ProgressCallback = uintptr(progressCallbackCode)

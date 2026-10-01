@@ -906,3 +906,37 @@ func TestSplitPrefix(t *testing.T) {
 	}
 	t.Logf("SplitPrefix returned: %s", prefix)
 }
+
+func TestSetProgressCallbackManyTimes(t *testing.T) {
+	modelFile := testModelFileName(t)
+	testSetup(t)
+	defer testCleanup(t)
+
+	// purego has 2000 callback slots, so a slot per call would panic here.
+	var other ModelParams
+	for range 2100 {
+		other.SetProgressCallback(func(float32, uintptr) uint8 { return 1 })
+	}
+
+	firstCalls, secondCalls := 0, 0
+	first := ModelDefaultParams()
+	first.SetProgressCallback(func(float32, uintptr) uint8 {
+		firstCalls++
+		return 1
+	})
+	second := ModelDefaultParams()
+	second.SetProgressCallback(func(float32, uintptr) uint8 {
+		secondCalls++
+		return 1
+	})
+
+	model, err := ModelLoadFromFile(modelFile, first)
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	ModelFree(model)
+
+	if firstCalls == 0 || secondCalls != 0 {
+		t.Fatalf("first called %d times, second %d times, want only first", firstCalls, secondCalls)
+	}
+}

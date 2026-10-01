@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"sync"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -52,11 +53,19 @@ func LogGet() (uintptr, uintptr) {
 	return cb, ud
 }
 
+var (
+	logSilent     uintptr
+	logSilentOnce sync.Once
+)
+
 // LogSilent is a callback function that you can pass into the LogSet function to turn logging off.
 func LogSilent() uintptr {
-	return purego.NewCallback(func(level int32, text, data uintptr) uintptr {
-		return 0
+	logSilentOnce.Do(func() {
+		logSilent = purego.NewCallback(func(level int32, text, data uintptr) uintptr {
+			return 0
+		})
 	})
+	return logSilent
 }
 
 // LogNormal is a value you can pass into the LogSet function to turn standard logging on.

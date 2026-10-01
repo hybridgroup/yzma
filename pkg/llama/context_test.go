@@ -1102,3 +1102,47 @@ func TestAttachDetachThreadpool(t *testing.T) {
 	DetachThreadpool(ctx)
 	t.Log("DetachThreadpool completed successfully")
 }
+
+func TestSetAbortCallbackManyTimes(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	modelFile := testModelFileName(t)
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	ctx, err := InitFromModel(model, ContextDefaultParams())
+	if err != nil {
+		t.Fatalf("InitFromModel failed: %v", err)
+	}
+	defer Free(ctx)
+
+	// purego has 2000 callback slots, so a slot per call would panic here.
+	for range 2100 {
+		SetAbortCallback(ctx, func() bool { return false })
+	}
+
+	aborted := false
+	SetAbortCallback(ctx, func() bool {
+		aborted = true
+		return true
+	})
+
+	tokens := Tokenize(ModelGetVocab(model), "Hello world", true, true)
+	ret, err := Decode(ctx, BatchGetOne(tokens))
+	if err != nil {
+		t.Fatalf("Decode failed: %v", err)
+	}
+	if !aborted || ret != 2 {
+		t.Fatalf("Decode = %d with aborted=%v, want 2 with the last callback called", ret, aborted)
+	}
+
+	SetAbortCallback(ctx, nil)
+	ret, err = Decode(ctx, BatchGetOne(tokens))
+	if err != nil || ret != 0 {
+		t.Fatalf("Decode after clearing the callback = %d, %v, want 0", ret, err)
+	}
+}
