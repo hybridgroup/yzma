@@ -5,7 +5,6 @@ import (
 	"runtime"
 	"sync"
 	"testing"
-	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
 )
@@ -134,7 +133,7 @@ func TestTokenize(t *testing.T) {
 		t.Fatal("could not open image file")
 	}
 
-	bitmap := BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
+	bitmap := BitmapInit(x, y, data)
 	defer BitmapFree(bitmap)
 
 	bitmaps := []Bitmap{bitmap} // Replace with actual bitmap data if available
@@ -175,7 +174,7 @@ func TestTokenizeFromParts(t *testing.T) {
 		t.Fatal("could not open image file")
 	}
 
-	bitmap := BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
+	bitmap := BitmapInit(x, y, data)
 	defer BitmapFree(bitmap)
 
 	// an ordered sequence of text, media, and text, each text with its own
@@ -241,7 +240,7 @@ func TestTokenizeFromPartsInvalidParts(t *testing.T) {
 		t.Fatal("could not open image file")
 	}
 
-	bitmap := BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
+	bitmap := BitmapInit(x, y, data)
 	defer BitmapFree(bitmap)
 
 	tests := []struct {

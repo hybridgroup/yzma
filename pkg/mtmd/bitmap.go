@@ -2,6 +2,7 @@ package mtmd
 
 import (
 	"os"
+	"runtime"
 	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/loader"
@@ -143,10 +144,17 @@ func loadBitmapFuncs(lib loader.Lib) error {
 	return nil
 }
 
-// BitmapInit initializes a Bitmap.
-func BitmapInit(nx uint32, ny uint32, data uintptr) Bitmap {
+// BitmapInit initializes a Bitmap from nx*ny*3 bytes of RGB data.
+// A nil data creates a placeholder. It returns 0 if data is too short.
+func BitmapInit(nx uint32, ny uint32, data []byte) Bitmap {
+	if data != nil && uint64(len(data)) < uint64(nx)*uint64(ny)*3 {
+		return 0
+	}
+
 	var bitmap Bitmap
-	bitmapInitFunc.Call(unsafe.Pointer(&bitmap), &nx, &ny, unsafe.Pointer(&data))
+	p := unsafe.SliceData(data)
+	bitmapInitFunc.Call(unsafe.Pointer(&bitmap), &nx, &ny, unsafe.Pointer(&p))
+	runtime.KeepAlive(data)
 
 	return bitmap
 }

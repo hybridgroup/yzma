@@ -2,7 +2,6 @@ package mtmd
 
 import (
 	"testing"
-	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
 )
@@ -421,9 +420,9 @@ func TestBatchEncodeMultipleChunks(t *testing.T) {
 		t.Fatal("could not open image file")
 	}
 
-	bitmap1 := BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
+	bitmap1 := BitmapInit(x, y, data)
 	defer BitmapFree(bitmap1)
-	bitmap2 := BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
+	bitmap2 := BitmapInit(x, y, data)
 	defer BitmapFree(bitmap2)
 
 	chunks1 := InputChunksInit()
