@@ -194,6 +194,10 @@ func checkLibSymbols(dir string, bindings []*Binding) (missing []string, note st
 	}
 
 	for _, b := range bindings {
+		// A looked up address is not resolved by dlsym, so the export lists say nothing about it.
+		if b.Lookup != "" {
+			continue
+		}
 		if !syms[b.CName] {
 			missing = append(missing, fmt.Sprintf("%s (%s)", b.CName, shortPos(b.PrepPos)))
 		}

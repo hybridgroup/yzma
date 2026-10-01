@@ -46,6 +46,16 @@ func TestFixtureFindsEveryPlantedDefect(t *testing.T) {
 			match: "cif says TypeVoid",
 		},
 		{
+			name: "rule1 looked up binding with an 8-byte cif slot for int32_t",
+			rule: 1, fn: "fx_pool_new",
+			match: "C int32_t is 4B but cif TypeSint64 is 8B",
+		},
+		{
+			name: "rule2 looked up binding fed a 4-byte Go value for its 8-byte cif slot",
+			rule: 2, fn: "fx_pool_new",
+			match: "cif TypeSint64 wants 8B, Go int32 is 4B",
+		},
+		{
 			name: "rule2 size_t slot fed a 4-byte Go value",
 			rule: 2, fn: "fx_desc",
 			match: "wants 8B, Go int32 is 4B",
@@ -210,6 +220,8 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 		// C declaration nothing binds is not a defect, and the assertion that
 		// matters for it is this one, not its presence in the inventory.
 		"fx_printf": true, "fx_unbound": true,
+		// fx_pool_free is the control for a binding built from a looked up address.
+		"fx_pool_free": true,
 		// The pointer-target controls: fx_get_logits points at the float32 its
 		// header declares, and fx_get_token at the int32 that can hold its -1
 		// sentinel. fx_get_count and fx_decode carry the two signedness plants
@@ -251,7 +263,7 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 	// Exactly the fourteen plants, with fx_get_thing counted twice: a void return
 	// descriptor is both a wrong cif (rule 1) and a return buffer libffi never
 	// writes (rule 3), which is how the real ggml_backend_cpu_buffer_type
-	// defect presented.
+	// defect presented. fx_pool_new is counted twice too, once per side of its 8-byte slot.
 	// HooksClean is the control for the function-pointer members, and the half
 	// that matters: both of its members hold the code pointer of the callback
 	// that implements them, written exactly as yzma's two live SetProgressCallback
@@ -264,7 +276,7 @@ func TestFixtureDoesNotReportTheCleanBinding(t *testing.T) {
 		}
 	}
 
-	if got, want := len(rep.Viols), 19; got != want {
+	if got, want := len(rep.Viols), 21; got != want {
 		t.Errorf("fixture produced %d violations, want %d:\n%s", got, want, dumpViolations(rep))
 	}
 }
@@ -341,11 +353,11 @@ func TestFixtureDeprecationNotes(t *testing.T) {
 func TestFixtureAccounting(t *testing.T) {
 	rep := fixtureReport(t)
 
-	if got, want := len(rep.Bindings), 29; got != want {
+	if got, want := len(rep.Bindings), 31; got != want {
 		t.Errorf("bindings found = %d, want %d", got, want)
 	}
 
-	if got, want := rep.Matched, 29; got != want {
+	if got, want := rep.Matched, 31; got != want {
 		t.Errorf("bindings matched to a C decl = %d, want %d", got, want)
 	}
 
@@ -378,8 +390,8 @@ func TestFixtureAccounting(t *testing.T) {
 		t.Fatalf("coverage lines = %d, want %d: %+v", got, want, rep.Coverage)
 	}
 
-	if c := rep.Coverage[0]; c.Header != "llama.h" || c.Bound != 29 || c.Decls != 30 {
-		t.Errorf("coverage line = %+v, want llama.h 29 of 30 bound", c)
+	if c := rep.Coverage[0]; c.Header != "llama.h" || c.Bound != 31 || c.Decls != 32 {
+		t.Errorf("coverage line = %+v, want llama.h 31 of 32 bound", c)
 	}
 
 	if len(rep.Unresolved) != 0 {

@@ -157,6 +157,12 @@ LLAMA_API void fx_set_level(struct fx_thing * t, enum llama_fx_level level);
 LLAMA_API void fx_set_flag(struct fx_thing * t, enum llama_fx_flag flag);
 LLAMA_API void fx_set_mode(struct fx_thing * t, enum llama_fx_split_mode mode);
 
+// Bindings built by hand, with the address from a lookup and the cif from
+// ffi.PrepCif, as pkg/llama binds ggml_threadpool_new. fx_pool_new is the plant,
+// its int32_t described as 8 bytes. fx_pool_free is the control.
+LLAMA_API struct fx_thing * fx_pool_new(int32_t n_threads);
+LLAMA_API void fx_pool_free(struct fx_thing * pool);
+
 // RULE 4. LLAMA_FX_LEVEL_LOW is the member "upstream inserted": every member
 // after it moved up by one, and the Go constant for HIGH still carries the old
 // value. Nothing about that is visible to a compiler on either side.

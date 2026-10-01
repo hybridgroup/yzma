@@ -50,6 +50,10 @@ type Binding struct {
 	Variadi bool //
 	Calls   []CallSite
 	Pkg     string
+
+	// Lookup is the func that found the address of a binding built by hand as
+	// ffi.Fun{Addr, Cif} and ffi.PrepCif, such as cpuProcAddress. It is empty for lib.Prep.
+	Lookup string
 }
 
 // CallSite is one <var>.Call(...) invocation.
@@ -186,6 +190,9 @@ type analyzer struct {
 
 	// stores are the assignments of such a code pointer into a struct field.
 	stores []*FnPtrStore
+
+	// procCifs are the cifs of bindings built by hand, which are not callbacks.
+	procCifs map[string]bool
 }
 
 func isLibType(t string) bool {
@@ -739,6 +746,8 @@ func (a *analyzer) run() {
 		})
 	}
 
+	a.collectProcBindings()
+
 	// pass 3: Call sites
 	for _, f := range a.pkg.Syntax {
 		var curFn string
@@ -799,6 +808,150 @@ func (a *analyzer) run() {
 	a.collectCallbacks()
 }
 
+// collectProcBindings finds bindings built by hand, where the address comes from a
+// lookup such as cpuProcAddress("ggml_threadpool_new") and the cif from ffi.PrepCif:
+//
+//	threadpoolNewFn = ffi.Fun{Addr: newAddr, Cif: new(ffi.Cif)}
+//	ffi.PrepCif(threadpoolNewFn.Cif, ffi.DefaultAbi, 1, &ffi.TypePointer, &ffi.TypePointer)
+//
+// Each one is a call from Go into C like a lib.Prep binding, so it gets the same
+// rules, and collectCallbacks leaves its cif alone.
+func (a *analyzer) collectProcBindings() {
+	a.procCifs = map[string]bool{}
+
+	for _, f := range a.pkg.Syntax {
+		for _, d := range f.Decls {
+			fd, ok := d.(*ast.FuncDecl)
+			if !ok || fd.Body == nil {
+				continue
+			}
+
+			// The ffi.Fun vars this func fills in, with the C name of each address.
+			type proc struct{ cname, lookup string }
+			funs := map[string]proc{}
+			ast.Inspect(fd.Body, func(n ast.Node) bool {
+				as, ok := n.(*ast.AssignStmt)
+				if !ok || len(as.Lhs) != len(as.Rhs) {
+					return true
+				}
+				for i, l := range as.Lhs {
+					id, ok := l.(*ast.Ident)
+					if !ok {
+						continue
+					}
+					addr := ffiFunAddr(a.pkg.TypesInfo, as.Rhs[i])
+					if addr == nil {
+						continue
+					}
+					if cname, lookup := lookupName(addr, fd.Body, 0); cname != "" {
+						funs[id.Name] = proc{cname, lookup}
+					}
+				}
+				return true
+			})
+			if len(funs) == 0 {
+				continue
+			}
+
+			ast.Inspect(fd.Body, func(n ast.Node) bool {
+				ce, ok := n.(*ast.CallExpr)
+				if !ok || len(ce.Args) < 4 {
+					return true
+				}
+				sel, ok := ce.Fun.(*ast.SelectorExpr)
+				if !ok || sel.Sel.Name != "PrepCif" {
+					return true
+				}
+				if id, ok := sel.X.(*ast.Ident); !ok || id.Name != "ffi" {
+					return true
+				}
+				cif, ok := unparen(ce.Args[0]).(*ast.SelectorExpr)
+				if !ok || cif.Sel.Name != "Cif" {
+					return true
+				}
+				fn, ok := cif.X.(*ast.Ident)
+				if !ok {
+					return true
+				}
+				p, ok := funs[fn.Name]
+				if !ok {
+					return true
+				}
+
+				b := &Binding{
+					GoVar:   fn.Name,
+					CName:   p.cname,
+					PrepPos: a.fset.Position(ce.Lparen),
+					Ret:     a.resolveTypeExpr(ce.Args[3]),
+					NFixed:  -1,
+					Pkg:     a.pkg.PkgPath,
+					Lookup:  p.lookup,
+				}
+				for _, ta := range ce.Args[4:] {
+					b.Args = append(b.Args, a.resolveTypeExpr(ta))
+				}
+				if _, dup := a.bindings[fn.Name]; !dup {
+					a.order = append(a.order, fn.Name)
+				}
+				a.bindings[fn.Name] = b
+				a.procCifs[exprStr(ce.Args[0])] = true
+				return true
+			})
+		}
+	}
+}
+
+// ffiFunAddr returns the Addr of an ffi.Fun composite literal, or nil for anything else.
+func ffiFunAddr(info *types.Info, e ast.Expr) ast.Expr {
+	cl, ok := unparen(e).(*ast.CompositeLit)
+	if !ok {
+		return nil
+	}
+	if t := info.TypeOf(cl); t == nil || !strings.HasSuffix(t.String(), "jupiterrider/ffi.Fun") {
+		return nil
+	}
+	for _, el := range cl.Elts {
+		kv, ok := el.(*ast.KeyValueExpr)
+		if !ok {
+			continue
+		}
+		if k, ok := kv.Key.(*ast.Ident); ok && k.Name == "Addr" {
+			return kv.Value
+		}
+	}
+	return nil
+}
+
+// lookupName follows an address back to a call such as cpuProcAddress("name")
+// and returns the C name and the func that looked it up.
+func lookupName(e ast.Expr, body *ast.BlockStmt, depth int) (string, string) {
+	if depth > 3 {
+		return "", ""
+	}
+	switch x := unparen(e).(type) {
+	case *ast.CallExpr:
+		if len(x.Args) != 1 {
+			return "", ""
+		}
+		bl, ok := x.Args[0].(*ast.BasicLit)
+		if !ok || bl.Kind != token.STRING {
+			return "", ""
+		}
+		name, err := strconv.Unquote(bl.Value)
+		if err != nil {
+			return "", ""
+		}
+		return name, exprStr(x.Fun)
+	case *ast.Ident:
+		for _, v := range assignedValues(x.Name, body) {
+			if name, lookup := lookupName(v, body, depth+1); name != "" {
+				return name, lookup
+			}
+		}
+	}
+	return "", ""
+}
+
 // collectCallbacks finds the sites where C calls back into Go (RULE 5).
 //
 // Neither form goes through lib.Prep, so neither is one of the bindings above:
@@ -834,7 +987,7 @@ func (a *analyzer) collectCallbacks() {
 			switch {
 			case id.Name == "ffi" && sel.Sel.Name == "PrepCif":
 				// PrepCif(cif, abi, nfixed, ret, args...)
-				if len(ce.Args) < 4 {
+				if len(ce.Args) < 4 || a.procCifs[exprStr(ce.Args[0])] {
 					return true
 				}
 
