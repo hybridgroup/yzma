@@ -7,7 +7,7 @@ import (
 	"github.com/hybridgroup/yzma/pkg/loader"
 )
 
-var muHelperEvalChunks sync.Mutex
+var evalChunksLocks sync.Map
 
 // Load loads the shared mtmd library from the specified path.
 func Load(path string) error {
