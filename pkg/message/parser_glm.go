@@ -2,6 +2,13 @@ package message
 
 import "strings"
 
+const (
+	glmKeyOpen    = "<arg_key>"
+	glmKeyClose   = "</arg_key>"
+	glmValueOpen  = "<arg_value>"
+	glmValueClose = "</arg_value>"
+)
+
 // stripGLMToolCallLines removes lines that contain GLM-style <arg_key> tags.
 func stripGLMToolCallLines(s string) string {
 	lines := strings.Split(s, "\n")
@@ -33,34 +40,20 @@ func parseGLMToolCalls(content string) []ToolCall {
 		name := strings.TrimSpace(call[:argKeyIdx])
 		args := make(map[string]string)
 
-		// Parse all <arg_key>...</arg_key><arg_value>...</arg_value> pairs
+		// Parse all <arg_key>...</arg_key><arg_value>...</arg_value> pairs.
+		// Each tag is searched after the one before it, so out of order tags cannot panic.
 		remaining := call[argKeyIdx:]
 		for {
-			keyStart := strings.Index(remaining, "<arg_key>")
-			if keyStart == -1 {
+			key, rest, ok := cutBetween(remaining, glmKeyOpen, glmKeyClose)
+			if !ok {
 				break
 			}
-
-			keyEnd := strings.Index(remaining, "</arg_key>")
-			if keyEnd == -1 {
+			value, rest, ok := cutBetween(rest, glmValueOpen, glmValueClose)
+			if !ok {
 				break
 			}
-
-			key := remaining[keyStart+9 : keyEnd]
-
-			valStart := strings.Index(remaining, "<arg_value>")
-			if valStart == -1 {
-				break
-			}
-
-			valEnd := strings.Index(remaining, "</arg_value>")
-			if valEnd == -1 {
-				break
-			}
-
-			args[key] = remaining[valStart+11 : valEnd]
-
-			remaining = remaining[valEnd+12:]
+			args[key] = value
+			remaining = rest
 		}
 
 		if name != "" {
@@ -75,4 +68,14 @@ func parseGLMToolCalls(content string) []ToolCall {
 	}
 
 	return calls
+}
+
+// cutBetween returns the text between the first start tag in s and the end tag after it,
+// and the rest of s after the end tag.
+func cutBetween(s, start, end string) (string, string, bool) {
+	_, after, ok := strings.Cut(s, start)
+	if !ok {
+		return "", "", false
+	}
+	return strings.Cut(after, end)
 }
