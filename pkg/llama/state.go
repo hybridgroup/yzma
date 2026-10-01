@@ -198,20 +198,23 @@ func StateSaveFile(ctx Context, path string, tokens []Token) bool {
 	return result.Bool()
 }
 
-// StateLoadFile loads the state from a file and returns true on success.
-// tokensOut should be a slice with capacity nTokenCapacity. nTokenCountOut will be set to the number of tokens loaded.
-func StateLoadFile(ctx Context, path string, tokensOut []Token, nTokenCapacity uint64, nTokenCountOut *uint64) bool {
+// StateLoadFile loads the state from a file into ctx and its tokens into tokensOut.
+// It returns the tokens loaded and true on success, or false when tokensOut is too short.
+func StateLoadFile(ctx Context, path string, tokensOut []Token) (uint64, bool) {
 	if ctx == 0 {
-		return false
+		return 0, false
 	}
 	pathPtr, err := utils.BytePtrFromString(path)
 	if err != nil {
-		return false
+		return 0, false
 	}
 	var toks *Token
 	if len(tokensOut) > 0 {
 		toks = unsafe.SliceData(tokensOut)
 	}
+	nTokenCapacity := uint64(len(tokensOut))
+	var nTokenCount uint64
+	nTokenCountOut := &nTokenCount
 	var result ffi.Arg
 	stateLoadFileFunc.Call(
 		unsafe.Pointer(&result),
@@ -221,7 +224,10 @@ func StateLoadFile(ctx Context, path string, tokensOut []Token, nTokenCapacity u
 		&nTokenCapacity,
 		unsafe.Pointer(&nTokenCountOut),
 	)
-	return result.Bool()
+	if !result.Bool() {
+		return 0, false
+	}
+	return nTokenCount, true
 }
 
 // StateGetSize returns the actual size in bytes of the state (logits, embedding and memory).
@@ -326,19 +332,23 @@ func StateSeqSaveFile(ctx Context, filepath string, seqId SeqId, tokens []Token)
 	return uint64(result)
 }
 
-// StateSeqLoadFile loads the state of a single sequence from a file.
-func StateSeqLoadFile(ctx Context, filepath string, destSeqId SeqId, tokensOut []Token, nTokenCapacity uint64, nTokenCountOut *uint64) uint64 {
+// StateSeqLoadFile loads a sequence state from a file into destSeqId and its tokens into tokensOut.
+// It returns the bytes read and the tokens loaded, or 0 bytes on failure. An empty tokensOut only reads the token count.
+func StateSeqLoadFile(ctx Context, filepath string, destSeqId SeqId, tokensOut []Token) (uint64, uint64) {
 	if ctx == 0 {
-		return 0
+		return 0, 0
 	}
 	pathPtr, err := utils.BytePtrFromString(filepath)
 	if err != nil {
-		return 0
+		return 0, 0
 	}
 	var toks *Token
 	if len(tokensOut) > 0 {
 		toks = unsafe.SliceData(tokensOut)
 	}
+	nTokenCapacity := uint64(len(tokensOut))
+	var nTokenCount uint64
+	nTokenCountOut := &nTokenCount
 	var result ffi.Arg
 	stateSeqLoadFileFunc.Call(
 		unsafe.Pointer(&result),
@@ -349,7 +359,10 @@ func StateSeqLoadFile(ctx Context, filepath string, destSeqId SeqId, tokensOut [
 		&nTokenCapacity,
 		unsafe.Pointer(&nTokenCountOut),
 	)
-	return uint64(result)
+	if result == 0 {
+		return 0, 0
+	}
+	return uint64(result), nTokenCount
 }
 
 // StateSeqGetSizeExt returns the size needed for a sequence with flags.
