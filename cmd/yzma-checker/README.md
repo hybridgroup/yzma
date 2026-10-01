@@ -922,7 +922,7 @@ failure mode the fixture avoids.
 | `cenum.go` | RULE 4: C enum members and integer `#define`s with a small C constant-expression evaluator, the Go constants from `go/types`, the name matching between them, the C enum each yzma enum type is thereby known to mirror, and the partially-mirrored-enum inventory |
 | `ccallback.go` | RULE 5: C function-pointer typedefs, the link from a Go callback site to the typedef it implements, the comparison for both callback forms, and the function-pointer struct members C reaches a callback through |
 | `layout.go` | flattens a C struct, a cif descriptor and a Go struct to a common member list, diffs them, matches members by name to find transpositions, and re-flattens each Go struct under the other architecture yzma supports |
-| `goside.go` | `go/packages` type-checked walk: `lib.Prep`/`PrepVar` → binding spec, `<var>.Call(...)` → the Go type libffi will actually read bytes from, the enclosing exported wrapper and its doc comment, and, for a C string, the buffer it was built from, `ffi.PrepCif`/`purego.NewCallback` → callback site, `ffi.PrepClosureLoc` and the assignments that install a code pointer in a struct field |
+| `goside.go` | `go/packages` type-checked walk: `lib.Prep`/`PrepVar`, and `ffi.Fun{Addr}` with `ffi.PrepCif` for a looked up address, → binding spec, `<var>.Call(...)` → the Go type libffi will actually read bytes from, the enclosing exported wrapper and its doc comment, and, for a C string, the buffer it was built from, `ffi.PrepCif`/`purego.NewCallback` → callback site, `ffi.PrepClosureLoc` and the assignments that install a code pointer in a struct field |
 | `main_test.go` | the correctness gate |
 
 ## Assumptions

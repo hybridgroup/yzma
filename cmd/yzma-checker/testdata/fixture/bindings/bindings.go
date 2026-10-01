@@ -701,3 +701,31 @@ func newFxAbortCallback() uintptr {
 		return 1
 	})
 }
+
+var (
+	fxPoolNewFn  ffi.Fun
+	fxPoolFreeFn ffi.Fun
+)
+
+// fxProcAddress stands in for cpuProcAddress, which finds a backend function
+// through the backend registry rather than dlsym.
+func fxProcAddress(name string) uintptr { return 0 }
+
+func loadPool() {
+	newAddr := fxProcAddress("fx_pool_new")
+	fxPoolNewFn = ffi.Fun{Addr: newAddr, Cif: new(ffi.Cif)}
+	ffi.PrepCif(fxPoolNewFn.Cif, ffi.DefaultAbi, 1, &ffi.TypePointer, &ffi.TypeSint64)
+
+	fxPoolFreeFn = ffi.Fun{Addr: fxProcAddress("fx_pool_free"), Cif: new(ffi.Cif)}
+	ffi.PrepCif(fxPoolFreeFn.Cif, ffi.DefaultAbi, 1, &ffi.TypeVoid, &ffi.TypePointer)
+}
+
+func PoolNew(n int32) uintptr {
+	var pool uintptr
+	fxPoolNewFn.Call(unsafe.Pointer(&pool), unsafe.Pointer(&n))
+	return pool
+}
+
+func PoolFree(pool uintptr) {
+	fxPoolFreeFn.Call(nil, unsafe.Pointer(&pool))
+}
