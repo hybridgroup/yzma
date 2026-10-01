@@ -134,6 +134,10 @@ func TestBitmapInitFromAudio(t *testing.T) {
 		t.Fatal("BitmapIsAudio returned false for audio bitmap")
 	}
 
+	if got := len(BitmapGetData(bitmap)); got != int(nSamples*4) {
+		t.Fatalf("BitmapGetData returned %d bytes, want %d", got, nSamples*4)
+	}
+
 	t.Logf("BitmapInitFromAudio created bitmap with %d samples", nSamples)
 }
 
