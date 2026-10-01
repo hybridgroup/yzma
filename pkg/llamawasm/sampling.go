@@ -7,7 +7,11 @@ func SamplerChainInit(params SamplerChainParams) Sampler {
 	if !Loaded() {
 		return 0
 	}
-	return Sampler(call("_yzma_sampler_chain_new", int(params.NoPerf)))
+	rc := call("_yzma_sampler_chain_new", int(params.NoPerf))
+	if rc <= errBadHandle {
+		return 0
+	}
+	return Sampler(rc)
 }
 
 // SamplerChainAdd appends a sampler to a chain.
@@ -242,7 +246,12 @@ func SamplerGetSeed(smpl Sampler) uint32 {
 	if !has("_yzma_sampler_get_seed") {
 		return 0xFFFFFFFF
 	}
-	return uint32(call("_yzma_sampler_get_seed", int(smpl)))
+	// A seed can be any uint32, so a failure cannot use errBadHandle.
+	n, ok := callNumber("_yzma_sampler_get_seed", int(smpl))
+	if !ok {
+		return 0xFFFFFFFF
+	}
+	return uint32(int32(n))
 }
 
 // SamplerClone copies a sampler. The caller owns the copy and must
@@ -294,7 +303,11 @@ func SamplerSample(smpl Sampler, ctx Context, idx int32) Token {
 	if !Loaded() {
 		return -1
 	}
-	return Token(call("_yzma_sampler_sample", int(smpl), int(ctx), int(idx)))
+	rc := call("_yzma_sampler_sample", int(smpl), int(ctx), int(idx))
+	if rc <= errBadHandle {
+		return TokenNull
+	}
+	return Token(rc)
 }
 
 // SamplerAccept passes the selected token to the sampler. Samplers that look

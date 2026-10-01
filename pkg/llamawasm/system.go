@@ -22,7 +22,8 @@ func TimeUs() int64 {
 	if !has("_yzma_time_us") {
 		return 0
 	}
-	return int64(callValue("_yzma_time_us").Float())
+	v, _ := callNumber("_yzma_time_us")
+	return int64(v)
 }
 
 // MaxDevices returns the maximum number of devices llama.cpp can use.

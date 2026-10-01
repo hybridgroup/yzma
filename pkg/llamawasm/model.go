@@ -41,7 +41,11 @@ func ModelGetVocab(model Model) Vocab {
 	if !Loaded() {
 		return 0
 	}
-	return Vocab(call("_yzma_model_get_vocab", int(model)))
+	rc := call("_yzma_model_get_vocab", int(model))
+	if rc <= errBadHandle {
+		return 0
+	}
+	return Vocab(rc)
 }
 
 // ModelNEmbd returns the embedding size of the model.

@@ -90,7 +90,8 @@ func ModelRopeFreqScaleTrain(model Model) float32 {
 	if !has("_yzma_model_rope_freq_scale_train") {
 		return 0
 	}
-	return float32(callValue("_yzma_model_rope_freq_scale_train", int(model)).Float())
+	v, _ := callNumber("_yzma_model_rope_freq_scale_train", int(model))
+	return float32(v)
 }
 
 // modelInt reads an integer model property. It returns 0 when the module has
@@ -112,8 +113,8 @@ func modelUint64(name string, model Model) uint64 {
 	if !has(name) {
 		return 0
 	}
-	v := callValue(name, int(model)).Float()
-	if v < 0 {
+	v, ok := callNumber(name, int(model))
+	if !ok || v < 0 {
 		return 0
 	}
 	return uint64(v)
