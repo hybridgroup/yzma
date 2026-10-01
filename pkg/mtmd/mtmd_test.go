@@ -3,6 +3,7 @@ package mtmd
 import (
 	"os"
 	"runtime"
+	"sync"
 	"testing"
 	"unsafe"
 
@@ -310,6 +311,54 @@ func TestHelperEvalChunks(t *testing.T) {
 	}
 
 	t.Log("HelperEvalChunks successfully evaluated the chunks")
+}
+
+func TestHelperEvalChunksParallelContexts(t *testing.T) {
+	modelFile := testModelFileName(t)
+	mmprojFile := testMMProjFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	model, err := llama.ModelLoadFromFile(modelFile, llama.ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer llama.ModelFree(model)
+
+	var wg sync.WaitGroup
+	results := make([]int32, 2)
+	for i := range results {
+		ctx, err := InitFromFile(mmprojFile, model, ContextParamsDefault())
+		if err != nil {
+			t.Fatalf("InitFromFile failed: %v", err)
+		}
+		defer Free(ctx)
+
+		lctx, err := llama.InitFromModel(model, llama.ContextDefaultParams())
+		if err != nil {
+			t.Fatalf("InitFromModel failed: %v", err)
+		}
+		defer llama.Free(lctx)
+
+		chunks := InputChunksInit()
+		defer InputChunksFree(chunks)
+		testSetupChunks(t, ctx, chunks)
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var newNPast llama.Pos
+			results[i] = HelperEvalChunks(ctx, lctx, chunks, 0, 0, 512, true, &newNPast)
+		}()
+	}
+	wg.Wait()
+
+	for i, result := range results {
+		if result != 0 {
+			t.Fatalf("HelperEvalChunks on context %d failed with result: %d", i, result)
+		}
+	}
 }
 
 func TestEncodeChunk(t *testing.T) {

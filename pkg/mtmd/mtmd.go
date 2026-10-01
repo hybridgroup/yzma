@@ -375,6 +375,7 @@ func Free(ctx Context) error {
 		return errors.New("invalid mtmd context handle")
 	}
 	freeFunc.Call(nil, unsafe.Pointer(&ctx))
+	evalChunksLocks.Delete(ctx)
 	return nil
 }
 
@@ -472,13 +473,14 @@ func TokenizeFromParts(ctx Context, out InputChunks, parts []*InputPart, addSpec
 // 2. run mtmd.Encode() on image chunks, then mtmd.GetOutputEmbd() and then llama.Decode()
 // if any of the mtmd.Encode() or llama.Decode() calls return non-zero, stop and forward the error
 // otherwise, returns 0 on success
-// this function is NOT thread-safe
+// Calls on the same Context are serialised. Calls on different Contexts run in parallel.
 func HelperEvalChunks(ctx Context, lctx llama.Context, chunks InputChunks, nPast llama.Pos, seqID llama.SeqId, nBatch int32, logitsLast bool, newNPast *llama.Pos) int32 {
 	if ctx == 0 {
 		return -1
 	}
-	muHelperEvalChunks.Lock()
-	defer muHelperEvalChunks.Unlock()
+	mu, _ := evalChunksLocks.LoadOrStore(ctx, &sync.Mutex{})
+	mu.(*sync.Mutex).Lock()
+	defer mu.(*sync.Mutex).Unlock()
 
 	var result ffi.Arg
 	helperEvalChunksFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&lctx), unsafe.Pointer(&chunks), &nPast, &seqID,
