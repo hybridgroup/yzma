@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
 )
@@ -116,16 +117,15 @@ func main() {
 	// single message
 	if len(*prompt) > 0 {
 		messages = append(messages, llama.NewChatMessage("user", *prompt))
-		chat(chatTemplate(true), true)
+		turn()
 
 		return
 	}
 
 	// chat session
-	first := true
+	reader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("USER> ")
-		reader := bufio.NewReader(os.Stdin)
 		pmpt, err := reader.ReadString('\n')
 		if err != nil {
 			fmt.Println("unable to read user input", err.Error())
@@ -133,18 +133,60 @@ func main() {
 		}
 
 		messages = append(messages, llama.NewChatMessage("user", pmpt))
-		chat(chatTemplate(true), first)
-		first = false
+		turn()
 	}
 }
 
-func chat(text string, first bool) {
+// decoded is the formatted history already in the context.
+var decoded string
+
+// turn decodes the part of the history that is not in the context yet, then
+// generates the reply and adds it to the history.
+func turn() {
+	formatted, ok := chatTemplate(true)
+	if !ok {
+		fmt.Println("unable to apply chat template", *template)
+		os.Exit(1)
+	}
+
+	// Start again from an empty context when the new history does not extend the old one.
+	text, ok := strings.CutPrefix(formatted, decoded)
+	if !ok || decoded == "" || llama.ModelHasEncoder(model) {
+		clearMemory()
+		text = formatted
+		decoded = ""
+	}
+
+	response := chat(text, decoded == "")
+	messages = append(messages, llama.NewChatMessage("assistant", response))
+
+	if decoded, ok = chatTemplate(false); !ok {
+		decoded = ""
+	}
+}
+
+func clearMemory() {
+	mem, err := llama.GetMemory(lctx)
+	if err != nil {
+		fmt.Println("unable to get memory", err.Error())
+		os.Exit(1)
+	}
+	if err := llama.MemoryClear(mem, true); err != nil {
+		fmt.Println("unable to clear memory", err.Error())
+		os.Exit(1)
+	}
+}
+
+func chat(text string, first bool) string {
 	tokens := llama.Tokenize(vocab, text, first, true)
 
 	batch := llama.BatchGetOne(tokens)
 
 	if llama.ModelHasEncoder(model) {
-		llama.Encode(lctx, batch)
+		if _, err := llama.Encode(lctx, batch); err != nil {
+			fmt.Println("unable to encode", err.Error())
+			os.Exit(1)
+		}
 
 		start := llama.ModelDecoderStartToken(model)
 		if start == llama.TokenNull {
@@ -157,8 +199,12 @@ func chat(text string, first bool) {
 	fmt.Println()
 
 	response := ""
+	buf := make([]byte, 256)
 	for pos := int32(0); pos < int32(*predictSize); pos += batch.NTokens {
-		llama.Decode(lctx, batch)
+		if _, err := llama.Decode(lctx, batch); err != nil {
+			fmt.Println("unable to decode, the context may be full:", err.Error())
+			os.Exit(1)
+		}
 		token := llama.SamplerSample(sampler, lctx, -1)
 
 		if llama.VocabIsEOG(vocab, token) {
@@ -166,9 +212,16 @@ func chat(text string, first bool) {
 			break
 		}
 
-		buf := make([]byte, 256)
 		l := llama.TokenToPiece(vocab, token, buf, 0, false)
-		next := string(buf[:l])
+		if l < 0 {
+			// A negative result is the size the piece needs.
+			buf = make([]byte, -l)
+			l = llama.TokenToPiece(vocab, token, buf, 0, false)
+		}
+		next := ""
+		if l > 0 && int(l) <= len(buf) {
+			next = string(buf[:l])
+		}
 
 		batch = llama.BatchGetOne([]llama.Token{token})
 
@@ -177,11 +230,21 @@ func chat(text string, first bool) {
 	}
 
 	fmt.Println()
+
+	return response
 }
 
-func chatTemplate(add bool) string {
-	buf := make([]byte, 1024)
-	len := llama.ChatApplyTemplate(*template, messages, add, buf)
-	result := string(buf[:len])
-	return result
+// chatTemplate formats messages and reports false when llama.cpp does not know the template.
+func chatTemplate(add bool) (string, bool) {
+	buf := make([]byte, 4096)
+	n := llama.ChatApplyTemplate(*template, messages, add, buf)
+	if int(n) > len(buf) {
+		// The result is the full length even when buf is too short.
+		buf = make([]byte, n)
+		n = llama.ChatApplyTemplate(*template, messages, add, buf)
+	}
+	if n < 0 || int(n) > len(buf) {
+		return "", false
+	}
+	return string(buf[:n]), true
 }
