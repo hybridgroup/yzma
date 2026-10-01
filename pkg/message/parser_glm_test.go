@@ -1,6 +1,7 @@
 package message
 
 import (
+	"maps"
 	"testing"
 )
 
@@ -103,4 +104,34 @@ func TestParseGLMToolCalls_ViaParseToolCall(t *testing.T) {
 	if calls[0].Function.Arguments["b"] != "27" {
 		t.Errorf("b: got %q, want %q", calls[0].Function.Arguments["b"], "27")
 	}
+}
+
+func TestParseGLMToolCalls_OutOfOrderTags(t *testing.T) {
+	tests := []struct {
+		response string
+		want     map[string]string
+	}{
+		{"f<arg_key>a</arg_key><arg_value>1</arg_value></arg_key><arg_key>b</arg_key>", map[string]string{"a": "1"}},
+		{"f<arg_key>a</arg_key></arg_value><arg_value>1</arg_value>", map[string]string{"a": "1"}},
+		{"f<arg_key></arg_key>a<arg_key>", map[string]string{}},
+		{"f<arg_key>a</arg_value></arg_key>", map[string]string{}},
+	}
+	for _, tt := range tests {
+		calls := ParseToolCalls(tt.response)
+		if len(calls) != 1 || calls[0].Function.Name != "f" {
+			t.Fatalf("ParseToolCalls(%q) gave %+v, want one call to f", tt.response, calls)
+		}
+		if !maps.Equal(calls[0].Function.Arguments, tt.want) {
+			t.Errorf("ParseToolCalls(%q) arguments %v, want %v", tt.response, calls[0].Function.Arguments, tt.want)
+		}
+	}
+}
+
+func FuzzParseGLMToolCalls(f *testing.F) {
+	f.Add("get_weather<arg_key>location</arg_key><arg_value>NYC</arg_value>")
+	f.Add("f<arg_key>a</arg_key><arg_value>1</arg_value></arg_key><arg_key>b</arg_key>")
+	f.Add("f<arg_key>a</arg_key></arg_value><arg_value>1</arg_value>")
+	f.Fuzz(func(t *testing.T, s string) {
+		parseGLMToolCalls(s)
+	})
 }
