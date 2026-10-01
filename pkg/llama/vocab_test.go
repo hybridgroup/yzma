@@ -2,6 +2,7 @@ package llama
 
 import (
 	"math"
+	"slices"
 	"testing"
 )
 
@@ -611,7 +612,16 @@ func TestTokenizeNUL(t *testing.T) {
 	defer ModelFree(model)
 
 	vocab := ModelGetVocab(model)
-	if tokens := Tokenize(vocab, "Hello\x00world", true, true); tokens != nil {
-		t.Fatalf("Tokenize with NUL = %v, want nil", tokens)
+	tokens := Tokenize(vocab, "Hello\x00world", false, false)
+	if len(tokens) == 0 {
+		t.Fatal("Tokenize with NUL returned no tokens")
+	}
+
+	head := Tokenize(vocab, "Hello", false, false)
+	if slices.Equal(tokens, head) {
+		t.Fatalf("Tokenize with NUL = %v, the text after the NUL is lost", tokens)
+	}
+	if got := Detokenize(vocab, tokens, false, false); got != "Hello\x00world" {
+		t.Fatalf("Detokenize = %q, want %q", got, "Hello\x00world")
 	}
 }
