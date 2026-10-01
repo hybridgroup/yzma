@@ -1,6 +1,7 @@
 package llama
 
 import (
+	"runtime"
 	"sync"
 	"unsafe"
 
@@ -502,15 +503,14 @@ func TokenToPiece(vocab Vocab, token Token, buf []byte, lstrip int32, special bo
 // Tokenize converts an input text into a sequence of tokens using the specified vocabulary.
 // The `addSpecial` parameter indicates whether to add special tokens, and the `parseSpecial` parameter
 // specifies whether to parse special tokens in the input text.
-// The function returns a slice of tokens, or nil if text contains a NUL byte.
+// The function returns a slice of tokens. The text can contain NUL bytes.
 func Tokenize(vocab Vocab, text string, addSpecial bool, parseSpecial bool) []Token {
 	if vocab == 0 {
 		return nil
 	}
-	txt, err := utils.BytePtrFromString(text)
-	if err != nil {
-		return nil
-	}
+	// The extra zero byte gives an empty string a valid pointer.
+	buf := append([]byte(text), 0)
+	txt := unsafe.SliceData(buf)
 	txtLen := int32(len(text))
 
 	// get the needed size
@@ -530,6 +530,7 @@ func Tokenize(vocab Vocab, text string, addSpecial bool, parseSpecial bool) []To
 
 	tokenizeFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&vocab), unsafe.Pointer(&txt), &txtLen,
 		unsafe.Pointer(&toks), &nTokensMax, &addSpecial, &parseSpecial)
+	runtime.KeepAlive(buf)
 
 	return tokens
 }
