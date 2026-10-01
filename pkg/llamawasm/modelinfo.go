@@ -49,19 +49,19 @@ func ModelIsDiffusion(model Model) bool { return modelInt("_yzma_model_is_diffus
 // ModelFtype returns the quantization type of the model.
 func ModelFtype(model Model) Ftype { return Ftype(modelInt("_yzma_model_ftype", model)) }
 
-// ModelRopeType returns how the model scales RoPE positions. It returns
-// RopeScalingTypeUnspecified when the module has no such call.
-func ModelRopeType(model Model) RopeScalingType {
+// ModelRopeType returns the RoPE type of the model. It returns RoPETypeNone
+// when the module has no such call.
+func ModelRopeType(model Model) RoPEType {
 	if !has("_yzma_model_rope_type") {
-		return RopeScalingTypeUnspecified
+		return RoPETypeNone
 	}
 
 	// A rope type can be -1, so only the bad handle value is a failure.
 	rc := call("_yzma_model_rope_type", int(model))
 	if rc <= errBadHandle {
-		return RopeScalingTypeUnspecified
+		return RoPETypeNone
 	}
-	return RopeScalingType(rc)
+	return RoPEType(rc)
 }
 
 // ModelDecoderStartToken returns the decoder start token of an encoder decoder

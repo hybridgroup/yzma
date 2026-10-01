@@ -661,13 +661,13 @@ func ModelRopeFreqScaleTrain(model Model) float32 {
 }
 
 // ModelRopeType retrieves the RoPE type of the model.
-func ModelRopeType(model Model) RopeScalingType {
+func ModelRopeType(model Model) RoPEType {
 	if model == 0 {
-		return RopeScalingTypeNone
+		return RoPETypeNone
 	}
 	var ropeType ffi.Arg
 	modelRopeTypeFunc.Call(unsafe.Pointer(&ropeType), unsafe.Pointer(&model))
-	return RopeScalingType(int32(ropeType))
+	return RoPEType(int32(ropeType))
 }
 
 // Warmup is to warm-up a model.
