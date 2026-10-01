@@ -14,7 +14,9 @@ func LibPath() string {
 }
 
 // Load loads the shared llama.cpp libraries from the specified path.
+// An empty path uses the YZMA_LIB env variable.
 func Load(path string) error {
+	path = loader.ResolvePath(path)
 	libPath = path
 	lib, err := loader.LoadLibrary(path, "ggml")
 	if err != nil {
@@ -95,9 +97,10 @@ func Load(path string) error {
 }
 
 // Init is a convenience function to handle initialization of llama.cpp.
-func Init() {
+// It returns an error if no library path is known to load the backends from.
+func Init() error {
 	BackendInit()
-	GGMLBackendLoadAllFromPath(libPath)
+	return GGMLBackendLoadAllFromPath(libPath)
 }
 
 // Close frees resources used by llama.cpp and unloads any dynamically loaded backends.

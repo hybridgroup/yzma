@@ -19,13 +19,19 @@ func (l Lib) Prep(name string, ret *ffi.Type, args ...*ffi.Type) (ffi.Fun, error
 	return l.lib.Prep(name, ret, args...)
 }
 
+// ResolvePath returns path, or the YZMA_LIB env variable when path is empty.
+func ResolvePath(path string) string {
+	if path == "" {
+		return os.Getenv("YZMA_LIB")
+	}
+	return path
+}
+
 // LoadLibrary loads a shared library. The path can be empty to use the location set by the YZMA_LIB env variable.
 // The lib should be the "short name" for the library, for example:
 // gguf, llama, mtmd
 func LoadLibrary(path, lib string) (Lib, error) {
-	if path == "" && os.Getenv("YZMA_LIB") != "" {
-		path = os.Getenv("YZMA_LIB")
-	}
+	path = ResolvePath(path)
 
 	// Ensure the library path is set
 	if path == "" {
