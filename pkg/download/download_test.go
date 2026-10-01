@@ -2,6 +2,7 @@ package download
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"encoding/json"
@@ -996,6 +997,92 @@ func TestExtractTarGzUpgradeRepointsSymlink(t *testing.T) {
 	}
 	if string(content) != "old library" {
 		t.Fatalf("superseded library was modified: %q", content)
+	}
+}
+
+type tarEntry struct {
+	name, link, content string
+	typ                 byte
+}
+
+func writeTar(t *testing.T, entries []tarEntry) *tar.Reader {
+	t.Helper()
+
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+	for _, e := range entries {
+		h := &tar.Header{Name: e.name, Linkname: e.link, Typeflag: e.typ, Mode: 0755, Size: int64(len(e.content))}
+		if err := tw.WriteHeader(h); err != nil {
+			t.Fatalf("failed to write tar header: %v", err)
+		}
+		if _, err := tw.Write([]byte(e.content)); err != nil {
+			t.Fatalf("failed to write tar content: %v", err)
+		}
+	}
+	tw.Close()
+
+	return tar.NewReader(&buf)
+}
+
+func TestExtractTarRejectsEscapes(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlinks require elevated privileges on Windows, skipping test")
+	}
+
+	outside := t.TempDir()
+	cases := []struct {
+		name    string
+		entries []tarEntry
+	}{
+		{"dot dot name", []tarEntry{{name: "x/../../escaped.txt", content: "x", typ: tar.TypeReg}}},
+		{"absolute symlink", []tarEntry{{name: "x/link", link: outside, typ: tar.TypeSymlink}}},
+		{"dot dot symlink", []tarEntry{{name: "x/sub/link", link: "../../out", typ: tar.TypeSymlink}}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			dest := filepath.Join(t.TempDir(), "lib")
+			if err := os.Mkdir(dest, 0755); err != nil {
+				t.Fatal(err)
+			}
+			if err := extractTar(writeTar(t, c.entries), dest); !errors.Is(err, ErrUnsafeArchive) {
+				t.Fatalf("extractTar gave %v, want ErrUnsafeArchive", err)
+			}
+		})
+	}
+
+	// A symlink left in dest by an earlier install must not let a file through.
+	dest := t.TempDir()
+	if err := os.Symlink(outside, filepath.Join(dest, "link")); err != nil {
+		t.Fatal(err)
+	}
+	if err := extractTar(writeTar(t, []tarEntry{{name: "x/link/viasym.txt", content: "x", typ: tar.TypeReg}}), dest); err == nil {
+		t.Fatal("extractTar wrote through a symlink that leaves dest")
+	}
+	if _, err := os.Stat(filepath.Join(outside, "viasym.txt")); !os.IsNotExist(err) {
+		t.Fatalf("a file was written outside dest: %v", err)
+	}
+}
+
+func TestExtractTarKeepsLocalSymlinks(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlinks require elevated privileges on Windows, skipping test")
+	}
+
+	dest := t.TempDir()
+	entries := []tarEntry{
+		{name: "x/", typ: tar.TypeDir},
+		{name: "x/lib/", typ: tar.TypeDir},
+		{name: "x/lib/libllama.so.1", content: "lib", typ: tar.TypeReg},
+		{name: "x/lib/libllama.so", link: "libllama.so.1", typ: tar.TypeSymlink},
+		{name: "x/libllama.so", link: "lib/libllama.so.1", typ: tar.TypeSymlink},
+	}
+	if err := extractTar(writeTar(t, entries), dest); err != nil {
+		t.Fatalf("extractTar failed: %v", err)
+	}
+	for _, name := range []string{"lib/libllama.so", "libllama.so"} {
+		if b, err := os.ReadFile(filepath.Join(dest, name)); err != nil || string(b) != "lib" {
+			t.Fatalf("%s gave %q, %v", name, b, err)
+		}
 	}
 }
 
