@@ -300,7 +300,8 @@ func VocabGetScore(vocab Vocab, token Token) float32 {
 	if !has("_yzma_vocab_get_score") {
 		return 0
 	}
-	return float32(callValue("_yzma_vocab_get_score", int(vocab), int(token)).Float())
+	v, _ := callNumber("_yzma_vocab_get_score", int(vocab), int(token))
+	return float32(v)
 }
 
 // VocabGetText returns the raw token text from the vocabulary, including

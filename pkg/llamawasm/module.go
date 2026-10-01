@@ -156,7 +156,12 @@ func attach(m js.Value) error {
 
 	mod = m
 
-	got := int(settle(m.Call("_yzma_abi_version")).Int())
+	v, err := settle(m.Call("_yzma_abi_version"))
+	if err != nil || v.Type() != js.TypeNumber {
+		mod = js.Undefined()
+		return fmt.Errorf("llamawasm: cannot read the ABI version of the llama.cpp module: %v", err)
+	}
+	got := v.Int()
 	if got < abiVersionMin || got > abiVersion {
 		mod = js.Undefined()
 		return fmt.Errorf("llamawasm: the llama.cpp module has ABI version %d, this build of yzma drives %d to %d",
@@ -309,39 +314,51 @@ func BackendFree() {
 // calls into the module
 //
 
-// call runs a shim function and returns the result as an int32.
+// call runs a shim function and returns the result as an int32. It returns
+// errBadHandle when the result is not a number, such as after a rejected promise.
 func call(name string, args ...any) int32 {
-	return int32(callValue(name, args...).Int())
+	n, ok := callNumber(name, args...)
+	if !ok {
+		return errBadHandle
+	}
+	return int32(n)
 }
 
 // callVoid runs a shim function that has no result.
 func callVoid(name string, args ...any) {
-	callValue(name, args...)
+	settle(mod.Call(name, args...))
 }
 
-// callValue runs a shim function and returns the result.
+// callNumber runs a shim function and reports false when the result is not a number.
 //
 // A module with the WebGPU backend needs the browser GPU, and a GPU request is
 // asynchronous. Emscripten builds that module with JSPI, so such a call returns
 // a promise and not a number. This function waits for the promise. A CPU build
 // returns the number directly, which is the fast path.
-func callValue(name string, args ...any) js.Value {
-	return settle(mod.Call(name, args...))
+func callNumber(name string, args ...any) (float64, bool) {
+	v, err := settle(mod.Call(name, args...))
+	if err != nil || v.Type() != js.TypeNumber {
+		return 0, false
+	}
+	return v.Float(), true
 }
 
-// settle waits for a promise. It returns a value that is not a promise.
-func settle(v js.Value) js.Value {
+// rejected is the reason of the last rejected promise. shimError reports it once.
+var rejected error
+
+// settle waits for a promise. It returns a value that is not a promise, or the
+// reason the promise was rejected.
+func settle(v js.Value) (js.Value, error) {
 	if v.Type() != js.TypeObject || v.Get("then").Type() != js.TypeFunction {
-		return v
+		return v, nil
 	}
 
 	resolved, err := await(v)
 	if err != nil {
-		// The shim cannot report this. Leave the value undefined, so the
-		// caller sees a result that is not a number.
-		return js.Undefined()
+		rejected = err
+		return js.Undefined(), err
 	}
-	return resolved
+	return resolved, nil
 }
 
 // callErr runs a shim function and turns a negative result into an error with
@@ -383,6 +400,10 @@ func callString(name string, size int, args ...any) string {
 
 // shimError creates an error from a return code and the last shim error.
 func shimError(name string, rc int32) error {
+	if err := rejected; err != nil {
+		rejected = nil
+		return fmt.Errorf("llamawasm: %s: %w", name, err)
+	}
 	if text := lastError(); text != "" {
 		return fmt.Errorf("llamawasm: %s: %s (%d)", name, text, rc)
 	}

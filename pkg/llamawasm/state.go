@@ -66,8 +66,8 @@ func stateUint64(name string, args ...any) uint64 {
 	if !has(name) {
 		return 0
 	}
-	v := callValue(name, args...).Float()
-	if v < 0 {
+	v, ok := callNumber(name, args...)
+	if !ok || v < 0 {
 		return 0
 	}
 	return uint64(v)
