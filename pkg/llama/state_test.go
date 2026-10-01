@@ -2,6 +2,7 @@ package llama
 
 import (
 	"os"
+	"slices"
 	"testing"
 )
 
@@ -97,15 +98,23 @@ func TestStateLoadFile(t *testing.T) {
 	}
 
 	// Prepare output buffer for loading
-	outTokens := make([]Token, len(tokens))
-	var nTokenCountOut uint64
+	if _, ok := StateLoadFile(ctx, tmpFile, nil); ok {
+		t.Fatal("StateLoadFile with no room for tokens succeeded")
+	}
+	if _, ok := StateLoadFile(ctx, tmpFile, make([]Token, len(tokens)-1)); ok {
+		t.Fatal("StateLoadFile with a short token slice succeeded")
+	}
 
-	ok = StateLoadFile(ctx, tmpFile, outTokens, uint64(len(outTokens)), &nTokenCountOut)
+	outTokens := make([]Token, len(tokens)+4)
+	nTokenCountOut, ok := StateLoadFile(ctx, tmpFile, outTokens)
 	if !ok {
 		t.Fatal("StateLoadFile failed")
 	}
-	if nTokenCountOut == 0 || nTokenCountOut > uint64(len(outTokens)) {
-		t.Fatalf("StateLoadFile loaded unexpected number of tokens: %d", nTokenCountOut)
+	if nTokenCountOut != uint64(len(tokens)) {
+		t.Fatalf("StateLoadFile loaded %d tokens, want %d", nTokenCountOut, len(tokens))
+	}
+	if !slices.Equal(outTokens[:nTokenCountOut], tokens) {
+		t.Fatalf("StateLoadFile loaded tokens %v, want %v", outTokens[:nTokenCountOut], tokens)
 	}
 
 	t.Logf("StateLoadFile loaded %d tokens from %s", nTokenCountOut, tmpFile)
@@ -283,14 +292,23 @@ func TestStateSeqSaveLoadFile(t *testing.T) {
 		t.Fatal("StateSeqSaveFile failed")
 	}
 
-	outTokens := make([]Token, len(tokens))
-	var nTokenCountOut uint64
-	nLoaded := StateSeqLoadFile(ctx, tmpFile, seqId, outTokens, uint64(len(outTokens)), &nTokenCountOut)
+	if nLoaded, n := StateSeqLoadFile(ctx, tmpFile, seqId, nil); nLoaded == 0 || n != uint64(len(tokens)) {
+		t.Fatalf("StateSeqLoadFile token count query gave %d bytes and %d tokens, want %d tokens", nLoaded, n, len(tokens))
+	}
+	if nLoaded, _ := StateSeqLoadFile(ctx, tmpFile, seqId, make([]Token, len(tokens)-1)); nLoaded != 0 {
+		t.Fatal("StateSeqLoadFile with a short token slice succeeded")
+	}
+
+	outTokens := make([]Token, len(tokens)+4)
+	nLoaded, nTokenCountOut := StateSeqLoadFile(ctx, tmpFile, seqId, outTokens)
 	if nLoaded == 0 {
 		t.Fatal("StateSeqLoadFile failed")
 	}
-	if nTokenCountOut == 0 || nTokenCountOut > uint64(len(outTokens)) {
-		t.Fatalf("StateSeqLoadFile loaded unexpected number of tokens: %d", nTokenCountOut)
+	if nTokenCountOut != uint64(len(tokens)) {
+		t.Fatalf("StateSeqLoadFile loaded %d tokens, want %d", nTokenCountOut, len(tokens))
+	}
+	if !slices.Equal(outTokens[:nTokenCountOut], tokens) {
+		t.Fatalf("StateSeqLoadFile loaded tokens %v, want %v", outTokens[:nTokenCountOut], tokens)
 	}
 }
 
@@ -348,18 +366,17 @@ func TestStateFileNULPath(t *testing.T) {
 
 	path := "state\x00.bin"
 	tokens := make([]Token, 8)
-	var n uint64
 
 	if StateSaveFile(ctx, path, tokens) {
 		t.Error("StateSaveFile with NUL path succeeded")
 	}
-	if StateLoadFile(ctx, path, tokens, uint64(len(tokens)), &n) {
+	if _, ok := StateLoadFile(ctx, path, tokens); ok {
 		t.Error("StateLoadFile with NUL path succeeded")
 	}
 	if got := StateSeqSaveFile(ctx, path, 0, tokens); got != 0 {
 		t.Errorf("StateSeqSaveFile with NUL path = %d, want 0", got)
 	}
-	if got := StateSeqLoadFile(ctx, path, 0, tokens, uint64(len(tokens)), &n); got != 0 {
+	if got, _ := StateSeqLoadFile(ctx, path, 0, tokens); got != 0 {
 		t.Errorf("StateSeqLoadFile with NUL path = %d, want 0", got)
 	}
 }
