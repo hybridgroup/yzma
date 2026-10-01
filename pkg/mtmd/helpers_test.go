@@ -4,7 +4,6 @@ import (
 	"image"
 	"os"
 	"testing"
-	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
 )
@@ -61,7 +60,7 @@ func testSetupChunks(t *testing.T, ctx Context, chunks InputChunks) {
 		t.Fatal("could not open image file")
 	}
 
-	bitmap := BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
+	bitmap := BitmapInit(x, y, data)
 	defer BitmapFree(bitmap)
 
 	bitmaps := []Bitmap{bitmap} // Replace with actual bitmap data if available

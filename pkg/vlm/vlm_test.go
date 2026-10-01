@@ -4,7 +4,6 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
 	"github.com/hybridgroup/yzma/pkg/mtmd"
@@ -131,7 +130,7 @@ func TestVLM_Tokenize(t *testing.T) {
 		t.Fatal("could not open image file")
 	}
 
-	bitmap := mtmd.BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
+	bitmap := mtmd.BitmapInit(x, y, data)
 	defer mtmd.BitmapFree(bitmap)
 
 	if err := vlm.Tokenize(text, []mtmd.Bitmap{bitmap}, chunks); err != nil {
@@ -167,7 +166,7 @@ func TestVLM_Results(t *testing.T) {
 		t.Fatal("could not open image file")
 	}
 
-	bitmap := mtmd.BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
+	bitmap := mtmd.BitmapInit(x, y, data)
 	defer mtmd.BitmapFree(bitmap)
 
 	if err := vlm.Tokenize(text, []mtmd.Bitmap{bitmap}, chunks); err != nil {

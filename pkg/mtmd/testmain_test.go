@@ -9,7 +9,6 @@ import (
 	"strings"
 	"syscall"
 	"testing"
-	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
 )
@@ -141,7 +140,7 @@ func benchmarkSetupOnce(b *testing.B) {
 		b.Fatal("could not open file")
 	}
 	benchImgData = data
-	benchBitmap = BitmapInit(x, y, uintptr(unsafe.Pointer(&benchImgData[0])))
+	benchBitmap = BitmapInit(x, y, benchImgData)
 
 	benchReady = true
 }

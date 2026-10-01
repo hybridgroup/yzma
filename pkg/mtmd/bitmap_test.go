@@ -5,7 +5,6 @@ import (
 	"os"
 	"runtime"
 	"testing"
-	"unsafe"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
 )
@@ -19,7 +18,7 @@ func TestBitmap(t *testing.T) {
 		t.Fatal("count not open file")
 	}
 
-	bitmap := BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
+	bitmap := BitmapInit(x, y, data)
 	defer BitmapFree(bitmap)
 
 	if BitmapGetNBytes(bitmap) != 2073600 {
@@ -36,7 +35,7 @@ func TestBitmapGetNxAndNy(t *testing.T) {
 		t.Fatal("could not open file")
 	}
 
-	bitmap := BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
+	bitmap := BitmapInit(x, y, data)
 	defer BitmapFree(bitmap)
 
 	nx := BitmapGetNx(bitmap)
@@ -58,7 +57,7 @@ func TestBitmapGetData(t *testing.T) {
 		t.Fatal("could not open file")
 	}
 
-	bitmap := BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
+	bitmap := BitmapInit(x, y, data)
 	defer BitmapFree(bitmap)
 
 	rawData := BitmapGetData(bitmap)
@@ -78,7 +77,7 @@ func TestBitmapIsAudio(t *testing.T) {
 		t.Fatal("could not open file")
 	}
 
-	bitmap := BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
+	bitmap := BitmapInit(x, y, data)
 	defer BitmapFree(bitmap)
 
 	isAudio := BitmapIsAudio(bitmap)
@@ -98,7 +97,7 @@ func TestBitmapGetAndSetId(t *testing.T) {
 		t.Fatal("could not open file")
 	}
 
-	bitmap := BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
+	bitmap := BitmapInit(x, y, data)
 	defer BitmapFree(bitmap)
 
 	id := "test_bitmap_id"
@@ -145,8 +144,8 @@ func TestBitmapInitPlaceholder(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	// BitmapInit with data=0 creates a placeholder bitmap.
-	bitmap := BitmapInit(640, 480, 0)
+	// BitmapInit with nil data creates a placeholder bitmap.
+	bitmap := BitmapInit(640, 480, nil)
 	defer BitmapFree(bitmap)
 
 	if bitmap == Bitmap(0) {
@@ -161,12 +160,22 @@ func TestBitmapInitPlaceholder(t *testing.T) {
 	}
 }
 
+func TestBitmapInitShortData(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	if bitmap := BitmapInit(640, 480, make([]byte, 640*480*3-1)); bitmap != 0 {
+		BitmapFree(bitmap)
+		t.Fatal("BitmapInit should return 0 when data is shorter than nx*ny*3")
+	}
+}
+
 func TestBitmapIsPlaceholder(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
 	// Placeholder bitmap created with nil data.
-	placeholder := BitmapInit(640, 480, 0)
+	placeholder := BitmapInit(640, 480, nil)
 	defer BitmapFree(placeholder)
 
 	if !BitmapIsPlaceholder(placeholder) {
@@ -183,7 +192,7 @@ func TestBitmapIsPlaceholderForRegularBitmap(t *testing.T) {
 		t.Fatal("could not open file")
 	}
 
-	bitmap := BitmapInit(x, y, uintptr(unsafe.Pointer(&data[0])))
+	bitmap := BitmapInit(x, y, data)
 	defer BitmapFree(bitmap)
 
 	if BitmapIsPlaceholder(bitmap) {
@@ -202,7 +211,7 @@ func TestBitmapGetNBytesPlaceholder(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	bitmap := BitmapInit(640, 480, 0)
+	bitmap := BitmapInit(640, 480, nil)
 	defer BitmapFree(bitmap)
 
 	if BitmapGetNBytes(bitmap) != 0 {
@@ -214,7 +223,7 @@ func TestBitmapGetDataPlaceholder(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)
 
-	bitmap := BitmapInit(640, 480, 0)
+	bitmap := BitmapInit(640, 480, nil)
 	defer BitmapFree(bitmap)
 
 	if BitmapGetData(bitmap) != nil {
