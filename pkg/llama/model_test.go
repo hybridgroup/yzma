@@ -913,9 +913,17 @@ func TestSetProgressCallbackManyTimes(t *testing.T) {
 	defer testCleanup(t)
 
 	// purego has 2000 callback slots, so a slot per call would panic here.
+	before := countClosures()
 	var other ModelParams
 	for range 2100 {
 		other.SetProgressCallback(func(float32, uintptr) uint8 { return 1 })
+	}
+	if got := countClosures() - before; got != 1 {
+		t.Fatalf("SetProgressCallback kept %d closures, want 1", got)
+	}
+	other.SetProgressCallback(nil)
+	if got := countClosures() - before; got != 0 {
+		t.Fatalf("SetProgressCallback(nil) kept %d closures, want 0", got)
 	}
 
 	firstCalls, secondCalls := 0, 0
@@ -939,4 +947,10 @@ func TestSetProgressCallbackManyTimes(t *testing.T) {
 	if firstCalls == 0 || secondCalls != 0 {
 		t.Fatalf("first called %d times, second %d times, want only first", firstCalls, secondCalls)
 	}
+}
+
+func countClosures() int {
+	n := 0
+	progressClosures.Range(func(any, any) bool { n++; return true })
+	return n
 }

@@ -276,6 +276,7 @@ var (
 	progressCallbackFn   uintptr
 	progressCallbackOnce sync.Once
 	progressCallbacks    sync.Map // closure address to ProgressCallback
+	progressClosures     sync.Map // code address to *ffi.Closure
 	sizeOfClosure        = unsafe.Sizeof(ffi.Closure{})
 )
 
@@ -310,10 +311,23 @@ func initProgressCallback() {
 	}
 }
 
+// freeProgressCallback frees a closure made by SetProgressCallback. Any other code address is left alone.
+func freeProgressCallback(code uintptr) {
+	v, ok := progressClosures.LoadAndDelete(code)
+	if !ok {
+		return
+	}
+	closure := v.(*ffi.Closure)
+	progressCallbacks.Delete(uintptr(unsafe.Pointer(closure)))
+	ffi.ClosureFree(closure)
+}
+
 // SetProgressCallback sets a callback that fires during mmproj model loading.
 // The callback receives a progress value in [0.0, 1.0]. Return false to cancel loading.
-// Pass nil to clear a previously set callback.
+// Pass nil to clear a previously set callback. It frees the closure set before,
+// so do not load with a copy of p made before this call.
 func (p *ContextParamsType) SetProgressCallback(cb ProgressCallback) {
+	freeProgressCallback(p.ProgressCallback)
 	if cb == nil {
 		p.ProgressCallback = uintptr(0)
 		return
@@ -329,6 +343,7 @@ func (p *ContextParamsType) SetProgressCallback(cb ProgressCallback) {
 	}
 
 	progressCallbacks.Store(uintptr(unsafe.Pointer(closure)), cb)
+	progressClosures.Store(uintptr(progressCallbackCode), closure)
 	if status := ffi.PrepClosureLoc(closure, progressCallbackCif, progressCallbackFn, unsafe.Pointer(closure), progressCallbackCode); status != ffi.OK {
 		panic(status)
 	}
