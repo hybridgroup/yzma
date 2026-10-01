@@ -100,12 +100,20 @@ func (m *VLM) Init() error {
 }
 
 // ChatTemplate applies the model's chat template to the given messages.
+// It returns an empty string when llama.cpp does not know the template.
 func (m *VLM) ChatTemplate(messages []llama.ChatMessage, add bool) string {
-	buf := make([]byte, 16536)
-	len := llama.ChatApplyTemplate(m.template, messages, add, buf)
-	result := string(buf[:len])
+	buf := make([]byte, 16384)
+	n := llama.ChatApplyTemplate(m.template, messages, add, buf)
+	if int(n) > len(buf) {
+		// The result is the full length even when buf is too short.
+		buf = make([]byte, n)
+		n = llama.ChatApplyTemplate(m.template, messages, add, buf)
+	}
+	if n < 0 || int(n) > len(buf) {
+		return ""
+	}
 
-	return result
+	return string(buf[:n])
 }
 
 // Tokenize tokenizes the input text and image bitmap into output chunks.
@@ -127,6 +135,7 @@ func (m *VLM) Results(chunks mtmd.InputChunks) (string, error) {
 
 	vocab := llama.ModelGetVocab(m.Model)
 	results := ""
+	buf := make([]byte, 128)
 
 	for i := 0; i < int(nBatch); i++ {
 		token := llama.SamplerSample(m.Sampler, m.ModelContext, -1)
@@ -135,9 +144,9 @@ func (m *VLM) Results(chunks mtmd.InputChunks) (string, error) {
 			break
 		}
 
-		buf := make([]byte, 128)
-		len := llama.TokenToPiece(vocab, token, buf, 0, true)
-		results += string(buf[:len])
+		var piece string
+		piece, buf = tokenPiece(vocab, token, buf)
+		results += piece
 
 		batch := llama.BatchGetOne([]llama.Token{token})
 		batch.Pos = &n
@@ -149,6 +158,22 @@ func (m *VLM) Results(chunks mtmd.InputChunks) (string, error) {
 	m.Clear()
 
 	return results, nil
+}
+
+// tokenPiece returns the text of token. It grows buf when the piece does not fit
+// and returns the buffer to use next time.
+func tokenPiece(vocab llama.Vocab, token llama.Token, buf []byte) (string, []byte) {
+	n := llama.TokenToPiece(vocab, token, buf, 0, true)
+	if n < 0 {
+		// A negative result is the size the piece needs.
+		buf = make([]byte, -n)
+		n = llama.TokenToPiece(vocab, token, buf, 0, true)
+	}
+	if n <= 0 || int(n) > len(buf) {
+		return "", buf
+	}
+
+	return string(buf[:n]), buf
 }
 
 // Clear clears the context memory.

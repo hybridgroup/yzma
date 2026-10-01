@@ -2,6 +2,7 @@ package vlm
 
 import (
 	"runtime"
+	"strings"
 	"testing"
 	"unsafe"
 
@@ -46,6 +47,45 @@ func TestVLM_ChatTemplate(t *testing.T) {
 	out := vlm.ChatTemplate(messages, true)
 	if out == "" {
 		t.Error("ChatTemplate returned empty string")
+	}
+
+	// A history longer than the first buffer must not panic or be cut short.
+	long := strings.Repeat("a", 40000)
+	out = vlm.ChatTemplate([]llama.ChatMessage{llama.NewChatMessage("user", long)}, true)
+	if !strings.Contains(out, long) {
+		t.Errorf("ChatTemplate returned %d bytes, want the whole %d byte message", len(out), len(long))
+	}
+}
+
+func TestTokenPieceGrowsBuffer(t *testing.T) {
+	modelFile := testModelFileName(t)
+	mmprojFile := testMMProjFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	vlm := NewVLM(modelFile, mmprojFile)
+	if err := vlm.Init(); err != nil {
+		t.Fatalf("VLM.Init failed: %v", err)
+	}
+	defer vlm.Close()
+
+	vocab := llama.ModelGetVocab(vlm.Model)
+	tokens := llama.Tokenize(vocab, "information", false, false)
+	if len(tokens) == 0 {
+		t.Fatal("Tokenize returned no tokens")
+	}
+
+	want, _ := tokenPiece(vocab, tokens[0], make([]byte, 128))
+	if len(want) < 2 {
+		t.Skipf("piece %q is too short to test a small buffer", want)
+	}
+	got, buf := tokenPiece(vocab, tokens[0], make([]byte, 1))
+	if got != want {
+		t.Errorf("tokenPiece with a 1 byte buffer gave %q, want %q", got, want)
+	}
+	if len(buf) < len(want) {
+		t.Errorf("tokenPiece returned a %d byte buffer, want at least %d", len(buf), len(want))
 	}
 }
 
