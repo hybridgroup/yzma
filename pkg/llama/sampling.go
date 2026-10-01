@@ -731,26 +731,52 @@ func resolveDryPenaltyLastN(lastN, nCtx int32) int32 {
 // NewSampler creates a new sampling chain.
 // The samplers parameter is a list of SamplerType values to include in the chain.
 // The samplers are added in the order they appear in the list.
-// The distribution sampler is always added last.
-// If the model is nil or the samplers list is empty, a zero Sampler is returned.
+// The distribution sampler is always added last, or the Adaptive-P sampler
+// when the list has SamplerTypeAdaptiveP.
+// When params.Mirostat is 1 or 2, the list is ignored and the chain is
+// temperature then Mirostat, as in llama.cpp.
+// If the model or params is nil, the samplers list is empty, or params.Mirostat
+// is not 0, 1 or 2, a zero Sampler is returned.
 func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Sampler {
 	var sampler Sampler
-	if model == 0 || len(samplers) == 0 {
+	if model == 0 || len(samplers) == 0 || params == nil {
+		return sampler
+	}
+	if params.Mirostat < 0 || params.Mirostat > 2 {
 		return sampler
 	}
 	vocab := ModelGetVocab(model)
 	nTokens := VocabNTokens(vocab)
 	nCtxTrain := ModelNCtxTrain(model)
 
-	sampler = SamplerChainInit(SamplerChainDefaultParams())
+	chainParams := SamplerChainDefaultParams()
+	chainParams.NoPerf = 0
+	if params.NoPerf {
+		chainParams.NoPerf = 1
+	}
+	sampler = SamplerChainInit(chainParams)
 
-	// add EOG logit bias to prevent generating EOG tokens
-	logitBiasEOG := make([]LogitBias, 0)
-	for i := range nTokens {
-		token := Token(i)
-		if VocabIsEOG(vocab, token) {
-			logitBiasEOG = append(logitBiasEOG, LogitBias{Token: token, Bias: math.SmallestNonzeroFloat32})
+	if params.IgnoreEos {
+		var eog []LogitBias
+		for i := range nTokens {
+			if VocabIsEOG(vocab, Token(i)) {
+				eog = append(eog, LogitBias{Token: Token(i), Bias: float32(math.Inf(-1))})
+			}
 		}
+		if len(eog) > 0 {
+			SamplerChainAdd(sampler, SamplerInitLogitBias(nTokens, int32(len(eog)), unsafe.SliceData(eog)))
+		}
+	}
+
+	switch params.Mirostat {
+	case 1:
+		SamplerChainAdd(sampler, SamplerInitTemp(params.Temp))
+		SamplerChainAdd(sampler, SamplerInitMirostat(nTokens, params.Seed, params.MirostatTau, params.MirostatEta, 100))
+		return sampler
+	case 2:
+		SamplerChainAdd(sampler, SamplerInitTemp(params.Temp))
+		SamplerChainAdd(sampler, SamplerInitMirostatV2(params.Seed, params.MirostatTau, params.MirostatEta))
+		return sampler
 	}
 
 	// Samplers keep at least this many candidates. The C parameter is an
@@ -761,12 +787,11 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 		minKeep = uint32(params.MinKeep)
 	}
 
-	// add other samplers
+	adaptiveP := false
 	for _, samplerType := range samplers {
 		switch samplerType {
 		case SamplerTypeLogitBias:
-			bias := SamplerInitLogitBias(nTokens, int32(len(logitBiasEOG)), unsafe.SliceData(logitBiasEOG))
-			SamplerChainAdd(sampler, bias)
+			// The EOG bias for IgnoreEos is already first in the chain.
 
 		case SamplerTypeDry:
 			dry := SamplerInitDry(vocab, params.DryMultiplier, params.DryBase, params.DryAllowedLength,
@@ -790,7 +815,7 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 			SamplerChainAdd(sampler, typical)
 
 		case SamplerTypeTemperature:
-			temp := SamplerInitTempExt(params.Temp, 0, 1.0)
+			temp := SamplerInitTempExt(params.Temp, params.DynatempRange, params.DynatempExponent)
 			SamplerChainAdd(sampler, temp)
 
 		case SamplerTypeXTC:
@@ -798,7 +823,7 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 			SamplerChainAdd(sampler, xtc)
 
 		case SamplerTypeInfill:
-			// TODO: add implementation
+			SamplerChainAdd(sampler, SamplerInitInfill(vocab))
 
 		case SamplerTypePenalties:
 			penalties := SamplerInitPenalties(nTokens, params.PenaltyLastN,
@@ -808,12 +833,18 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 		case SamplerTypeTopNSigma:
 			topNSigma := SamplerInitTopNSigma(params.TopNSigma)
 			SamplerChainAdd(sampler, topNSigma)
+
+		case SamplerTypeAdaptiveP:
+			// Adaptive-P selects the token like dist, so it goes last.
+			adaptiveP = true
 		}
 	}
 
-	// always add dist sampler last
-	dist := SamplerInitDist(params.Seed)
-	SamplerChainAdd(sampler, dist)
+	if adaptiveP {
+		SamplerChainAdd(sampler, SamplerInitAdaptiveP(params.AdaptiveTarget, params.AdaptiveDecay, params.Seed))
+	} else {
+		SamplerChainAdd(sampler, SamplerInitDist(params.Seed))
+	}
 
 	return sampler
 }
@@ -821,8 +852,6 @@ func NewSampler(model Model, samplers []SamplerType, params *SamplerParams) Samp
 // SamplerParams holds the parameters for creating samplers.
 type SamplerParams struct {
 	Seed                uint32
-	NPrev               int32
-	NProbs              int32
 	MinKeep             int32
 	TopK                int32
 	TopP                float32
@@ -845,9 +874,10 @@ type SamplerParams struct {
 	TopNSigma           float32
 	MirostatTau         float32
 	MirostatEta         float32
+	AdaptiveTarget      float32
+	AdaptiveDecay       float32
 	IgnoreEos           bool
 	NoPerf              bool
-	TimingPerToken      bool
 	DrySequenceBreakers []string
 }
 
@@ -855,10 +885,6 @@ type SamplerParams struct {
 func DefaultSamplerParams() *SamplerParams {
 	return &SamplerParams{
 		Seed: DefaultSeed,
-		// number of previous tokens to remember
-		NPrev: 64,
-		// if greater than 0, output the probabilities of top n_probs tokens.
-		NProbs: 0,
 		// 0 = disabled, otherwise samplers should return at least min_keep tokens
 		MinKeep: 0,
 		// <= 0 to use vocab size
@@ -903,12 +929,14 @@ func DefaultSamplerParams() *SamplerParams {
 		MirostatTau: 5.0,
 		// learning rate
 		MirostatEta: 0.1,
-		// if true, ignore end-of-sequence token
+		// Adaptive-P target probability, negative = disabled
+		AdaptiveTarget: -1.0,
+		// Adaptive-P decay, history is about 1/(1-decay) tokens
+		AdaptiveDecay: 0.90,
+		// if true, give every EOG token a -Inf logit bias
 		IgnoreEos: false,
 		// disable performance metrics
 		NoPerf: false,
-		// if true, enable timing per token
-		TimingPerToken: false,
 		// default sequence breakers for DRY
 		DrySequenceBreakers: []string{"\n", ":", "\"", "*"},
 	}
