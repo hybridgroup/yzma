@@ -24,6 +24,7 @@ var (
 	ErrUnknownProcessor = errors.New("unknown processor")
 	ErrInvalidVersion   = errors.New("invalid version")
 	ErrFileNotFound     = errors.New("could not download file: the requested llama.cpp version may still be building for your platform.")
+	ErrUnsafeArchive    = errors.New("unsafe archive")
 )
 
 var (
@@ -317,10 +318,18 @@ func downloadAndExtractTarGz(asset Asset, dest string, progress getter.ProgressT
 	}
 	defer gzr.Close()
 
-	// Create tar reader
-	tr := tar.NewReader(gzr)
+	return extractTar(tar.NewReader(gzr), dest)
+}
 
-	// Extract files
+// extractTar extracts tr into dest. Every write goes through an os.Root, so no
+// entry or symlink can place a file outside dest.
+func extractTar(tr *tar.Reader, dest string) error {
+	root, err := os.OpenRoot(dest)
+	if err != nil {
+		return fmt.Errorf("failed to open %s: %w", dest, err)
+	}
+	defer root.Close()
+
 	for {
 		header, err := tr.Next()
 		if err == io.EOF {
@@ -341,27 +350,30 @@ func downloadAndExtractTarGz(asset Asset, dest string, progress getter.ProgressT
 			continue
 		}
 
-		target := filepath.Join(dest, filepath.Clean(name))
+		target := filepath.Clean(filepath.FromSlash(name))
+		if !filepath.IsLocal(target) {
+			return fmt.Errorf("%w: tar entry %q is outside the destination", ErrUnsafeArchive, header.Name)
+		}
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			if err := os.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
+			if err := root.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
 				return fmt.Errorf("failed to create directory: %w", err)
 			}
 		case tar.TypeReg:
 			// Ensure parent directory exists
-			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+			if err := root.MkdirAll(filepath.Dir(target), 0755); err != nil {
 				return fmt.Errorf("failed to create parent directory: %w", err)
 			}
 
 			// Remove any existing entry first, so an upgrade replaces it instead of
 			// writing through a stale symlink left by a previous install.
-			if err := removeExisting(target); err != nil {
+			if err := removeExisting(root, target); err != nil {
 				return err
 			}
 
 			// Create the file
-			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.FileMode(header.Mode))
+			f, err := root.OpenFile(target, os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.FileMode(header.Mode))
 			if err != nil {
 				return fmt.Errorf("failed to create file: %w", err)
 			}
@@ -373,19 +385,25 @@ func downloadAndExtractTarGz(asset Asset, dest string, progress getter.ProgressT
 			}
 			f.Close()
 		case tar.TypeSymlink:
+			// The loader follows these symlinks outside the os.Root, so the target must stay in dest too.
+			link := filepath.FromSlash(header.Linkname)
+			if filepath.IsAbs(link) || !filepath.IsLocal(filepath.Join(filepath.Dir(target), link)) {
+				return fmt.Errorf("%w: symlink %q points outside the destination", ErrUnsafeArchive, header.Name)
+			}
+
 			// Ensure parent directory exists
-			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+			if err := root.MkdirAll(filepath.Dir(target), 0755); err != nil {
 				return fmt.Errorf("failed to create parent directory: %w", err)
 			}
 
 			// Remove any existing entry first. Keeping it would leave the version
 			// symlinks (e.g. libllama.dylib) pointing at the previously installed
 			// build, so an upgrade would have no effect at load time.
-			if err := removeExisting(target); err != nil {
+			if err := removeExisting(root, target); err != nil {
 				return err
 			}
 
-			if err := os.Symlink(header.Linkname, target); err != nil {
+			if err := root.Symlink(header.Linkname, target); err != nil {
 				return fmt.Errorf("failed to create symlink: %w", err)
 			}
 		}
@@ -396,8 +414,8 @@ func downloadAndExtractTarGz(asset Asset, dest string, progress getter.ProgressT
 
 // removeExisting removes target unless it is already absent or a directory,
 // which is left alone so extraction can populate it.
-func removeExisting(target string) error {
-	fi, err := os.Lstat(target)
+func removeExisting(root *os.Root, target string) error {
+	fi, err := root.Lstat(target)
 	switch {
 	case os.IsNotExist(err):
 		return nil
@@ -407,7 +425,7 @@ func removeExisting(target string) error {
 		return nil
 	}
 
-	if err := os.Remove(target); err != nil {
+	if err := root.Remove(target); err != nil {
 		return fmt.Errorf("failed to remove existing %s: %w", target, err)
 	}
 
