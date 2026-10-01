@@ -114,8 +114,8 @@ func TestModelSizeAndParams(t *testing.T) {
 func TestModelRopeTypeAndStartToken(t *testing.T) {
 	helper := fakeInfo(t)
 
-	if got := ModelRopeType(Model(1)); got != RopeScalingTypeYARN {
-		t.Errorf("ModelRopeType gave %v, want RopeScalingTypeYARN", got)
+	if got := ModelRopeType(Model(1)); got != RoPETypeNEOX {
+		t.Errorf("ModelRopeType gave %v, want RoPETypeNEOX", got)
 	}
 	// A model with no decoder start token returns -1, which is a valid value.
 	if got := ModelDecoderStartToken(Model(1)); got != TokenNull {
@@ -124,8 +124,8 @@ func TestModelRopeTypeAndStartToken(t *testing.T) {
 
 	helper.Call("setRope", -1)
 	helper.Call("setStart", 7)
-	if got := ModelRopeType(Model(1)); got != RopeScalingTypeUnspecified {
-		t.Errorf("ModelRopeType gave %v, want RopeScalingTypeUnspecified", got)
+	if got := ModelRopeType(Model(1)); got != RoPETypeNone {
+		t.Errorf("ModelRopeType gave %v, want RoPETypeNone", got)
 	}
 	if got := ModelDecoderStartToken(Model(1)); got != Token(7) {
 		t.Errorf("ModelDecoderStartToken gave %v, want 7", got)
@@ -160,8 +160,8 @@ func TestModelInfoOldModule(t *testing.T) {
 	if ModelNLayer(Model(1)) != 0 || ModelSize(Model(1)) != 0 || NThreads(Context(1)) != 0 {
 		t.Error("a module of an earlier version must give a zero value")
 	}
-	if got := ModelRopeType(Model(1)); got != RopeScalingTypeUnspecified {
-		t.Errorf("ModelRopeType gave %v, want RopeScalingTypeUnspecified", got)
+	if got := ModelRopeType(Model(1)); got != RoPETypeNone {
+		t.Errorf("ModelRopeType gave %v, want RoPETypeNone", got)
 	}
 	if got := ModelDecoderStartToken(Model(1)); got != TokenNull {
 		t.Errorf("ModelDecoderStartToken gave %v, want TokenNull", got)

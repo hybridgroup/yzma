@@ -106,6 +106,18 @@ const (
 	RopeScalingTypeMaxValue    RopeScalingType = RopeScalingTypeLongROPE
 )
 
+// RoPEType is the RoPE type of a model. The values match llama.RoPEType.
+type RoPEType int32
+
+const (
+	RoPETypeNone   RoPEType = -1
+	RoPETypeNorm   RoPEType = 0
+	RoPETypeNEOX   RoPEType = 2
+	RoPETypeMROPE  RoPEType = 8
+	RoPETypeIMROPE RoPEType = 40
+	RoPETypeVision RoPEType = 24
+)
+
 // VocabType is the tokenizer type of a vocabulary. The values match
 // llama.VocabType.
 type VocabType int32
