@@ -49,6 +49,8 @@ const maxSeqs = 17
 // Scores are the raw scores before calibration. They are empty for a JevK5
 // question with more than 16 options and for a decider score question with
 // isolated levels, which combine several passes.
+// Confidence and Expected follow the TypeSafe API. Expected is the mean level
+// of a score question and 0 for other questions.
 type Result struct {
 	Answer               string    `json:"answer"`
 	Options              []string  `json:"options"`
@@ -57,6 +59,8 @@ type Result struct {
 	Temperature          float64   `json:"temperature"`
 	TopProbability       float64   `json:"top_probability"`
 	EntropyConcentration float64   `json:"entropy_concentration"`
+	Confidence           float64   `json:"confidence"`
+	Expected             float64   `json:"expected"`
 	InputTokens          int       `json:"input_tokens"`
 	HeadTokens           int       `json:"head_tokens,omitempty"`
 }
@@ -195,6 +199,7 @@ func (d *Decider) Decide(state any, q Question, category string) (*Result, error
 	if err != nil {
 		return nil, err
 	}
+	rs[0].typed(q.Type)
 	return rs[0], nil
 }
 
@@ -205,7 +210,14 @@ func (d *Decider) DecideMany(state any, qs []Question, category string) ([]*Resu
 	if len(qs) == 0 {
 		return nil, nil
 	}
-	return d.family.decide(d, state, qs, category, true)
+	rs, err := d.family.decide(d, state, qs, category, true)
+	if err != nil {
+		return nil, err
+	}
+	for i, r := range rs {
+		r.typed(qs[i].Type)
+	}
+	return rs, nil
 }
 
 // score decodes the rendered inputs, which share one state, and returns the
@@ -465,6 +477,48 @@ func newResult(names []string, p, scores []float64, temp float64, inputTokens, h
 		InputTokens:          inputTokens,
 		HeadTokens:           headTokens,
 	}
+}
+
+// typed sets the fields that depend on the question type.
+// Score questions use the score confidence, the others the choice confidence.
+func (r *Result) typed(t Type) {
+	if t != TypeScore {
+		r.Confidence = confidenceChoice(r.Probabilities)
+		return
+	}
+	r.Confidence = confidenceScore(r.Probabilities)
+	for i, v := range r.Probabilities {
+		r.Expected += float64(i) * v
+	}
+}
+
+// confidenceChoice is 0 when all options are equally likely and 1 when one is certain.
+func confidenceChoice(p []float64) float64 {
+	if len(p) < 2 {
+		return 1
+	}
+	u := 1 / float64(len(p))
+	return math.Max(0, (slices.Max(p)-u)/(1-u))
+}
+
+// confidenceScore compares the mean distance to the mode with the one of a uniform distribution.
+func confidenceScore(p []float64) float64 {
+	n := len(p)
+	if n < 2 {
+		return 1
+	}
+	mode := 0
+	for i := range p {
+		if p[i] > p[mode] {
+			mode = i
+		}
+	}
+	var dist, uniform float64
+	for i, v := range p {
+		dist += v * math.Abs(float64(i-mode))
+		uniform += math.Abs(float64(i)-float64(n-1)/2) / float64(n)
+	}
+	return math.Max(0, 1-dist/uniform)
 }
 
 // concentration is 1 minus the entropy of p over its maximum, in [0, 1].

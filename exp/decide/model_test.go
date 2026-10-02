@@ -3,6 +3,7 @@
 package decide
 
 import (
+	"encoding/json"
 	"errors"
 	"math"
 	"os"
@@ -376,5 +377,40 @@ func TestDeciderManyModel(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestAnswerModel(t *testing.T) {
+	d := deciderTestDecider(t, ManyExact)
+
+	req, err := ParseRequest([]byte(`{
+		"state": {"message": "Hi, I was charged twice for my order #4471 and I want a refund.", "plan": "pro"},
+		"questions": {
+			"intent": {"type": "choice", "instructions": "What does the customer want?",
+				"criteria": {"refund": "wants money back", "cancel": "wants to cancel an order", "other": "anything else"}},
+			"refund": {"type": "noul", "instructions": "Is a refund requested?"},
+			"frustration": {"type": "score", "instructions": "How frustrated is the customer?",
+				"criteria": ["calm", "mildly annoyed", "annoyed", "angry"]}
+		}
+	}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := d.Answer(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if a := resp.Answers[0].Result; a.Answer != "refund" || a.Confidence <= 0 {
+		t.Errorf("intent: got %s confidence %v", a.Answer, a.Confidence)
+	}
+	if p := resp.Answers[1].Result.Probability("true"); p < 0.5 {
+		t.Errorf("refund: got %v", p)
+	}
+	if e := resp.Answers[2].Result.Expected; e < 0 || e > 3 {
+		t.Errorf("frustration: expected level %v", e)
+	}
+	if _, err := json.Marshal(resp); err != nil {
+		t.Fatal(err)
 	}
 }
