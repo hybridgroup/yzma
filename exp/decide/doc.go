@@ -40,5 +40,8 @@
 // [Decider.DecideMany] asks several questions about one state and decodes
 // the state once. See [ManyMode] for the exact and batched modes.
 //
+// [ParseRequest] and [Decider.Answer] use the JSON of the TypeSafe
+// /v1/systemone API, the same one llama-server serves.
+//
 // This package is experimental and its API can change.
 package decide
