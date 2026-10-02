@@ -60,8 +60,8 @@ func ParseJevK5Config(data []byte) (*JevK5Config, error) {
 // option's probability from the logit of its letter after a chat prompt.
 // Load and init llama.cpp first, and call [Decider.Close] when done.
 //
-// As in the reference runtime, the whole prompt is tokenized with special
-// tokens parsed, so control token text in the state is read as a control token.
+// The prompt is tokenized with special tokens parsed, as in the reference
+// runtime, but <|name|> text in the state, question and options is escaped first.
 func NewJevK5(modelPath, configPath string, opts Options) (*Decider, error) {
 	if modelPath == "" || configPath == "" {
 		return nil, errors.New("decide: model and jevk5 config paths are required")
@@ -176,7 +176,7 @@ func jevK5Prompt(state any, criterion string, texts []string) (string, error) {
 	if err := enc.Encode(p); err != nil {
 		return "", fmt.Errorf("state: %w", err)
 	}
-	user := spaceJSON(bytes.TrimRight(buf.Bytes(), "\n"))
+	user := escapeSpecial(spaceJSON(bytes.TrimRight(buf.Bytes(), "\n")))
 
 	return "<|im_start|>system\n" + jevK5System + "<|im_end|>\n" +
 		"<|im_start|>user\n" + user + "<|im_end|>\n" +

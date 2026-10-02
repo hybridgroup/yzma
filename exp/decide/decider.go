@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"regexp"
 	"slices"
 	"sync"
 )
@@ -21,6 +22,9 @@ type Options struct {
 	// ContextSize is the context in tokens. 0 uses the model family default,
 	// max_len for Jev-Style and 8192 for JevK5 and decider models.
 	ContextSize uint32
+	// BothOrders also reads each choice question with its options reversed and
+	// averages the two, which cancels a preference for the first options.
+	BothOrders bool
 }
 
 // ManyMode is how [Decider.DecideMany] shares one state across questions.
@@ -85,6 +89,7 @@ type Decider struct {
 	nCtx       int
 	nSeqMax    int
 	manyMode   ManyMode
+	bothOrders bool
 	cached     []token
 	mu         sync.Mutex
 }
@@ -133,7 +138,7 @@ func NewFromConfig(modelPath string, cfg *Config, opts Options) (*Decider, error
 
 // load loads the model and creates a context of opts.ContextSize tokens, or defCtx when it is 0.
 func load(modelPath string, defCtx int, opts Options) (*Decider, error) {
-	d := &Decider{maxOptions: 256, manyMode: opts.ManyMode}
+	d := &Decider{maxOptions: 256, manyMode: opts.ManyMode, bothOrders: opts.BothOrders}
 	if opts.MaxOptions > 0 {
 		d.maxOptions = int(opts.MaxOptions)
 	}
@@ -176,6 +181,14 @@ func (d *Decider) tokenizer(parseSpecial bool) encoder {
 	}
 }
 
+var specialText = regexp.MustCompile(`<\|([A-Za-z0-9_]+)\|>`)
+
+// escapeSpecial changes <|name|> in user text to <¦name¦>, as llama-server does,
+// so a prompt tokenized with special tokens parsed keeps it as text.
+func escapeSpecial(s string) string {
+	return specialText.ReplaceAllString(s, "<\u00a6$1\u00a6>")
+}
+
 // Close frees the model and context.
 func (d *Decider) Close() {
 	d.b.close()
@@ -195,11 +208,10 @@ func (d *Decider) Config() *Config {
 // category picks a Jev-Style calibration temperature. An empty category uses
 // the global temperature. JevK5 and decider models ignore it.
 func (d *Decider) Decide(state any, q Question, category string) (*Result, error) {
-	rs, err := d.family.decide(d, state, []Question{q}, category, false)
+	rs, err := d.run(state, []Question{q}, category, false)
 	if err != nil {
 		return nil, err
 	}
-	rs[0].typed(q.Type)
 	return rs[0], nil
 }
 
@@ -210,14 +222,47 @@ func (d *Decider) DecideMany(state any, qs []Question, category string) ([]*Resu
 	if len(qs) == 0 {
 		return nil, nil
 	}
-	rs, err := d.family.decide(d, state, qs, category, true)
+	return d.run(state, qs, category, true)
+}
+
+// run scores qs and, with [Options.BothOrders], reads each choice question
+// a second time with its options reversed.
+func (d *Decider) run(state any, qs []Question, category string, many bool) ([]*Result, error) {
+	all := qs
+	var flipped []int
+	if d.bothOrders {
+		for i, q := range qs {
+			if q.Type != TypeChoice || len(q.Options) < 2 {
+				continue
+			}
+			q.Options = slices.Clone(q.Options)
+			slices.Reverse(q.Options)
+			all = append(slices.Clip(all), q)
+			flipped = append(flipped, i)
+		}
+	}
+
+	rs, err := d.family.decide(d, state, all, category, many)
 	if err != nil {
 		return nil, err
 	}
+	for j, i := range flipped {
+		rs[i] = bothOrders(rs[i], rs[len(qs)+j])
+	}
+	rs = rs[:len(qs)]
 	for i, r := range rs {
 		r.typed(qs[i].Type)
 	}
 	return rs, nil
+}
+
+// bothOrders averages the probabilities of a question read in two orders.
+func bothOrders(a, b *Result) *Result {
+	p := make([]float64, len(a.Options))
+	for i, n := range a.Options {
+		p[i] = (a.Probabilities[i] + b.Probability(n)) / 2
+	}
+	return newResult(a.Options, p, nil, a.Temperature, a.InputTokens+b.InputTokens, a.HeadTokens+b.HeadTokens)
 }
 
 // score decodes the rendered inputs, which share one state, and returns the
