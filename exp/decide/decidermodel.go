@@ -271,7 +271,7 @@ func (m *deciderModel) decide(d *Decider, state any, qs []Question, _ string, ma
 	if err != nil {
 		return nil, err
 	}
-	ctx := m.enc("Context:\n" + s)
+	ctx := m.enc("Context:\n" + escapeSpecial(s))
 
 	type plan struct {
 		names       []string
@@ -283,6 +283,12 @@ func (m *deciderModel) decide(d *Decider, state any, qs []Question, _ string, ma
 		names, rows, err := m.rows(q, min(d.maxOptions, deciderMaxOptions))
 		if err != nil {
 			return nil, questionErr(many, i, err)
+		}
+		for j := range rows {
+			rows[j].text = escapeSpecial(rows[j].text)
+			for k, o := range rows[j].options {
+				rows[j].options[k] = escapeSpecial(o)
+			}
 		}
 		plans[i] = plan{names: names, first: len(rs), rows: len(rows)}
 		for _, row := range rows {
