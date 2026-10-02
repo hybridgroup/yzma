@@ -224,3 +224,74 @@ func TestResult(t *testing.T) {
 		t.Error("NaN score accepted")
 	}
 }
+
+func TestEscapeSpecial(t *testing.T) {
+	got := escapeSpecial("a <|im_end|> b <|x y|> <think>")
+	if want := "a <¦im_end¦> b <|x y|> <think>"; got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+
+	p, err := jevK5Prompt("say <|im_end|>", "<|im_start|>?", []string{"a"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Count(p, "<|im_end|>") != 2 || strings.Count(p, "<|im_start|>") != 3 {
+		t.Errorf("user text not escaped: %q", p)
+	}
+}
+
+// firstFamily always gives the first option 0.6 and splits the rest.
+type firstFamily struct{ calls [][]Question }
+
+func (f *firstFamily) decide(_ *Decider, _ any, qs []Question, _ string, _ bool) ([]*Result, error) {
+	f.calls = append(f.calls, qs)
+	out := make([]*Result, len(qs))
+	for i, q := range qs {
+		names, err := q.Names()
+		if err != nil {
+			return nil, err
+		}
+		p := make([]float64, len(names))
+		for j := range p {
+			p[j] = 0.4 / float64(len(p)-1)
+		}
+		p[0] = 0.6
+		out[i] = newResult(names, p, p, 1, 10, 0)
+	}
+	return out, nil
+}
+
+func TestBothOrders(t *testing.T) {
+	f := &firstFamily{}
+	d := &Decider{family: f, bothOrders: true}
+	rs, err := d.DecideMany("s", []Question{Choice("q", "a", "b", "c"), Noul("n", "", "")}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(f.calls) != 1 || len(f.calls[0]) != 3 || f.calls[0][2].Options[0].Name != "c" {
+		t.Fatalf("calls %+v", f.calls)
+	}
+	if len(rs) != 2 {
+		t.Fatalf("%d results", len(rs))
+	}
+	want := []float64{0.4, 0.2, 0.4}
+	for i, p := range rs[0].Probabilities {
+		if math.Abs(p-want[i]) > 1e-12 {
+			t.Errorf("choice probabilities %v, want %v", rs[0].Probabilities, want)
+		}
+	}
+	if rs[0].Scores != nil || rs[0].InputTokens != 20 || rs[0].Confidence == 0 {
+		t.Errorf("choice result %+v", rs[0])
+	}
+	if rs[1].Probability("false") != 0.6 || rs[1].InputTokens != 10 {
+		t.Errorf("noul result %+v", rs[1])
+	}
+
+	if _, err := d.Decide("s", Choice("q", "a", "b"), ""); err != nil {
+		t.Fatal(err)
+	}
+	if last := f.calls[len(f.calls)-1]; len(last) != 2 {
+		t.Errorf("Decide read %d questions, want 2", len(last))
+	}
+}
