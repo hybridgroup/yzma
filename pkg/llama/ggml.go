@@ -230,6 +230,9 @@ func GGMLBackendLoadAllFromPath(path string) error {
 		return errors.New("invalid path")
 	}
 
+	release := loader.PreloadBackends(path)
+	defer release()
+
 	p := &[]byte(path + "\x00")[0]
 	ggmlBackendLoadAllFromPath.Call(nil, unsafe.Pointer(&p))
 
@@ -254,7 +257,7 @@ func GGMLBackendLoadErrors(path string) []error {
 			continue
 		}
 
-		lib, err := ffi.Load(filepath.Join(path, name))
+		lib, err := loader.Open(filepath.Join(path, name))
 		if err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", name, err))
 			continue

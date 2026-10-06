@@ -98,3 +98,41 @@ jobs:
         run: go run ./examples/hello
       - name: Run embedding test
         run: go run ./examples/embeddings -model ${env:GITHUB_WORKSPACE}/models/SmolLM-135M.Q2_K.gguf -p "Hello World"
+
+  load-without-path:
+    runs-on: windows-2025
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 'stable'
+      - name: Install vcredist
+        shell: pwsh
+        run: |
+            curl -o VC_redist.x64.exe -L https://aka.ms/vs/17/release/vc_redist.x64.exe
+            Start-Process VC_redist.x64.exe -ArgumentList "/install /quiet /norestart" -Wait
+      - name: Get latest llama.cpp version
+        id: llama-version
+        shell: bash
+        run: |
+          VERSION=$(curl -s https://hybridgroup.github.io/llama-cpp-builder/version.json | jq -r '.tag_name')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      - name: Install yzma command
+        run: go install .
+      - name: Install llama.cpp binaries
+        run: |
+          yzma install -lib ${env:GITHUB_WORKSPACE}\bundle -version ${{ steps.llama-version.outputs.version }}
+      - name: Download test model
+        run: |
+            yzma model get -y --show-progress=false -o ${env:GITHUB_WORKSPACE}/models -u https://huggingface.co/QuantFactory/SmolLM-135M-GGUF/resolve/main/SmolLM-135M.Q2_K.gguf
+      - name: Check bundle is not on PATH
+        run: |
+            if ($env:PATH -split ';' | Where-Object { $_ -like "*bundle*" }) { exit 1 }
+      - name: Run tests with YZMA_LIB only
+        env:
+          YZMA_TEST_MODEL: ${{ github.workspace }}/models/SmolLM-135M.Q2_K.gguf
+        run: |
+            $env:YZMA_LIB = "${env:GITHUB_WORKSPACE}\bundle"
+            go test -v ./pkg/llama/
