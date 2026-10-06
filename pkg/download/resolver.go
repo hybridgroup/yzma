@@ -175,13 +175,16 @@ func rocmNames(tag string) rocmVersionNames {
 	}
 }
 
-// llama.cpp changed the OpenVINO version in its asset names at this build.
-const openvino20264Build = 11024
+// llama.cpp changed the OpenVINO version in its asset names at these builds.
+const (
+	openvino20264Build  = 11024
+	openvino202641Build = 11374
+)
 
 // openvinoVersion reports the OpenVINO version in the asset names for tag. A tag that
 // is not a nightly build gets the newest version.
 func openvinoVersion(tag string) string {
-	const current = "2026.4"
+	const current = "2026.4.1"
 	if !nightlyPattern.MatchString(tag) {
 		return current
 	}
@@ -189,10 +192,14 @@ func openvinoVersion(tag string) string {
 	if err != nil {
 		return current
 	}
-	if build < openvino20264Build {
+	switch {
+	case build < openvino20264Build:
 		return "2026.3.1"
+	case build < openvino202641Build:
+		return "2026.4"
+	default:
+		return current
 	}
-	return current
 }
 
 // The CUDA release that a Linux build uses when the machine reports no CUDA

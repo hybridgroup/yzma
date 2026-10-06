@@ -408,7 +408,7 @@ func TestDefaultResolverROCmTaggedRelease(t *testing.T) {
 	}
 }
 
-// llama.cpp changed the OpenVINO version in its asset names at build b11024.
+// llama.cpp changed the OpenVINO version in its asset names at builds b11024 and b11374.
 func TestDefaultResolverOpenVINONaming(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -422,6 +422,12 @@ func TestDefaultResolverOpenVINONaming(t *testing.T) {
 		{"windows before 2026.4", Windows, "b11022", "llama-b11022-bin-win-openvino-2026.3.1-x64.zip"},
 		{"windows at 2026.4", Windows, "b11024", "llama-b11024-bin-win-openvino-2026.4-x64.zip"},
 		{"windows after 2026.4", Windows, "b11029", "llama-b11029-bin-win-openvino-2026.4-x64.zip"},
+		{"linux before 2026.4.1", Linux, "b11372", "llama-b11372-bin-ubuntu-openvino-2026.4-x64.tar.gz"},
+		{"linux at 2026.4.1", Linux, "b11374", "llama-b11374-bin-ubuntu-openvino-2026.4.1-x64.tar.gz"},
+		{"linux after 2026.4.1", Linux, "b11429", "llama-b11429-bin-ubuntu-openvino-2026.4.1-x64.tar.gz"},
+		{"windows before 2026.4.1", Windows, "b11372", "llama-b11372-bin-win-openvino-2026.4-x64.zip"},
+		{"windows at 2026.4.1", Windows, "b11374", "llama-b11374-bin-win-openvino-2026.4.1-x64.zip"},
+		{"windows after 2026.4.1", Windows, "b11429", "llama-b11429-bin-win-openvino-2026.4.1-x64.zip"},
 	}
 
 	for _, tt := range tests {
@@ -452,6 +458,9 @@ func TestDefaultResolverOpenVINOTaggedRelease(t *testing.T) {
 		{"linux before 2026.4", Linux, "b11022", "llama-b11022-bin-ubuntu-openvino-2026.3.1-x64.tar.gz"},
 		{"linux at 2026.4", Linux, "b11024", "llama-b11024-bin-ubuntu-openvino-2026.4-x64.tar.gz"},
 		{"windows at 2026.4", Windows, "b11024", "llama-b11024-bin-win-openvino-2026.4-x64.zip"},
+		{"linux before 2026.4.1", Linux, "b11372", "llama-b11372-bin-ubuntu-openvino-2026.4-x64.tar.gz"},
+		{"linux at 2026.4.1", Linux, "b11429", "llama-b11429-bin-ubuntu-openvino-2026.4.1-x64.tar.gz"},
+		{"windows at 2026.4.1", Windows, "b11429", "llama-b11429-bin-win-openvino-2026.4.1-x64.zip"},
 	}
 
 	for _, tt := range tests {
