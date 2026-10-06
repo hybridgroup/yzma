@@ -134,16 +134,7 @@ type deciderModel struct {
 func newDeciderModel(enc, plain encoder, cfg *DeciderConfig) (*deciderModel, error) {
 	m := &deciderModel{cfg: cfg, enc: enc, open: enc("\n(")}
 
-	var names []string
-	for a := 'A'; a <= 'Z'; a++ {
-		names = append(names, string(a))
-	}
-	for a := 'A'; a <= 'Z'; a++ {
-		for b := 'A'; b <= 'Z'; b++ {
-			names = append(names, string([]rune{a, b}))
-		}
-	}
-	for i, n := range names {
+	for i, n := range labelCodes() {
 		ids := plain(n)
 		if len(ids) == 1 {
 			m.labels = append(m.labels, ids[0])
@@ -156,6 +147,20 @@ func newDeciderModel(enc, plain encoder, cfg *DeciderConfig) (*deciderModel, err
 	}
 
 	return nil, fmt.Errorf("tokenizer mismatch: %d label tokens, want %d", len(m.labels), deciderMaxOptions)
+}
+
+// labelCodes returns A to Z and then AA to ZZ.
+func labelCodes() []string {
+	var codes []string
+	for a := 'A'; a <= 'Z'; a++ {
+		codes = append(codes, string(a))
+	}
+	for a := 'A'; a <= 'Z'; a++ {
+		for b := 'A'; b <= 'Z'; b++ {
+			codes = append(codes, string([]rune{a, b}))
+		}
+	}
+	return codes
 }
 
 // deciderRow is one question as the model reads it.

@@ -4,6 +4,7 @@ package decide
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hybridgroup/yzma/pkg/llama"
 )
@@ -136,4 +137,28 @@ func (b *backend) decode(bt *batch) error {
 // logits returns the output logits at batch index i.
 func (b *backend) logits(i int32) ([]float32, error) {
 	return llama.GetLogitsIth(b.ctx, i, b.nVocab)
+}
+
+// meta returns the metadata value of key, and false if the model has none.
+func (b *backend) meta(key string) (string, bool) {
+	return llama.ModelMetaValStr(b.model, key)
+}
+
+// metaPrefix returns the metadata values whose key starts with prefix, by the rest of the key.
+func (b *backend) metaPrefix(prefix string) map[string]string {
+	out := map[string]string{}
+	for i := range llama.ModelMetaCount(b.model) {
+		k, ok := llama.ModelMetaKeyByIndex(b.model, i)
+		if !ok || !strings.HasPrefix(k, prefix) {
+			continue
+		}
+		if v, ok := llama.ModelMetaValStrByIndex(b.model, i); ok {
+			out[k[len(prefix):]] = v
+		}
+	}
+	return out
+}
+
+func (b *backend) chatTemplate(name string) string {
+	return llama.ModelChatTemplate(b.model, name)
 }

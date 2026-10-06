@@ -55,11 +55,11 @@ func TestParseRequest(t *testing.T) {
 	}
 
 	team := req.Questions[0].Question
-	want := []Option{{"shipping", ""}, {"billing", "money"}, {"other", `{"k":1}`}}
+	want := []Option{{"shipping", ""}, {"billing", "money"}, {"other", `{"k": 1}`}}
 	if team.Type != TypeChoice || !slices.Equal(team.Options, want) {
 		t.Errorf("team %+v", team)
 	}
-	if angry := req.Questions[1].Question; angry.Type != TypeNoul || angry.Text != `{"q":"angry?"}` {
+	if angry := req.Questions[1].Question; angry.Type != TypeNoul || angry.Text != `{"q": "angry?"}` {
 		t.Errorf("angry %+v", angry)
 	}
 	if urgency := req.Questions[2].Question; urgency.Type != TypeScore || urgency.Options[1].Description != "now" {

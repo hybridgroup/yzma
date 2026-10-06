@@ -46,6 +46,10 @@ func run() error {
 		newDecider = decide.NewJevK5
 	case "decider":
 		newDecider = decide.NewDeciderModel
+	case "gguf":
+		newDecider = func(model, _ string, opts decide.Options) (*decide.Decider, error) {
+			return decide.Open(model, opts)
+		}
 	}
 	d, err := newDecider(*modelFile, *configFile, decide.Options{Threads: int32(*threads)})
 	if err != nil {
