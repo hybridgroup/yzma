@@ -35,6 +35,9 @@ func TestBatchExtInvalidHandles(t *testing.T) {
 	if err := BatchExtFree(0); err == nil {
 		t.Fatal("BatchExtFree accepted a zero batch")
 	}
+	if err := BatchExtSetDecisionOrder(0, 0, DecisionOrderOption); err == nil {
+		t.Fatal("BatchExtSetDecisionOrder accepted a zero batch")
+	}
 	if _, err := BatchExtAddToken(0, 0, 1); err == nil {
 		t.Fatal("BatchExtAddToken accepted a zero batch")
 	}
@@ -154,6 +157,12 @@ func TestBatchExtErrors(t *testing.T) {
 	}
 	if err := BatchExtAddSeq(batch, idx, 0); err != nil {
 		t.Fatalf("BatchExtAddSeq failed: %v", err)
+	}
+	if err := BatchExtSetDecisionOrder(batch, idx, DecisionOrderOption); err != nil {
+		t.Fatalf("BatchExtSetDecisionOrder failed: %v", err)
+	}
+	if err := BatchExtSetDecisionOrder(batch, 99, DecisionOrderOption); !errors.Is(err, ErrBatchExtRejected) {
+		t.Fatalf("out of range decision order index returned %v, want ErrBatchExtRejected", err)
 	}
 	if err := BatchExtSetOutputEmbd(batch, idx, true); err != nil {
 		t.Fatalf("BatchExtSetOutputEmbd failed: %v", err)

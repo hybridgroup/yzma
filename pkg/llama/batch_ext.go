@@ -21,6 +21,18 @@ const (
 	ProcessTypeDecode ProcessType = 1
 )
 
+// DecisionOrder marks the entries that a joint decision head (clef) reads.
+// A run of entries with the same value is one span, and spans must be separated by [DecisionOrderNone].
+type DecisionOrder int32
+
+const (
+	DecisionOrderNone           DecisionOrder = 0
+	DecisionOrderQuestionNoul   DecisionOrder = 1
+	DecisionOrderQuestionChoice DecisionOrder = 2
+	DecisionOrderQuestionScore  DecisionOrder = 3
+	DecisionOrderOption         DecisionOrder = 4
+)
+
 // mropeSections is GGML_MROPE_SECTIONS, the most positions llama.cpp reads for one entry.
 const mropeSections = 4
 
@@ -32,6 +44,8 @@ var (
 	ErrBatchExtInvalidSeqID = errors.New("invalid sequence ID for batch")
 	// ErrBatchExtRejected means llama.cpp rejected the index or value.
 	ErrBatchExtRejected = errors.New("batch rejected the value")
+	// ErrBatchExtNoDecisionOrder means the llama.cpp library does not export llama_batch_ext_set_decision_order.
+	ErrBatchExtNoDecisionOrder = errors.New("llama_batch_ext_set_decision_order not found in library")
 
 	errInvalidBatchExt = errors.New("invalid extended batch")
 )
@@ -84,6 +98,10 @@ var (
 
 	// LLAMA_API bool llama_batch_ext_set_pos(struct llama_batch_ext * batch, int32_t idx, const llama_pos * pos);
 	batchExtSetPosFunc ffi.Fun
+
+	// LLAMA_API bool llama_batch_ext_set_decision_order(struct llama_batch_ext * batch, int32_t idx, enum llama_decision_order order);
+	batchExtSetDecisionOrderFunc ffi.Fun
+	hasBatchExtSetDecisionOrder  bool
 
 	// LLAMA_API int32_t llama_process(struct llama_context * ctx, enum llama_process_type type, struct llama_batch_ext * batch);
 	processFunc ffi.Fun
@@ -138,6 +156,18 @@ func loadBatchExtFuncs(lib loader.Lib) error {
 
 	if batchExtSetPosFunc, err = lib.Prep("llama_batch_ext_set_pos", &ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypePointer); err != nil {
 		return loadError("llama_batch_ext_set_pos", err)
+	}
+
+	// The staging header has no C linkage, so also try the C++ names.
+	for _, name := range []string{
+		"llama_batch_ext_set_decision_order",
+		"_Z34llama_batch_ext_set_decision_orderP15llama_batch_exti20llama_decision_order",
+		"?llama_batch_ext_set_decision_order@@YA_NPEAUllama_batch_ext@@HW4llama_decision_order@@@Z",
+	} {
+		if batchExtSetDecisionOrderFunc, err = lib.Prep(name, &ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32); err == nil {
+			hasBatchExtSetDecisionOrder = true
+			break
+		}
 	}
 
 	if processFunc, err = lib.Prep("llama_process", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypePointer); err != nil {
@@ -313,6 +343,21 @@ func BatchExtSetPos(batch BatchExt, idx int32, pos ...Pos) error {
 	runtime.KeepAlive(&p)
 
 	return setResult(result, "set position at index %d", idx)
+}
+
+// BatchExtSetDecisionOrder sets which part of a joint decision prompt the entry at idx belongs to.
+// It returns [ErrBatchExtNoDecisionOrder] when the library does not have the function.
+func BatchExtSetDecisionOrder(batch BatchExt, idx int32, order DecisionOrder) error {
+	if batch == 0 {
+		return errInvalidBatchExt
+	}
+	if !hasBatchExtSetDecisionOrder {
+		return ErrBatchExtNoDecisionOrder
+	}
+	var result ffi.Arg
+	batchExtSetDecisionOrderFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&batch), &idx, &order)
+
+	return setResult(result, "set decision order at index %d", idx)
 }
 
 // Process encodes or decodes the batch. The return values are the same as [Decode].
