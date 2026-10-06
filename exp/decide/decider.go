@@ -90,6 +90,7 @@ type Decider struct {
 	nSeqMax    int
 	manyMode   ManyMode
 	bothOrders bool
+	stateless  bool
 	cached     []token
 	mu         sync.Mutex
 }
@@ -138,6 +139,31 @@ func NewFromConfig(modelPath string, cfg *Config, opts Options) (*Decider, error
 
 // load loads the model and creates a context of opts.ContextSize tokens, or defCtx when it is 0.
 func load(modelPath string, defCtx int, opts Options) (*Decider, error) {
+	d, err := loadModel(modelPath, opts)
+	if err != nil {
+		return nil, err
+	}
+	if err := d.newContext(defCtx, opts, readoutLogits); err != nil {
+		d.Close()
+		return nil, err
+	}
+	return d, nil
+}
+
+// readout is what a model outputs and how its context is set up.
+type readout int
+
+const (
+	// readoutLogits reads the logits of label tokens.
+	readoutLogits readout = iota
+	// readoutEmbd reads the embeddings output of each token, with no pooling.
+	readoutEmbd
+	// readoutEncoder is readoutEmbd for a model with no memory, so each
+	// input is decoded alone in one ubatch.
+	readoutEncoder
+)
+
+func loadModel(modelPath string, opts Options) (*Decider, error) {
 	d := &Decider{maxOptions: 256, manyMode: opts.ManyMode, bothOrders: opts.BothOrders}
 	if opts.MaxOptions > 0 {
 		d.maxOptions = int(opts.MaxOptions)
@@ -145,9 +171,13 @@ func load(modelPath string, defCtx int, opts Options) (*Decider, error) {
 	if err := d.b.load(modelPath); err != nil {
 		return nil, err
 	}
+	return d, nil
+}
 
+// newContext creates a context of opts.ContextSize tokens, or defCtx when it is 0.
+func (d *Decider) newContext(defCtx int, opts Options, r readout) error {
 	// One decode holds the whole input, so the batch is as big as the context.
-	p := ctxParams{nCtx: uint32(defCtx), nSeqMax: maxSeqs, threads: opts.Threads}
+	p := ctxParams{nCtx: uint32(defCtx), nSeqMax: maxSeqs, threads: opts.Threads, embeddings: r != readoutLogits}
 	if opts.ContextSize > 0 {
 		p.nCtx = opts.ContextSize
 	}
@@ -156,23 +186,26 @@ func load(modelPath string, defCtx int, opts Options) (*Decider, error) {
 	if opts.UBatch > 0 {
 		p.nUbatch = min(opts.UBatch, p.nCtx)
 	}
+	if r == readoutEncoder {
+		p.nUbatch = p.nCtx
+	}
 	// llama.cpp needs room for at least one output per sequence.
 	p.nOutputsMax = uint32(max(d.maxOptions, maxSeqs))
 
 	n, err := d.b.newContext(p)
 	if err != nil {
-		d.Close()
-		return nil, err
+		return err
 	}
 	d.ubatch = int(p.nUbatch)
 	d.nCtx = int(p.nCtx)
 	d.nSeqMax = int(n)
-	// A context of one sequence cannot share the state.
-	if d.nSeqMax < 2 {
+	d.stateless = r == readoutEncoder
+	// A context of one sequence cannot share the state, and an encoder keeps none.
+	if d.nSeqMax < 2 || d.stateless {
 		d.manyMode = manySeparate
 	}
 
-	return d, nil
+	return nil
 }
 
 func (d *Decider) tokenizer(parseSpecial bool) encoder {
@@ -300,7 +333,7 @@ func (d *Decider) separate(rs []*rendered) ([][][]float64, error) {
 	out := make([][][]float64, len(rs))
 	for i, r := range rs {
 		d.clear()
-		v, err := d.decode(part{ids: r.ids, slots: r.slots, rows: r.rows})
+		v, err := d.decode(part{ids: r.ids, slots: r.slots, rows: r.rows, embd: r.embd})
 		if err != nil {
 			return nil, err
 		}
@@ -343,7 +376,7 @@ func (d *Decider) exact(rs []*rendered) ([][][]float64, error) {
 	for i, r := range rs {
 		d.b.memSeqRm(1)
 		d.b.memSeqCp(0, 1)
-		v, err := d.decode(part{ids: r.ids[shared:], pos0: shared, seq: 1, slots: r.slots, rows: r.rows})
+		v, err := d.decode(part{ids: r.ids[shared:], pos0: shared, seq: 1, slots: r.slots, rows: r.rows, embd: r.embd})
 		d.b.memSeqRm(1)
 		if err != nil {
 			return nil, err
@@ -372,7 +405,7 @@ func (d *Decider) batched(rs []*rendered) ([][][]float64, error) {
 				break
 			}
 			seq := seqID(len(parts) + 1)
-			parts = append(parts, part{ids: rs[i].ids[n:], pos0: n, seq: seq, slots: rs[i].slots, rows: rs[i].rows})
+			parts = append(parts, part{ids: rs[i].ids[n:], pos0: n, seq: seq, slots: rs[i].slots, rows: rs[i].rows, embd: rs[i].embd})
 			used += l
 			outs += ns
 			i++
@@ -412,22 +445,26 @@ func (d *Decider) keepPrefix(prefix []token) error {
 
 // clear empties the memory and forgets the cached state.
 func (d *Decider) clear() {
-	d.b.memClear()
+	if !d.stateless {
+		d.b.memClear()
+	}
 	d.cached = nil
 }
 
 // part is a run of tokens at positions pos0 onward in seq. slots are absolute
 // positions, and rows are the tokens whose logits are read at each slot.
+// With embd, the whole embeddings output is read at each slot instead.
 type part struct {
 	ids   []token
 	pos0  int
 	seq   seqID
 	slots []int
 	rows  []token
+	embd  bool
 }
 
 // decode runs all parts in one batch and returns, per part, the logits of its
-// rows at each of its slots.
+// rows or the embeddings at each of its slots.
 func (d *Decider) decode(parts ...part) ([][][]float64, error) {
 	total := 0
 	for _, p := range parts {
@@ -461,6 +498,20 @@ func (d *Decider) decode(parts ...part) ([][][]float64, error) {
 	for k, p := range parts {
 		out[k] = make([][]float64, len(idx[k]))
 		for j, i := range idx[k] {
+			if p.embd {
+				e, err := d.b.embeddings(i)
+				if err != nil {
+					return nil, err
+				}
+				if e == nil {
+					return nil, fmt.Errorf("decide: no embeddings at batch index %d", i)
+				}
+				out[k][j] = make([]float64, len(e))
+				for r, v := range e {
+					out[k][j][r] = float64(v)
+				}
+				continue
+			}
 			logits, err := d.b.logits(i)
 			if err != nil {
 				return nil, err

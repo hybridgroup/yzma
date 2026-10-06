@@ -454,7 +454,9 @@ const typedRequest = `{
 	}
 }`
 
-func testTypedModel(t *testing.T, env string) {
+// testTypedModel checks the answers of a model. refund is the least P(true) of
+// the refund question, which Julia-1 Q8_0 answers below 0.5 in llama-server too.
+func testTypedModel(t *testing.T, env string, refund float64) {
 	req, err := ParseRequest([]byte(typedRequest))
 	if err != nil {
 		t.Fatal(err)
@@ -473,7 +475,7 @@ func testTypedModel(t *testing.T, env string) {
 		if a := resp.Answers[0].Result; a.Answer != "refund" {
 			t.Errorf("mode %d intent: got %s %v", mode, a.Answer, a.Probabilities)
 		}
-		if p := resp.Answers[3].Result.Probability("true"); p < 0.8 {
+		if p := resp.Answers[3].Result.Probability("true"); p < refund {
 			t.Errorf("mode %d refund: got %v", mode, p)
 		}
 
@@ -503,9 +505,21 @@ func testTypedModel(t *testing.T, env string) {
 }
 
 func TestLevModel(t *testing.T) {
-	testTypedModel(t, "YZMA_TEST_LEV_MODEL")
+	testTypedModel(t, "YZMA_TEST_LEV_MODEL", 0.5)
 }
 
 func TestOpenJevModel(t *testing.T) {
-	testTypedModel(t, "YZMA_TEST_OPENJEV_MODEL")
+	testTypedModel(t, "YZMA_TEST_OPENJEV_MODEL", 0.5)
+}
+
+func TestLayaModel(t *testing.T) {
+	testTypedModel(t, "YZMA_TEST_LAYA_MODEL", 0.5)
+}
+
+func TestJuliaModel(t *testing.T) {
+	testTypedModel(t, "YZMA_TEST_JULIA_MODEL", 0)
+}
+
+func TestKevModel(t *testing.T) {
+	testTypedModel(t, "YZMA_TEST_KEV_MODEL", 0.5)
 }

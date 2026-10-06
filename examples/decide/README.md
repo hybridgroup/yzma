@@ -154,7 +154,7 @@ go install ./examples/decide
 
 ## gguf
 
-The `-readout gguf` flag runs a model whose GGUF holds its readout, prompt template and temperatures, as converted for the llama-server `/v1/systemone` API. It needs no `-config`. [Lev](https://huggingface.co/ggml-org/lev-GGUF) and [OpenJev](https://huggingface.co/ggml-org/OpenJev-GGUF) are supported.
+The `-readout gguf` flag runs a model whose GGUF holds its readout, prompt template and temperatures, as converted for the llama-server `/v1/systemone` API. It needs no `-config`. [Lev](https://huggingface.co/ggml-org/lev-GGUF), [OpenJev](https://huggingface.co/ggml-org/OpenJev-GGUF), [Laya](https://huggingface.co/ggml-org/Laya-GGUF), [Julia-1](https://huggingface.co/ggml-org/Julia-1-GGUF) and [Kev](https://huggingface.co/ggml-org/Kev-4B-GGUF) are supported. Laya, Julia-1 and Kev need llama.cpp b11435 or later.
 
 ```shell
 yzma model get -u https://huggingface.co/ggml-org/lev-GGUF/resolve/main/lev-Q8_0.gguf
