@@ -414,3 +414,98 @@ func TestAnswerModel(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func typedTestDecider(t *testing.T, env string, mode ManyMode) *Decider {
+	model := os.Getenv(env)
+	if model == "" {
+		t.Skip("no " + env + " skipping test")
+	}
+	if os.Getenv("YZMA_LIB") == "" {
+		t.Fatal("no YZMA_LIB set for tests")
+	}
+	if err := llama.Load(os.Getenv("YZMA_LIB")); err != nil {
+		t.Fatal("unable to load library", err.Error())
+	}
+	llama.LogSet(llama.LogSilent())
+	llama.Init()
+	t.Cleanup(llama.BackendFree)
+
+	d, err := Open(model, Options{ManyMode: mode})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(d.Close)
+	return d
+}
+
+// typedRequest is the request of the tests in llama.cpp PR 29818.
+const typedRequest = `{
+	"state": {"message": "Hi, I was charged twice for my order #4471 and I want a refund.", "plan": "pro",
+		"order": {"id": 4471, "items": ["phone case", "charger"]}},
+	"questions": {
+		"intent": {"type": "choice", "instructions": "What does the customer want?",
+			"criteria": {"refund": "wants money back", "cancel": "wants to cancel an order",
+				"track": "wants to know where an order is", "other": "anything else"}},
+		"urgent": {"type": "noul", "instructions": "Does this need a human within the hour?"},
+		"frustration": {"type": "score", "instructions": "How frustrated is the customer?",
+			"criteria": ["calm", "mildly annoyed", "annoyed", "angry"]},
+		"refund": {"type": "noul", "instructions": "Is a refund requested?",
+			"criteria": {"true": "money back is asked", "false": "no money back is asked"}}
+	}
+}`
+
+func testTypedModel(t *testing.T, env string) {
+	req, err := ParseRequest([]byte(typedRequest))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var exact *Response
+	for _, mode := range []ManyMode{ManyExact, ManyBatched} {
+		d := typedTestDecider(t, env, mode)
+		resp, err := d.Answer(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if mode == ManyBatched {
+			d.Close()
+		}
+		if a := resp.Answers[0].Result; a.Answer != "refund" {
+			t.Errorf("mode %d intent: got %s %v", mode, a.Answer, a.Probabilities)
+		}
+		if p := resp.Answers[3].Result.Probability("true"); p < 0.8 {
+			t.Errorf("mode %d refund: got %v", mode, p)
+		}
+
+		if mode == ManyExact {
+			exact = resp
+			for i, nq := range req.Questions {
+				r, err := d.Decide(req.State, nq.Question, "")
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !slices.Equal(r.Probabilities, resp.Answers[i].Result.Probabilities) {
+					t.Errorf("%s: Decide %v, DecideMany %v", nq.ID, r.Probabilities, resp.Answers[i].Result.Probabilities)
+				}
+			}
+			d.Close()
+			continue
+		}
+		for i, a := range resp.Answers {
+			for k, p := range a.Result.Probabilities {
+				if math.Abs(p-exact.Answers[i].Result.Probabilities[k]) > 0.05 {
+					t.Errorf("%s: batched %v, exact %v", a.ID, a.Result.Probabilities, exact.Answers[i].Result.Probabilities)
+					break
+				}
+			}
+		}
+	}
+}
+
+func TestLevModel(t *testing.T) {
+	testTypedModel(t, "YZMA_TEST_LEV_MODEL")
+}
+
+func TestOpenJevModel(t *testing.T) {
+	testTypedModel(t, "YZMA_TEST_OPENJEV_MODEL")
+}

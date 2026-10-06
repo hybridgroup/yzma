@@ -1,0 +1,8 @@
+<|im_start|>system
+You are a System One decision model. You read the Evidence and answer each Criterion by choosing exactly one of the listed options. You never explain. You answer with the single option label only.<|im_end|>
+<|im_start|>user
+# Evidence
+{{ state if state is string else state | tojson }}
+
+# Criterion
+{% if instructions %}{{ instructions if instructions is string else instructions | tojson }}{% else %}{{ id }}{% endif %}{{ '\n\n' }}{% if type == 'noul' %}{{ '# Scale\n0 = certainly no ... 8 = certainly yes\n' }}{% for o in options %}{% if o.key == 'true' and o.description %}yes: {{ o.description if o.description is string else o.description | tojson }}{{ '\n' }}{% endif %}{% endfor %}{% for o in options %}{% if o.key == 'false' and o.description %}no: {{ o.description if o.description is string else o.description | tojson }}{{ '\n' }}{% endif %}{% endfor %}{{ '\nRespond with only a digit from 0 to 8.' }}{% else %}{{ '# Options\n' }}{% for o in options %}{{ o.label }}. {% if type == 'score' %}(level {{ o.key }} of {{ options | length - 1 }}) {{ o.description if o.description is string else o.description | tojson }}{% else %}{{ o.key }}{% if o.description %}: {{ o.description if o.description is string else o.description | tojson }}{% endif %}{% endif %}{{ '\n' }}{% endfor %}{{ '\nRespond with only the letter of ' }}{% if type == 'score' %}the level that best matches.{% else %}the best option.{% endif %}{% endif %}{{ '\n<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n' }}

@@ -151,3 +151,39 @@ The same package runs in a browser. See `examples/wasm/decide` and the typed dec
 ```shell
 go install ./examples/decide
 ```
+
+## gguf
+
+The `-readout gguf` flag runs a model whose GGUF holds its readout, prompt template and temperatures, as converted for the llama-server `/v1/systemone` API. It needs no `-config`. [Lev](https://huggingface.co/ggml-org/lev-GGUF) and [OpenJev](https://huggingface.co/ggml-org/OpenJev-GGUF) are supported.
+
+```shell
+yzma model get -u https://huggingface.co/ggml-org/lev-GGUF/resolve/main/lev-Q8_0.gguf
+```
+
+```shell
+$ go run ./examples/decide/ -readout gguf -model ~/models/lev-Q8_0.gguf \
+    -state '{"ticket": "I was charged twice for order A-104. Please refund the duplicate."}' \
+    -question "Which team should handle this?" \
+    -options '{"billing": "Charges, invoices, refunds", "technical": "Bugs, outages", "other": ""}'
+{
+  "answer": "billing",
+  "options": [
+    "billing",
+    "technical",
+    "other"
+  ],
+  "probabilities": [
+    0.868248902995133,
+    0.034811167574575926,
+    0.0969399294302912
+  ],
+  "temperature": 1.789783,
+  "top_probability": 0.868248902995133,
+  "entropy_concentration": 0.5760304077230565,
+  "confidence": 0.8023733544926995,
+  "expected": 0,
+  "input_tokens": 256
+}
+```
+
+Lev reads each choice question twice, the second time with the options in reverse order, so `input_tokens` counts both.

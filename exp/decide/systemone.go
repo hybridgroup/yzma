@@ -274,7 +274,7 @@ func orderedObject(data json.RawMessage) ([]string, []json.RawMessage, error) {
 	return keys, vals, nil
 }
 
-// jsonText returns a JSON string as is, null as empty, and any other value as compact JSON.
+// jsonText returns a JSON string as is, null as empty, and any other value as [toJSON] writes it.
 func jsonText(data json.RawMessage) (string, error) {
 	if isNull(data) {
 		return "", nil
@@ -283,11 +283,11 @@ func jsonText(data json.RawMessage) (string, error) {
 	if json.Unmarshal(data, &s) == nil {
 		return s, nil
 	}
-	var b bytes.Buffer
-	if err := json.Compact(&b, data); err != nil {
+	text, err := toJSON(data, false)
+	if err != nil {
 		return "", fmt.Errorf("%w: %v", ErrQuestion, err)
 	}
-	return b.String(), nil
+	return text, nil
 }
 
 func isNull(data json.RawMessage) bool {

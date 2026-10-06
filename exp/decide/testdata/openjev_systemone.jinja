@@ -1,0 +1,5 @@
+{% set letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' %}<|im_start|>user
+{% for image in images %}{{ image }}{% endfor %}{% if images %}{{ 'The screenshot shows the current screen.\n' }}{% endif %}State:
+{{ state if state is string else state | tojson }}
+
+Question: {{ instructions if instructions is string else instructions | tojson }}{% if type == 'score' %} Rate along the ordered levels below (lowest first).{% endif %}{{ '\nOptions:\n' }}{% for o in options %}[{{ letters[loop.index0] }}] {% if type != 'noul' %}{{ o.key }}: {% if o.description %}{{ o.description if o.description is string else o.description | tojson }}{% endif %}{% elif o.key == 'true' %}yes: {% if o.description %}{{ o.description if o.description is string else o.description | tojson }}{% else %}The statement is true.{% endif %}{% else %}no: {% if o.description %}{{ o.description if o.description is string else o.description | tojson }}{% else %}The statement is false.{% endif %}{% endif %}{{ '\n' }}{% endfor %}{{ '\nAnswer with the letter of the best option only.<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n' }}
