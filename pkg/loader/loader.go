@@ -40,7 +40,7 @@ func LoadLibrary(path, lib string) (Lib, error) {
 
 	filename := GetLibraryFilename(path, lib)
 
-	l, err := ffi.Load(filename)
+	l, err := Open(filename)
 	if err != nil {
 		return Lib{}, err
 	}

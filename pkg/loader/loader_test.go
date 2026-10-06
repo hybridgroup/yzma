@@ -197,3 +197,14 @@ func TestResolvePath(t *testing.T) {
 		t.Errorf("ResolvePath(\"/given\") = %q, want %q", got, "/given")
 	}
 }
+
+func TestOpenMissing(t *testing.T) {
+	if _, err := Open(GetLibraryFilename(t.TempDir(), "missing")); err == nil {
+		t.Error("expected an error for a missing library")
+	}
+}
+
+func TestPreloadBackendsMissingPath(t *testing.T) {
+	release := PreloadBackends(filepath.Join(t.TempDir(), "missing"))
+	release()
+}
