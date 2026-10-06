@@ -21,10 +21,10 @@ const (
 
 	// Session constants
 	SessionMagic   = FileMagicGGSN
-	SessionVersion = 10
+	SessionVersion = 11
 
 	StateSeqMagic   = FileMagicGGSQ
-	StateSeqVersion = 3
+	StateSeqVersion = 4
 
 	// maximum token value
 	MaxToken = 0x7fffffff
