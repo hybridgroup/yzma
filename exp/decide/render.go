@@ -23,6 +23,7 @@ type rendered struct {
 	names      []string
 	prefixLen  int
 	headTokens int
+	embd       bool
 }
 
 type renderer struct {

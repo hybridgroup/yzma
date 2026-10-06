@@ -1,6 +1,8 @@
 package decide
 
 import (
+	"encoding/json"
+	"math"
 	"os"
 	"slices"
 	"testing"
@@ -142,6 +144,72 @@ func TestTypedTemperature(t *testing.T) {
 	} {
 		if got := tc.tt.temperature(tc.q); got != tc.want {
 			t.Errorf("%s %d options: got %v, want %v", tc.tt.kind, len(tc.q.Options), got, tc.want)
+		}
+	}
+}
+
+func TestLayaFit(t *testing.T) {
+	const cls, sep, mask = 1, 2, 100
+	ids := []token{cls}
+	for i := range 20 {
+		ids = append(ids, token(10+i))
+	}
+	ids = append(ids, sep, mask, 3, 3, 3, mask)
+	for range 60 {
+		ids = append(ids, 4)
+	}
+	ids = append(ids, sep, 5, 6, sep)
+
+	tt := &typed{kind: typeLaya, marker: mask, sep: sep, maxHead: 64}
+	got, markers, err := tt.layaFit(ids, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The second option is cut to (64-16)/2 tokens and the question keeps its 20.
+	if len(got) != 54 || !slices.Equal(markers, []int{22, 26}) || got[22] != mask || got[26] != mask {
+		t.Errorf("got %d tokens, markers %v", len(got), markers)
+	}
+	if !slices.Equal(got[50:], []token{sep, 5, 6, sep}) || !slices.Equal(got[:2], []token{cls, 10}) {
+		t.Errorf("got %v", got)
+	}
+
+	if _, _, err := tt.layaFit(ids, 3); err == nil {
+		t.Error("wrong option count accepted")
+	}
+}
+
+func TestTypedRaw(t *testing.T) {
+	kev := &typed{kind: typeKev}
+	got, err := kev.raw([][]float64{{0, 0, 3, 4}, {0, 0, 1, 0}, {1, 2, 9, 9}}, TypeChoice)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if math.Abs(got[0]-11/math.Sqrt2) > 1e-12 || math.Abs(got[1]-1/math.Sqrt2) > 1e-12 {
+		t.Errorf("kev scores %v", got)
+	}
+
+	laya := &typed{kind: typeLaya}
+	got, err = laya.raw([][]float64{{1, 2, 3}, {4, 5, 6}}, TypeNoul)
+	if err != nil || !slices.Equal(got, []float64{3, 6}) {
+		t.Errorf("laya scores %v %v", got, err)
+	}
+}
+
+func TestKevText(t *testing.T) {
+	got, err := kevText(json.RawMessage(`{"name": "A", "tags": ["x", {"k": 1.0}], "ok": true, "n": null}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "name: A\ntags:\n  - x\n  - k: 1.0\nok: True\nn: "; got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+
+	for in, want := range map[string]string{
+		"100": "100", "1.0": "1.0", "2.5": "2.5", "-0.0": "-0.0", "1234567.5": "1234567.5",
+		"1e14": "100000000000000.0", "1e15": "1e+15", "0.0001": "0.0001", "0.00001": "1e-05", "1.5e-7": "1.5e-07",
+	} {
+		if got := dumpNumber(in); got != want {
+			t.Errorf("dumpNumber(%s) = %s, want %s", in, got, want)
 		}
 	}
 }

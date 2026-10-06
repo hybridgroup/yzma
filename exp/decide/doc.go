@@ -44,6 +44,12 @@
 // then AA to ZZ, reads a choice question in both orders and averages them, and
 // reads a noul question as a rating from 0 to 8.
 //
+// Laya and Julia-1 are encoders with a decision head in the llama.cpp graph.
+// The score of an option is the output at its mask token, in the column of
+// the question type, and each question is decoded on its own. Kev scores an
+// option by the dot product of the outputs of the last token and of the token
+// that ends the option. Both need a llama.cpp build that has these models.
+//
 // [Decider.DecideMany] asks several questions about one state and decodes
 // the state once. See [ManyMode] for the exact and batched modes.
 //

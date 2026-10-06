@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -34,18 +35,125 @@ func stateText(state any, sortKeys bool) (string, error) {
 	if s, ok := state.(string); ok {
 		return s, nil
 	}
-
-	data, ok := state.(json.RawMessage)
-	if !ok {
-		var buf bytes.Buffer
-		enc := json.NewEncoder(&buf)
-		enc.SetEscapeHTML(false)
-		if err := enc.Encode(state); err != nil {
-			return "", fmt.Errorf("state: %w", err)
-		}
-		data = buf.Bytes()
+	data, err := stateJSON(state)
+	if err != nil {
+		return "", err
 	}
 	return toJSON(data, sortKeys)
+}
+
+// stateJSON returns a state that is not a string as JSON.
+func stateJSON(state any) ([]byte, error) {
+	if data, ok := state.(json.RawMessage); ok {
+		return data, nil
+	}
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(state); err != nil {
+		return nil, fmt.Errorf("state: %w", err)
+	}
+	return buf.Bytes(), nil
+}
+
+// kevText passes a string through and writes any other value as text, as the
+// Kev training code does, with the keys of an object kept as labels.
+func kevText(state any) (string, error) {
+	if s, ok := state.(string); ok {
+		return s, nil
+	}
+	data, err := stateJSON(state)
+	if err != nil {
+		return "", err
+	}
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.UseNumber()
+	n, err := readJSON(dec)
+	if err != nil {
+		return "", fmt.Errorf("state: %w", err)
+	}
+	return kevRender(n, 0), nil
+}
+
+func kevRender(n *jsonNode, indent int) string {
+	pad := strings.Repeat("  ", indent)
+	var b strings.Builder
+	switch n.kind {
+	case '[':
+		for i, v := range n.vals {
+			if i > 0 {
+				b.WriteByte('\n')
+			}
+			b.WriteString(pad + "- " + strings.TrimLeft(kevRender(v, indent+1), " \t\n\r"))
+		}
+	case '{':
+		for i, k := range n.keys {
+			if i > 0 {
+				b.WriteByte('\n')
+			}
+			if n.vals[i].kind != 0 {
+				b.WriteString(pad + k + ":\n" + kevRender(n.vals[i], indent+1))
+			} else {
+				b.WriteString(pad + k + ": " + kevRender(n.vals[i], 0))
+			}
+		}
+	default:
+		var s string
+		switch raw := string(n.raw); {
+		case raw == "null":
+		case raw == "true":
+			b.WriteString("True")
+		case raw == "false":
+			b.WriteString("False")
+		case strings.HasPrefix(raw, `"`) && json.Unmarshal(n.raw, &s) == nil:
+			b.WriteString(s)
+		default:
+			b.WriteString(dumpNumber(raw))
+		}
+	}
+	return b.String()
+}
+
+// dumpNumber writes a number as nlohmann::json dump does. A float always has
+// a dot or an exponent, and an exponent is used outside 1e-4 to 1e15.
+func dumpNumber(s string) string {
+	if !strings.ContainsAny(s, ".eE") {
+		return s
+	}
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return s
+	}
+	sign := ""
+	if math.Signbit(f) {
+		sign, f = "-", -f
+	}
+	if f == 0 {
+		return sign + "0.0"
+	}
+
+	e := strconv.FormatFloat(f, 'e', -1, 64)
+	mant, exp, _ := strings.Cut(e, "e")
+	digits := strings.Replace(mant, ".", "", 1)
+	x, _ := strconv.Atoi(exp)
+	k, p := len(digits), x+1
+	switch {
+	case k <= p && p <= 15:
+		return sign + digits + strings.Repeat("0", p-k) + ".0"
+	case 0 < p && p <= 15:
+		return sign + digits[:p] + "." + digits[p:]
+	case -4 < p && p <= 0:
+		return sign + "0." + strings.Repeat("0", -p) + digits
+	}
+	m := digits[:1]
+	if k > 1 {
+		m += "." + digits[1:]
+	}
+	es := "+"
+	if x < 0 {
+		es, x = "-", -x
+	}
+	return fmt.Sprintf("%s%se%s%02d", sign, m, es, x)
 }
 
 func writeJSON(b *strings.Builder, n *jsonNode, sortKeys bool) {

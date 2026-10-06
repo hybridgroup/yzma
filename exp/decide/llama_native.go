@@ -16,17 +16,19 @@ type (
 
 // backend holds the llama.cpp objects of a Decider, here through pkg/llama.
 type backend struct {
-	model  llama.Model
-	vocab  llama.Vocab
-	ctx    llama.Context
-	mem    llama.Memory
-	nVocab int
+	model    llama.Model
+	vocab    llama.Vocab
+	ctx      llama.Context
+	mem      llama.Memory
+	nVocab   int
+	nEmbdOut int32
 }
 
 // ctxParams is what a Decider sets on its context.
 type ctxParams struct {
 	nCtx, nBatch, nUbatch, nSeqMax, nOutputsMax uint32
 	threads                                     int32
+	embeddings                                  bool
 }
 
 func (b *backend) load(modelPath string) error {
@@ -40,6 +42,7 @@ func (b *backend) load(modelPath string) error {
 
 	b.model = model
 	b.vocab = llama.ModelGetVocab(model)
+	b.nEmbdOut = llama.ModelNEmbdOut(model)
 	b.nVocab = int(llama.VocabNTokens(b.vocab))
 	return nil
 }
@@ -55,6 +58,10 @@ func (b *backend) newContext(p ctxParams) (uint32, error) {
 	params.NOutputsMax = p.nOutputsMax
 	params.KVUnified = 1
 	params.NoPerf = 1
+	if p.embeddings {
+		params.Embeddings = 1
+		params.PoolingType = llama.PoolingTypeNone
+	}
 	if p.threads > 0 {
 		params.NThreads = p.threads
 		params.NThreadsBatch = p.threads
@@ -161,4 +168,27 @@ func (b *backend) metaPrefix(prefix string) map[string]string {
 
 func (b *backend) chatTemplate(name string) string {
 	return llama.ModelChatTemplate(b.model, name)
+}
+
+// embeddings returns the embeddings output at batch index i.
+func (b *backend) embeddings(i int32) ([]float32, error) {
+	return llama.GetEmbeddingsIth(b.ctx, i, b.nEmbdOut)
+}
+
+func (b *backend) vocabMask() token {
+	return llama.VocabMASK(b.vocab)
+}
+
+func (b *backend) vocabSep() token {
+	return llama.VocabSEP(b.vocab)
+}
+
+// piece returns the text of tok, with special tokens written out.
+func (b *backend) piece(tok token) string {
+	buf := make([]byte, 256)
+	n := llama.TokenToPiece(b.vocab, tok, buf, 0, true)
+	if n <= 0 {
+		return ""
+	}
+	return string(buf[:min(int(n), len(buf))])
 }
