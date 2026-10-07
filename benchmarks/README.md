@@ -56,6 +56,7 @@ Useful flags.
 ./benchmarks/run.sh --llamacpp b10964       # when the library came from elsewhere
 ./benchmarks/run.sh --threads 24            # a custom thread count
 ./benchmarks/run.sh --threadpool            # pin each thread to a core
+./benchmarks/run.sh --cool 70               # cooldown limit in degrees
 ./benchmarks/run.sh --dry-run               # print the result, change no file
 ```
 
@@ -80,7 +81,13 @@ system moves threads around during the run, which makes a short run read low
 and vary from run to run. It works only on Linux. macOS and Windows don't report
 which CPUs are performance CPUs, so the benchmark fails with an error there.
 
-The PowerShell script takes the same flags with one dash and a capital
+A hot laptop lowers its clock, so the run that comes next is slower. Before
+each native run the script waits until the GPU and CPU are at 60 degrees or
+less. It reads the GPU from nvidia-smi and the CPU from the Linux x86_pkg_temp
+zone, and skips the wait when neither is there. Pass `--cool` a different
+limit for a machine that idles warmer.
+
+The PowerShell script takes the same flags, except `--cool`, with one dash and a capital
 letter, such as `-Machine`, `-Backend` and `-DryRun`. The flags go after the
 file name.
 
