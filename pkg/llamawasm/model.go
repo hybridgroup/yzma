@@ -70,11 +70,13 @@ func ModelDesc(model Model) string {
 }
 
 // ModelChatTemplate returns the chat template stored in the model, or an empty
-// string if the model has none.
-//
-// The name argument is unused. It keeps the same signature as
-// llama.ModelChatTemplate.
+// string if the model has none. A name such as "systemone" returns the named
+// template, which llama.cpp keeps in the tokenizer.chat_template.<name> metadata.
 func ModelChatTemplate(model Model, name string) string {
+	if name != "" {
+		tmpl, _ := ModelMetaValStr(model, "tokenizer.chat_template."+name)
+		return tmpl
+	}
 	return modelString("_yzma_model_chat_template", model, 8192)
 }
 
