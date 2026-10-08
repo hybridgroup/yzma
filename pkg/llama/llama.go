@@ -41,6 +41,8 @@ const (
 	VocabTypeUGM
 	VocabTypeRWKV
 	VocabTypePLAMO2
+	VocabTypeTest
+	VocabTypePLAMO3
 )
 
 // RoPE types
@@ -391,6 +393,7 @@ type ContextParams struct {
 	CbEvalUserData     uintptr            // user data for evaluation callback
 	TypeK              GGMLType           // data type for K cache
 	TypeV              GGMLType           // data type for V cache
+	MoeCacheSize       uint64             // device cache in bytes for the experts kept in host memory, 0 = disabled [EXPERIMENTAL]
 	AbortCallback      uintptr            // abort callback
 	AbortCallbackData  uintptr            // user data for abort callback
 	Embeddings         uint8              // whether to compute and return embeddings (bool as uint8)
