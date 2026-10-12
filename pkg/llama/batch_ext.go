@@ -21,7 +21,7 @@ const (
 	ProcessTypeDecode ProcessType = 1
 )
 
-// DecisionOrder marks the entries that a joint decision head (clef) reads.
+// DecisionOrder marks the entries that a decision head (clef, vllm-decision2) reads.
 // A run of entries with the same value is one span, and spans must be separated by [DecisionOrderNone].
 type DecisionOrder int32
 

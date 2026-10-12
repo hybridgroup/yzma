@@ -54,7 +54,8 @@ const maxSeqs = 17
 // question with more than 16 options and for a decider score question with
 // isolated levels, which combine several passes.
 // Confidence and Expected follow the TypeSafe API. Expected is the mean level
-// of a score question and 0 for other questions.
+// of a score question and 0 for other questions. For vllm-decision2 models
+// Confidence is EntropyConcentration, as llama-server gives it.
 type Result struct {
 	Answer               string    `json:"answer"`
 	Options              []string  `json:"options"`
@@ -91,8 +92,12 @@ type Decider struct {
 	manyMode   ManyMode
 	bothOrders bool
 	stateless  bool
-	cached     []token
-	mu         sync.Mutex
+	// allOutputs asks for the output of every token, as a decision head reads them.
+	allOutputs bool
+	// entropyConfidence makes the confidence 1 minus the normalized entropy.
+	entropyConfidence bool
+	cached            []token
+	mu                sync.Mutex
 }
 
 // family is how one kind of model renders questions and reads its logits.
@@ -161,6 +166,10 @@ const (
 	// readoutEncoder is readoutEmbd for a model with no memory, so each
 	// input is decoded alone in one ubatch.
 	readoutEncoder
+	// readoutHead reads the scores of a decision head in the llama.cpp graph.
+	readoutHead
+	// readoutJointHead is readoutHead for a model with no memory.
+	readoutJointHead
 )
 
 func loadModel(modelPath string, opts Options) (*Decider, error) {
@@ -186,11 +195,14 @@ func (d *Decider) newContext(defCtx int, opts Options, r readout) error {
 	if opts.UBatch > 0 {
 		p.nUbatch = min(opts.UBatch, p.nCtx)
 	}
-	if r == readoutEncoder {
+	if r == readoutEncoder || r == readoutJointHead {
 		p.nUbatch = p.nCtx
 	}
 	// llama.cpp needs room for at least one output per sequence.
 	p.nOutputsMax = uint32(max(d.maxOptions, maxSeqs))
+	if r == readoutHead || r == readoutJointHead {
+		p.nOutputsMax = p.nUbatch
+	}
 
 	n, err := d.b.newContext(p)
 	if err != nil {
@@ -199,10 +211,15 @@ func (d *Decider) newContext(defCtx int, opts Options, r readout) error {
 	d.ubatch = int(p.nUbatch)
 	d.nCtx = int(p.nCtx)
 	d.nSeqMax = int(n)
-	d.stateless = r == readoutEncoder
+	d.stateless = r == readoutEncoder || r == readoutJointHead
+	d.allOutputs = r == readoutHead || r == readoutJointHead
 	// A context of one sequence cannot share the state, and an encoder keeps none.
 	if d.nSeqMax < 2 || d.stateless {
 		d.manyMode = manySeparate
+	}
+	// A decision head reads a batch of one sequence.
+	if r == readoutHead && d.manyMode == ManyBatched {
+		d.manyMode = ManyExact
 	}
 
 	return nil
@@ -285,8 +302,17 @@ func (d *Decider) run(state any, qs []Question, category string, many bool) ([]*
 	rs = rs[:len(qs)]
 	for i, r := range rs {
 		r.typed(qs[i].Type)
+		if d.entropyConfidence {
+			r.Confidence = r.EntropyConcentration
+		}
 	}
 	return rs, nil
+}
+
+// takesNullState reports whether the model reads a request with a null state.
+func (d *Decider) takesNullState() bool {
+	t, ok := d.family.(*typed)
+	return ok && t.kind == typeLfm2D1
 }
 
 // bothOrders averages the probabilities of a question read in two orders.
@@ -333,7 +359,7 @@ func (d *Decider) separate(rs []*rendered) ([][][]float64, error) {
 	out := make([][][]float64, len(rs))
 	for i, r := range rs {
 		d.clear()
-		v, err := d.decode(part{ids: r.ids, slots: r.slots, rows: r.rows, embd: r.embd})
+		v, err := d.decode(r.part(0, 0))
 		if err != nil {
 			return nil, err
 		}
@@ -376,7 +402,7 @@ func (d *Decider) exact(rs []*rendered) ([][][]float64, error) {
 	for i, r := range rs {
 		d.b.memSeqRm(1)
 		d.b.memSeqCp(0, 1)
-		v, err := d.decode(part{ids: r.ids[shared:], pos0: shared, seq: 1, slots: r.slots, rows: r.rows, embd: r.embd})
+		v, err := d.decode(r.part(shared, 1))
 		d.b.memSeqRm(1)
 		if err != nil {
 			return nil, err
@@ -405,7 +431,7 @@ func (d *Decider) batched(rs []*rendered) ([][][]float64, error) {
 				break
 			}
 			seq := seqID(len(parts) + 1)
-			parts = append(parts, part{ids: rs[i].ids[n:], pos0: n, seq: seq, slots: rs[i].slots, rows: rs[i].rows, embd: rs[i].embd})
+			parts = append(parts, rs[i].part(n, seq))
 			used += l
 			outs += ns
 			i++
@@ -454,18 +480,34 @@ func (d *Decider) clear() {
 // part is a run of tokens at positions pos0 onward in seq. slots are absolute
 // positions, and rows are the tokens whose logits are read at each slot.
 // With embd, the whole embeddings output is read at each slot instead.
+// With an order, a decision head reads the part and outputs nScores scores.
 type part struct {
-	ids   []token
-	pos0  int
-	seq   seqID
-	slots []int
-	rows  []token
-	embd  bool
+	ids     []token
+	pos0    int
+	seq     seqID
+	slots   []int
+	rows    []token
+	embd    bool
+	order   []int32
+	nScores int
+}
+
+// part returns the tokens of r from from onward in seq.
+func (r *rendered) part(from int, seq seqID) part {
+	p := part{ids: r.ids[from:], pos0: from, seq: seq, slots: r.slots, rows: r.rows, embd: r.embd, nScores: r.nScores}
+	if r.order != nil {
+		p.order = r.order[from:]
+	}
+	return p
 }
 
 // decode runs all parts in one batch and returns, per part, the logits of its
 // rows or the embeddings at each of its slots.
 func (d *Decider) decode(parts ...part) ([][][]float64, error) {
+	if len(parts) == 1 && parts[0].order != nil {
+		return d.decodeHead(parts[0])
+	}
+
 	total := 0
 	for _, p := range parts {
 		total += len(p.ids)
@@ -484,7 +526,7 @@ func (d *Decider) decode(parts ...part) ([][][]float64, error) {
 			if isSlot[p.pos0+i] {
 				idx[k] = append(idx[k], bt.len())
 			}
-			if err := bt.add(tok, p.pos0+i, p.seq, isSlot[p.pos0+i]); err != nil {
+			if err := bt.add(tok, p.pos0+i, p.seq, isSlot[p.pos0+i] || d.allOutputs); err != nil {
 				return nil, err
 			}
 		}
@@ -527,6 +569,43 @@ func (d *Decider) decode(parts ...part) ([][][]float64, error) {
 	}
 
 	return out, nil
+}
+
+// decodeHead decodes a part read by a decision head. A part over one ubatch
+// is split before its first span, and the rest must fit in one ubatch.
+func (d *Decider) decodeHead(p part) ([][][]float64, error) {
+	first := 0
+	if len(p.ids) > d.ubatch {
+		first = slices.IndexFunc(p.order, func(o int32) bool { return o != 0 })
+	}
+	if first < 0 || p.nScores <= 0 {
+		return nil, errLayout
+	}
+	if n := len(p.ids) - first; n > d.ubatch {
+		return nil, fmt.Errorf("%w: the options and the end of the input need %d tokens, the ubatch is %d", ErrBudget, n, d.ubatch)
+	}
+
+	if first > 0 {
+		if _, err := d.decode(part{ids: p.ids[:first], pos0: p.pos0, seq: p.seq}); err != nil {
+			return nil, err
+		}
+	}
+	if err := d.b.decodeOrdered(p.ids[first:], p.pos0+first, p.seq, p.order[first:]); err != nil {
+		return nil, err
+	}
+
+	out := make([][]float64, p.nScores)
+	for i := range out {
+		e, err := d.b.embeddings(int32(i))
+		if err != nil {
+			return nil, err
+		}
+		if len(e) == 0 {
+			return nil, fmt.Errorf("decide: no decision score at output %d", i)
+		}
+		out[i] = []float64{float64(e[0])}
+	}
+	return [][][]float64{out}, nil
 }
 
 // softmax returns softmax(scores / temp).

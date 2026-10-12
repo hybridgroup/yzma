@@ -34,6 +34,8 @@ type Question struct {
 	Type    Type
 	Text    string
 	Options []Option
+	// id is the id of the question in a request, some templates show it.
+	id string
 }
 
 // Choice returns a choice question with options that have no description.

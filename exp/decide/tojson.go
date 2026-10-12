@@ -12,9 +12,39 @@ import (
 	"strings"
 )
 
+// jsonStyle is how the tojson filter of llama.cpp is called.
+// An indent below 0 writes everything on one line.
+type jsonStyle struct {
+	itemSep, keySep string
+	indent          int
+	sortKeys        bool
+}
+
+var (
+	// styleDefault is tojson with no arguments.
+	styleDefault = jsonStyle{itemSep: ", ", keySep: ": ", indent: -1}
+	// styleCompact is tojson(separators=[',', ':']).
+	styleCompact = jsonStyle{itemSep: ",", keySep: ":", indent: -1}
+	// styleIndent2 is tojson(indent=2).
+	styleIndent2 = jsonStyle{itemSep: ",", keySep: ": ", indent: 2}
+)
+
+// sorted returns s with the keys of objects sorted, as llama-server gives them to some templates.
+func (s jsonStyle) sorted() jsonStyle {
+	s.sortKeys = true
+	return s
+}
+
 // toJSON writes a JSON value as the tojson filter of llama.cpp does, with
 // ", " and ": " separators and floats as C++ streams print them.
 func toJSON(data []byte, sortKeys bool) (string, error) {
+	style := styleDefault
+	style.sortKeys = sortKeys
+	return toJSONStyle(data, style)
+}
+
+// toJSONStyle writes a JSON value as the tojson filter of llama.cpp does in style.
+func toJSONStyle(data []byte, style jsonStyle) (string, error) {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.UseNumber()
 	v, err := readJSON(dec)
@@ -26,12 +56,12 @@ func toJSON(data []byte, sortKeys bool) (string, error) {
 	}
 
 	var b strings.Builder
-	writeJSON(&b, v, sortKeys)
+	writeJSON(&b, v, style, 0)
 	return b.String(), nil
 }
 
-// stateText passes a string through and writes any other value with [toJSON].
-func stateText(state any, sortKeys bool) (string, error) {
+// stateText passes a string through and writes any other value with [toJSONStyle].
+func stateText(state any, style jsonStyle) (string, error) {
 	if s, ok := state.(string); ok {
 		return s, nil
 	}
@@ -39,7 +69,7 @@ func stateText(state any, sortKeys bool) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return toJSON(data, sortKeys)
+	return toJSONStyle(data, style)
 }
 
 // stateJSON returns a state that is not a string as JSON.
@@ -156,15 +186,26 @@ func dumpNumber(s string) string {
 	return fmt.Sprintf("%s%se%s%02d", sign, m, es, x)
 }
 
-func writeJSON(b *strings.Builder, n *jsonNode, sortKeys bool) {
+func writeJSON(b *strings.Builder, n *jsonNode, style jsonStyle, level int) {
+	newline := func(l int) {
+		if style.indent >= 0 {
+			b.WriteByte('\n')
+			b.WriteString(strings.Repeat(" ", l*style.indent))
+		}
+	}
+
 	switch n.kind {
 	case '[':
 		b.WriteByte('[')
 		for i, v := range n.vals {
 			if i > 0 {
-				b.WriteString(", ")
+				b.WriteString(style.itemSep)
 			}
-			writeJSON(b, v, sortKeys)
+			newline(level + 1)
+			writeJSON(b, v, style, level+1)
+		}
+		if len(n.vals) > 0 {
+			newline(level)
 		}
 		b.WriteByte(']')
 	case '{':
@@ -172,17 +213,21 @@ func writeJSON(b *strings.Builder, n *jsonNode, sortKeys bool) {
 		for i := range order {
 			order[i] = i
 		}
-		if sortKeys {
+		if style.sortKeys {
 			slices.SortStableFunc(order, func(x, y int) int { return strings.Compare(n.keys[x], n.keys[y]) })
 		}
 		b.WriteByte('{')
 		for k, i := range order {
 			if k > 0 {
-				b.WriteString(", ")
+				b.WriteString(style.itemSep)
 			}
+			newline(level + 1)
 			writeJSONString(b, n.keys[i])
-			b.WriteString(": ")
-			writeJSON(b, n.vals[i], sortKeys)
+			b.WriteString(style.keySep)
+			writeJSON(b, n.vals[i], style, level+1)
+		}
+		if len(order) > 0 {
+			newline(level)
 		}
 		b.WriteByte('}')
 	default:

@@ -456,7 +456,8 @@ const typedRequest = `{
 
 // testTypedModel checks the answers of a model. refund is the least P(true) of
 // the refund question, which Julia-1 Q8_0 answers below 0.5 in llama-server too.
-func testTypedModel(t *testing.T, env string, refund float64) {
+// A joint model reads all the questions together, so Decide gives other answers.
+func testTypedModel(t *testing.T, env string, refund float64, joint bool) {
 	req, err := ParseRequest([]byte(typedRequest))
 	if err != nil {
 		t.Fatal(err)
@@ -482,6 +483,9 @@ func testTypedModel(t *testing.T, env string, refund float64) {
 		if mode == ManyExact {
 			exact = resp
 			for i, nq := range req.Questions {
+				if joint {
+					break
+				}
 				r, err := d.Decide(req.State, nq.Question, "")
 				if err != nil {
 					t.Fatal(err)
@@ -505,21 +509,53 @@ func testTypedModel(t *testing.T, env string, refund float64) {
 }
 
 func TestLevModel(t *testing.T) {
-	testTypedModel(t, "YZMA_TEST_LEV_MODEL", 0.5)
+	testTypedModel(t, "YZMA_TEST_LEV_MODEL", 0.5, false)
 }
 
 func TestOpenJevModel(t *testing.T) {
-	testTypedModel(t, "YZMA_TEST_OPENJEV_MODEL", 0.5)
+	testTypedModel(t, "YZMA_TEST_OPENJEV_MODEL", 0.5, false)
 }
 
 func TestLayaModel(t *testing.T) {
-	testTypedModel(t, "YZMA_TEST_LAYA_MODEL", 0.5)
+	testTypedModel(t, "YZMA_TEST_LAYA_MODEL", 0.5, false)
 }
 
 func TestJuliaModel(t *testing.T) {
-	testTypedModel(t, "YZMA_TEST_JULIA_MODEL", 0)
+	testTypedModel(t, "YZMA_TEST_JULIA_MODEL", 0, false)
 }
 
 func TestKevModel(t *testing.T) {
-	testTypedModel(t, "YZMA_TEST_KEV_MODEL", 0.5)
+	testTypedModel(t, "YZMA_TEST_KEV_MODEL", 0.5, false)
+}
+
+func TestPplxDeciderModel(t *testing.T) {
+	testTypedModel(t, "YZMA_TEST_PPLX_DECIDER_MODEL", 0.5, false)
+}
+
+func TestLfm2D1Model(t *testing.T) {
+	testTypedModel(t, "YZMA_TEST_LFM2_D1_MODEL", 0.5, false)
+}
+
+func TestClefModel(t *testing.T) {
+	testTypedModel(t, "YZMA_TEST_CLEF_MODEL", 0.5, true)
+}
+
+func TestVllmDecision2Model(t *testing.T) {
+	testTypedModel(t, "YZMA_TEST_VLLM_DECISION2_MODEL", 0.5, false)
+}
+
+// TestLfm2D1NullStateModel asks about no state, which only lfm2-d1 takes.
+func TestLfm2D1NullStateModel(t *testing.T) {
+	d := typedTestDecider(t, "YZMA_TEST_LFM2_D1_MODEL", ManyExact)
+	req, err := ParseRequest([]byte(`{"state": null, "questions": {"q": {"type": "noul", "instructions": "Is the sky blue?"}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := d.Answer(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p := resp.Answers[0].Result.Probability("true"); p < 0.5 {
+		t.Errorf("sky: got %v", p)
+	}
 }

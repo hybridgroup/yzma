@@ -16,6 +16,7 @@ type encoder func(text string) []token
 
 // rendered is one model input. The logits of rows are read at each slot.
 // Inputs about one state can share their first prefixLen tokens.
+// An input with an order is read by a decision head, see [part].
 type rendered struct {
 	ids        []token
 	slots      []int
@@ -24,6 +25,8 @@ type rendered struct {
 	prefixLen  int
 	headTokens int
 	embd       bool
+	order      []int32
+	nScores    int
 }
 
 type renderer struct {

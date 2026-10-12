@@ -14,10 +14,14 @@ import (
 const (
 	typedContext = 8192
 
-	typeOpenJev = "openjev"
-	typeLev     = "lev"
-	typeLaya    = "laya"
-	typeKev     = "kev"
+	typeOpenJev       = "openjev"
+	typeLev           = "lev"
+	typeLaya          = "laya"
+	typeKev           = "kev"
+	typePplxDecider   = "pplx-decider"
+	typeLfm2D1        = "lfm2-d1"
+	typeClef          = "clef"
+	typeVllmDecision2 = "vllm-decision2"
 
 	openJevLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	// levRatings is the scale of a Lev noul question, from 0 certainly no to 8 certainly yes.
@@ -30,8 +34,9 @@ var errLayout = errors.New("decide: unexpected layout of the decision prompt")
 
 // Open loads a model whose GGUF holds its decision type, prompt template and
 // temperatures, as converted for the llama-server /v1/systemone API.
-// The openjev, lev, laya and kev types are supported. Other models need [New],
-// [NewJevK5] or [NewDeciderModel] and a config file.
+// The openjev, lev, laya, kev, pplx-decider, lfm2-d1, clef and vllm-decision2
+// types are supported. Other models need [New], [NewJevK5] or
+// [NewDeciderModel] and a config file. Clef and vllm-decision2 do not run in the browser.
 // Load and init llama.cpp first, and call [Decider.Close] when done.
 func Open(modelPath string, opts Options) (*Decider, error) {
 	if modelPath == "" {
@@ -52,16 +57,24 @@ func Open(modelPath string, opts Options) (*Decider, error) {
 		return nil, err
 	}
 	d.family = t
+	d.entropyConfidence = t.kind == typeVllmDecision2
+	// Clef reads the options of a choice question sorted, so their order does not matter.
+	if t.kind == typeClef {
+		d.bothOrders = false
+	}
 
 	return d, nil
 }
 
 // typed is a model described by its "<arch>.decision" metadata.
 type typed struct {
-	kind   string
-	tmpl   *jinja.Template
-	temps  map[string]float64
+	kind  string
+	tmpl  *jinja.Template
+	temps map[string]float64
+	// bias is added to the scores of a score question, by its number of levels.
+	bias   map[int][]float64
 	enc    encoder
+	plain  encoder
 	labels []token
 	// codes are the label texts the lev template shows.
 	codes []string
@@ -92,16 +105,29 @@ func newTyped(d *Decider) (*typed, error) {
 		return nil, fmt.Errorf("decide: systemone template: %w", err)
 	}
 
-	t := &typed{kind: kind, tmpl: tmpl, temps: map[string]float64{}, enc: d.tokenizer(true)}
+	// The values are read as float, as llama-server does.
+	plain := d.tokenizer(false)
+	t := &typed{kind: kind, tmpl: tmpl, temps: map[string]float64{}, bias: map[int][]float64{}, enc: d.tokenizer(true), plain: plain}
 	for k, v := range d.b.metaPrefix(arch + ".decision.temperature.") {
-		f, err := strconv.ParseFloat(v, 64)
+		f, err := strconv.ParseFloat(v, 32)
 		if err != nil || !(f > 0) {
 			return nil, fmt.Errorf("decide: invalid decision temperature %s = %s", k, v)
 		}
 		t.temps[k] = f
 	}
+	// The keys are "<levels>.<level>".
+	for k, v := range d.b.metaPrefix(arch + ".decision.score_bias.") {
+		n, level, ok := parseBiasKey(k)
+		f, err := strconv.ParseFloat(v, 32)
+		if !ok || err != nil {
+			return nil, fmt.Errorf("decide: invalid decision score bias %s = %s", k, v)
+		}
+		if t.bias[n] == nil {
+			t.bias[n] = make([]float64, n)
+		}
+		t.bias[n][level] = f
+	}
 
-	plain := d.tokenizer(false)
 	switch kind {
 	case typeOpenJev:
 		for _, l := range openJevLetters {
@@ -112,7 +138,7 @@ func newTyped(d *Decider) (*typed, error) {
 			t.labels = append(t.labels, ids[0])
 		}
 		t.maxOptions = len(t.labels)
-	case typeLev:
+	case typeLev, typePplxDecider:
 		for _, c := range labelCodes() {
 			if ids := plain(c); len(ids) == 1 && len(t.labels) < deciderMaxOptions {
 				t.labels = append(t.labels, ids[0])
@@ -141,6 +167,8 @@ func newTyped(d *Decider) (*typed, error) {
 		}
 		t.marker = ids[0]
 		t.maxOptions = deciderMaxOptions
+	case typeLfm2D1, typeClef, typeVllmDecision2:
+		t.maxOptions = deciderMaxOptions
 	default:
 		return nil, fmt.Errorf("decide: decision type %q is not supported", kind)
 	}
@@ -155,8 +183,23 @@ func (t *typed) readout() readout {
 		return readoutEncoder
 	case typeKev:
 		return readoutEmbd
+	case typeVllmDecision2:
+		return readoutHead
+	case typeClef:
+		return readoutJointHead
 	}
 	return readoutLogits
+}
+
+// parseBiasKey parses "<levels>.<level>".
+func parseBiasKey(k string) (n, level int, ok bool) {
+	a, b, found := strings.Cut(k, ".")
+	n, errN := strconv.Atoi(a)
+	level, errL := strconv.Atoi(b)
+	if !found || errN != nil || errL != nil || n < 2 || n > deciderMaxOptions || level < 0 || level >= n {
+		return 0, 0, false
+	}
+	return n, level, true
 }
 
 // text cleans user text, so it holds no special token text and, for laya, no marker.
@@ -201,8 +244,8 @@ type typedOption struct {
 	index            int
 }
 
-// options returns the options of q as the model was trained on them. OpenJev
-// lists a noul question true first.
+// options returns the options of q as the model was trained on them.
+// Some models list a noul question true first, clef sorts choice options by name.
 func (t *typed) options(q Question) []typedOption {
 	var out []typedOption
 	switch q.Type {
@@ -212,7 +255,8 @@ func (t *typed) options(q Question) []typedOption {
 			desc[o.Name] = o.Description
 		}
 		out = []typedOption{{"false", desc["false"], 0}, {"true", desc["true"], 1}}
-		if t.kind == typeOpenJev {
+		trueFirst := len(q.Options) == 2 && q.Options[0].Name == "true"
+		if t.kind == typeOpenJev || t.kind == typeLfm2D1 || t.kind == typeClef || (t.kind == typeVllmDecision2 && trueFirst) {
 			slices.Reverse(out)
 		}
 	case TypeScore:
@@ -222,6 +266,9 @@ func (t *typed) options(q Question) []typedOption {
 	default:
 		for i, o := range q.Options {
 			out = append(out, typedOption{o.Name, o.Description, i})
+		}
+		if t.kind == typeClef {
+			slices.SortFunc(out, func(a, b typedOption) int { return strings.Compare(a.key, b.key) })
 		}
 	}
 	return out
@@ -239,8 +286,9 @@ func (t *typed) variants(q Question) [][]typedOption {
 	return [][]typedOption{opts, rev}
 }
 
-// prompt renders the systemone template. state is already text.
-func (t *typed) prompt(state string, q Question, opts []typedOption) (string, error) {
+// prompt renders the systemone template. state is already text, or nil for
+// no state. labels replace the label codes of the model when given.
+func (t *typed) prompt(state any, q Question, opts []typedOption, labels []string) (string, error) {
 	options := make([]any, len(opts))
 	for i, o := range opts {
 		opt := map[string]any{"key": t.text(o.key), "description": nil}
@@ -250,11 +298,14 @@ func (t *typed) prompt(state string, q Question, opts []typedOption) (string, er
 		if t.codes != nil {
 			opt["label"] = t.codes[i]
 		}
+		if labels != nil {
+			opt["label"] = labels[i]
+		}
 		options[i] = opt
 	}
 
 	return t.tmpl.Render(map[string]any{
-		"id":           "",
+		"id":           q.id,
 		"type":         string(q.Type),
 		"instructions": t.text(q.Text),
 		"state":        state,
@@ -265,12 +316,12 @@ func (t *typed) prompt(state string, q Question, opts []typedOption) (string, er
 
 // stateLen is the number of leading tokens that prompts about state share
 // regardless of the question.
-func (t *typed) stateLen(state string) (int, error) {
-	a, err := t.prompt(state, Noul("a", "", ""), t.options(Noul("a", "", "")))
+func (t *typed) stateLen(state any) (int, error) {
+	a, err := t.prompt(state, Noul("a", "", ""), t.options(Noul("a", "", "")), nil)
 	if err != nil {
 		return 0, err
 	}
-	b, err := t.prompt(state, Noul("b", "", ""), t.options(Noul("b", "", "")))
+	b, err := t.prompt(state, Noul("b", "", ""), t.options(Noul("b", "", "")), nil)
 	if err != nil {
 		return 0, err
 	}
@@ -284,17 +335,14 @@ func (t *typed) stateLen(state string) (int, error) {
 }
 
 func (t *typed) decide(d *Decider, state any, qs []Question, _ string, many bool) ([]*Result, error) {
-	var s string
-	var err error
-	if t.kind == typeKev {
-		s, err = kevText(state)
-	} else {
-		s, err = stateText(state, t.kind == typeLev)
+	if t.kind == typeClef || t.kind == typeVllmDecision2 {
+		return t.decideHead(d, state, qs, many)
 	}
+
+	s, err := t.state(state)
 	if err != nil {
 		return nil, err
 	}
-	s = t.text(s)
 	stateLen := 0
 	if t.kind != typeLaya {
 		if stateLen, err = t.stateLen(s); err != nil {
@@ -307,6 +355,8 @@ func (t *typed) decide(d *Decider, state any, qs []Question, _ string, many bool
 		variants [][]typedOption
 		first    int
 		temp     float64
+		// groups is the number of label tokens of each option, for lfm2-d1.
+		groups []int
 	}
 	plans := make([]plan, len(qs))
 	var rs []*rendered
@@ -321,11 +371,23 @@ func (t *typed) decide(d *Decider, state any, qs []Question, _ string, many bool
 
 		p := plan{names: names, variants: t.variants(q), first: len(rs), temp: t.temperature(q)}
 		for _, opts := range p.variants {
-			text, err := t.prompt(s, q, opts)
+			var labels []string
+			var rows []token
+			if t.kind == typeLfm2D1 {
+				var groups [][]token
+				if labels, groups, err = t.d1Labels(q, opts); err != nil {
+					return nil, questionErr(many, i, err)
+				}
+				for _, g := range groups {
+					rows = append(rows, g...)
+					p.groups = append(p.groups, len(g))
+				}
+			}
+			text, err := t.prompt(s, q, opts, labels)
 			if err != nil {
 				return nil, questionErr(many, i, err)
 			}
-			r, err := t.read(t.enc(text), q, len(opts), stateLen)
+			r, err := t.read(t.enc(text), q, len(opts), stateLen, rows)
 			if err != nil {
 				return nil, questionErr(many, i, err)
 			}
@@ -358,7 +420,10 @@ func (t *typed) decide(d *Decider, state any, qs []Question, _ string, many bool
 			if err != nil {
 				return nil, questionErr(many, i, err)
 			}
-			sm, err := softmax(logits, p.temp)
+			if p.groups != nil {
+				logits = groupMax(logits, p.groups)
+			}
+			sm, err := softmax(t.biased(logits, qs[i].Type), p.temp)
 			if err != nil {
 				return nil, questionErr(many, i, err)
 			}
@@ -388,8 +453,156 @@ func (t *typed) decide(d *Decider, state any, qs []Question, _ string, many bool
 	return out, nil
 }
 
+// state returns the state as the template takes it. lfm2-d1 takes a nil state.
+func (t *typed) state(state any) (any, error) {
+	if state == nil && t.kind == typeLfm2D1 {
+		return nil, nil
+	}
+
+	var s string
+	var err error
+	switch t.kind {
+	case typeKev:
+		s, err = kevText(state)
+	case typeLev:
+		s, err = stateText(state, styleDefault.sorted())
+	case typeLfm2D1:
+		s, err = stateText(state, styleIndent2)
+	default:
+		s, err = stateText(state, styleDefault)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return t.text(s), nil
+}
+
+// biased returns the scores of a score question with the score bias of the model added.
+func (t *typed) biased(scores []float64, typ Type) []float64 {
+	b, ok := t.bias[len(scores)]
+	if typ != TypeScore || !ok {
+		return scores
+	}
+	out := make([]float64, len(scores))
+	for i, s := range scores {
+		out[i] = s + b[i]
+	}
+	return out
+}
+
+// groupMax returns the highest score of each group of n[i] scores.
+func groupMax(scores []float64, n []int) []float64 {
+	out := make([]float64, len(n))
+	for i, k := range n {
+		out[i] = slices.Max(scores[:k])
+		scores = scores[k:]
+	}
+	return out
+}
+
+// d1Labels returns the label of each lfm2-d1 option and the tokens it is read at,
+// as prompt.py of the model repo picks them.
+func (t *typed) d1Labels(q Question, opts []typedOption) ([]string, [][]token, error) {
+	single := func(forms ...string) []token {
+		var out []token
+		for _, f := range forms {
+			if ids := t.plain(f); len(ids) == 1 && !slices.Contains(out, ids[0]) {
+				out = append(out, ids[0])
+			}
+		}
+		return out
+	}
+
+	var labels []string
+	var groups [][]token
+	if q.Type != TypeChoice {
+		for _, o := range opts {
+			var g []token
+			switch {
+			case q.Type == TypeScore:
+				g = single(o.key)
+			case o.key == "true":
+				g = single("yes", "Yes", "YES")
+			default:
+				g = single("no", "No", "NO")
+			}
+			if len(g) == 0 {
+				return nil, nil, fmt.Errorf("tokenizer mismatch: label %q is not one token", o.key)
+			}
+			labels = append(labels, o.key)
+			groups = append(groups, g)
+		}
+		return labels, groups, nil
+	}
+
+	letters := true
+	for _, o := range opts {
+		letters = letters && len(o.key) == 1 && ('a' <= o.key[0] && o.key[0] <= 'z' || 'A' <= o.key[0] && o.key[0] <= 'Z')
+	}
+	var used []token
+	take := func(code string) bool {
+		ids := t.plain(code)
+		if len(ids) != 1 || slices.Contains(used, ids[0]) {
+			return false
+		}
+		used = append(used, ids[0])
+		g := []token{ids[0]}
+		for _, id := range single(" " + code) {
+			if id != ids[0] {
+				g = append(g, id)
+			}
+		}
+		labels = append(labels, code)
+		groups = append(groups, g)
+		return true
+	}
+
+	pool := d1LabelPool()
+	for i, o := range opts {
+		code := fmt.Sprintf("%02d", i)
+		switch {
+		case letters:
+			code = o.key
+		case len(opts) <= 26:
+			code = string(rune('A' + i))
+		}
+		if take(code) {
+			continue
+		}
+		found := false
+		for _, c := range pool {
+			if found = take(c); found {
+				break
+			}
+		}
+		if !found {
+			return nil, nil, fmt.Errorf("%w: no single token label left for %d options", ErrQuestion, len(opts))
+		}
+	}
+	return labels, groups, nil
+}
+
+// d1LabelPool returns the labels lfm2-d1 falls back to, A to Z, 00 to 99, a to z, #0 to #199 and AA to ZZ.
+func d1LabelPool() []string {
+	var pool []string
+	for c := 'A'; c <= 'Z'; c++ {
+		pool = append(pool, string(c))
+	}
+	for i := range 100 {
+		pool = append(pool, fmt.Sprintf("%02d", i))
+	}
+	for c := 'a'; c <= 'z'; c++ {
+		pool = append(pool, string(c))
+	}
+	for i := range 200 {
+		pool = append(pool, "#"+strconv.Itoa(i))
+	}
+	return append(pool, labelCodes()[26:]...)
+}
+
 // read returns the input of the tokens ids of a question with n options, and where to read it.
-func (t *typed) read(ids []token, q Question, n, stateLen int) (*rendered, error) {
+// rows replace the label tokens of the model when given.
+func (t *typed) read(ids []token, q Question, n, stateLen int, rows []token) (*rendered, error) {
 	last := len(ids) - 1
 	switch t.kind {
 	case typeLaya:
@@ -412,9 +625,12 @@ func (t *typed) read(ids []token, q Question, n, stateLen int) (*rendered, error
 		return &rendered{ids: ids, slots: append(slots, last), embd: true, prefixLen: min(slots[0], stateLen)}, nil
 	}
 
-	rows := t.labels[:n]
-	if t.kind == typeLev && q.Type == TypeNoul {
+	switch {
+	case rows != nil:
+	case t.kind == typeLev && q.Type == TypeNoul:
 		rows = t.labels[:levRatings]
+	default:
+		rows = t.labels[:n]
 	}
 	return &rendered{ids: ids, slots: []int{last}, rows: rows, prefixLen: min(last, stateLen)}, nil
 }

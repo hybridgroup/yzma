@@ -50,6 +50,18 @@
 // option by the dot product of the outputs of the last token and of the token
 // that ends the option. Both need a llama.cpp build that has these models.
 //
+// Pplx-decider reads the labels A to Z and then AA to ZZ at the last token.
+// Lfm2-d1 picks the labels of each question as its training code did, and
+// scores an option by the highest logit of the forms of its label. It also
+// takes a nil state.
+//
+// Clef and vllm-decision2 have a decision head in the llama.cpp graph that
+// reads the question and option spans marked in an extended batch. Clef reads
+// all the questions of [Decider.DecideMany] in one prompt, so an answer
+// depends on the other questions. Vllm-decision2 reads each question on its
+// own, and its confidence is 1 minus the normalized entropy. Neither runs in
+// the browser.
+//
 // [Decider.DecideMany] asks several questions about one state and decodes
 // the state once. See [ManyMode] for the exact and batched modes.
 //
