@@ -11,7 +11,7 @@ import (
 
 // Request is a TypeSafe /v1/systemone request. Questions keep the order of the
 // JSON, and so do the options of a choice question. State is nil when the
-// request has a null state, which only lfm2-d1 models take.
+// request has a null state, which only lfm2-d1 and vllm-d3 models take.
 type Request struct {
 	State     any
 	Questions []NamedQuestion
@@ -91,9 +91,7 @@ func parseQuestion(data json.RawMessage) (Question, error) {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return Question{}, fmt.Errorf("%w: must be an object", ErrQuestion)
 	}
-	if isNull(raw.Instructions) {
-		return Question{}, fmt.Errorf("%w: instructions must be provided", ErrQuestion)
-	}
+	// Only some models take a question with no instructions, see [Question.Names].
 	text, err := jsonText(raw.Instructions)
 	if err != nil {
 		return Question{}, err

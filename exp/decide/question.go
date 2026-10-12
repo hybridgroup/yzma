@@ -71,7 +71,12 @@ func Noul(text, falseDesc, trueDesc string) Question {
 
 // Names returns the option names in the order the probabilities are returned.
 func (q Question) Names() ([]string, error) {
-	if strings.TrimSpace(q.Text) == "" {
+	return q.names(false)
+}
+
+// names is [Question.Names] for models that may take a question with no text.
+func (q Question) names(emptyText bool) ([]string, error) {
+	if !emptyText && strings.TrimSpace(q.Text) == "" {
 		return nil, fmt.Errorf("%w: question text must not be empty", ErrQuestion)
 	}
 

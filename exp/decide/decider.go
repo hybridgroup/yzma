@@ -54,8 +54,8 @@ const maxSeqs = 17
 // question with more than 16 options and for a decider score question with
 // isolated levels, which combine several passes.
 // Confidence and Expected follow the TypeSafe API. Expected is the mean level
-// of a score question and 0 for other questions. For vllm-decision2 models
-// Confidence is EntropyConcentration, as llama-server gives it.
+// of a score question and 0 for other questions. For vllm-decision2
+// and vllm-d3 models Confidence is EntropyConcentration, as llama-server gives it.
 type Result struct {
 	Answer               string    `json:"answer"`
 	Options              []string  `json:"options"`
@@ -170,6 +170,8 @@ const (
 	readoutHead
 	// readoutJointHead is readoutHead for a model with no memory.
 	readoutJointHead
+	// readoutWhole is readoutLogits for a non-causal model, which reads each input whole in one ubatch.
+	readoutWhole
 )
 
 func loadModel(modelPath string, opts Options) (*Decider, error) {
@@ -186,7 +188,7 @@ func loadModel(modelPath string, opts Options) (*Decider, error) {
 // newContext creates a context of opts.ContextSize tokens, or defCtx when it is 0.
 func (d *Decider) newContext(defCtx int, opts Options, r readout) error {
 	// One decode holds the whole input, so the batch is as big as the context.
-	p := ctxParams{nCtx: uint32(defCtx), nSeqMax: maxSeqs, threads: opts.Threads, embeddings: r != readoutLogits}
+	p := ctxParams{nCtx: uint32(defCtx), nSeqMax: maxSeqs, threads: opts.Threads, embeddings: r != readoutLogits && r != readoutWhole}
 	if opts.ContextSize > 0 {
 		p.nCtx = opts.ContextSize
 	}
@@ -195,7 +197,7 @@ func (d *Decider) newContext(defCtx int, opts Options, r readout) error {
 	if opts.UBatch > 0 {
 		p.nUbatch = min(opts.UBatch, p.nCtx)
 	}
-	if r == readoutEncoder || r == readoutJointHead {
+	if r == readoutEncoder || r == readoutJointHead || r == readoutWhole {
 		p.nUbatch = p.nCtx
 	}
 	// llama.cpp needs room for at least one output per sequence.
@@ -214,7 +216,7 @@ func (d *Decider) newContext(defCtx int, opts Options, r readout) error {
 	d.stateless = r == readoutEncoder || r == readoutJointHead
 	d.allOutputs = r == readoutHead || r == readoutJointHead
 	// A context of one sequence cannot share the state, and an encoder keeps none.
-	if d.nSeqMax < 2 || d.stateless {
+	if d.nSeqMax < 2 || d.stateless || r == readoutWhole {
 		d.manyMode = manySeparate
 	}
 	// A decision head reads a batch of one sequence.
@@ -312,7 +314,7 @@ func (d *Decider) run(state any, qs []Question, category string, many bool) ([]*
 // takesNullState reports whether the model reads a request with a null state.
 func (d *Decider) takesNullState() bool {
 	t, ok := d.family.(*typed)
-	return ok && t.kind == typeLfm2D1
+	return ok && (t.kind == typeLfm2D1 || t.kind == typeVllmD3)
 }
 
 // bothOrders averages the probabilities of a question read in two orders.
