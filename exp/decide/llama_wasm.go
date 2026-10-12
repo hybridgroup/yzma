@@ -151,9 +151,39 @@ func (b *backend) decode(bt *batch) error {
 	return nil
 }
 
-// decodeOrdered needs the extended batch of llama.cpp, which the module does not have.
-func (b *backend) decodeOrdered([]token, int, seqID, []int32) error {
-	return errors.New("decide: decision heads are not supported in the browser")
+// decodeOrdered decodes ids at positions pos0 onward in seq with the
+// decision order of each token, and asks for the output of every token.
+func (b *backend) decodeOrdered(ids []token, pos0 int, seq seqID, order []int32) error {
+	bt, err := llama.BatchExtInit(b.ctx)
+	if err != nil {
+		return fmt.Errorf("decide: %w", err)
+	}
+	defer llama.BatchExtFree(bt)
+
+	for i, tok := range ids {
+		idx, err := llama.BatchExtAddToken(bt, seq, tok)
+		if err != nil {
+			return err
+		}
+		if err := llama.BatchExtSetPos(bt, idx, llama.Pos(pos0+i)); err != nil {
+			return err
+		}
+		if err := llama.BatchExtSetOutputEmbd(bt, idx, true); err != nil {
+			return err
+		}
+		if err := llama.BatchExtSetDecisionOrder(bt, idx, llama.DecisionOrder(order[i])); err != nil {
+			return fmt.Errorf("decide: %w", err)
+		}
+	}
+
+	ret, err := llama.Process(b.ctx, llama.ProcessTypeDecode, bt)
+	if err != nil {
+		return err
+	}
+	if ret != 0 {
+		return fmt.Errorf("decide: decode returned %d", ret)
+	}
+	return nil
 }
 
 // logits returns the output logits at batch index i.

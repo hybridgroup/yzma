@@ -19,14 +19,15 @@ import (
 // checks for it before each use.
 const (
 	abiVersionMin = 1  // 1 has the calls for text generation and embeddings
-	abiVersion    = 10 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
+	abiVersion    = 11 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
 	//                    bounds of the tokens of an image, 5 the rest of the
 	//                    vocabulary and of the samplers, 6 batches with
 	//                    positions and the calls for the memory of a sequence,
 	//                    7 the calls that read the logits and the
 	//                    embeddings of a batch, 8 yzma_backend_check, 9 the
 	//                    metadata, the state, and the performance counters,
-	//                    10 contexts with a unified cache and a cap on outputs
+	//                    10 contexts with a unified cache and a cap on outputs,
+	//                    11 yzma_process for an extended batch
 )
 
 // Error codes that the shim returns. These match the values in
@@ -690,5 +691,6 @@ var (
 	nSeqScratch  scratch
 	seqScratch   scratch
 	logitScratch scratch
+	orderScratch scratch
 	outScratch   scratch
 )

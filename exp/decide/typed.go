@@ -37,7 +37,8 @@ var errLayout = errors.New("decide: unexpected layout of the decision prompt")
 // temperatures, as converted for the llama-server /v1/systemone API.
 // The openjev, lev, laya, kev, pplx-decider, lfm2-d1, clef, vllm-decision2 and
 // vllm-d3 types are supported. Other models need [New], [NewJevK5] or
-// [NewDeciderModel] and a config file. Clef and vllm-decision2 do not run in the browser.
+// [NewDeciderModel] and a config file. Clef and vllm-decision2 need ABI version 11
+// of the llama.cpp module in the browser.
 // Load and init llama.cpp first, and call [Decider.Close] when done.
 func Open(modelPath string, opts Options) (*Decider, error) {
 	if modelPath == "" {

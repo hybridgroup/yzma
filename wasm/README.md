@@ -478,6 +478,9 @@ model and its config, and asks every question about the state with
 cache. That needs a module with ABI version 10 or later. An older module still
 works, with one sequence, and decodes each question separately.
 
+Clef and vllm-decision2 models read a decision head through an extended batch,
+which needs a module with ABI version 11 or later.
+
 `make test-wasm-decide` asks a Jev-Style model three questions in Node. It
 fails when `DecideMany` and `Decide` differ in the exact mode.
 

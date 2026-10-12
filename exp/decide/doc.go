@@ -61,8 +61,8 @@
 // reads the question and option spans marked in an extended batch. Clef reads
 // all the questions of [Decider.DecideMany] in one prompt, so an answer
 // depends on the other questions. Vllm-decision2 reads each question on its
-// own, and its confidence is 1 minus the normalized entropy. Neither runs in
-// the browser.
+// own, and its confidence is 1 minus the normalized entropy. In the browser
+// both need ABI version 11 of the llama.cpp module.
 //
 // [Decider.DecideMany] asks several questions about one state and decodes
 // the state once. See [ManyMode] for the exact and batched modes.
