@@ -51,7 +51,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: models
-          key: ${{ runner.os }}-models-v5
+          key: ${{ runner.os }}-models-v6
       - name: Download test models
         if: steps.cache-models.outputs.cache-hit != 'true'
         run: |
@@ -66,6 +66,8 @@ jobs:
             yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/split/stories15M-q8_0-00001-of-00003.gguf
             yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/split/stories15M-q8_0-00002-of-00003.gguf
             yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/split/stories15M-q8_0-00003-of-00003.gguf
+            yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/ggml-org/Julia-1-GGUF/resolve/main/Julia-1-Q8_0.gguf
+            yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/ggml-org/Laya-GGUF/resolve/main/Laya-Q8_0.gguf
       - name: Get test video
         run: |
             curl https://upload.wikimedia.org/wikipedia/commons/a/a1/Llama_in_ueno_zoo_-_2009_Aug.webm -o llama.webm
@@ -80,6 +82,8 @@ jobs:
           export YZMA_TEST_LORA_ADAPTER=$GITHUB_WORKSPACE/models/Gemma2-Lora-F32-LoRA.gguf
           export YZMA_TEST_SPLIT_MODELS="$GITHUB_WORKSPACE/models/stories15M-q8_0-00001-of-00003.gguf,$GITHUB_WORKSPACE/models/stories15M-q8_0-00002-of-00003.gguf,$GITHUB_WORKSPACE/models/stories15M-q8_0-00003-of-00003.gguf"
           export YZMA_TEST_VIDEO=$GITHUB_WORKSPACE/llama.webm
+          export YZMA_TEST_JULIA_MODEL=$GITHUB_WORKSPACE/models/Julia-1-Q8_0.gguf
+          export YZMA_TEST_LAYA_MODEL=$GITHUB_WORKSPACE/models/Laya-Q8_0.gguf
           go test -v ./...
       - name: Run inference test
         run: go run ./examples/hello
