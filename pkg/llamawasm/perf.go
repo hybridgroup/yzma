@@ -15,6 +15,10 @@ type PerfContextData struct {
 	NPEval  int32 // number of prompt tokens
 	NEval   int32 // number of generated tokens
 	NReused int32 // number of times a ggml compute graph had been reused
+
+	// The graph reallocations during inference. The module does not report them, so they stay 0.
+	NReallocsSame int32 // with an unchanged graph size
+	NReallocsDiff int32 // with a changed graph size
 }
 
 // String returns the counters as text.

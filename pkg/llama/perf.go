@@ -18,6 +18,10 @@ type PerfContextData struct {
 	NPEval  int32 // number of prompt tokens
 	NEval   int32 // number of generated tokens
 	NReused int32 // number of times a ggml compute graph had been reused
+
+	// The graph reallocations during inference. Libraries before b11567 leave them 0.
+	NReallocsSame int32 // with an unchanged graph size
+	NReallocsDiff int32 // with a changed graph size
 }
 
 // String returns a formatted string representation of PerfContextData
@@ -82,7 +86,7 @@ func loadPerfFuncs(lib loader.Lib) error {
 }
 
 // ffiPerfContextData represents the C struct llama_perf_context_data
-var ffiPerfContextData = ffi.NewType(&ffi.TypeDouble, &ffi.TypeDouble, &ffi.TypeDouble, &ffi.TypeDouble, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32)
+var ffiPerfContextData = ffi.NewType(&ffi.TypeDouble, &ffi.TypeDouble, &ffi.TypeDouble, &ffi.TypeDouble, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32)
 
 // ffiPerfSamplerData represents the C struct llama_perf_sampler_data
 var ffiPerfSamplerData = ffi.NewType(&ffi.TypeDouble, &ffi.TypeSint32)
