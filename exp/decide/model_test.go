@@ -540,6 +540,10 @@ func TestClefModel(t *testing.T) {
 	testTypedModel(t, "YZMA_TEST_CLEF_MODEL", 0.5, true)
 }
 
+func TestVllmD3Model(t *testing.T) {
+	testTypedModel(t, "YZMA_TEST_VLLM_D3_MODEL", 0.5, false)
+}
+
 func TestVllmDecision2Model(t *testing.T) {
 	testTypedModel(t, "YZMA_TEST_VLLM_DECISION2_MODEL", 0.5, false)
 }

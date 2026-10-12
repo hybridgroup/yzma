@@ -89,6 +89,18 @@ func TestParseRequest(t *testing.T) {
 	if b := req.Questions[1].Options; b[0].Name != "false" {
 		t.Errorf("noul with one criterion %+v", b)
 	}
+
+	// Only vllm-d3 takes a question with no instructions.
+	req, err = ParseRequest([]byte(`{"state": "s", "questions": {"q": {"type": "noul"}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := req.Questions[0].Names(); !errors.Is(err, ErrQuestion) {
+		t.Errorf("no instructions: got %v", err)
+	}
+	if _, err := req.Questions[0].names(true); err != nil {
+		t.Errorf("no instructions for vllm-d3: %v", err)
+	}
 }
 
 func TestParseRequestErrors(t *testing.T) {
@@ -97,7 +109,6 @@ func TestParseRequestErrors(t *testing.T) {
 		`{"state": "s", "questions": {}}`,
 		`{"state": "s", "questions": []}`,
 		`{"state": "s", "images": ["data:image/png;base64,AA"], "questions": {"q": {"type": "noul", "instructions": "ok?"}}}`,
-		`{"state": "s", "questions": {"q": {"type": "noul"}}}`,
 		`{"state": "s", "questions": {"q": {"type": "maybe", "instructions": "ok?"}}}`,
 		`{"state": "s", "questions": {"q": {"type": "choice", "instructions": "ok?", "criteria": ["a"]}}}`,
 		`{"state": "s", "questions": {"q": {"type": "score", "instructions": "ok?", "criteria": ["a"]}}}`,

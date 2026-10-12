@@ -51,6 +51,8 @@
 // that ends the option. Both need a llama.cpp build that has these models.
 //
 // Pplx-decider reads the labels A to Z and then AA to ZZ at the last token.
+// Vllm-d3 reads them too, but its attention is not causal, so each prompt is
+// read whole in one ubatch. It takes a nil state and a question with no text.
 // Lfm2-d1 picks the labels of each question as its training code did, and
 // scores an option by the highest logit of the forms of its label. It also
 // takes a nil state.

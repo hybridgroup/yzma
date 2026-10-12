@@ -22,6 +22,7 @@ const (
 	typeLfm2D1        = "lfm2-d1"
 	typeClef          = "clef"
 	typeVllmDecision2 = "vllm-decision2"
+	typeVllmD3        = "vllm-d3"
 
 	openJevLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	// levRatings is the scale of a Lev noul question, from 0 certainly no to 8 certainly yes.
@@ -34,8 +35,8 @@ var errLayout = errors.New("decide: unexpected layout of the decision prompt")
 
 // Open loads a model whose GGUF holds its decision type, prompt template and
 // temperatures, as converted for the llama-server /v1/systemone API.
-// The openjev, lev, laya, kev, pplx-decider, lfm2-d1, clef and vllm-decision2
-// types are supported. Other models need [New], [NewJevK5] or
+// The openjev, lev, laya, kev, pplx-decider, lfm2-d1, clef, vllm-decision2 and
+// vllm-d3 types are supported. Other models need [New], [NewJevK5] or
 // [NewDeciderModel] and a config file. Clef and vllm-decision2 do not run in the browser.
 // Load and init llama.cpp first, and call [Decider.Close] when done.
 func Open(modelPath string, opts Options) (*Decider, error) {
@@ -57,7 +58,7 @@ func Open(modelPath string, opts Options) (*Decider, error) {
 		return nil, err
 	}
 	d.family = t
-	d.entropyConfidence = t.kind == typeVllmDecision2
+	d.entropyConfidence = t.kind == typeVllmDecision2 || t.kind == typeVllmD3
 	// Clef reads the options of a choice question sorted, so their order does not matter.
 	if t.kind == typeClef {
 		d.bothOrders = false
@@ -138,7 +139,7 @@ func newTyped(d *Decider) (*typed, error) {
 			t.labels = append(t.labels, ids[0])
 		}
 		t.maxOptions = len(t.labels)
-	case typeLev, typePplxDecider:
+	case typeLev, typePplxDecider, typeVllmD3:
 		for _, c := range labelCodes() {
 			if ids := plain(c); len(ids) == 1 && len(t.labels) < deciderMaxOptions {
 				t.labels = append(t.labels, ids[0])
@@ -187,6 +188,8 @@ func (t *typed) readout() readout {
 		return readoutHead
 	case typeClef:
 		return readoutJointHead
+	case typeVllmD3:
+		return readoutWhole
 	}
 	return readoutLogits
 }
@@ -361,7 +364,8 @@ func (t *typed) decide(d *Decider, state any, qs []Question, _ string, many bool
 	plans := make([]plan, len(qs))
 	var rs []*rendered
 	for i, q := range qs {
-		names, err := q.Names()
+		// The vllm-d3 prompt has a default question.
+		names, err := q.names(t.kind == typeVllmD3)
 		if err != nil {
 			return nil, questionErr(many, i, err)
 		}
@@ -453,9 +457,9 @@ func (t *typed) decide(d *Decider, state any, qs []Question, _ string, many bool
 	return out, nil
 }
 
-// state returns the state as the template takes it. lfm2-d1 takes a nil state.
+// state returns the state as the template takes it. lfm2-d1 and vllm-d3 take a nil state.
 func (t *typed) state(state any) (any, error) {
-	if state == nil && t.kind == typeLfm2D1 {
+	if state == nil && (t.kind == typeLfm2D1 || t.kind == typeVllmD3) {
 		return nil, nil
 	}
 
