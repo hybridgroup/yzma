@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 )
 
 // Request is a TypeSafe /v1/systemone request. Questions keep the order of the
-// JSON, and so do the options of a choice question.
+// JSON, and so do the options of a choice question. State is nil when the
+// request has a null state, which only lfm2-d1 models take.
 type Request struct {
 	State     any
 	Questions []NamedQuestion
@@ -50,7 +52,7 @@ func ParseRequest(data []byte) (*Request, error) {
 	if err := json.Unmarshal(data, &body); err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrQuestion, err)
 	}
-	if isNull(body.State) {
+	if len(bytes.TrimSpace(body.State)) == 0 {
 		return nil, fmt.Errorf("%w: state must be provided", ErrQuestion)
 	}
 	if !isNull(body.Images) && !bytes.Equal(bytes.TrimSpace(body.Images), []byte("[]")) {
@@ -59,7 +61,9 @@ func ParseRequest(data []byte) (*Request, error) {
 
 	req := &Request{State: body.State}
 	var s string
-	if json.Unmarshal(body.State, &s) == nil {
+	if isNull(body.State) {
+		req.State = nil
+	} else if json.Unmarshal(body.State, &s) == nil {
 		req.State = s
 	}
 
@@ -136,7 +140,12 @@ func parseQuestion(data json.RawMessage) (Question, error) {
 		if err != nil {
 			return Question{}, err
 		}
-		return Noul(text, f, t), nil
+		q := Noul(text, f, t)
+		// Some models read the criteria in the order of the request.
+		if keys, _, _ := orderedObject(raw.Criteria); len(keys) == 2 && keys[0] == "true" {
+			slices.Reverse(q.Options)
+		}
+		return q, nil
 	}
 
 	return Question{}, fmt.Errorf("%w: type must be one of choice, score, noul", ErrQuestion)
@@ -148,9 +157,14 @@ func (d *Decider) Answer(req *Request) (*Response, error) {
 		return nil, fmt.Errorf("%w: no questions", ErrQuestion)
 	}
 
+	if req.State == nil && !d.takesNullState() {
+		return nil, fmt.Errorf("%w: state must be provided", ErrQuestion)
+	}
+
 	qs := make([]Question, len(req.Questions))
 	for i, nq := range req.Questions {
 		qs[i] = nq.Question
+		qs[i].id = nq.ID
 	}
 	rs, err := d.DecideMany(req.State, qs, "")
 	if err != nil {

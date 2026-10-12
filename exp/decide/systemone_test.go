@@ -73,6 +73,22 @@ func TestParseRequest(t *testing.T) {
 	if req.State != "text" {
 		t.Errorf("string state %#v", req.State)
 	}
+
+	req, err = ParseRequest([]byte(`{"state": null, "questions": {
+		"a": {"type": "noul", "instructions": "ok?", "criteria": {"true": "yes", "false": "no"}},
+		"b": {"type": "noul", "instructions": "ok?", "criteria": {"true": "yes"}}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if req.State != nil {
+		t.Errorf("null state %#v", req.State)
+	}
+	if a := req.Questions[0].Options; a[0].Name != "true" || a[1].Description != "no" {
+		t.Errorf("noul criteria order %+v", a)
+	}
+	if b := req.Questions[1].Options; b[0].Name != "false" {
+		t.Errorf("noul with one criterion %+v", b)
+	}
 }
 
 func TestParseRequestErrors(t *testing.T) {

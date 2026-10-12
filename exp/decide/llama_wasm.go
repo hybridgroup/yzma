@@ -151,6 +151,11 @@ func (b *backend) decode(bt *batch) error {
 	return nil
 }
 
+// decodeOrdered needs the extended batch of llama.cpp, which the module does not have.
+func (b *backend) decodeOrdered([]token, int, seqID, []int32) error {
+	return errors.New("decide: decision heads are not supported in the browser")
+}
+
 // logits returns the output logits at batch index i.
 func (b *backend) logits(i int32) ([]float32, error) {
 	return llama.GetLogitsIth(b.ctx, i, b.nVocab)
