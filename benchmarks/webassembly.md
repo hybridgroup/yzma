@@ -30,32 +30,32 @@ Tokens a second on each machine.
 
 | Machine | Node, CPU | Node, more threads | Chrome, more threads | Chrome, WebGPU Intel | Chrome, WebGPU NVIDIA |
 | --- | --- | --- | --- | --- | --- |
-| Intel Core i9-13900HX | 13.8 | 105.7 | 92.8 | 19.9 | 69.8 |
+| Intel Core i9-13900HX | 13.9 | 111.7 | 92.8 | 19.9 | 69.8 |
 
-- The multithreaded build is 7.7 times faster than the single threaded build.
-- In Chrome, the multithreaded build reaches 88 percent of its speed in Node.
+- The multithreaded build is 8.0 times faster than the single threaded build.
+- In Chrome, the multithreaded build reaches 83 percent of its speed in Node.
 - On this small model the multithreaded CPU build is faster than WebGPU. Each
   operation is too small to pay for the trip to the GPU. The GPU pays off more
   with a larger model and with images.
 - The RTX 4070 is 3.5 times faster than the Intel RPL-S. Chrome on Linux needs
   three switches for WebGPU with Vulkan, see
   [wasm/README.md](../wasm/README.md).
-- The Node numbers use b11146 and the Chrome numbers use b11202.
+- The Node numbers use b11669 and the Chrome numbers use b11202.
 
 ## In Node
 
 <!-- yzma:bench table node -->
 | Backend | Arch | Machine | Device | Tokens a second | llama.cpp | Date |
 | --- | --- | --- | --- | --- | --- | --- |
-| CPU | wasm | Intel Core i9-13900HX | - | 13.8 | b11146 | 2026-09-24 |
-| CPU, more threads | wasm | Intel Core i9-13900HX | - | 105.7 | b11146 | 2026-09-24 |
+| CPU | wasm | Intel Core i9-13900HX | - | 13.9 | b11669 | 2026-10-16 |
+| CPU, more threads | wasm | Intel Core i9-13900HX | - | 111.7 | b11669 | 2026-10-16 |
 <!-- yzma:bench table end node -->
 
 <!-- yzma:bench start node/cpu/wasm/i9-13900hx -->
 ### CPU, wasm, Intel Core i9-13900HX
-<!-- yzma:bench meta {"suite":"node","backend":"cpu","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":13.8,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
+<!-- yzma:bench meta {"suite":"node","backend":"cpu","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":13.9,"llamacpp":"b11669","yzma":"1.30.0","date":"2026-10-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 13.8 tokens a second.
+13th Gen Intel(R) Core(TM) i9-13900HX. 13.9 tokens a second.
 
 <details><summary>The output of go test</summary>
 
@@ -66,14 +66,14 @@ goarch: wasm
 pkg: github.com/hybridgroup/yzma/examples/wasm/chat
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
 backend: cpu, 1 thread(s)
-llama.cpp: b11146
-BenchmarkInference-1	1	4624277457 ns/op	13.8 tokens/s
-BenchmarkInference-1	1	4637681159 ns/op	13.8 tokens/s
-BenchmarkInference-1	1	4627621114 ns/op	13.8 tokens/s
+llama.cpp: b11669
 BenchmarkInference-1	1	4620938628 ns/op	13.8 tokens/s
-BenchmarkInference-1	1	4630969609 ns/op	13.8 tokens/s
+BenchmarkInference-1	1	4614275415 ns/op	13.9 tokens/s
+BenchmarkInference-1	1	4617604618 ns/op	13.9 tokens/s
+BenchmarkInference-1	1	4610951009 ns/op	13.9 tokens/s
+BenchmarkInference-1	1	4610951009 ns/op	13.9 tokens/s
 PASS
-ok	github.com/hybridgroup/yzma/examples/wasm/chat	23.162s
+ok	github.com/hybridgroup/yzma/examples/wasm/chat	23.091s
 ```
 
 </details>
@@ -81,9 +81,9 @@ ok	github.com/hybridgroup/yzma/examples/wasm/chat	23.162s
 
 <!-- yzma:bench start node/cpu-threads/wasm/i9-13900hx -->
 ### CPU, more threads, wasm, Intel Core i9-13900HX
-<!-- yzma:bench meta {"suite":"node","backend":"cpu-threads","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":105.7,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
+<!-- yzma:bench meta {"suite":"node","backend":"cpu-threads","arch":"wasm","machine":"i9-13900hx","label":"Intel Core i9-13900HX","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":111.7,"llamacpp":"b11669","yzma":"1.30.0","date":"2026-10-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 105.7 tokens a second.
+13th Gen Intel(R) Core(TM) i9-13900HX. 111.7 tokens a second.
 
 <details><summary>The output of go test</summary>
 
@@ -94,14 +94,14 @@ goarch: wasm
 pkg: github.com/hybridgroup/yzma/examples/wasm/chat
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
 backend: cpu-threads, 16 thread(s)
-llama.cpp: b11146
-BenchmarkInference-16	1	640192058 ns/op	100.0 tokens/s
-BenchmarkInference-16	1	565720852 ns/op	113.1 tokens/s
-BenchmarkInference-16	1	607902736 ns/op	105.3 tokens/s
-BenchmarkInference-16	1	605258180 ns/op	105.7 tokens/s
-BenchmarkInference-16	1	594077787 ns/op	107.7 tokens/s
+llama.cpp: b11669
+BenchmarkInference-16	1	638722555 ns/op	100.2 tokens/s
+BenchmarkInference-16	1	574351611 ns/op	111.4 tokens/s
+BenchmarkInference-16	1	573168547 ns/op	111.7 tokens/s
+BenchmarkInference-16	1	560175055 ns/op	114.3 tokens/s
+BenchmarkInference-16	1	542097239 ns/op	118.1 tokens/s
 PASS
-ok	github.com/hybridgroup/yzma/examples/wasm/chat	3.033s
+ok	github.com/hybridgroup/yzma/examples/wasm/chat	2.908s
 ```
 
 </details>
