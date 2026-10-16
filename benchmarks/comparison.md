@@ -10,8 +10,8 @@ These benchmarks compare inference performance across 3 engines that support GGU
 
 | Suite | Result | Evidence |
 | --- | --- | --- |
-| Embeddings | yzma 2.6 to 3.1 times faster, 1.4 ms against 4.3 ms and 3.7 ms | Five runs, no overlap, each engine at 29 prompt tokens and a vector of 384 |
-| Text | yzma 10.5 to 14.7 percent faster, 0.45 to 0.5 of the time to the first token | Five runs, no overlap, each engine at the same count of prompt tokens |
+| Embeddings | yzma 2.6 to 2.7 times faster, 1.7 ms against 4.5 ms and 4.6 ms | Five runs, no overlap, each engine at 29 prompt tokens and a vector of 384 |
+| Text | yzma 9.2 to 12.1 percent faster, 0.48 to 0.6 of the time to the first token | Five runs, no overlap, each engine at the same count of prompt tokens |
 | Images | yzma 1.2 to 1.4 times faster for a request, 0.5 to 0.8 of the time to the first token | Five runs, no overlap, yzma and Docker Model Runner at the same count of prompt tokens, ollama at 5 more |
 
 ## Text
@@ -19,35 +19,35 @@ These benchmarks compare inference performance across 3 engines that support GGU
 <!-- yzma:bench table compare-text -->
 | Engine | Arch | Machine | Model | Prompt tokens | Tokens a second | First token ms | Request ms | Version | Date |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| yzma, in process | amd64 | Intel Core i9-13900HX, RTX 4070 | gemma4-e2b | 23 | 118.5 | 12.3 | 135.0 | 1.29.0-dev | 2026-09-25 |
-| ollama, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | gemma4-e2b | 23 | 104.7 | 26.1 | 152.8 | 0.34.4 | 2026-09-25 |
-| Docker Model Runner, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | gemma4-e2b | 23 | 106.7 | 26.0 | 150.0 | v1.2.8 | 2026-09-25 |
-| yzma, in process | amd64 | Intel Core i9-13900HX, RTX 4070 | qwen3-vl-2b | 22 | 167.6 | 8.9 | 95.5 | 1.29.0-dev | 2026-09-25 |
-| ollama, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | qwen3-vl-2b | 22 | 146.1 | 19.6 | 109.5 | 0.34.4 | 2026-09-25 |
-| Docker Model Runner, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | qwen3-vl-2b | 22 | 151.7 | 17.7 | 105.5 | v1.2.8 | 2026-09-25 |
+| yzma, in process | amd64 | Intel Core i9-13900HX, RTX 4070 | gemma4-e2b | 23 | 118.6 | 12.3 | 134.9 | 1.30.0 | 2026-10-16 |
+| ollama, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | gemma4-e2b | 23 | 105.8 | 24.6 | 151.2 | 0.40.5 | 2026-10-16 |
+| Docker Model Runner, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | gemma4-e2b | 23 | 106.7 | 25.7 | 150.0 | v1.2.8 | 2026-10-16 |
+| yzma, in process | amd64 | Intel Core i9-13900HX, RTX 4070 | qwen3-vl-2b | 22 | 166.9 | 9.0 | 95.9 | 1.30.0 | 2026-10-16 |
+| ollama, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | qwen3-vl-2b | 22 | 152.8 | 15.1 | 104.7 | 0.40.5 | 2026-10-16 |
+| Docker Model Runner, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | qwen3-vl-2b | 22 | 152.5 | 17.1 | 104.9 | v1.2.8 | 2026-10-16 |
 <!-- yzma:bench table end compare-text -->
 
 <!-- yzma:bench start compare-text/yzma/amd64/ron-tuxedo-gemini-gen2/gemma4-e2b -->
 ### yzma, in process, amd64, Intel Core i9-13900HX, RTX 4070, gemma4-e2b
-<!-- yzma:bench meta {"suite":"compare-text","backend":"yzma","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"gemma4-e2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":118.5,"ttft_ms":12.29,"total_ms":135,"prompt_tokens":23,"llamacpp":"b11179","engine_version":"1.29.0-dev","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+<!-- yzma:bench meta {"suite":"compare-text","backend":"yzma","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"gemma4-e2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":118.6,"ttft_ms":12.3,"total_ms":134.9,"prompt_tokens":23,"llamacpp":"b11669","engine_version":"1.30.0","yzma":"1.30.0","date":"2026-10-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 118.5 tokens a second. 12.3 ms to the first token. 135.0 ms for a request. 23 prompt tokens.
+13th Gen Intel(R) Core(TM) i9-13900HX. 118.6 tokens a second. 12.3 ms to the first token. 134.9 ms for a request. 23 prompt tokens.
 
 16 tokens, greedy sampling, one request at a time.
 
 <details><summary>The device</summary>
 
 ```
-Fri Sep 25 17:46:48 2026       
+Fri Oct 16 14:49:11 2026       
 +-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 595.84                 Driver Version: 595.84         CUDA Version: 13.2     |
+| NVIDIA-SMI 595.99.02              Driver Version: 595.99.02      CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
 | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
-| N/A   52C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
+| N/A   56C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -56,7 +56,7 @@ Fri Sep 25 17:46:48 2026
 |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
 |        ID   ID                                                               Usage      |
 |=========================================================================================|
-|    0   N/A  N/A            7549      G   /usr/lib/xorg/Xorg                        4MiB |
+|    0   N/A  N/A            6259      G   /usr/lib/xorg/Xorg                        4MiB |
 +-----------------------------------------------------------------------------------------+
 ```
 
@@ -70,13 +70,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/benchmarks/compare
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkCompare-32    	      20	 139810811 ns/op	        23.00 prompt_tokens	       115.0 tokens/s	       139.1 total_ms	        12.71 ttft_ms
-BenchmarkCompare-32    	      20	 135634360 ns/op	        23.00 prompt_tokens	       118.5 tokens/s	       135.0 total_ms	        12.34 ttft_ms
-BenchmarkCompare-32    	      20	 135660450 ns/op	        23.00 prompt_tokens	       118.5 tokens/s	       135.0 total_ms	        12.26 ttft_ms
-BenchmarkCompare-32    	      20	 135566740 ns/op	        23.00 prompt_tokens	       118.6 tokens/s	       134.9 total_ms	        12.27 ttft_ms
-BenchmarkCompare-32    	      20	 135584263 ns/op	        24.00 prompt_tokens	       118.6 tokens/s	       135.0 total_ms	        12.29 ttft_ms
+BenchmarkCompare-32    	      20	 136109556 ns/op	        23.00 prompt_tokens	       118.1 tokens/s	       135.5 total_ms	        12.41 ttft_ms
+BenchmarkCompare-32    	      20	 135544608 ns/op	        23.00 prompt_tokens	       118.6 tokens/s	       134.9 total_ms	        12.20 ttft_ms
+BenchmarkCompare-32    	      20	 135567397 ns/op	        23.00 prompt_tokens	       118.6 tokens/s	       134.9 total_ms	        12.32 ttft_ms
+BenchmarkCompare-32    	      20	 135344246 ns/op	        23.00 prompt_tokens	       118.8 tokens/s	       134.7 total_ms	        12.30 ttft_ms
+BenchmarkCompare-32    	      20	 135182599 ns/op	        24.00 prompt_tokens	       118.9 tokens/s	       134.6 total_ms	        12.16 ttft_ms
 PASS
-ok  	github.com/hybridgroup/yzma/benchmarks/compare	15.682s
+ok  	github.com/hybridgroup/yzma/benchmarks/compare	15.452s
 ```
 
 </details>
@@ -84,25 +84,25 @@ ok  	github.com/hybridgroup/yzma/benchmarks/compare	15.682s
 
 <!-- yzma:bench start compare-text/ollama/amd64/ron-tuxedo-gemini-gen2/gemma4-e2b -->
 ### ollama, REST, amd64, Intel Core i9-13900HX, RTX 4070, gemma4-e2b
-<!-- yzma:bench meta {"suite":"compare-text","backend":"ollama","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"gemma4-e2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":104.7,"ttft_ms":26.1,"total_ms":152.8,"prompt_tokens":23,"engine_version":"0.34.4","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+<!-- yzma:bench meta {"suite":"compare-text","backend":"ollama","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"gemma4-e2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":105.8,"ttft_ms":24.59,"total_ms":151.2,"prompt_tokens":23,"engine_version":"0.40.5","yzma":"1.30.0","date":"2026-10-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 104.7 tokens a second. 26.1 ms to the first token. 152.8 ms for a request. 23 prompt tokens.
+13th Gen Intel(R) Core(TM) i9-13900HX. 105.8 tokens a second. 24.6 ms to the first token. 151.2 ms for a request. 23 prompt tokens.
 
 16 tokens, greedy sampling, one request at a time.
 
 <details><summary>The device</summary>
 
 ```
-Fri Sep 25 17:46:48 2026       
+Fri Oct 16 14:49:11 2026       
 +-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 595.84                 Driver Version: 595.84         CUDA Version: 13.2     |
+| NVIDIA-SMI 595.99.02              Driver Version: 595.99.02      CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
 | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
-| N/A   52C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
+| N/A   56C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -111,7 +111,7 @@ Fri Sep 25 17:46:48 2026
 |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
 |        ID   ID                                                               Usage      |
 |=========================================================================================|
-|    0   N/A  N/A            7549      G   /usr/lib/xorg/Xorg                        4MiB |
+|    0   N/A  N/A            6259      G   /usr/lib/xorg/Xorg                        4MiB |
 +-----------------------------------------------------------------------------------------+
 ```
 
@@ -125,13 +125,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/benchmarks/compare
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkCompare-32    	      20	 153237147 ns/op	        23.00 prompt_tokens	       104.4 tokens/s	       153.2 total_ms	        26.20 ttft_ms
-BenchmarkCompare-32    	      20	 153094785 ns/op	        23.00 prompt_tokens	       104.5 tokens/s	       153.1 total_ms	        26.00 ttft_ms
-BenchmarkCompare-32    	      20	 152801651 ns/op	        23.00 prompt_tokens	       104.7 tokens/s	       152.8 total_ms	        26.27 ttft_ms
-BenchmarkCompare-32    	      20	 152661019 ns/op	        23.00 prompt_tokens	       104.8 tokens/s	       152.6 total_ms	        25.84 ttft_ms
-BenchmarkCompare-32    	      20	 152784116 ns/op	        24.00 prompt_tokens	       104.7 tokens/s	       152.8 total_ms	        26.10 ttft_ms
+BenchmarkCompare-32    	      20	 153486881 ns/op	        23.00 prompt_tokens	       104.3 tokens/s	       153.5 total_ms	        25.27 ttft_ms
+BenchmarkCompare-32    	      20	 152844415 ns/op	        23.00 prompt_tokens	       104.7 tokens/s	       152.8 total_ms	        24.76 ttft_ms
+BenchmarkCompare-32    	      20	 151203022 ns/op	        23.00 prompt_tokens	       105.8 tokens/s	       151.2 total_ms	        24.52 ttft_ms
+BenchmarkCompare-32    	      20	 150993552 ns/op	        23.00 prompt_tokens	       106.0 tokens/s	       151.0 total_ms	        24.50 ttft_ms
+BenchmarkCompare-32    	      20	 151264380 ns/op	        24.00 prompt_tokens	       105.8 tokens/s	       151.2 total_ms	        24.59 ttft_ms
 PASS
-ok  	github.com/hybridgroup/yzma/benchmarks/compare	15.328s
+ok  	github.com/hybridgroup/yzma/benchmarks/compare	15.236s
 ```
 
 </details>
@@ -139,25 +139,25 @@ ok  	github.com/hybridgroup/yzma/benchmarks/compare	15.328s
 
 <!-- yzma:bench start compare-text/dmr/amd64/ron-tuxedo-gemini-gen2/gemma4-e2b -->
 ### Docker Model Runner, REST, amd64, Intel Core i9-13900HX, RTX 4070, gemma4-e2b
-<!-- yzma:bench meta {"suite":"compare-text","backend":"dmr","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"gemma4-e2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":106.7,"ttft_ms":26,"total_ms":150,"prompt_tokens":23,"engine_version":"v1.2.8","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+<!-- yzma:bench meta {"suite":"compare-text","backend":"dmr","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"gemma4-e2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":106.7,"ttft_ms":25.74,"total_ms":150,"prompt_tokens":23,"engine_version":"v1.2.8","yzma":"1.30.0","date":"2026-10-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 106.7 tokens a second. 26.0 ms to the first token. 150.0 ms for a request. 23 prompt tokens.
+13th Gen Intel(R) Core(TM) i9-13900HX. 106.7 tokens a second. 25.7 ms to the first token. 150.0 ms for a request. 23 prompt tokens.
 
 16 tokens, greedy sampling, one request at a time.
 
 <details><summary>The device</summary>
 
 ```
-Fri Sep 25 17:46:48 2026       
+Fri Oct 16 14:49:11 2026       
 +-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 595.84                 Driver Version: 595.84         CUDA Version: 13.2     |
+| NVIDIA-SMI 595.99.02              Driver Version: 595.99.02      CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
 | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
-| N/A   52C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
+| N/A   56C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -166,7 +166,7 @@ Fri Sep 25 17:46:48 2026
 |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
 |        ID   ID                                                               Usage      |
 |=========================================================================================|
-|    0   N/A  N/A            7549      G   /usr/lib/xorg/Xorg                        4MiB |
+|    0   N/A  N/A            6259      G   /usr/lib/xorg/Xorg                        4MiB |
 +-----------------------------------------------------------------------------------------+
 ```
 
@@ -180,13 +180,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/benchmarks/compare
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkCompare-32    	      20	 150049430 ns/op	        23.00 prompt_tokens	       106.7 tokens/s	       150.0 total_ms	        26.12 ttft_ms
-BenchmarkCompare-32    	      20	 149727690 ns/op	        23.00 prompt_tokens	       106.9 tokens/s	       149.7 total_ms	        25.85 ttft_ms
-BenchmarkCompare-32    	      20	 150050261 ns/op	        23.00 prompt_tokens	       106.7 tokens/s	       150.0 total_ms	        25.98 ttft_ms
-BenchmarkCompare-32    	      20	 150216936 ns/op	        23.00 prompt_tokens	       106.5 tokens/s	       150.2 total_ms	        26.00 ttft_ms
-BenchmarkCompare-32    	      20	 150361056 ns/op	        24.00 prompt_tokens	       106.4 tokens/s	       150.3 total_ms	        26.12 ttft_ms
+BenchmarkCompare-32    	      20	 149510038 ns/op	        23.00 prompt_tokens	       107.0 tokens/s	       149.5 total_ms	        25.74 ttft_ms
+BenchmarkCompare-32    	      20	 149578367 ns/op	        23.00 prompt_tokens	       107.0 tokens/s	       149.5 total_ms	        25.69 ttft_ms
+BenchmarkCompare-32    	      20	 152301924 ns/op	        23.00 prompt_tokens	       105.1 tokens/s	       152.3 total_ms	        27.96 ttft_ms
+BenchmarkCompare-32    	      20	 150128168 ns/op	        23.00 prompt_tokens	       106.6 tokens/s	       150.1 total_ms	        25.80 ttft_ms
+BenchmarkCompare-32    	      20	 150041236 ns/op	        24.00 prompt_tokens	       106.7 tokens/s	       150.0 total_ms	        25.64 ttft_ms
 PASS
-ok  	github.com/hybridgroup/yzma/benchmarks/compare	15.046s
+ok  	github.com/hybridgroup/yzma/benchmarks/compare	15.073s
 ```
 
 </details>
@@ -194,25 +194,25 @@ ok  	github.com/hybridgroup/yzma/benchmarks/compare	15.046s
 
 <!-- yzma:bench start compare-text/yzma/amd64/ron-tuxedo-gemini-gen2/qwen3-vl-2b -->
 ### yzma, in process, amd64, Intel Core i9-13900HX, RTX 4070, qwen3-vl-2b
-<!-- yzma:bench meta {"suite":"compare-text","backend":"yzma","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"qwen3-vl-2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":167.6,"ttft_ms":8.938,"total_ms":95.46,"prompt_tokens":22,"llamacpp":"b11179","engine_version":"1.29.0-dev","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+<!-- yzma:bench meta {"suite":"compare-text","backend":"yzma","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"qwen3-vl-2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":166.9,"ttft_ms":8.964,"total_ms":95.87,"prompt_tokens":22,"llamacpp":"b11669","engine_version":"1.30.0","yzma":"1.30.0","date":"2026-10-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 167.6 tokens a second. 8.9 ms to the first token. 95.5 ms for a request. 22 prompt tokens.
+13th Gen Intel(R) Core(TM) i9-13900HX. 166.9 tokens a second. 9.0 ms to the first token. 95.9 ms for a request. 22 prompt tokens.
 
 16 tokens, greedy sampling, one request at a time.
 
 <details><summary>The device</summary>
 
 ```
-Fri Sep 25 17:46:48 2026       
+Fri Oct 16 14:49:11 2026       
 +-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 595.84                 Driver Version: 595.84         CUDA Version: 13.2     |
+| NVIDIA-SMI 595.99.02              Driver Version: 595.99.02      CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
 | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
-| N/A   52C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
+| N/A   56C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -221,7 +221,7 @@ Fri Sep 25 17:46:48 2026
 |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
 |        ID   ID                                                               Usage      |
 |=========================================================================================|
-|    0   N/A  N/A            7549      G   /usr/lib/xorg/Xorg                        4MiB |
+|    0   N/A  N/A            6259      G   /usr/lib/xorg/Xorg                        4MiB |
 +-----------------------------------------------------------------------------------------+
 ```
 
@@ -235,13 +235,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/benchmarks/compare
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkCompare-32    	      20	  99726605 ns/op	        22.00 prompt_tokens	       166.8 tokens/s	        95.90 total_ms	         9.133 ttft_ms
-BenchmarkCompare-32    	      20	  99245455 ns/op	        22.00 prompt_tokens	       167.7 tokens/s	        95.42 total_ms	         8.925 ttft_ms
-BenchmarkCompare-32    	      20	  99168447 ns/op	        22.00 prompt_tokens	       167.8 tokens/s	        95.35 total_ms	         8.938 ttft_ms
-BenchmarkCompare-32    	      20	  99288677 ns/op	        22.00 prompt_tokens	       167.6 tokens/s	        95.48 total_ms	         8.938 ttft_ms
-BenchmarkCompare-32    	      20	  99275950 ns/op	        23.00 prompt_tokens	       167.6 tokens/s	        95.46 total_ms	         8.905 ttft_ms
+BenchmarkCompare-32    	      20	  99860357 ns/op	        22.00 prompt_tokens	       166.6 tokens/s	        96.05 total_ms	         9.093 ttft_ms
+BenchmarkCompare-32    	      20	  99681575 ns/op	        22.00 prompt_tokens	       166.9 tokens/s	        95.87 total_ms	         8.964 ttft_ms
+BenchmarkCompare-32    	      20	  99450817 ns/op	        22.00 prompt_tokens	       167.3 tokens/s	        95.65 total_ms	         8.916 ttft_ms
+BenchmarkCompare-32    	      20	  99611383 ns/op	        22.00 prompt_tokens	       167.0 tokens/s	        95.80 total_ms	         8.937 ttft_ms
+BenchmarkCompare-32    	      20	  99870632 ns/op	        23.00 prompt_tokens	       166.6 tokens/s	        96.05 total_ms	         8.976 ttft_ms
 PASS
-ok  	github.com/hybridgroup/yzma/benchmarks/compare	10.777s
+ok  	github.com/hybridgroup/yzma/benchmarks/compare	10.770s
 ```
 
 </details>
@@ -249,25 +249,25 @@ ok  	github.com/hybridgroup/yzma/benchmarks/compare	10.777s
 
 <!-- yzma:bench start compare-text/ollama/amd64/ron-tuxedo-gemini-gen2/qwen3-vl-2b -->
 ### ollama, REST, amd64, Intel Core i9-13900HX, RTX 4070, qwen3-vl-2b
-<!-- yzma:bench meta {"suite":"compare-text","backend":"ollama","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"qwen3-vl-2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":146.1,"ttft_ms":19.63,"total_ms":109.5,"prompt_tokens":22,"engine_version":"0.34.4","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+<!-- yzma:bench meta {"suite":"compare-text","backend":"ollama","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"qwen3-vl-2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":152.8,"ttft_ms":15.09,"total_ms":104.7,"prompt_tokens":22,"engine_version":"0.40.5","yzma":"1.30.0","date":"2026-10-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 146.1 tokens a second. 19.6 ms to the first token. 109.5 ms for a request. 22 prompt tokens.
+13th Gen Intel(R) Core(TM) i9-13900HX. 152.8 tokens a second. 15.1 ms to the first token. 104.7 ms for a request. 22 prompt tokens.
 
 16 tokens, greedy sampling, one request at a time.
 
 <details><summary>The device</summary>
 
 ```
-Fri Sep 25 17:46:48 2026       
+Fri Oct 16 14:49:11 2026       
 +-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 595.84                 Driver Version: 595.84         CUDA Version: 13.2     |
+| NVIDIA-SMI 595.99.02              Driver Version: 595.99.02      CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
 | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
-| N/A   52C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
+| N/A   56C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -276,7 +276,7 @@ Fri Sep 25 17:46:48 2026
 |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
 |        ID   ID                                                               Usage      |
 |=========================================================================================|
-|    0   N/A  N/A            7549      G   /usr/lib/xorg/Xorg                        4MiB |
+|    0   N/A  N/A            6259      G   /usr/lib/xorg/Xorg                        4MiB |
 +-----------------------------------------------------------------------------------------+
 ```
 
@@ -290,13 +290,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/benchmarks/compare
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkCompare-32    	      20	 109540730 ns/op	        22.00 prompt_tokens	       146.1 tokens/s	       109.5 total_ms	        19.83 ttft_ms
-BenchmarkCompare-32    	      20	 108231342 ns/op	        22.00 prompt_tokens	       147.9 tokens/s	       108.2 total_ms	        19.32 ttft_ms
-BenchmarkCompare-32    	      20	 109331570 ns/op	        22.00 prompt_tokens	       146.4 tokens/s	       109.3 total_ms	        19.52 ttft_ms
-BenchmarkCompare-32    	      20	 109811138 ns/op	        22.00 prompt_tokens	       145.7 tokens/s	       109.8 total_ms	        19.63 ttft_ms
-BenchmarkCompare-32    	      20	 110103446 ns/op	        23.00 prompt_tokens	       145.3 tokens/s	       110.1 total_ms	        19.97 ttft_ms
+BenchmarkCompare-32    	      20	 104607792 ns/op	        22.00 prompt_tokens	       153.0 tokens/s	       104.6 total_ms	        14.08 ttft_ms
+BenchmarkCompare-32    	      20	 104093140 ns/op	        22.00 prompt_tokens	       153.8 tokens/s	       104.1 total_ms	        14.15 ttft_ms
+BenchmarkCompare-32    	      20	 105543328 ns/op	        22.00 prompt_tokens	       151.6 tokens/s	       105.5 total_ms	        15.11 ttft_ms
+BenchmarkCompare-32    	      20	 105860293 ns/op	        22.00 prompt_tokens	       151.2 tokens/s	       105.8 total_ms	        15.33 ttft_ms
+BenchmarkCompare-32    	      20	 104704800 ns/op	        23.00 prompt_tokens	       152.8 tokens/s	       104.7 total_ms	        15.09 ttft_ms
 PASS
-ok  	github.com/hybridgroup/yzma/benchmarks/compare	10.981s
+ok  	github.com/hybridgroup/yzma/benchmarks/compare	10.524s
 ```
 
 </details>
@@ -304,25 +304,25 @@ ok  	github.com/hybridgroup/yzma/benchmarks/compare	10.981s
 
 <!-- yzma:bench start compare-text/dmr/amd64/ron-tuxedo-gemini-gen2/qwen3-vl-2b -->
 ### Docker Model Runner, REST, amd64, Intel Core i9-13900HX, RTX 4070, qwen3-vl-2b
-<!-- yzma:bench meta {"suite":"compare-text","backend":"dmr","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"qwen3-vl-2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":151.7,"ttft_ms":17.71,"total_ms":105.5,"prompt_tokens":22,"engine_version":"v1.2.8","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+<!-- yzma:bench meta {"suite":"compare-text","backend":"dmr","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"qwen3-vl-2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":152.5,"ttft_ms":17.13,"total_ms":104.9,"prompt_tokens":22,"engine_version":"v1.2.8","yzma":"1.30.0","date":"2026-10-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 151.7 tokens a second. 17.7 ms to the first token. 105.5 ms for a request. 22 prompt tokens.
+13th Gen Intel(R) Core(TM) i9-13900HX. 152.5 tokens a second. 17.1 ms to the first token. 104.9 ms for a request. 22 prompt tokens.
 
 16 tokens, greedy sampling, one request at a time.
 
 <details><summary>The device</summary>
 
 ```
-Fri Sep 25 17:46:48 2026       
+Fri Oct 16 14:49:11 2026       
 +-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 595.84                 Driver Version: 595.84         CUDA Version: 13.2     |
+| NVIDIA-SMI 595.99.02              Driver Version: 595.99.02      CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
 | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
-| N/A   52C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
+| N/A   56C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -331,7 +331,7 @@ Fri Sep 25 17:46:48 2026
 |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
 |        ID   ID                                                               Usage      |
 |=========================================================================================|
-|    0   N/A  N/A            7549      G   /usr/lib/xorg/Xorg                        4MiB |
+|    0   N/A  N/A            6259      G   /usr/lib/xorg/Xorg                        4MiB |
 +-----------------------------------------------------------------------------------------+
 ```
 
@@ -345,13 +345,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/benchmarks/compare
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkCompare-32    	      20	 105508979 ns/op	        22.00 prompt_tokens	       151.7 tokens/s	       105.5 total_ms	        17.79 ttft_ms
-BenchmarkCompare-32    	      20	 105593789 ns/op	        22.00 prompt_tokens	       151.6 tokens/s	       105.6 total_ms	        17.71 ttft_ms
-BenchmarkCompare-32    	      20	 105620910 ns/op	        22.00 prompt_tokens	       151.6 tokens/s	       105.6 total_ms	        17.79 ttft_ms
-BenchmarkCompare-32    	      20	 105255991 ns/op	        22.00 prompt_tokens	       152.1 tokens/s	       105.2 total_ms	        17.34 ttft_ms
-BenchmarkCompare-32    	      20	 105380190 ns/op	        23.00 prompt_tokens	       151.9 tokens/s	       105.3 total_ms	        17.34 ttft_ms
+BenchmarkCompare-32    	      20	 105683605 ns/op	        22.00 prompt_tokens	       151.5 tokens/s	       105.6 total_ms	        17.89 ttft_ms
+BenchmarkCompare-32    	      20	 104462500 ns/op	        22.00 prompt_tokens	       153.2 tokens/s	       104.4 total_ms	        17.13 ttft_ms
+BenchmarkCompare-32    	      20	 104956671 ns/op	        22.00 prompt_tokens	       152.5 tokens/s	       104.9 total_ms	        17.12 ttft_ms
+BenchmarkCompare-32    	      20	 103985339 ns/op	        22.00 prompt_tokens	       153.9 tokens/s	       104.0 total_ms	        16.59 ttft_ms
+BenchmarkCompare-32    	      20	 106025334 ns/op	        23.00 prompt_tokens	       151.0 tokens/s	       106.0 total_ms	        18.58 ttft_ms
 PASS
-ok  	github.com/hybridgroup/yzma/benchmarks/compare	10.582s
+ok  	github.com/hybridgroup/yzma/benchmarks/compare	10.537s
 ```
 
 </details>
@@ -367,32 +367,32 @@ engine reads.
 <!-- yzma:bench table compare-embeddings -->
 | Engine | Arch | Machine | Model | Prompt tokens | Tokens a second | First token ms | Request ms | Version | Date |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| yzma, in process | amd64 | Intel Core i9-13900HX, RTX 4070 | bge-small | 29 | 20094.0 | 1.4 | 1.4 | 1.29.0-dev | 2026-09-25 |
-| ollama, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | bge-small | 29 | 6742.0 | 4.3 | 4.3 | 0.34.4 | 2026-09-25 |
-| Docker Model Runner, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | bge-small | 29 | 7784.0 | 3.7 | 3.7 | v1.2.8 | 2026-09-25 |
+| yzma, in process | amd64 | Intel Core i9-13900HX, RTX 4070 | bge-small | 29 | 17123.0 | 1.7 | 1.7 | 1.30.0 | 2026-10-16 |
+| ollama, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | bge-small | 29 | 6393.0 | 4.5 | 4.5 | 0.40.5 | 2026-10-16 |
+| Docker Model Runner, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | bge-small | 29 | 6360.0 | 4.6 | 4.6 | v1.2.8 | 2026-10-16 |
 <!-- yzma:bench table end compare-embeddings -->
 
 <!-- yzma:bench start compare-embeddings/yzma/amd64/ron-tuxedo-gemini-gen2/bge-small -->
 ### yzma, in process, amd64, Intel Core i9-13900HX, RTX 4070, bge-small
-<!-- yzma:bench meta {"suite":"compare-embeddings","backend":"yzma","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"bge-small","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":20094,"ttft_ms":1.443,"total_ms":1.443,"prompt_tokens":29,"llamacpp":"b11179","engine_version":"1.29.0-dev","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+<!-- yzma:bench meta {"suite":"compare-embeddings","backend":"yzma","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"bge-small","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":17123,"ttft_ms":1.694,"total_ms":1.694,"prompt_tokens":29,"llamacpp":"b11669","engine_version":"1.30.0","yzma":"1.30.0","date":"2026-10-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 20094.0 tokens a second. 1.4 ms to the first token. 1.4 ms for a request. 29 prompt tokens.
+13th Gen Intel(R) Core(TM) i9-13900HX. 17123.0 tokens a second. 1.7 ms to the first token. 1.7 ms for a request. 29 prompt tokens.
 
 16 tokens, greedy sampling, one request at a time.
 
 <details><summary>The device</summary>
 
 ```
-Fri Sep 25 17:46:48 2026       
+Fri Oct 16 14:49:11 2026       
 +-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 595.84                 Driver Version: 595.84         CUDA Version: 13.2     |
+| NVIDIA-SMI 595.99.02              Driver Version: 595.99.02      CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
 | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
-| N/A   52C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
+| N/A   56C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -401,7 +401,7 @@ Fri Sep 25 17:46:48 2026
 |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
 |        ID   ID                                                               Usage      |
 |=========================================================================================|
-|    0   N/A  N/A            7549      G   /usr/lib/xorg/Xorg                        4MiB |
+|    0   N/A  N/A            6259      G   /usr/lib/xorg/Xorg                        4MiB |
 +-----------------------------------------------------------------------------------------+
 ```
 
@@ -415,13 +415,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/benchmarks/compare
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkCompare-32    	      20	   1476281 ns/op	        29.00 prompt_tokens	     19668 tokens/s	         1.474 total_ms	         1.474 ttft_ms
-BenchmarkCompare-32    	      20	   1362974 ns/op	        29.00 prompt_tokens	     21306 tokens/s	         1.361 total_ms	         1.361 ttft_ms
-BenchmarkCompare-32    	      20	   1495376 ns/op	        29.00 prompt_tokens	     19457 tokens/s	         1.490 total_ms	         1.490 ttft_ms
-BenchmarkCompare-32    	      20	   1447153 ns/op	        29.00 prompt_tokens	     20094 tokens/s	         1.443 total_ms	         1.443 ttft_ms
-BenchmarkCompare-32    	      20	   1347771 ns/op	        29.00 prompt_tokens	     21545 tokens/s	         1.346 total_ms	         1.346 ttft_ms
+BenchmarkCompare-32    	      20	   1725231 ns/op	        29.00 prompt_tokens	     16830 tokens/s	         1.723 total_ms	         1.723 ttft_ms
+BenchmarkCompare-32    	      20	   1593110 ns/op	        29.00 prompt_tokens	     18228 tokens/s	         1.591 total_ms	         1.591 ttft_ms
+BenchmarkCompare-32    	      20	   1614654 ns/op	        29.00 prompt_tokens	     17991 tokens/s	         1.612 total_ms	         1.612 ttft_ms
+BenchmarkCompare-32    	      20	   1703197 ns/op	        29.00 prompt_tokens	     17067 tokens/s	         1.699 total_ms	         1.699 ttft_ms
+BenchmarkCompare-32    	      20	   1697607 ns/op	        29.00 prompt_tokens	     17123 tokens/s	         1.694 total_ms	         1.694 ttft_ms
 PASS
-ok  	github.com/hybridgroup/yzma/benchmarks/compare	0.599s
+ok  	github.com/hybridgroup/yzma/benchmarks/compare	0.568s
 ```
 
 </details>
@@ -429,25 +429,25 @@ ok  	github.com/hybridgroup/yzma/benchmarks/compare	0.599s
 
 <!-- yzma:bench start compare-embeddings/ollama/amd64/ron-tuxedo-gemini-gen2/bge-small -->
 ### ollama, REST, amd64, Intel Core i9-13900HX, RTX 4070, bge-small
-<!-- yzma:bench meta {"suite":"compare-embeddings","backend":"ollama","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"bge-small","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":6742,"ttft_ms":4.301,"total_ms":4.301,"prompt_tokens":29,"engine_version":"0.34.4","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+<!-- yzma:bench meta {"suite":"compare-embeddings","backend":"ollama","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"bge-small","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":6393,"ttft_ms":4.536,"total_ms":4.536,"prompt_tokens":29,"engine_version":"0.40.5","yzma":"1.30.0","date":"2026-10-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 6742.0 tokens a second. 4.3 ms to the first token. 4.3 ms for a request. 29 prompt tokens.
+13th Gen Intel(R) Core(TM) i9-13900HX. 6393.0 tokens a second. 4.5 ms to the first token. 4.5 ms for a request. 29 prompt tokens.
 
 16 tokens, greedy sampling, one request at a time.
 
 <details><summary>The device</summary>
 
 ```
-Fri Sep 25 17:46:48 2026       
+Fri Oct 16 14:49:11 2026       
 +-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 595.84                 Driver Version: 595.84         CUDA Version: 13.2     |
+| NVIDIA-SMI 595.99.02              Driver Version: 595.99.02      CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
 | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
-| N/A   52C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
+| N/A   56C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -456,7 +456,7 @@ Fri Sep 25 17:46:48 2026
 |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
 |        ID   ID                                                               Usage      |
 |=========================================================================================|
-|    0   N/A  N/A            7549      G   /usr/lib/xorg/Xorg                        4MiB |
+|    0   N/A  N/A            6259      G   /usr/lib/xorg/Xorg                        4MiB |
 +-----------------------------------------------------------------------------------------+
 ```
 
@@ -470,13 +470,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/benchmarks/compare
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkCompare-32    	      20	   5473549 ns/op	        29.00 prompt_tokens	      5304 tokens/s	         5.467 total_ms	         5.467 ttft_ms
-BenchmarkCompare-32    	      20	   4305789 ns/op	        29.00 prompt_tokens	      6742 tokens/s	         4.301 total_ms	         4.301 ttft_ms
-BenchmarkCompare-32    	      20	   4225506 ns/op	        29.00 prompt_tokens	      6870 tokens/s	         4.221 total_ms	         4.221 ttft_ms
-BenchmarkCompare-32    	      20	   4219690 ns/op	        29.00 prompt_tokens	      6879 tokens/s	         4.216 total_ms	         4.216 ttft_ms
-BenchmarkCompare-32    	      20	   4339701 ns/op	        29.00 prompt_tokens	      6689 tokens/s	         4.335 total_ms	         4.335 ttft_ms
+BenchmarkCompare-32    	      20	   5263934 ns/op	        29.00 prompt_tokens	      5515 tokens/s	         5.259 total_ms	         5.259 ttft_ms
+BenchmarkCompare-32    	      20	   4540531 ns/op	        29.00 prompt_tokens	      6393 tokens/s	         4.536 total_ms	         4.536 ttft_ms
+BenchmarkCompare-32    	      20	   4628742 ns/op	        29.00 prompt_tokens	      6272 tokens/s	         4.624 total_ms	         4.624 ttft_ms
+BenchmarkCompare-32    	      20	   4295618 ns/op	        29.00 prompt_tokens	      6758 tokens/s	         4.291 total_ms	         4.291 ttft_ms
+BenchmarkCompare-32    	      20	   4480446 ns/op	        29.00 prompt_tokens	      6479 tokens/s	         4.476 total_ms	         4.476 ttft_ms
 PASS
-ok  	github.com/hybridgroup/yzma/benchmarks/compare	0.469s
+ok  	github.com/hybridgroup/yzma/benchmarks/compare	0.483s
 ```
 
 </details>
@@ -484,25 +484,25 @@ ok  	github.com/hybridgroup/yzma/benchmarks/compare	0.469s
 
 <!-- yzma:bench start compare-embeddings/dmr/amd64/ron-tuxedo-gemini-gen2/bge-small -->
 ### Docker Model Runner, REST, amd64, Intel Core i9-13900HX, RTX 4070, bge-small
-<!-- yzma:bench meta {"suite":"compare-embeddings","backend":"dmr","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"bge-small","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":7784,"ttft_ms":3.726,"total_ms":3.726,"prompt_tokens":29,"engine_version":"v1.2.8","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+<!-- yzma:bench meta {"suite":"compare-embeddings","backend":"dmr","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"bge-small","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":6360,"ttft_ms":4.56,"total_ms":4.56,"prompt_tokens":29,"engine_version":"v1.2.8","yzma":"1.30.0","date":"2026-10-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 7784.0 tokens a second. 3.7 ms to the first token. 3.7 ms for a request. 29 prompt tokens.
+13th Gen Intel(R) Core(TM) i9-13900HX. 6360.0 tokens a second. 4.6 ms to the first token. 4.6 ms for a request. 29 prompt tokens.
 
 16 tokens, greedy sampling, one request at a time.
 
 <details><summary>The device</summary>
 
 ```
-Fri Sep 25 17:46:48 2026       
+Fri Oct 16 14:49:11 2026       
 +-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 595.84                 Driver Version: 595.84         CUDA Version: 13.2     |
+| NVIDIA-SMI 595.99.02              Driver Version: 595.99.02      CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
 | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
-| N/A   52C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
+| N/A   56C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -511,7 +511,7 @@ Fri Sep 25 17:46:48 2026
 |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
 |        ID   ID                                                               Usage      |
 |=========================================================================================|
-|    0   N/A  N/A            7549      G   /usr/lib/xorg/Xorg                        4MiB |
+|    0   N/A  N/A            6259      G   /usr/lib/xorg/Xorg                        4MiB |
 +-----------------------------------------------------------------------------------------+
 ```
 
@@ -525,13 +525,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/benchmarks/compare
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkCompare-32    	      20	   3504334 ns/op	        29.00 prompt_tokens	      8285 tokens/s	         3.500 total_ms	         3.500 ttft_ms
-BenchmarkCompare-32    	      20	   3730842 ns/op	        29.00 prompt_tokens	      7784 tokens/s	         3.726 total_ms	         3.726 ttft_ms
-BenchmarkCompare-32    	      20	   5507510 ns/op	        29.00 prompt_tokens	      5274 tokens/s	         5.499 total_ms	         5.499 ttft_ms
-BenchmarkCompare-32    	      20	   4948398 ns/op	        29.00 prompt_tokens	      5869 tokens/s	         4.941 total_ms	         4.941 ttft_ms
-BenchmarkCompare-32    	      20	   3114935 ns/op	        29.00 prompt_tokens	      9322 tokens/s	         3.111 total_ms	         3.111 ttft_ms
+BenchmarkCompare-32    	      20	   4565816 ns/op	        29.00 prompt_tokens	      6360 tokens/s	         4.560 total_ms	         4.560 ttft_ms
+BenchmarkCompare-32    	      20	   4687089 ns/op	        29.00 prompt_tokens	      6195 tokens/s	         4.681 total_ms	         4.681 ttft_ms
+BenchmarkCompare-32    	      20	   4614523 ns/op	        29.00 prompt_tokens	      6293 tokens/s	         4.609 total_ms	         4.609 ttft_ms
+BenchmarkCompare-32    	      20	   3374329 ns/op	        29.00 prompt_tokens	      8605 tokens/s	         3.370 total_ms	         3.370 ttft_ms
+BenchmarkCompare-32    	      20	   4064824 ns/op	        29.00 prompt_tokens	      7143 tokens/s	         4.060 total_ms	         4.060 ttft_ms
 PASS
-ok  	github.com/hybridgroup/yzma/benchmarks/compare	0.433s
+ok  	github.com/hybridgroup/yzma/benchmarks/compare	0.441s
 ```
 
 </details>
@@ -552,35 +552,35 @@ and at every size, while the answers match.
 <!-- yzma:bench table compare-multimodal -->
 | Engine | Arch | Machine | Model | Prompt tokens | Tokens a second | First token ms | Request ms | Version | Date |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| yzma, in process | amd64 | Intel Core i9-13900HX, RTX 4070 | gemma4-e2b | 209 | 73.8 | 91.6 | 216.9 | 1.29.0-dev | 2026-09-25 |
-| ollama, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | gemma4-e2b | 214 | 60.4 | 136.4 | 264.9 | 0.34.4 | 2026-09-25 |
-| Docker Model Runner, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | gemma4-e2b | 209 | 52.8 | 177.1 | 303.0 | v1.2.8 | 2026-09-25 |
-| yzma, in process | amd64 | Intel Core i9-13900HX, RTX 4070 | qwen3-vl-2b | 1216 | 29.8 | 441.2 | 537.6 | 1.29.0-dev | 2026-09-25 |
-| ollama, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | qwen3-vl-2b | 1221 | 23.7 | 574.2 | 674.0 | 0.34.4 | 2026-09-25 |
-| Docker Model Runner, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | qwen3-vl-2b | 1216 | 24.7 | 550.4 | 647.4 | v1.2.8 | 2026-09-25 |
+| yzma, in process | amd64 | Intel Core i9-13900HX, RTX 4070 | gemma4-e2b | 209 | 75.8 | 87.7 | 211.1 | 1.30.0 | 2026-10-16 |
+| ollama, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | gemma4-e2b | 214 | 61.3 | 133.3 | 260.9 | 0.40.5 | 2026-10-16 |
+| Docker Model Runner, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | gemma4-e2b | 209 | 53.7 | 173.5 | 297.8 | v1.2.8 | 2026-10-16 |
+| yzma, in process | amd64 | Intel Core i9-13900HX, RTX 4070 | qwen3-vl-2b | 1216 | 30.0 | 437.5 | 534.1 | 1.30.0 | 2026-10-16 |
+| ollama, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | qwen3-vl-2b | 1221 | 23.9 | 570.7 | 669.6 | 0.40.5 | 2026-10-16 |
+| Docker Model Runner, REST | amd64 | Intel Core i9-13900HX, RTX 4070 | qwen3-vl-2b | 1216 | 25.4 | 533.6 | 630.0 | v1.2.8 | 2026-10-16 |
 <!-- yzma:bench table end compare-multimodal -->
 
 <!-- yzma:bench start compare-multimodal/yzma/amd64/ron-tuxedo-gemini-gen2/gemma4-e2b -->
 ### yzma, in process, amd64, Intel Core i9-13900HX, RTX 4070, gemma4-e2b
-<!-- yzma:bench meta {"suite":"compare-multimodal","backend":"yzma","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"gemma4-e2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":73.76,"ttft_ms":91.6,"total_ms":216.9,"prompt_tokens":209,"llamacpp":"b11179","engine_version":"1.29.0-dev","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+<!-- yzma:bench meta {"suite":"compare-multimodal","backend":"yzma","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"gemma4-e2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":75.81,"ttft_ms":87.74,"total_ms":211.1,"prompt_tokens":209,"llamacpp":"b11669","engine_version":"1.30.0","yzma":"1.30.0","date":"2026-10-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 73.8 tokens a second. 91.6 ms to the first token. 216.9 ms for a request. 209 prompt tokens.
+13th Gen Intel(R) Core(TM) i9-13900HX. 75.8 tokens a second. 87.7 ms to the first token. 211.1 ms for a request. 209 prompt tokens.
 
 16 tokens, greedy sampling, one request at a time.
 
 <details><summary>The device</summary>
 
 ```
-Fri Sep 25 17:46:48 2026       
+Fri Oct 16 14:49:11 2026       
 +-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 595.84                 Driver Version: 595.84         CUDA Version: 13.2     |
+| NVIDIA-SMI 595.99.02              Driver Version: 595.99.02      CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
 | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
-| N/A   52C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
+| N/A   56C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -589,7 +589,7 @@ Fri Sep 25 17:46:48 2026
 |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
 |        ID   ID                                                               Usage      |
 |=========================================================================================|
-|    0   N/A  N/A            7549      G   /usr/lib/xorg/Xorg                        4MiB |
+|    0   N/A  N/A            6259      G   /usr/lib/xorg/Xorg                        4MiB |
 +-----------------------------------------------------------------------------------------+
 ```
 
@@ -603,13 +603,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/benchmarks/compare
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkCompare-32    	      20	 234091691 ns/op	       209.0 prompt_tokens	        75.86 tokens/s	       210.9 total_ms	        87.42 ttft_ms
-BenchmarkCompare-32    	      20	 238746642 ns/op	       209.0 prompt_tokens	        74.30 tokens/s	       215.3 total_ms	        91.45 ttft_ms
-BenchmarkCompare-32    	      20	 239990194 ns/op	       209.0 prompt_tokens	        73.76 tokens/s	       216.9 total_ms	        92.66 ttft_ms
-BenchmarkCompare-32    	      20	 239825230 ns/op	       209.0 prompt_tokens	        73.68 tokens/s	       217.2 total_ms	        92.26 ttft_ms
-BenchmarkCompare-32    	      20	 239981426 ns/op	       209.0 prompt_tokens	        73.69 tokens/s	       217.1 total_ms	        91.60 ttft_ms
+BenchmarkCompare-32    	      20	 233743224 ns/op	       209.0 prompt_tokens	        75.92 tokens/s	       210.8 total_ms	        86.26 ttft_ms
+BenchmarkCompare-32    	      20	 231682910 ns/op	       209.0 prompt_tokens	        76.65 tokens/s	       208.8 total_ms	        85.95 ttft_ms
+BenchmarkCompare-32    	      20	 234243382 ns/op	       209.0 prompt_tokens	        75.81 tokens/s	       211.1 total_ms	        87.74 ttft_ms
+BenchmarkCompare-32    	      20	 237080419 ns/op	       209.0 prompt_tokens	        74.79 tokens/s	       213.9 total_ms	        89.95 ttft_ms
+BenchmarkCompare-32    	      20	 237248327 ns/op	       209.0 prompt_tokens	        74.58 tokens/s	       214.5 total_ms	        90.79 ttft_ms
 PASS
-ok  	github.com/hybridgroup/yzma/benchmarks/compare	26.387s
+ok  	github.com/hybridgroup/yzma/benchmarks/compare	25.836s
 ```
 
 </details>
@@ -617,25 +617,25 @@ ok  	github.com/hybridgroup/yzma/benchmarks/compare	26.387s
 
 <!-- yzma:bench start compare-multimodal/ollama/amd64/ron-tuxedo-gemini-gen2/gemma4-e2b -->
 ### ollama, REST, amd64, Intel Core i9-13900HX, RTX 4070, gemma4-e2b
-<!-- yzma:bench meta {"suite":"compare-multimodal","backend":"ollama","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"gemma4-e2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":60.39,"ttft_ms":136.4,"total_ms":264.9,"prompt_tokens":214,"engine_version":"0.34.4","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+<!-- yzma:bench meta {"suite":"compare-multimodal","backend":"ollama","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"gemma4-e2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":61.33,"ttft_ms":133.3,"total_ms":260.9,"prompt_tokens":214,"engine_version":"0.40.5","yzma":"1.30.0","date":"2026-10-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 60.4 tokens a second. 136.4 ms to the first token. 264.9 ms for a request. 214 prompt tokens.
+13th Gen Intel(R) Core(TM) i9-13900HX. 61.3 tokens a second. 133.3 ms to the first token. 260.9 ms for a request. 214 prompt tokens.
 
 16 tokens, greedy sampling, one request at a time.
 
 <details><summary>The device</summary>
 
 ```
-Fri Sep 25 17:46:48 2026       
+Fri Oct 16 14:49:11 2026       
 +-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 595.84                 Driver Version: 595.84         CUDA Version: 13.2     |
+| NVIDIA-SMI 595.99.02              Driver Version: 595.99.02      CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
 | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
-| N/A   52C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
+| N/A   56C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -644,7 +644,7 @@ Fri Sep 25 17:46:48 2026
 |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
 |        ID   ID                                                               Usage      |
 |=========================================================================================|
-|    0   N/A  N/A            7549      G   /usr/lib/xorg/Xorg                        4MiB |
+|    0   N/A  N/A            6259      G   /usr/lib/xorg/Xorg                        4MiB |
 +-----------------------------------------------------------------------------------------+
 ```
 
@@ -658,13 +658,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/benchmarks/compare
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkCompare-32    	      20	 283419924 ns/op	       214.0 prompt_tokens	        60.16 tokens/s	       266.0 total_ms	       138.0 ttft_ms
-BenchmarkCompare-32    	      20	 279318622 ns/op	       214.0 prompt_tokens	        61.13 tokens/s	       261.7 total_ms	       135.4 ttft_ms
-BenchmarkCompare-32    	      20	 280015579 ns/op	       214.0 prompt_tokens	        60.98 tokens/s	       262.4 total_ms	       135.6 ttft_ms
-BenchmarkCompare-32    	      20	 283450618 ns/op	       214.0 prompt_tokens	        60.28 tokens/s	       265.4 total_ms	       136.7 ttft_ms
-BenchmarkCompare-32    	      20	 281932031 ns/op	       214.0 prompt_tokens	        60.39 tokens/s	       264.9 total_ms	       136.4 ttft_ms
+BenchmarkCompare-32    	      20	 283615732 ns/op	       214.0 prompt_tokens	        60.42 tokens/s	       264.8 total_ms	       136.2 ttft_ms
+BenchmarkCompare-32    	      20	 276605656 ns/op	       214.0 prompt_tokens	        62.04 tokens/s	       257.9 total_ms	       131.5 ttft_ms
+BenchmarkCompare-32    	      20	 277712781 ns/op	       214.0 prompt_tokens	        61.78 tokens/s	       259.0 total_ms	       132.3 ttft_ms
+BenchmarkCompare-32    	      20	 279737218 ns/op	       214.0 prompt_tokens	        61.33 tokens/s	       260.9 total_ms	       133.3 ttft_ms
+BenchmarkCompare-32    	      20	 282988305 ns/op	       214.0 prompt_tokens	        60.65 tokens/s	       263.8 total_ms	       135.9 ttft_ms
 PASS
-ok  	github.com/hybridgroup/yzma/benchmarks/compare	28.325s
+ok  	github.com/hybridgroup/yzma/benchmarks/compare	28.172s
 ```
 
 </details>
@@ -672,25 +672,25 @@ ok  	github.com/hybridgroup/yzma/benchmarks/compare	28.325s
 
 <!-- yzma:bench start compare-multimodal/dmr/amd64/ron-tuxedo-gemini-gen2/gemma4-e2b -->
 ### Docker Model Runner, REST, amd64, Intel Core i9-13900HX, RTX 4070, gemma4-e2b
-<!-- yzma:bench meta {"suite":"compare-multimodal","backend":"dmr","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"gemma4-e2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":52.8,"ttft_ms":177.1,"total_ms":303,"prompt_tokens":209,"engine_version":"v1.2.8","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+<!-- yzma:bench meta {"suite":"compare-multimodal","backend":"dmr","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"gemma4-e2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":53.73,"ttft_ms":173.5,"total_ms":297.8,"prompt_tokens":209,"engine_version":"v1.2.8","yzma":"1.30.0","date":"2026-10-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 52.8 tokens a second. 177.1 ms to the first token. 303.0 ms for a request. 209 prompt tokens.
+13th Gen Intel(R) Core(TM) i9-13900HX. 53.7 tokens a second. 173.5 ms to the first token. 297.8 ms for a request. 209 prompt tokens.
 
 16 tokens, greedy sampling, one request at a time.
 
 <details><summary>The device</summary>
 
 ```
-Fri Sep 25 17:46:48 2026       
+Fri Oct 16 14:49:11 2026       
 +-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 595.84                 Driver Version: 595.84         CUDA Version: 13.2     |
+| NVIDIA-SMI 595.99.02              Driver Version: 595.99.02      CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
 | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
-| N/A   52C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
+| N/A   56C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -699,7 +699,7 @@ Fri Sep 25 17:46:48 2026
 |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
 |        ID   ID                                                               Usage      |
 |=========================================================================================|
-|    0   N/A  N/A            7549      G   /usr/lib/xorg/Xorg                        4MiB |
+|    0   N/A  N/A            6259      G   /usr/lib/xorg/Xorg                        4MiB |
 +-----------------------------------------------------------------------------------------+
 ```
 
@@ -713,13 +713,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/benchmarks/compare
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkCompare-32    	      20	 318885998 ns/op	       209.0 prompt_tokens	        52.80 tokens/s	       303.0 total_ms	       177.1 ttft_ms
-BenchmarkCompare-32    	      20	 322565968 ns/op	       209.0 prompt_tokens	        52.30 tokens/s	       305.9 total_ms	       180.0 ttft_ms
-BenchmarkCompare-32    	      20	 314898521 ns/op	       209.0 prompt_tokens	        53.49 tokens/s	       299.1 total_ms	       173.5 ttft_ms
-BenchmarkCompare-32    	      20	 315070481 ns/op	       209.0 prompt_tokens	        53.44 tokens/s	       299.4 total_ms	       174.2 ttft_ms
-BenchmarkCompare-32    	      20	 320341785 ns/op	       209.0 prompt_tokens	        52.68 tokens/s	       303.7 total_ms	       178.5 ttft_ms
+BenchmarkCompare-32    	      20	 321697096 ns/op	       209.0 prompt_tokens	        52.33 tokens/s	       305.7 total_ms	       181.0 ttft_ms
+BenchmarkCompare-32    	      20	 317255603 ns/op	       209.0 prompt_tokens	        53.15 tokens/s	       301.1 total_ms	       176.1 ttft_ms
+BenchmarkCompare-32    	      20	 312184390 ns/op	       209.0 prompt_tokens	        54.00 tokens/s	       296.3 total_ms	       171.7 ttft_ms
+BenchmarkCompare-32    	      20	 313295786 ns/op	       209.0 prompt_tokens	        53.94 tokens/s	       296.6 total_ms	       172.2 ttft_ms
+BenchmarkCompare-32    	      20	 313919391 ns/op	       209.0 prompt_tokens	        53.73 tokens/s	       297.8 total_ms	       173.5 ttft_ms
 PASS
-ok  	github.com/hybridgroup/yzma/benchmarks/compare	32.135s
+ok  	github.com/hybridgroup/yzma/benchmarks/compare	31.833s
 ```
 
 </details>
@@ -727,25 +727,25 @@ ok  	github.com/hybridgroup/yzma/benchmarks/compare	32.135s
 
 <!-- yzma:bench start compare-multimodal/yzma/amd64/ron-tuxedo-gemini-gen2/qwen3-vl-2b -->
 ### yzma, in process, amd64, Intel Core i9-13900HX, RTX 4070, qwen3-vl-2b
-<!-- yzma:bench meta {"suite":"compare-multimodal","backend":"yzma","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"qwen3-vl-2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":29.76,"ttft_ms":441.2,"total_ms":537.6,"prompt_tokens":1216,"llamacpp":"b11179","engine_version":"1.29.0-dev","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+<!-- yzma:bench meta {"suite":"compare-multimodal","backend":"yzma","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"qwen3-vl-2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":29.96,"ttft_ms":437.5,"total_ms":534.1,"prompt_tokens":1216,"llamacpp":"b11669","engine_version":"1.30.0","yzma":"1.30.0","date":"2026-10-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 29.8 tokens a second. 441.2 ms to the first token. 537.6 ms for a request. 1216 prompt tokens.
+13th Gen Intel(R) Core(TM) i9-13900HX. 30.0 tokens a second. 437.5 ms to the first token. 534.1 ms for a request. 1216 prompt tokens.
 
 16 tokens, greedy sampling, one request at a time.
 
 <details><summary>The device</summary>
 
 ```
-Fri Sep 25 17:46:48 2026       
+Fri Oct 16 14:49:11 2026       
 +-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 595.84                 Driver Version: 595.84         CUDA Version: 13.2     |
+| NVIDIA-SMI 595.99.02              Driver Version: 595.99.02      CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
 | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
-| N/A   52C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
+| N/A   56C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -754,7 +754,7 @@ Fri Sep 25 17:46:48 2026
 |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
 |        ID   ID                                                               Usage      |
 |=========================================================================================|
-|    0   N/A  N/A            7549      G   /usr/lib/xorg/Xorg                        4MiB |
+|    0   N/A  N/A            6259      G   /usr/lib/xorg/Xorg                        4MiB |
 +-----------------------------------------------------------------------------------------+
 ```
 
@@ -768,13 +768,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/benchmarks/compare
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkCompare-32    	      20	 570156105 ns/op	      1216 prompt_tokens	        30.53 tokens/s	       524.1 total_ms	       428.6 ttft_ms
-BenchmarkCompare-32    	      20	 601653255 ns/op	      1216 prompt_tokens	        28.83 tokens/s	       555.0 total_ms	       458.8 ttft_ms
-BenchmarkCompare-32    	      20	 576061395 ns/op	      1216 prompt_tokens	        30.20 tokens/s	       529.8 total_ms	       433.6 ttft_ms
-BenchmarkCompare-32    	      20	 584696748 ns/op	      1216 prompt_tokens	        29.76 tokens/s	       537.6 total_ms	       441.2 ttft_ms
-BenchmarkCompare-32    	      20	 588290726 ns/op	      1216 prompt_tokens	        29.57 tokens/s	       541.1 total_ms	       444.4 ttft_ms
+BenchmarkCompare-32    	      20	 569337460 ns/op	      1216 prompt_tokens	        30.60 tokens/s	       522.9 total_ms	       427.1 ttft_ms
+BenchmarkCompare-32    	      20	 594721491 ns/op	      1216 prompt_tokens	        29.18 tokens/s	       548.4 total_ms	       451.7 ttft_ms
+BenchmarkCompare-32    	      20	 575438039 ns/op	      1216 prompt_tokens	        30.25 tokens/s	       528.9 total_ms	       432.4 ttft_ms
+BenchmarkCompare-32    	      20	 580441120 ns/op	      1216 prompt_tokens	        29.96 tokens/s	       534.1 total_ms	       437.5 ttft_ms
+BenchmarkCompare-32    	      20	 597960021 ns/op	      1216 prompt_tokens	        29.01 tokens/s	       551.6 total_ms	       454.7 ttft_ms
 PASS
-ok  	github.com/hybridgroup/yzma/benchmarks/compare	60.191s
+ok  	github.com/hybridgroup/yzma/benchmarks/compare	59.985s
 ```
 
 </details>
@@ -782,25 +782,25 @@ ok  	github.com/hybridgroup/yzma/benchmarks/compare	60.191s
 
 <!-- yzma:bench start compare-multimodal/ollama/amd64/ron-tuxedo-gemini-gen2/qwen3-vl-2b -->
 ### ollama, REST, amd64, Intel Core i9-13900HX, RTX 4070, qwen3-vl-2b
-<!-- yzma:bench meta {"suite":"compare-multimodal","backend":"ollama","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"qwen3-vl-2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":23.74,"ttft_ms":574.2,"total_ms":674,"prompt_tokens":1221,"engine_version":"0.34.4","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+<!-- yzma:bench meta {"suite":"compare-multimodal","backend":"ollama","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"qwen3-vl-2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":23.89,"ttft_ms":570.7,"total_ms":669.6,"prompt_tokens":1221,"engine_version":"0.40.5","yzma":"1.30.0","date":"2026-10-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 23.7 tokens a second. 574.2 ms to the first token. 674.0 ms for a request. 1221 prompt tokens.
+13th Gen Intel(R) Core(TM) i9-13900HX. 23.9 tokens a second. 570.7 ms to the first token. 669.6 ms for a request. 1221 prompt tokens.
 
 16 tokens, greedy sampling, one request at a time.
 
 <details><summary>The device</summary>
 
 ```
-Fri Sep 25 17:46:48 2026       
+Fri Oct 16 14:49:11 2026       
 +-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 595.84                 Driver Version: 595.84         CUDA Version: 13.2     |
+| NVIDIA-SMI 595.99.02              Driver Version: 595.99.02      CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
 | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
-| N/A   52C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
+| N/A   56C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -809,7 +809,7 @@ Fri Sep 25 17:46:48 2026
 |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
 |        ID   ID                                                               Usage      |
 |=========================================================================================|
-|    0   N/A  N/A            7549      G   /usr/lib/xorg/Xorg                        4MiB |
+|    0   N/A  N/A            6259      G   /usr/lib/xorg/Xorg                        4MiB |
 +-----------------------------------------------------------------------------------------+
 ```
 
@@ -823,13 +823,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/benchmarks/compare
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkCompare-32    	      20	 692042917 ns/op	      1221 prompt_tokens	        24.58 tokens/s	       650.8 total_ms	       552.5 ttft_ms
-BenchmarkCompare-32    	      20	 713258600 ns/op	      1221 prompt_tokens	        23.74 tokens/s	       674.0 total_ms	       574.2 ttft_ms
-BenchmarkCompare-32    	      20	 710673504 ns/op	      1221 prompt_tokens	        23.83 tokens/s	       671.3 total_ms	       572.6 ttft_ms
-BenchmarkCompare-32    	      20	 718406712 ns/op	      1221 prompt_tokens	        23.56 tokens/s	       679.1 total_ms	       579.5 ttft_ms
-BenchmarkCompare-32    	      20	 726559024 ns/op	      1221 prompt_tokens	        23.35 tokens/s	       685.1 total_ms	       585.2 ttft_ms
+BenchmarkCompare-32    	      20	 691431614 ns/op	      1221 prompt_tokens	        24.58 tokens/s	       650.9 total_ms	       551.4 ttft_ms
+BenchmarkCompare-32    	      20	 710315813 ns/op	      1221 prompt_tokens	        23.89 tokens/s	       669.6 total_ms	       570.7 ttft_ms
+BenchmarkCompare-32    	      20	 707129374 ns/op	      1221 prompt_tokens	        23.98 tokens/s	       667.2 total_ms	       567.7 ttft_ms
+BenchmarkCompare-32    	      20	 717456218 ns/op	      1221 prompt_tokens	        23.62 tokens/s	       677.4 total_ms	       578.1 ttft_ms
+BenchmarkCompare-32    	      20	 716560904 ns/op	      1221 prompt_tokens	        23.63 tokens/s	       677.0 total_ms	       577.3 ttft_ms
 PASS
-ok  	github.com/hybridgroup/yzma/benchmarks/compare	71.616s
+ok  	github.com/hybridgroup/yzma/benchmarks/compare	71.238s
 ```
 
 </details>
@@ -837,25 +837,25 @@ ok  	github.com/hybridgroup/yzma/benchmarks/compare	71.616s
 
 <!-- yzma:bench start compare-multimodal/dmr/amd64/ron-tuxedo-gemini-gen2/qwen3-vl-2b -->
 ### Docker Model Runner, REST, amd64, Intel Core i9-13900HX, RTX 4070, qwen3-vl-2b
-<!-- yzma:bench meta {"suite":"compare-multimodal","backend":"dmr","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"qwen3-vl-2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":24.71,"ttft_ms":550.4,"total_ms":647.4,"prompt_tokens":1216,"engine_version":"v1.2.8","yzma":"1.29.0-dev","date":"2026-09-25"} -->
+<!-- yzma:bench meta {"suite":"compare-multimodal","backend":"dmr","arch":"amd64","machine":"ron-tuxedo-gemini-gen2","model":"qwen3-vl-2b","label":"Intel Core i9-13900HX, RTX 4070","cpu":"13th Gen Intel(R) Core(TM) i9-13900HX","tokens_per_second":25.4,"ttft_ms":533.6,"total_ms":630,"prompt_tokens":1216,"engine_version":"v1.2.8","yzma":"1.30.0","date":"2026-10-16"} -->
 
-13th Gen Intel(R) Core(TM) i9-13900HX. 24.7 tokens a second. 550.4 ms to the first token. 647.4 ms for a request. 1216 prompt tokens.
+13th Gen Intel(R) Core(TM) i9-13900HX. 25.4 tokens a second. 533.6 ms to the first token. 630.0 ms for a request. 1216 prompt tokens.
 
 16 tokens, greedy sampling, one request at a time.
 
 <details><summary>The device</summary>
 
 ```
-Fri Sep 25 17:46:48 2026       
+Fri Oct 16 14:49:11 2026       
 +-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 595.84                 Driver Version: 595.84         CUDA Version: 13.2     |
+| NVIDIA-SMI 595.99.02              Driver Version: 595.99.02      CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
 | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 4070 ...    Off |   00000000:01:00.0 Off |                  N/A |
-| N/A   52C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
+| N/A   56C    P0            590W /  115W |      15MiB /   8188MiB |     16%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -864,7 +864,7 @@ Fri Sep 25 17:46:48 2026
 |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
 |        ID   ID                                                               Usage      |
 |=========================================================================================|
-|    0   N/A  N/A            7549      G   /usr/lib/xorg/Xorg                        4MiB |
+|    0   N/A  N/A            6259      G   /usr/lib/xorg/Xorg                        4MiB |
 +-----------------------------------------------------------------------------------------+
 ```
 
@@ -878,13 +878,13 @@ goos: linux
 goarch: amd64
 pkg: github.com/hybridgroup/yzma/benchmarks/compare
 cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
-BenchmarkCompare-32    	      20	 682115779 ns/op	      1216 prompt_tokens	        24.86 tokens/s	       643.6 total_ms	       546.5 ttft_ms
-BenchmarkCompare-32    	      20	 686154759 ns/op	      1216 prompt_tokens	        24.71 tokens/s	       647.4 total_ms	       550.4 ttft_ms
-BenchmarkCompare-32    	      20	 684177649 ns/op	      1216 prompt_tokens	        24.82 tokens/s	       644.6 total_ms	       547.2 ttft_ms
-BenchmarkCompare-32    	      20	 690173451 ns/op	      1216 prompt_tokens	        24.56 tokens/s	       651.5 total_ms	       553.4 ttft_ms
-BenchmarkCompare-32    	      20	 691251234 ns/op	      1216 prompt_tokens	        24.48 tokens/s	       653.5 total_ms	       555.1 ttft_ms
+BenchmarkCompare-32    	      20	 666118364 ns/op	      1216 prompt_tokens	        25.58 tokens/s	       625.5 total_ms	       529.1 ttft_ms
+BenchmarkCompare-32    	      20	 667992194 ns/op	      1216 prompt_tokens	        25.40 tokens/s	       630.0 total_ms	       533.6 ttft_ms
+BenchmarkCompare-32    	      20	 667191009 ns/op	      1216 prompt_tokens	        25.45 tokens/s	       628.7 total_ms	       531.8 ttft_ms
+BenchmarkCompare-32    	      20	 675189270 ns/op	      1216 prompt_tokens	        25.10 tokens/s	       637.5 total_ms	       540.4 ttft_ms
+BenchmarkCompare-32    	      20	 672890172 ns/op	      1216 prompt_tokens	        25.21 tokens/s	       634.6 total_ms	       537.8 ttft_ms
 PASS
-ok  	github.com/hybridgroup/yzma/benchmarks/compare	69.021s
+ok  	github.com/hybridgroup/yzma/benchmarks/compare	67.321s
 ```
 
 </details>
@@ -898,9 +898,9 @@ fork, with a version that doesn't map to a llama.cpp build.
 
 | Engine | llama.cpp |
 | --- | --- |
-| yzma | the build of `lib/`, b11179 of September 2026 here |
+| yzma | the build of `lib/`, b11669 (v0.7.0) of October 2026 here |
 | Docker Model Runner | pinned in the image, b9879 of July 2026 in version 1.2 |
-| ollama | a fork, version 0.4.1-dev here |
+| ollama | a fork, with no llama.cpp build number |
 
 So the same GGUF file doesn't always mean the same work. The prompt token count
 shows it, and the script prints that count for each engine.
