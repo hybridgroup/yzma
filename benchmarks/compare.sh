@@ -411,6 +411,8 @@ flagsFor() {
 }
 
 info=$work/device.txt
+# A snapshot of a hot GPU shows the wrong clock and temperature.
+coolGPU
 if has nvidia-smi; then nvidia-smi > "$info" 2>/dev/null || true; else : > "$info"; fi
 
 answers=$work/answers.txt
