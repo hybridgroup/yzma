@@ -3,6 +3,7 @@
 # platform's markdown file. See benchmarks/README.md.
 set -euo pipefail
 
+caller=$PWD
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
 
@@ -64,6 +65,8 @@ done
 
 MODELS_DIR=${MODELS_DIR:-$HOME/models}
 export YZMA_LIB=${YZMA_LIB:-$root/lib}
+# The tests run in their package directory, so a relative path must be absolute.
+case $YZMA_LIB in /*) ;; *) YZMA_LIB=$caller/$YZMA_LIB ;; esac
 export YZMA_BENCHMARK_MODEL=${YZMA_BENCHMARK_MODEL:-$MODELS_DIR/SmolLM-135M.Q2_K.gguf}
 export YZMA_BENCHMARK_MMMODEL=${YZMA_BENCHMARK_MMMODEL:-$MODELS_DIR/SmolVLM-256M-Instruct-Q8_0.gguf}
 export YZMA_BENCHMARK_MMPROJ=${YZMA_BENCHMARK_MMPROJ:-$MODELS_DIR/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf}

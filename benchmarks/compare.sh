@@ -3,6 +3,7 @@
 # benchmarks/comparison.md. See benchmarks/README.md.
 set -euo pipefail
 
+caller=$PWD
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
 
@@ -68,6 +69,8 @@ done
 
 MODELS_DIR=${MODELS_DIR:-$HOME/models}
 export YZMA_LIB=${YZMA_LIB:-$root/lib}
+# The tests run in their package directory, so a relative path must be absolute.
+case $YZMA_LIB in /*) ;; *) YZMA_LIB=$caller/$YZMA_LIB ;; esac
 
 OLLAMA_URL=${OLLAMA_URL:-http://localhost:11434}
 DMR_URL=${DMR_URL:-http://localhost:12434}
