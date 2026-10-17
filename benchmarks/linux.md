@@ -46,7 +46,7 @@ The benchmark uses 4 threads on each machine, see
 | CPU | amd64 | Intel Core i9-13900HX | - | 251.4 | b11669 | 2026-10-16 |
 | CPU | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | - | 80.8 | b11669 | 2026-10-17 |
 | CPU | arm64 | Raspberry Pi 4 Model B Rev 1.4 | - | 34.9 | b11669 | 2026-10-17 |
-| CPU | arm64 | Arduino UnoQ | - | 32.2 | b11146 | 2026-09-24 |
+| CPU | arm64 | Arduino UnoQ | - | 31.9 | b11669 | 2026-10-17 |
 | CUDA | amd64 | Intel Core i9-13900HX | CUDA0 | 846.1 | b11669 | 2026-10-16 |
 | CUDA | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | CUDA0 | 188.3 | b11669 | 2026-10-17 |
 | ROCm | amd64 | AMD EPYC 7443P 24-Core Processor | ROCm0 | 479.9 | b11146 | 2026-09-25 |
@@ -158,7 +158,7 @@ ok  	github.com/hybridgroup/yzma/pkg/llama	62.976s
 
 <!-- yzma:bench start text/cpu/arm64/yzma -->
 ### CPU, arm64, Arduino UnoQ
-<!-- yzma:bench meta {"suite":"text","backend":"cpu","arch":"arm64","machine":"yzma","label":"Arduino UnoQ","tokens_per_second":32.21,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
+<!-- yzma:bench meta {"suite":"text","backend":"cpu","arch":"arm64","machine":"yzma","label":"Arduino UnoQ","tokens_per_second":31.86,"llamacpp":"b11669","yzma":"1.30.0","date":"2026-10-17"} -->
 
 <details><summary>The output of go test</summary>
 
@@ -167,13 +167,13 @@ $ cd pkg/llama && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkInfe
 goos: linux
 goarch: arm64
 pkg: github.com/hybridgroup/yzma/pkg/llama
-BenchmarkInference-4   	      12	 944310001 ns/op	        31.77 tokens/s
-BenchmarkInference-4   	      12	 931419997 ns/op	        32.21 tokens/s
-BenchmarkInference-4   	      12	 928250065 ns/op	        32.32 tokens/s
-BenchmarkInference-4   	      12	 929622606 ns/op	        32.27 tokens/s
-BenchmarkInference-4   	      12	 939298061 ns/op	        31.94 tokens/s
+BenchmarkInference-4   	      13	 928273931 ns/op	        32.32 tokens/s
+BenchmarkInference-4   	      12	 969937764 ns/op	        30.93 tokens/s
+BenchmarkInference-4   	      12	 941572686 ns/op	        31.86 tokens/s
+BenchmarkInference-4   	      12	 934388546 ns/op	        32.11 tokens/s
+BenchmarkInference-4   	      12	1546532248 ns/op	        19.40 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/llama	58.410s
+ok  	github.com/hybridgroup/yzma/pkg/llama	66.666s
 ```
 
 </details>
@@ -936,7 +936,7 @@ The code is [pkg/mtmd/benchmark_test.go](../pkg/mtmd/benchmark_test.go).
 | CPU | amd64 | Intel Core i9-13900HX | - | 842.6 | b11669 | 2026-10-16 |
 | CPU | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | - | 213.5 | b11669 | 2026-10-17 |
 | CPU | arm64 | Raspberry Pi 4 Model B Rev 1.4 | - | 6.7 | b11669 | 2026-10-17 |
-| CPU | arm64 | Arduino UnoQ | - | 4.1 | b11146 | 2026-09-24 |
+| CPU | arm64 | Arduino UnoQ | - | 4.1 | b11669 | 2026-10-17 |
 | CUDA | amd64 | Intel Core i9-13900HX | CUDA0 | 2448.0 | b11669 | 2026-10-16 |
 | CUDA | arm64 | NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super | CUDA0 | 451.1 | b11669 | 2026-10-17 |
 | ROCm | amd64 | AMD EPYC 7443P 24-Core Processor | ROCm0 | 1461.0 | b11146 | 2026-09-25 |
@@ -1048,7 +1048,7 @@ ok  	github.com/hybridgroup/yzma/pkg/mtmd	188.687s
 
 <!-- yzma:bench start multimodal/cpu/arm64/yzma -->
 ### CPU, arm64, Arduino UnoQ
-<!-- yzma:bench meta {"suite":"multimodal","backend":"cpu","arch":"arm64","machine":"yzma","label":"Arduino UnoQ","tokens_per_second":4.056,"llamacpp":"b11146","yzma":"1.28.0","date":"2026-09-24"} -->
+<!-- yzma:bench meta {"suite":"multimodal","backend":"cpu","arch":"arm64","machine":"yzma","label":"Arduino UnoQ","tokens_per_second":4.059,"llamacpp":"b11669","yzma":"1.30.0","date":"2026-10-17"} -->
 
 <details><summary>The output of go test</summary>
 
@@ -1057,13 +1057,13 @@ $ cd pkg/mtmd && go test -benchtime=10s -count=5 -run=nada -bench BenchmarkMulti
 goos: linux
 goarch: arm64
 pkg: github.com/hybridgroup/yzma/pkg/mtmd
-BenchmarkMultimodalInference-4   	       1	55802770374 ns/op	         4.032 tokens/s
-BenchmarkMultimodalInference-4   	       1	56029573780 ns/op	         4.051 tokens/s
-BenchmarkMultimodalInference-4   	       1	55965817409 ns/op	         4.056 tokens/s
-BenchmarkMultimodalInference-4   	       1	55928726514 ns/op	         4.059 tokens/s
-BenchmarkMultimodalInference-4   	       1	56101565335 ns/op	         4.100 tokens/s
+BenchmarkMultimodalInference-4   	       1	57330285467 ns/op	         3.994 tokens/s
+BenchmarkMultimodalInference-4   	       1	56692337793 ns/op	         4.022 tokens/s
+BenchmarkMultimodalInference-4   	       1	56662597411 ns/op	         4.059 tokens/s
+BenchmarkMultimodalInference-4   	       1	56789129864 ns/op	         4.103 tokens/s
+BenchmarkMultimodalInference-4   	       1	125126546182 ns/op	         9.902 tokens/s
 PASS
-ok  	github.com/hybridgroup/yzma/pkg/mtmd	282.332s
+ok  	github.com/hybridgroup/yzma/pkg/mtmd	353.966s
 ```
 
 </details>
