@@ -238,7 +238,7 @@ coolGPU() {
 
   local temp waited=0
   while temp=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -1) &&
-    [ -n "$temp" ] && [ "$temp" -gt "$cool" ]; do
+    [[ "$temp" =~ ^[0-9]+$ ]] && [ "$temp" -gt "$cool" ]; do
     if [ "$waited" -ge 600 ]; then
       echo "the GPU is still at $temp degrees after 10 minutes, continuing" >&2
       return 0

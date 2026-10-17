@@ -135,14 +135,17 @@ deviceInfo() {
 # machine reports them.
 temperatures() {
   if has nvidia-smi; then
-    nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -1
+    nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -1 | grep -E '^[0-9]+$'
   fi
 
+  # Jetson reports [N/A] from nvidia-smi, so read its cpu-thermal and gpu-thermal zones.
   local zone
   for zone in /sys/class/thermal/thermal_zone*; do
-    if [ "$(cat "$zone/type" 2>/dev/null)" = x86_pkg_temp ]; then
-      echo $(( $(cat "$zone/temp") / 1000 ))
-    fi
+    case "$(cat "$zone/type" 2>/dev/null)" in
+      x86_pkg_temp | cpu-thermal | gpu-thermal)
+        echo $(( $(cat "$zone/temp") / 1000 ))
+        ;;
+    esac
   done
 }
 
