@@ -3,6 +3,7 @@
 # benchmarks/comparison.md. See benchmarks/README.md.
 set -euo pipefail
 
+caller=$PWD
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
 
@@ -68,6 +69,8 @@ done
 
 MODELS_DIR=${MODELS_DIR:-$HOME/models}
 export YZMA_LIB=${YZMA_LIB:-$root/lib}
+# The tests run in their package directory, so a relative path must be absolute.
+case $YZMA_LIB in /*) ;; *) YZMA_LIB=$caller/$YZMA_LIB ;; esac
 
 OLLAMA_URL=${OLLAMA_URL:-http://localhost:11434}
 DMR_URL=${DMR_URL:-http://localhost:12434}
@@ -235,7 +238,7 @@ coolGPU() {
 
   local temp waited=0
   while temp=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -1) &&
-    [ -n "$temp" ] && [ "$temp" -gt "$cool" ]; do
+    [[ "$temp" =~ ^[0-9]+$ ]] && [ "$temp" -gt "$cool" ]; do
     if [ "$waited" -ge 600 ]; then
       echo "the GPU is still at $temp degrees after 10 minutes, continuing" >&2
       return 0
@@ -411,6 +414,8 @@ flagsFor() {
 }
 
 info=$work/device.txt
+# A snapshot of a hot GPU shows the wrong clock and temperature.
+coolGPU
 if has nvidia-smi; then nvidia-smi > "$info" 2>/dev/null || true; else : > "$info"; fi
 
 answers=$work/answers.txt

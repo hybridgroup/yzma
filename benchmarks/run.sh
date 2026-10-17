@@ -3,6 +3,7 @@
 # platform's markdown file. See benchmarks/README.md.
 set -euo pipefail
 
+caller=$PWD
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
 
@@ -18,6 +19,7 @@ count=5
 benchtime=10s
 dry_run=""
 tokens=64
+cool=60
 
 usage() {
   cat <<'EOF'
@@ -35,6 +37,8 @@ usage: benchmarks/run.sh [flags]
   --count N          runs per benchmark, default 5
   --benchtime D      time per run, default 10s
   --tokens N         tokens per run, WebAssembly only, default 64
+  --cool C           wait until the GPU and CPU are at C degrees or less
+                     before each native run, default 60
   --dry-run          print the result and change no file
 EOF
 }
@@ -52,6 +56,7 @@ while [ $# -gt 0 ]; do
     --count) count=$2; shift 2 ;;
     --benchtime) benchtime=$2; shift 2 ;;
     --tokens) tokens=$2; shift 2 ;;
+    --cool) cool=$2; shift 2 ;;
     --dry-run) dry_run="--dry-run"; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "unknown flag: $1" >&2; usage; exit 2 ;;
@@ -60,6 +65,8 @@ done
 
 MODELS_DIR=${MODELS_DIR:-$HOME/models}
 export YZMA_LIB=${YZMA_LIB:-$root/lib}
+# The tests run in their package directory, so a relative path must be absolute.
+case $YZMA_LIB in /*) ;; *) YZMA_LIB=$caller/$YZMA_LIB ;; esac
 export YZMA_BENCHMARK_MODEL=${YZMA_BENCHMARK_MODEL:-$MODELS_DIR/SmolLM-135M.Q2_K.gguf}
 export YZMA_BENCHMARK_MMMODEL=${YZMA_BENCHMARK_MMMODEL:-$MODELS_DIR/SmolVLM-256M-Instruct-Q8_0.gguf}
 export YZMA_BENCHMARK_MMPROJ=${YZMA_BENCHMARK_MMPROJ:-$MODELS_DIR/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf}
@@ -124,6 +131,41 @@ deviceInfo() {
   return 0
 }
 
+# temperatures prints the GPU and CPU package temperatures in degrees, when the
+# machine reports them.
+temperatures() {
+  if has nvidia-smi; then
+    nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -1 | grep -E '^[0-9]+$'
+  fi
+
+  # Jetson reports [N/A] from nvidia-smi, so read its cpu-thermal and gpu-thermal zones.
+  local zone
+  for zone in /sys/class/thermal/thermal_zone*; do
+    case "$(cat "$zone/type" 2>/dev/null)" in
+      x86_pkg_temp | cpu-thermal | gpu-thermal)
+        echo $(( $(cat "$zone/temp") / 1000 ))
+        ;;
+    esac
+  done
+}
+
+# coolDown waits until the GPU and CPU are at $cool degrees or less. A hot
+# laptop lowers its clock, so the run that comes right after another is slower.
+coolDown() {
+  local waited=0 hot
+  while hot=$(temperatures | awk -v c="$cool" '$1 > c {print $1}' | head -1) && [ -n "$hot" ]; do
+    if [ "$waited" -ge 600 ]; then
+      echo "still at $hot degrees after 10 minutes, continuing" >&2
+      return 0
+    fi
+    if [ "$waited" -eq 0 ]; then
+      echo "==> at $hot degrees, waiting until $cool"
+    fi
+    sleep 10
+    waited=$((waited + 10))
+  done
+}
+
 update() {
   # update SUITE BACKEND DEVICE OUTPUT DEVICEINFO
   local args=(go run ./cmd/yzma-bench update --file "$file" --suite "$1"
@@ -177,6 +219,7 @@ runNative() {
     fi
 
     local out=$work/$suite-$backend-${device:-cpu}.txt
+    coolDown
     echo "==> $suite, $backend ${device:+($device)}"
     # The benchmarks take -nctx and -device, which go test only passes to the
     # test binary of the package it runs in.
