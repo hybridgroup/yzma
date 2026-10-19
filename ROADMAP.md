@@ -187,20 +187,21 @@ the public API. They live in the [`exp/speculative`](./exp/speculative) package.
 | --- | :-: | :-: |
 | `llama_batch_ext_add` | yes | no |
 | `llama_batch_ext_add_embd` | yes | no |
-| `llama_batch_ext_add_seq` | yes | no |
-| `llama_batch_ext_add_token` | yes | no |
-| `llama_batch_ext_clear` | yes | no |
-| `llama_batch_ext_free` | yes | no |
-| `llama_batch_ext_init` | yes | no |
+| `llama_batch_ext_add_seq` | yes | yes |
+| `llama_batch_ext_add_token` | yes | yes |
+| `llama_batch_ext_clear` | yes | yes |
+| `llama_batch_ext_free` | yes | yes |
+| `llama_batch_ext_init` | yes | yes |
+| `llama_batch_ext_set_decision_order` | yes | yes |
 | `llama_batch_ext_set_embd_state` | yes | no |
 | `llama_batch_ext_set_embd_token` | yes | no |
-| `llama_batch_ext_set_output_embd` | yes | no |
-| `llama_batch_ext_set_output_logits` | yes | no |
-| `llama_batch_ext_set_pos` | yes | no |
+| `llama_batch_ext_set_output_embd` | yes | yes |
+| `llama_batch_ext_set_output_logits` | yes | yes |
+| `llama_batch_ext_set_pos` | yes | yes |
 | `llama_batch_free` | yes | yes |
 | `llama_batch_get_one` | yes | yes |
 | `llama_batch_init` | yes | partial |
-| `llama_process` | yes | no |
+| `llama_process` | yes | yes |
 
 ### Sampling Functions
 
@@ -395,7 +396,7 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 The `pkg/llamawasm` package drives a WebAssembly build of `llama.cpp`. It does
 not use the C API directly. A C shim in the
 [llama-cpp-builder](https://github.com/hybridgroup/llama-cpp-builder) repository
-exposes a small, versioned set of calls, currently ABI 9. So a `llama.cpp`
+exposes a small, versioned set of calls, currently ABI 11. So a `llama.cpp`
 function only reaches the browser after the shim exports it.
 
 The WebAssembly column of each table above shows the state of the wrapper.
@@ -406,10 +407,11 @@ The WebAssembly column of each table above shows the state of the wrapper.
 | partial | The WebAssembly build has it with fewer options. See the notes. |
 | no | The shim does not export it. |
 
-170 functions reach WebAssembly, 163 complete and 7 partial, all of them among
-the 272 that have a host wrapper. That is enough for text generation,
+180 functions reach WebAssembly, 173 complete and 7 partial, all of them among
+the 273 that have a host wrapper. That is enough for text generation,
 embeddings, images, chat templates, tool calling with a grammar, every host
-sampler, batches with more than one sequence, context shifting when the context
+sampler, batches with more than one sequence, extended batches with decision
+heads, context shifting when the context
 is full, logits and model metadata, in-memory context state, and the
 performance counters.
 
