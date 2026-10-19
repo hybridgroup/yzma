@@ -12,16 +12,14 @@ Tokens a second on each machine. The GPU columns show the fastest GPU backend.
 
 | Machine | GPU | Text, CPU | Text, GPU | Multimodal, CPU | Multimodal, GPU |
 | --- | --- | --- | --- | --- | --- |
-| AMD Ryzen 9 7950X | RTX 3070 | 112.9 | 802.3, Vulkan | 291.9 | 2011.0, Vulkan |
+| AMD Ryzen 9 7950X | RTX 3070 | 110.7 | 820.5, Vulkan | 460.4 | 2093.0, Vulkan |
 
-- On the RTX 3070, Vulkan is faster than CUDA. It is 15 percent faster for text
+- On the RTX 3070, Vulkan is faster than CUDA. It is 17 percent faster for text
   and 13 percent faster for multimodal.
-- The integrated AMD Radeon GPU on Vulkan0 reaches 115.6 for text, which is
-  almost the same as the CPU. For multimodal it reaches 448.9, which is faster
-  than the CPU.
-- The CPU results vary a lot from run to run, because Windows can't pin a
-  thread to a core. The multimodal runs on the CPU go from 286.7 to
-  339.9.
+- The integrated AMD Radeon GPU on Vulkan0 reaches 114.3 for text and 446.7
+  for multimodal, which is almost the same as the CPU.
+- Windows can't pin a thread to a core, so the CPU results can vary from run
+  to run. In these runs the multimodal CPU results go from 448.5 to 472.8.
 
 ## Text model benchmarks
 
