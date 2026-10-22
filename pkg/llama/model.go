@@ -28,6 +28,9 @@ var (
 		&ffiTypeSize)
 )
 
+// ErrModelNoDecisionLabel means the llama.cpp library does not export llama_model_decision_label.
+var ErrModelNoDecisionLabel = errors.New("llama_model_decision_label not found in library")
+
 var (
 	// LLAMA_API struct llama_model_params          llama_model_default_params(void);
 	modelDefaultParamsFunc ffi.Fun
@@ -97,6 +100,10 @@ var (
 
 	// LLAMA_API const char * llama_model_cls_label(const struct llama_model * model, uint32_t i);
 	modelClsLabelFunc ffi.Fun
+
+	// LLAMA_API const char * llama_model_decision_label(const struct llama_model * model, uint32_t i);
+	modelDecisionLabelFunc ffi.Fun
+	hasModelDecisionLabel  bool
 
 	// LLAMA_API int32_t llama_model_desc(const struct llama_model * model, char * buf, size_t buf_size);
 	modelDescFunc ffi.Fun
@@ -247,6 +254,19 @@ func loadModelFuncs(lib loader.Lib) error {
 
 	if modelClsLabelFunc, err = lib.Prep("llama_model_cls_label", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
 		return loadError("llama_model_cls_label", err)
+	}
+
+	// The staging header has no C linkage, so also try the C++ names.
+	hasModelDecisionLabel = false
+	for _, name := range []string{
+		"llama_model_decision_label",
+		"_Z26llama_model_decision_labelPK11llama_modelj",
+		"?llama_model_decision_label@@YAPEBDPEBUllama_model@@I@Z",
+	} {
+		if modelDecisionLabelFunc, err = lib.Prep(name, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32); err == nil {
+			hasModelDecisionLabel = true
+			break
+		}
 	}
 
 	if modelDescFunc, err = lib.Prep("llama_model_desc", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint64); err != nil {
@@ -578,6 +598,25 @@ func ModelClsLabel(model Model, index uint32) string {
 	}
 
 	return utils.BytePtrToString(labelPtr)
+}
+
+// ModelDecisionLabel returns the decision answer label at index from the model metadata.
+// It returns an empty string past the last label, and keeps the label whitespace as is.
+func ModelDecisionLabel(model Model, index uint32) (string, error) {
+	if !hasModelDecisionLabel {
+		return "", ErrModelNoDecisionLabel
+	}
+	if model == 0 {
+		return "", nil
+	}
+	var labelPtr *byte
+	modelDecisionLabelFunc.Call(unsafe.Pointer(&labelPtr), unsafe.Pointer(&model), &index)
+
+	if labelPtr == nil {
+		return "", nil
+	}
+
+	return utils.BytePtrToString(labelPtr), nil
 }
 
 // ModelDesc retrieves a string describing the model type.

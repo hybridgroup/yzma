@@ -1,6 +1,8 @@
 package llama
 
 import (
+	"errors"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -319,6 +321,37 @@ func TestModelClsLabel(t *testing.T) {
 
 	label := ModelClsLabel(model, 0)
 	t.Logf("ModelClsLabel returned: %s", label)
+}
+
+func TestModelDecisionLabel(t *testing.T) {
+	modelFile := testModelFileName(t)
+
+	testSetup(t)
+	defer testCleanup(t)
+
+	if !hasModelDecisionLabel {
+		if _, err := ModelDecisionLabel(0, 0); !errors.Is(err, ErrModelNoDecisionLabel) {
+			t.Fatalf("ModelDecisionLabel without the symbol returned %v", err)
+		}
+		t.Skip("llama_model_decision_label not found in library")
+	}
+
+	if label, err := ModelDecisionLabel(0, 0); label != "" || err != nil {
+		t.Fatalf("ModelDecisionLabel with a zero model returned %q, %v", label, err)
+	}
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	for _, index := range []uint32{0, math.MaxUint32} {
+		label, err := ModelDecisionLabel(model, index)
+		if label != "" || err != nil {
+			t.Errorf("ModelDecisionLabel(%d) on a model without labels returned %q, %v", index, label, err)
+		}
+	}
 }
 
 // TestMetaStr drives the buffer growth directly, standing in for a model whose
