@@ -165,7 +165,7 @@ func generate(this js.Value, args []js.Value) any {
 		sampler = llamawasm.SamplerChainInit(llamawasm.SamplerChainDefaultParams())
 		llamawasm.SamplerChainAdd(sampler, llamawasm.SamplerInitGreedy())
 
-		tokens := llamawasm.Tokenize(vocab, prompt, true, false)
+		tokens := llamawasm.Tokenize(vocab, prompt, true, true)
 		if len(tokens) == 0 {
 			post("error", "the prompt has no tokens")
 			return

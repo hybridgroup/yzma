@@ -142,7 +142,7 @@ Do not include tool calls in your final answer.`, toolsJSON)
 		llama.MemoryClear(mem, true)
 
 		// Tokenize and generate
-		tokens := llama.Tokenize(vocab, prompt, true, false)
+		tokens := llama.Tokenize(vocab, prompt, true, true)
 		response := generate(ctx, vocab, sampler, tokens)
 
 		fmt.Printf("Assistant: %s\n", message.StripMarkup(response))
