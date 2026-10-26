@@ -43,6 +43,10 @@ const (
 	// (<|end|>, <|user|>, <|assistant|>, <|system|>) that must be treated as
 	// generation stop markers.
 	FormatPhi
+
+	// FormatLFM expects LFM2 Python style calls between special tokens:
+	//   <|tool_call_start|>[funcname(key="value")]<|tool_call_end|>
+	FormatLFM
 )
 
 // DetectFormat inspects a tool-call content block and returns the Format that
@@ -61,6 +65,8 @@ func DetectFormat(content string) Format {
 		return FormatMistral
 	case strings.Contains(content, "call:"):
 		return FormatGemma
+	case strings.Contains(content, lfmToolCallStart):
+		return FormatLFM
 	case strings.Contains(content, "<|message|>"):
 		return FormatGPT
 	default:
@@ -86,6 +92,8 @@ func DetectFormatFromPath(path string) Format {
 		return FormatGLM
 	case strings.Contains(lower, "phi"):
 		return FormatPhi
+	case strings.Contains(lower, "lfm"):
+		return FormatLFM
 	default:
 		return FormatAuto
 	}

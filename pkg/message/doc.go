@@ -26,6 +26,7 @@
 //   - [FormatMistral] - Mistral/Devstral markers: [TOOL_CALLS]name[ARGS]{…}
 //   - [FormatGemma] - Gemma 4 call syntax: call:name{key:<|"|>val<|"|>}
 //   - [FormatGPT] - GPT tool call syntax: .name <|message|>{…}
+//   - [FormatLFM] - LFM2 Python style calls: <|tool_call_start|>[name(k="v")]<|tool_call_end|>
 //
 // Standard-format responses wrap bare JSON inside <tool_call>…</tool_call>
 // envelope tags; all other formats are detected from the raw content.
