@@ -128,7 +128,7 @@ After receiving tool results, provide a final answer to the user.`, toolsJSON)
 	}
 
 	// Tokenize and generate
-	tokens := llama.Tokenize(vocab, prompt, true, false)
+	tokens := llama.Tokenize(vocab, prompt, true, true)
 	response := generate(ctx, vocab, sampler, tokens)
 
 	fmt.Printf("Assistant: %s\n", message.StripMarkup(response))
@@ -183,7 +183,7 @@ After receiving tool results, provide a final answer to the user.`, toolsJSON)
 		mem, _ := llama.GetMemory(ctx)
 		llama.MemoryClear(mem, true)
 
-		tokens = llama.Tokenize(vocab, prompt, true, false)
+		tokens = llama.Tokenize(vocab, prompt, true, true)
 		finalResponse := generate(ctx, vocab, sampler, tokens)
 
 		fmt.Printf("Assistant: %s\n", message.StripMarkup(finalResponse))
