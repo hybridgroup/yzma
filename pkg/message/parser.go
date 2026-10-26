@@ -19,6 +19,9 @@ func ParseToolCalls(response string) []ToolCall {
 	// DetectFormat (used by parseToolCalls) inspects the unwrapped inner
 	// content and will never see those tags, so standard-format responses
 	// would fall through undetected without this pre-check.
+	if strings.Contains(response, lfmToolCallStart) {
+		return parseLFMToolCalls(response)
+	}
 	if calls := parseStandardToolCalls(response); len(calls) > 0 {
 		// Some Qwen fine-tunes wrap only the first function call in <tool_call>
 		// tags while emitting subsequent calls as bare <function=…> blocks
@@ -73,6 +76,8 @@ func parseToolCalls(content string) []ToolCall {
 		return parseGemmaToolCalls(content)
 	case FormatGPT:
 		return parseGPTToolCalls(content)
+	case FormatLFM:
+		return parseLFMToolCalls(content)
 	default:
 		return nil
 	}
@@ -439,6 +444,7 @@ func TextAfterToolCalls(s string) string {
 		"</function>",   // Qwen3-Coder
 		"</toolcall>",   // normalised Standard (no underscore)
 		"[/TOOL_CALLS]", // Mistral closing bracket (non-standard)
+		lfmToolCallEnd,  // LFM2
 	}
 
 	lastEnd := -1
@@ -574,6 +580,9 @@ func StripMarkup(s string) string {
 
 	// Remove Mistral [TOOL_CALLS]…[ARGS]{…} blocks.
 	s = stripMistralToolCallBlocks(s)
+
+	// Remove LFM2 <|tool_call_start|>…<|tool_call_end|> blocks.
+	s = stripLFMToolCallBlocks(s)
 
 	// Remove GPT .FUNC_NAME <|message|>{…} blocks.
 	s = stripGPTToolCallBlocks(s)

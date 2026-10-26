@@ -34,6 +34,11 @@ func StopMarkersFor(eot []string, format Format) []string {
 			"<|im_start|>", "<|im_end|>",
 			"<im_start>", "<im_end>", // decoded form
 		)
+	case FormatLFM:
+		markers = append(markers,
+			// ChatML role tokens and the tool response token. The model is simulating the next turn.
+			"<|im_start|>", "<|im_end|>", "<|tool_response_start|>",
+		)
 	case FormatPhi:
 		markers = append(markers,
 			// Phi-3/4 EOT token. Added explicitly because VocabEOT may return -1
