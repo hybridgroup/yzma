@@ -36,6 +36,10 @@ func Load(path string) error {
 		return err
 	}
 
+	if err := loadCapabilityFuncs(lib); err != nil {
+		return err
+	}
+
 	return nil
 }
 
