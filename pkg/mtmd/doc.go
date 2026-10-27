@@ -6,6 +6,8 @@
 //   - Audio: BitmapInitFromAudio
 //   - Video: VideoInit / VideoInitFromBuf (requires ffmpeg/ffprobe on PATH; video
 //     support depends on the MTMD_VIDEO compile-time flag in libmtmd)
+//   - Realtime audio: AudioStreamInit / AudioStreamPush / AudioStreamStep (experimental,
+//     check SupportAudioStream first)
 //
 // Use SupportVision, SupportAudio, and SupportVideo to query what the loaded
 // projector supports at runtime, or HelperGetCapabilities to get all of the
