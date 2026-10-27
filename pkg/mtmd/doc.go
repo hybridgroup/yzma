@@ -8,5 +8,6 @@
 //     support depends on the MTMD_VIDEO compile-time flag in libmtmd)
 //
 // Use SupportVision, SupportAudio, and SupportVideo to query what the loaded
-// projector supports at runtime.
+// projector supports at runtime, or HelperGetCapabilities to get all of the
+// model and projector capabilities at once.
 package mtmd
