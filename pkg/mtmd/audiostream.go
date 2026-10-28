@@ -20,6 +20,11 @@ type AudioStream uintptr
 type AudioStreamParams struct {
 	// StepMs is the audio encoded per encoder call, rounded up to the model step.
 	StepMs int32
+	// Prompt holds tokens that open the stream, they go out with the first rows.
+	// The memory must stay valid until AudioStreamInit returns.
+	Prompt *llama.Token
+	// NPrompt is the number of tokens in Prompt.
+	NPrompt uint64
 }
 
 // Return values of AudioStreamPush and AudioStreamFlush.
@@ -37,7 +42,7 @@ const (
 
 var (
 	// ffiTypeAudioStreamParams mirrors struct mtmd_audio_stream_params
-	ffiTypeAudioStreamParams = ffi.NewType(&ffi.TypeSint32)
+	ffiTypeAudioStreamParams = ffi.NewType(&ffi.TypeSint32, &ffi.TypePointer, &ffiTypeSize)
 
 	// MTMD_API bool mtmd_support_audio_stream(const mtmd_context * ctx);
 	supportAudioStreamFunc ffi.Fun
