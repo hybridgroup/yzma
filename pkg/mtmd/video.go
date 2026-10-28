@@ -26,6 +26,8 @@ type VideoInfo struct {
 //	<4 bytes implicit padding>
 //	const char * ffmpeg_bin_dir (8 bytes, offset  8)
 //	int64_t timestamp_interval  (8 bytes, offset 16)
+//	bool no_soundtrack          (1 byte,  offset 24)
+//	<7 bytes implicit padding>
 type VideoInitParams struct {
 	// FPSTarget is the desired output fps. A value <= 0 uses the video's native fps.
 	FPSTarget float32
@@ -37,6 +39,8 @@ type VideoInitParams struct {
 	// chunks inserted into the token stream (e.g. "[10m50.5s]").
 	// A value <= 0 disables timestamps.
 	TimestampIntervalMs int64
+	// NoSoundtrack decodes frames only, also for models that hear the soundtrack of a video.
+	NoSoundtrack bool
 }
 
 var (
@@ -44,7 +48,7 @@ var (
 	ffiTypeVideoInfo = ffi.NewType(&ffi.TypeUint32, &ffi.TypeUint32, &ffi.TypeFloat, &ffi.TypeSint32)
 
 	// ffiTypeVideoInitParams mirrors struct mtmd_helper_video_init_params
-	ffiTypeVideoInitParams = ffi.NewType(&ffi.TypeFloat, &ffi.TypePointer, &ffi.TypeSint64)
+	ffiTypeVideoInitParams = ffi.NewType(&ffi.TypeFloat, &ffi.TypePointer, &ffi.TypeSint64, &ffi.TypeUint8)
 )
 
 var (
