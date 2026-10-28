@@ -11,8 +11,8 @@ import (
 )
 
 func TestAudioStreamParamsLayout(t *testing.T) {
-	if size := unsafe.Sizeof(AudioStreamParams{}); size != 4 {
-		t.Fatalf("AudioStreamParams size %d does not match C size 4", size)
+	if size := unsafe.Sizeof(AudioStreamParams{}); size != 24 {
+		t.Fatalf("AudioStreamParams size %d does not match C size 24", size)
 	}
 }
 
