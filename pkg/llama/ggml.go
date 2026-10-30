@@ -129,8 +129,10 @@ const (
 	GGMLTypeQ1_0 GGMLType = 41
 	// GGML_TYPE_Q2_0
 	GGMLTypeQ2_0 GGMLType = 42
+	// GGML_TYPE_F8_E4M3
+	GGMLTypeF8_E4M3 GGMLType = 43
 	// GGML_TYPE_COUNT
-	GGMLTypeCOUNT GGMLType = 43
+	GGMLTypeCOUNT GGMLType = 44
 )
 
 // String returns the name of the tensor type, for example "q4_K".
