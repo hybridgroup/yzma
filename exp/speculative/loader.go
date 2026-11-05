@@ -62,6 +62,7 @@ func Load(path string) error {
 		[]string{
 			"llama_set_embeddings_nextn",
 			"_Z26llama_set_embeddings_nextnP13llama_contextbb",
+			"?llama_set_embeddings_nextn@@YAXPEAUllama_context@@_N1@Z",
 		},
 		&ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeUint8, &ffi.TypeUint8)
 
@@ -69,6 +70,7 @@ func Load(path string) error {
 		[]string{
 			"llama_get_embeddings_nextn",
 			"_Z26llama_get_embeddings_nextnP13llama_context",
+			"?llama_get_embeddings_nextn@@YAPEAMPEAUllama_context@@@Z",
 		},
 		&ffi.TypePointer, &ffi.TypePointer)
 
@@ -76,6 +78,7 @@ func Load(path string) error {
 		[]string{
 			"llama_get_embeddings_nextn_ith",
 			"_Z30llama_get_embeddings_nextn_ithP13llama_contexti",
+			"?llama_get_embeddings_nextn_ith@@YAPEAMPEAUllama_context@@H@Z",
 		},
 		&ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32)
 
@@ -83,6 +86,7 @@ func Load(path string) error {
 		[]string{
 			"llama_set_nextn_layer_offset",
 			"_Z28llama_set_nextn_layer_offsetP13llama_contexti",
+			"?llama_set_nextn_layer_offset@@YAXPEAUllama_context@@H@Z",
 		},
 		&ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32)
 
