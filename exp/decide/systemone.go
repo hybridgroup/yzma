@@ -11,7 +11,8 @@ import (
 
 // Request is a TypeSafe /v1/systemone request. Questions keep the order of the
 // JSON, and so do the options of a choice question. State is nil when the
-// request has a null state, which only lfm2-d1 and vllm-d3 models take.
+// request has a null state, which only lfm2-d1, lfm2-d1-omni, lfm3-d1 and
+// vllm-d3 models take.
 type Request struct {
 	State     any
 	Questions []NamedQuestion

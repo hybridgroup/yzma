@@ -95,7 +95,7 @@ func TestTypedPrompt(t *testing.T) {
 				"(lowest first).\nOptions:\n[A] 0: low\n[B] 1: high\n\nAnswer with the letter of the best option only.<|im_end|>\n" + tail},
 	} {
 		tt := testTyped(t, tc.kind)
-		got, err := tt.prompt(tc.state, tc.q, tt.options(tc.q), nil)
+		got, err := tt.prompt(tc.state, tc.q, tt.options(tc.q), nil, []Question{tc.q})
 		if err != nil {
 			t.Fatal(err)
 		}

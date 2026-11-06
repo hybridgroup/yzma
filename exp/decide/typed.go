@@ -23,6 +23,12 @@ const (
 	typeClef          = "clef"
 	typeVllmDecision2 = "vllm-decision2"
 	typeVllmD3        = "vllm-d3"
+	typeNimble        = "nimble"
+	typeGraniteSwitch = "granite-switch"
+	typeLfm2D1Omni    = "lfm2-d1-omni"
+	typeLfm3D1        = "lfm3-d1"
+	typeLfm3D1Omni    = "lfm3-d1-omni"
+	typeH2OLightning  = "h2o-lightning"
 
 	openJevLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	// levRatings is the scale of a Lev noul question, from 0 certainly no to 8 certainly yes.
@@ -35,10 +41,11 @@ var errLayout = errors.New("decide: unexpected layout of the decision prompt")
 
 // Open loads a model whose GGUF holds its decision type, prompt template and
 // temperatures, as converted for the llama-server /v1/systemone API.
-// The openjev, lev, laya, kev, pplx-decider, lfm2-d1, clef, vllm-decision2 and
+// The openjev, lev, laya, kev, nimble, pplx-decider, lfm2-d1, lfm2-d1-omni,
+// lfm3-d1, lfm3-d1-omni, granite-switch, h2o-lightning, clef, vllm-decision2 and
 // vllm-d3 types are supported. Other models need [New], [NewJevK5] or
 // [NewDeciderModel] and a config file. Clef and vllm-decision2 need ABI version 11
-// of the llama.cpp module in the browser.
+// of the llama.cpp module in the browser, h2o-lightning ABI version 12.
 // Load and init llama.cpp first, and call [Decider.Close] when done.
 func Open(modelPath string, opts Options) (*Decider, error) {
 	if modelPath == "" {
@@ -52,7 +59,11 @@ func Open(modelPath string, opts Options) (*Decider, error) {
 
 	t, err := newTyped(d)
 	if err == nil {
-		err = d.newContext(typedContext, opts, t.readout())
+		nCtx := typedContext
+		if t.kind == typeLfm2D1Omni {
+			nCtx = d1OmniMaxTokens
+		}
+		err = d.newContext(nCtx, opts, t.readout())
 	}
 	if err != nil {
 		d.Close()
@@ -60,6 +71,7 @@ func Open(modelPath string, opts Options) (*Decider, error) {
 	}
 	d.family = t
 	d.entropyConfidence = t.kind == typeVllmDecision2 || t.kind == typeVllmD3
+	d.medianScore = t.isLfm3()
 	// Clef reads the options of a choice question sorted, so their order does not matter.
 	if t.kind == typeClef {
 		d.bothOrders = false
@@ -77,6 +89,7 @@ type typed struct {
 	bias   map[int][]float64
 	enc    encoder
 	plain  encoder
+	piece  func(token) string
 	labels []token
 	// codes are the label texts the lev template shows.
 	codes []string
@@ -89,6 +102,25 @@ type typed struct {
 	sep        token
 	markerText string
 	maxHead    int
+	// quoted are the special token texts that lfm3-d1 breaks and h2o-lightning
+	// quotes in user text, longest first. quotedFirst has their first bytes.
+	quoted      []string
+	quotedFirst string
+}
+
+func (t *typed) isLfm3() bool {
+	return t.kind == typeLfm3D1 || t.kind == typeLfm3D1Omni
+}
+
+// setQuoted keeps texts longest first, as llama-server matches them.
+func (t *typed) setQuoted(texts []string) {
+	slices.SortStableFunc(texts, func(a, b string) int { return len(b) - len(a) })
+	t.quoted = texts
+	for _, s := range texts {
+		if !strings.Contains(t.quotedFirst, s[:1]) {
+			t.quotedFirst += s[:1]
+		}
+	}
 }
 
 func newTyped(d *Decider) (*typed, error) {
@@ -109,7 +141,7 @@ func newTyped(d *Decider) (*typed, error) {
 
 	// The values are read as float, as llama-server does.
 	plain := d.tokenizer(false)
-	t := &typed{kind: kind, tmpl: tmpl, temps: map[string]float64{}, bias: map[int][]float64{}, enc: d.tokenizer(true), plain: plain}
+	t := &typed{kind: kind, tmpl: tmpl, temps: map[string]float64{}, bias: map[int][]float64{}, enc: d.tokenizer(true), plain: plain, piece: d.b.piece}
 	for k, v := range d.b.metaPrefix(arch + ".decision.temperature.") {
 		f, err := strconv.ParseFloat(v, 32)
 		if err != nil || !(f > 0) {
@@ -140,7 +172,7 @@ func newTyped(d *Decider) (*typed, error) {
 			t.labels = append(t.labels, ids[0])
 		}
 		t.maxOptions = len(t.labels)
-	case typeLev, typePplxDecider, typeVllmD3:
+	case typeLev, typePplxDecider, typeVllmD3, typeNimble, typeGraniteSwitch:
 		for _, c := range labelCodes() {
 			if ids := plain(c); len(ids) == 1 && len(t.labels) < deciderMaxOptions {
 				t.labels = append(t.labels, ids[0])
@@ -171,6 +203,35 @@ func newTyped(d *Decider) (*typed, error) {
 		t.maxOptions = deciderMaxOptions
 	case typeLfm2D1, typeClef, typeVllmDecision2:
 		t.maxOptions = deciderMaxOptions
+	case typeLfm3D1, typeLfm3D1Omni:
+		t.setQuoted(d.b.specialTexts(false, 2))
+		t.maxOptions = deciderMaxOptions
+	case typeLfm2D1Omni:
+		if t.marker = d.b.vocabMask(); t.marker < 0 {
+			return nil, errors.New("decide: the model has no mask token")
+		}
+		t.maxOptions = deciderMaxOptions
+	case typeH2OLightning:
+		for i := uint32(0); ; i++ {
+			l, err := d.b.decisionLabel(i)
+			if err != nil {
+				return nil, err
+			}
+			if l == "" {
+				break
+			}
+			ids := plain(l)
+			if len(ids) != 1 || slices.Contains(t.labels, ids[0]) {
+				return nil, fmt.Errorf("tokenizer mismatch: decision label %q is not a single distinct token", l)
+			}
+			t.labels = append(t.labels, ids[0])
+			t.codes = append(t.codes, l)
+		}
+		if len(t.labels) == 0 {
+			return nil, errors.New("decide: the model has no decision labels")
+		}
+		t.setQuoted(d.b.specialTexts(true, 1))
+		t.maxOptions = len(t.labels)
 	default:
 		return nil, fmt.Errorf("decide: decision type %q is not supported", kind)
 	}
@@ -189,8 +250,10 @@ func (t *typed) readout() readout {
 		return readoutHead
 	case typeClef:
 		return readoutJointHead
-	case typeVllmD3:
+	case typeVllmD3, typeLfm3D1, typeLfm3D1Omni:
 		return readoutWhole
+	case typeLfm2D1Omni:
+		return readoutEmbdWhole
 	}
 	return readoutLogits
 }
@@ -207,7 +270,16 @@ func parseBiasKey(k string) (n, level int, ok bool) {
 }
 
 // text cleans user text, so it holds no special token text and, for laya, no marker.
+// lfm3-d1 breaks the special token texts instead, and h2o-lightning quotes them.
 func (t *typed) text(s string) string {
+	switch t.kind {
+	case typeLfm3D1, typeLfm3D1Omni:
+		return t.d1Break(s)
+	case typeH2OLightning:
+		return t.h2oQuote(s)
+	case typeLfm2D1Omni:
+		return strings.ReplaceAll(escapeSpecial(s), d1OmniMarker, "<<d1omni ")
+	}
 	s = escapeSpecial(s)
 	if t.markerText != "" {
 		s = strings.ReplaceAll(s, t.markerText, " ")
@@ -260,7 +332,9 @@ func (t *typed) options(q Question) []typedOption {
 		}
 		out = []typedOption{{"false", desc["false"], 0}, {"true", desc["true"], 1}}
 		trueFirst := len(q.Options) == 2 && q.Options[0].Name == "true"
-		if t.kind == typeOpenJev || t.kind == typeLfm2D1 || t.kind == typeClef || (t.kind == typeVllmDecision2 && trueFirst) {
+		switch {
+		case t.kind == typeOpenJev, t.kind == typeLfm2D1, t.kind == typeClef, t.kind == typeGraniteSwitch,
+			t.kind == typeH2OLightning, t.isLfm3(), t.kind == typeVllmDecision2 && trueFirst:
 			slices.Reverse(out)
 		}
 	case TypeScore:
@@ -292,7 +366,47 @@ func (t *typed) variants(q Question) [][]typedOption {
 
 // prompt renders the systemone template. state is already text, or nil for
 // no state. labels replace the label codes of the model when given.
-func (t *typed) prompt(state any, q Question, opts []typedOption, labels []string) (string, error) {
+// qs are all the questions of the request, which the nimble prompt lists.
+func (t *typed) prompt(state any, q Question, opts []typedOption, labels []string, qs []Question) (string, error) {
+	if t.kind == typeH2OLightning {
+		return t.h2oPrompt(state, q, opts)
+	}
+
+	in := map[string]any{
+		"id":           q.id,
+		"type":         string(q.Type),
+		"instructions": t.text(q.Text),
+		"state":        state,
+		"options":      t.renderOptions(opts, labels),
+		"images":       []any{},
+	}
+	if t.kind == typeNimble {
+		var list []any
+		for _, o := range qs {
+			list = append(list, map[string]any{
+				"id":           o.id,
+				"type":         string(o.Type),
+				"instructions": t.text(o.Text),
+				"options":      t.renderOptions(t.options(o), nil),
+			})
+		}
+		in["questions"] = list
+	}
+	if t.isLfm3() || t.kind == typeLfm2D1Omni {
+		in["id"] = t.text(q.id)
+	}
+	if t.kind == typeLfm2D1Omni {
+		in["audio"] = false
+		in["sep"] = d1OmniSep
+		in["mark_state"] = d1OmniMarkState
+		in["mark_question"] = d1OmniMarkQuestion
+		in["mark_option"] = d1OmniMarkOption
+	}
+	return t.tmpl.Render(in)
+}
+
+// renderOptions returns the options as the template takes them.
+func (t *typed) renderOptions(opts []typedOption, labels []string) []any {
 	options := make([]any, len(opts))
 	for i, o := range opts {
 		opt := map[string]any{"key": t.text(o.key), "description": nil}
@@ -307,25 +421,17 @@ func (t *typed) prompt(state any, q Question, opts []typedOption, labels []strin
 		}
 		options[i] = opt
 	}
-
-	return t.tmpl.Render(map[string]any{
-		"id":           q.id,
-		"type":         string(q.Type),
-		"instructions": t.text(q.Text),
-		"state":        state,
-		"options":      options,
-		"images":       []any{},
-	})
+	return options
 }
 
 // stateLen is the number of leading tokens that prompts about state share
 // regardless of the question.
 func (t *typed) stateLen(state any) (int, error) {
-	a, err := t.prompt(state, Noul("a", "", ""), t.options(Noul("a", "", "")), nil)
+	a, err := t.prompt(state, Noul("a", "", ""), t.options(Noul("a", "", "")), nil, []Question{Noul("a", "", "")})
 	if err != nil {
 		return 0, err
 	}
-	b, err := t.prompt(state, Noul("b", "", ""), t.options(Noul("b", "", "")), nil)
+	b, err := t.prompt(state, Noul("b", "", ""), t.options(Noul("b", "", "")), nil, []Question{Noul("b", "", "")})
 	if err != nil {
 		return 0, err
 	}
@@ -343,12 +449,22 @@ func (t *typed) decide(d *Decider, state any, qs []Question, _ string, many bool
 		return t.decideHead(d, state, qs, many)
 	}
 
+	// The nimble prompt names each question.
+	if t.kind == typeNimble {
+		qs = slices.Clone(qs)
+		for i := range qs {
+			if qs[i].id == "" {
+				qs[i].id = "q" + strconv.Itoa(i+1)
+			}
+		}
+	}
+
 	s, err := t.state(state)
 	if err != nil {
 		return nil, err
 	}
 	stateLen := 0
-	if t.kind != typeLaya {
+	if t.kind != typeLaya && t.kind != typeLfm2D1Omni {
 		if stateLen, err = t.stateLen(s); err != nil {
 			return nil, err
 		}
@@ -365,8 +481,8 @@ func (t *typed) decide(d *Decider, state any, qs []Question, _ string, many bool
 	plans := make([]plan, len(qs))
 	var rs []*rendered
 	for i, q := range qs {
-		// The vllm-d3 prompt has a default question.
-		names, err := q.names(t.kind == typeVllmD3)
+		// The vllm-d3 and h2o-lightning prompts have a default question.
+		names, err := q.names(t.kind == typeVllmD3 || t.kind == typeH2OLightning)
 		if err != nil {
 			return nil, questionErr(many, i, err)
 		}
@@ -378,7 +494,7 @@ func (t *typed) decide(d *Decider, state any, qs []Question, _ string, many bool
 		for _, opts := range p.variants {
 			var labels []string
 			var rows []token
-			if t.kind == typeLfm2D1 {
+			if t.kind == typeLfm2D1 || t.isLfm3() {
 				var groups [][]token
 				if labels, groups, err = t.d1Labels(q, opts); err != nil {
 					return nil, questionErr(many, i, err)
@@ -388,11 +504,16 @@ func (t *typed) decide(d *Decider, state any, qs []Question, _ string, many bool
 					p.groups = append(p.groups, len(g))
 				}
 			}
-			text, err := t.prompt(s, q, opts, labels)
+			text, err := t.prompt(s, q, opts, labels, qs)
 			if err != nil {
 				return nil, questionErr(many, i, err)
 			}
-			r, err := t.read(t.enc(text), q, len(opts), stateLen, rows)
+			var r *rendered
+			if t.kind == typeLfm2D1Omni {
+				r, err = t.d1OmniRead(text, len(opts))
+			} else {
+				r, err = t.read(t.enc(text), q, len(opts), stateLen, rows)
+			}
 			if err != nil {
 				return nil, questionErr(many, i, err)
 			}
@@ -458,9 +579,10 @@ func (t *typed) decide(d *Decider, state any, qs []Question, _ string, many bool
 	return out, nil
 }
 
-// state returns the state as the template takes it. lfm2-d1 and vllm-d3 take a nil state.
+// state returns the state as the template takes it. lfm2-d1, lfm2-d1-omni,
+// lfm3-d1 and vllm-d3 take a nil state.
 func (t *typed) state(state any) (any, error) {
-	if state == nil && (t.kind == typeLfm2D1 || t.kind == typeVllmD3) {
+	if state == nil && t.takesNullState() {
 		return nil, nil
 	}
 
@@ -471,8 +593,10 @@ func (t *typed) state(state any) (any, error) {
 		s, err = kevText(state)
 	case typeLev:
 		s, err = stateText(state, styleDefault.sorted())
-	case typeLfm2D1:
+	case typeLfm2D1, typeLfm3D1, typeLfm3D1Omni:
 		s, err = stateText(state, styleIndent2)
+	case typeH2OLightning:
+		return t.h2oState(state)
 	default:
 		s, err = stateText(state, styleDefault)
 	}
@@ -505,7 +629,7 @@ func groupMax(scores []float64, n []int) []float64 {
 	return out
 }
 
-// d1Labels returns the label of each lfm2-d1 option and the tokens it is read at,
+// d1Labels returns the label of each lfm2-d1 and lfm3-d1 option and the tokens it is read at,
 // as prompt.py of the model repo picks them.
 func (t *typed) d1Labels(q Question, opts []typedOption) ([]string, [][]token, error) {
 	single := func(forms ...string) []token {
@@ -568,8 +692,10 @@ func (t *typed) d1Labels(q Question, opts []typedOption) ([]string, [][]token, e
 		switch {
 		case letters:
 			code = o.key
-		case len(opts) <= 26:
+		case len(opts) <= 26, t.isLfm3() && i < 26:
 			code = string(rune('A' + i))
+		case t.isLfm3():
+			code = string([]rune{rune('A' + (i-26)/26), rune('A' + (i-26)%26)})
 		}
 		if take(code) {
 			continue
@@ -643,7 +769,7 @@ func (t *typed) read(ids []token, q Question, n, stateLen int, rows []token) (*r
 // raw returns the raw score of each option from the outputs at the slots of one input.
 func (t *typed) raw(out [][]float64, typ Type) ([]float64, error) {
 	switch t.kind {
-	case typeLaya:
+	case typeLaya, typeLfm2D1Omni:
 		// The output has one score per question type.
 		col := slices.Index([]Type{TypeChoice, TypeScore, TypeNoul}, typ)
 		s := make([]float64, len(out))
