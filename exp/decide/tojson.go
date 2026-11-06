@@ -241,16 +241,12 @@ func writeJSON(b *strings.Builder, n *jsonNode, style jsonStyle, level int) {
 }
 
 // jsonNumber keeps an integer, true, false and null as written and prints a
-// float with 6 significant digits.
+// float as repr of Python does, as llama.cpp does since PR 30362.
 func jsonNumber(s string) string {
 	if !strings.ContainsAny(s, ".eE") || s == "true" || s == "false" {
 		return s
 	}
-	f, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		return s
-	}
-	return strconv.FormatFloat(f, 'g', 6, 64)
+	return pyFloat(s)
 }
 
 func writeJSONString(b *strings.Builder, s string) {
@@ -280,4 +276,38 @@ func writeJSONString(b *strings.Builder, s string) {
 		}
 	}
 	b.WriteByte('"')
+}
+
+// pyFloat writes a float as repr of Python: the shortest digits that read
+// back the same, with an exponent below 1e-4 and from 1e16.
+func pyFloat(s string) string {
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil || math.IsInf(f, 0) {
+		return s
+	}
+	sign := ""
+	if math.Signbit(f) {
+		sign, f = "-", -f
+	}
+	mant, exp, _ := strings.Cut(strconv.FormatFloat(f, 'e', -1, 64), "e")
+	digits := strings.Replace(mant, ".", "", 1)
+	x, _ := strconv.Atoi(exp)
+	k := len(digits)
+	switch {
+	case x < -4 || x >= 16:
+		m := digits[:1]
+		if k > 1 {
+			m += "." + digits[1:]
+		}
+		es := "+"
+		if x < 0 {
+			es, x = "-", -x
+		}
+		return fmt.Sprintf("%s%se%s%02d", sign, m, es, x)
+	case x >= k-1:
+		return sign + digits + strings.Repeat("0", x-(k-1)) + ".0"
+	case x >= 0:
+		return sign + digits[:x+1] + "." + digits[x+1:]
+	}
+	return sign + "0." + strings.Repeat("0", -x-1) + digits
 }

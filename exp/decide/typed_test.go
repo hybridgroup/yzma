@@ -17,8 +17,8 @@ func TestToJSON(t *testing.T) {
 		sort bool
 		want string
 	}{
-		{false, `{"b": [1, 2.5, "x\n\u0001", null, true, 1e+20, {"k": "é<&>"}], "a": 0.123457, "c": -3}`},
-		{true, `{"a": 0.123457, "b": [1, 2.5, "x\n\u0001", null, true, 1e+20, {"k": "é<&>"}], "c": -3}`},
+		{false, `{"b": [1, 2.5, "x\n\u0001", null, true, 1e+20, {"k": "é<&>"}], "a": 0.1234567, "c": -3}`},
+		{true, `{"a": 0.1234567, "b": [1, 2.5, "x\n\u0001", null, true, 1e+20, {"k": "é<&>"}], "c": -3}`},
 	} {
 		got, err := toJSON([]byte(in), tc.sort)
 		if err != nil {
@@ -391,6 +391,18 @@ func TestTypedOptionsOrder(t *testing.T) {
 		}
 		if !slices.Equal(got, tc.want) {
 			t.Errorf("%s %v: got %v, want %v", tc.kind, tc.q.Options, got, tc.want)
+		}
+	}
+}
+
+func TestPyFloat(t *testing.T) {
+	for in, want := range map[string]string{
+		"0.0": "0.0", "-0.0": "-0.0", "100.0": "100.0", "1e2": "100.0", "2.50": "2.5", "0.1": "0.1",
+		"1.5e-7": "1.5e-07", "0.0001": "0.0001", "0.00001": "1e-05", "1e15": "1000000000000000.0",
+		"1e16": "1e+16", "12345678901234567890.0": "1.2345678901234567e+19", "-3.25": "-3.25",
+	} {
+		if got := pyFloat(in); got != want {
+			t.Errorf("pyFloat(%s) = %s, want %s", in, got, want)
 		}
 	}
 }
