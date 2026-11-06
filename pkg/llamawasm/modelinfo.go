@@ -154,6 +154,15 @@ func ModelMetaKeyStr(key ModelMetaKey) string {
 	return callString("_yzma_model_meta_key_str", 64, int(key))
 }
 
+// ModelDecisionLabel returns the label of option index of a decision model.
+// It returns an empty string past the last label.
+func ModelDecisionLabel(model Model, index uint32) (string, error) {
+	if !has("_yzma_model_decision_label") {
+		return "", ErrNoDecisionLabel
+	}
+	return callString("_yzma_model_decision_label", 256, int(model), int(index)), nil
+}
+
 // ModelClsLabel returns the label of output i of a classifier model, or an
 // empty string if the model has none.
 func ModelClsLabel(model Model, i uint32) string {

@@ -19,7 +19,7 @@ import (
 // checks for it before each use.
 const (
 	abiVersionMin = 1  // 1 has the calls for text generation and embeddings
-	abiVersion    = 11 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
+	abiVersion    = 12 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
 	//                    bounds of the tokens of an image, 5 the rest of the
 	//                    vocabulary and of the samplers, 6 batches with
 	//                    positions and the calls for the memory of a sequence,
@@ -27,7 +27,8 @@ const (
 	//                    embeddings of a batch, 8 yzma_backend_check, 9 the
 	//                    metadata, the state, and the performance counters,
 	//                    10 contexts with a unified cache and a cap on outputs,
-	//                    11 yzma_process for an extended batch
+	//                    11 yzma_process for an extended batch, 12
+	//                    yzma_model_decision_label
 )
 
 // Error codes that the shim returns. These match the values in
@@ -66,6 +67,10 @@ var (
 	// ErrNoKVUnified means the module predates contexts with a unified cache,
 	// which arrived in ABI version 10.
 	ErrNoKVUnified = errors.New("llamawasm: this llama.cpp module cannot make a context with a unified cache, install a newer build")
+
+	// ErrNoDecisionLabel means the module predates the labels of a decision
+	// model, which arrived in ABI version 12.
+	ErrNoDecisionLabel = errors.New("llamawasm: this llama.cpp module has no labels of a decision model, install a newer build")
 
 	// ErrNoPerf means the module predates the performance counters, which
 	// arrived in ABI version 9.
