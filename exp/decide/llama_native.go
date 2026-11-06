@@ -227,3 +227,27 @@ func (b *backend) piece(tok token) string {
 	}
 	return string(buf[:min(int(n), len(buf))])
 }
+
+// specialTexts returns the texts of the tokens that have one of the control or,
+// with userDefined, user defined attributes, and at least minLen bytes.
+func (b *backend) specialTexts(userDefined bool, minLen int) []string {
+	attrs := llama.TokenAttrControl
+	if userDefined {
+		attrs |= llama.TokenAttrUserDef
+	}
+	var out []string
+	for id := range int32(b.nVocab) {
+		if llama.VocabGetAttr(b.vocab, token(id))&attrs == 0 {
+			continue
+		}
+		if s := llama.VocabGetText(b.vocab, token(id)); len(s) >= minLen {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// decisionLabel returns the label of option i of the model, or "" past the last one.
+func (b *backend) decisionLabel(i uint32) (string, error) {
+	return llama.ModelDecisionLabel(b.model, i)
+}

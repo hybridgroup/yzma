@@ -55,7 +55,19 @@
 // read whole in one ubatch. It takes a nil state and a question with no text.
 // Lfm2-d1 picks the labels of each question as its training code did, and
 // scores an option by the highest logit of the forms of its label. It also
-// takes a nil state.
+// takes a nil state. Lfm3-d1 and lfm3-d1-omni read the labels the same way,
+// but their attention is not causal, a score is the median level, and the
+// confidence is the top probability.
+//
+// Nimble reads the labels A to Z and then AA to ZZ, and its prompt lists all
+// the questions of [Decider.DecideMany]. Granite-switch reads them too, with
+// the decision adapter that its prompt turns on. H2O-lightning reads the
+// labels of its GGUF, and in the browser it needs ABI version 12 of the
+// llama.cpp module.
+//
+// Lfm2-d1-omni has the head of Laya on a bidirectional LFM2 trunk. Its prompt
+// cuts the question and each option to a token budget, as its training code
+// did, and it takes a nil state.
 //
 // Clef and vllm-decision2 have a decision head in the llama.cpp graph that
 // reads the question and option spans marked in an extended batch. Clef reads

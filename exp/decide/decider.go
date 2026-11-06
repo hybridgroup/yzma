@@ -56,6 +56,7 @@ const maxSeqs = 17
 // Confidence and Expected follow the TypeSafe API. Expected is the mean level
 // of a score question and 0 for other questions. For vllm-decision2
 // and vllm-d3 models Confidence is EntropyConcentration, as llama-server gives it.
+// For lfm3-d1 models Confidence is TopProbability and Expected is the median level.
 type Result struct {
 	Answer               string    `json:"answer"`
 	Options              []string  `json:"options"`
@@ -96,8 +97,11 @@ type Decider struct {
 	allOutputs bool
 	// entropyConfidence makes the confidence 1 minus the normalized entropy.
 	entropyConfidence bool
-	cached            []token
-	mu                sync.Mutex
+	// medianScore makes a score the median level and the confidence the top probability.
+	medianScore bool
+
+	cached []token
+	mu     sync.Mutex
 }
 
 // family is how one kind of model renders questions and reads its logits.
@@ -172,6 +176,8 @@ const (
 	readoutJointHead
 	// readoutWhole is readoutLogits for a non-causal model, which reads each input whole in one ubatch.
 	readoutWhole
+	// readoutEmbdWhole is readoutEmbd for a non-causal model, which reads each input whole in one ubatch.
+	readoutEmbdWhole
 )
 
 func loadModel(modelPath string, opts Options) (*Decider, error) {
@@ -197,12 +203,13 @@ func (d *Decider) newContext(defCtx int, opts Options, r readout) error {
 	if opts.UBatch > 0 {
 		p.nUbatch = min(opts.UBatch, p.nCtx)
 	}
-	if r == readoutEncoder || r == readoutJointHead || r == readoutWhole {
+	if r == readoutEncoder || r == readoutJointHead || r == readoutWhole || r == readoutEmbdWhole {
 		p.nUbatch = p.nCtx
 	}
 	// llama.cpp needs room for at least one output per sequence.
 	p.nOutputsMax = uint32(max(d.maxOptions, maxSeqs))
-	if r == readoutHead || r == readoutJointHead {
+	// An embeddings output covers every token of a non-causal input.
+	if r == readoutHead || r == readoutJointHead || r == readoutEmbdWhole {
 		p.nOutputsMax = p.nUbatch
 	}
 
@@ -216,7 +223,7 @@ func (d *Decider) newContext(defCtx int, opts Options, r readout) error {
 	d.stateless = r == readoutEncoder || r == readoutJointHead
 	d.allOutputs = r == readoutHead || r == readoutJointHead
 	// A context of one sequence cannot share the state, and an encoder keeps none.
-	if d.nSeqMax < 2 || d.stateless || r == readoutWhole {
+	if d.nSeqMax < 2 || d.stateless || r == readoutWhole || r == readoutEmbdWhole {
 		d.manyMode = manySeparate
 	}
 	// A decision head reads a batch of one sequence.
@@ -307,6 +314,9 @@ func (d *Decider) run(state any, qs []Question, category string, many bool) ([]*
 		if d.entropyConfidence {
 			r.Confidence = r.EntropyConcentration
 		}
+		if d.medianScore {
+			r.median(qs[i].Type)
+		}
 	}
 	return rs, nil
 }
@@ -314,7 +324,7 @@ func (d *Decider) run(state any, qs []Question, category string, many bool) ([]*
 // takesNullState reports whether the model reads a request with a null state.
 func (d *Decider) takesNullState() bool {
 	t, ok := d.family.(*typed)
-	return ok && (t.kind == typeLfm2D1 || t.kind == typeVllmD3)
+	return ok && t.takesNullState()
 }
 
 // bothOrders averages the probabilities of a question read in two orders.
@@ -666,6 +676,23 @@ func (r *Result) typed(t Type) {
 	r.Confidence = confidenceScore(r.Probabilities)
 	for i, v := range r.Probabilities {
 		r.Expected += float64(i) * v
+	}
+}
+
+// median makes the confidence the top probability and a score the first level
+// whose cumulative probability reaches one half, as d1 api.py does.
+func (r *Result) median(t Type) {
+	r.Confidence = r.TopProbability
+	if t != TypeScore {
+		return
+	}
+	var mass float64
+	r.Expected = float64(len(r.Probabilities) - 1)
+	for i, p := range r.Probabilities {
+		if mass += p; mass >= 0.5 {
+			r.Expected = float64(i)
+			break
+		}
 	}
 }
 

@@ -548,6 +548,31 @@ func TestVllmDecision2Model(t *testing.T) {
 	testTypedModel(t, "YZMA_TEST_VLLM_DECISION2_MODEL", 0.5, false)
 }
 
+func TestLfm3D1Model(t *testing.T) {
+	testTypedModel(t, "YZMA_TEST_LFM3_D1_MODEL", 0.5, false)
+}
+
+func TestLfm3D1OmniModel(t *testing.T) {
+	testTypedModel(t, "YZMA_TEST_LFM3_D1_OMNI_MODEL", 0.5, false)
+}
+
+func TestLfm2D1OmniModel(t *testing.T) {
+	testTypedModel(t, "YZMA_TEST_LFM2_D1_OMNI_MODEL", 0.5, false)
+}
+
+func TestH2OLightningModel(t *testing.T) {
+	testTypedModel(t, "YZMA_TEST_H2O_LIGHTNING_MODEL", 0.5, false)
+}
+
+func TestGraniteSwitchModel(t *testing.T) {
+	testTypedModel(t, "YZMA_TEST_GRANITE_SWITCH_MODEL", 0.5, false)
+}
+
+// The nimble prompt lists all the questions, so Decide gives other answers.
+func TestNimbleModel(t *testing.T) {
+	testTypedModel(t, "YZMA_TEST_NIMBLE_MODEL", 0.5, true)
+}
+
 // TestLfm2D1NullStateModel asks about no state, which only lfm2-d1 takes.
 func TestLfm2D1NullStateModel(t *testing.T) {
 	d := typedTestDecider(t, "YZMA_TEST_LFM2_D1_MODEL", ManyExact)
