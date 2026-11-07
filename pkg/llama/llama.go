@@ -395,6 +395,7 @@ type ContextParams struct {
 	TypeK              GGMLType           // data type for K cache
 	TypeV              GGMLType           // data type for V cache
 	MoeCacheSize       uint64             // device cache in bytes for the experts kept in host memory, 0 = disabled [EXPERIMENTAL]
+	MoeCacheCpuShare   float32            // share of the MoE cache misses computed on the CPU, 0 = all uploaded [EXPERIMENTAL]
 	AbortCallback      uintptr            // abort callback
 	AbortCallbackData  uintptr            // user data for abort callback
 	Embeddings         uint8              // whether to compute and return embeddings (bool as uint8)
