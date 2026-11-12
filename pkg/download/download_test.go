@@ -185,7 +185,7 @@ func TestGetLinuxCPU(t *testing.T) {
 	getFunc = func(ctx context.Context, asset Asset, dest string, progress getter.ProgressTracker) error {
 		// Replace the real URL with our mock server URL
 		mockURL := server.URL + "/b7974/llama-b7974-bin-ubuntu-x64.tar.gz"
-		return downloadAndExtractTarGz(Asset{URL: mockURL}, dest, nil)
+		return downloadAndExtractTarGz(ctx, Asset{URL: mockURL}, dest, nil)
 	}
 	defer func() { getFunc = originalGet }()
 
@@ -878,7 +878,7 @@ func TestGetWithContext_FallbackToPreviousVersion(t *testing.T) {
 		versionPart := parts[len(parts)-2]
 
 		mockURL := server.URL + "/" + versionPart + "/" + filename
-		err := downloadAndExtractTarGz(Asset{URL: mockURL}, dest, nil)
+		err := downloadAndExtractTarGz(context.Background(), Asset{URL: mockURL}, dest, nil)
 		if err != nil && strings.Contains(err.Error(), "404") {
 			return fmt.Errorf("%w: %s", ErrFileNotFound, url)
 		}
@@ -977,7 +977,7 @@ func TestExtractTarGzUpgradeRepointsSymlink(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if err := downloadAndExtractTarGz(Asset{URL: server.URL + "/b10375/llama-b10375-bin-ubuntu-x64.tar.gz"}, dest, nil); err != nil {
+	if err := downloadAndExtractTarGz(context.Background(), Asset{URL: server.URL + "/b10375/llama-b10375-bin-ubuntu-x64.tar.gz"}, dest, nil); err != nil {
 		t.Fatalf("downloadAndExtractTarGz() failed: %v", err)
 	}
 

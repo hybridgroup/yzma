@@ -36,10 +36,11 @@ func GetModelWithContext(ctx context.Context, url, dest string, progress getter.
 
 func getModel(ctx context.Context, url, dest string, progress getter.ProgressTracker) error {
 	client := &getter.Client{
-		Ctx:  ctx,
-		Src:  url,
-		Dst:  dest,
-		Mode: getter.ClientModeAny,
+		Ctx:     ctx,
+		Src:     url,
+		Dst:     dest,
+		Mode:    getter.ClientModeAny,
+		Getters: newGetters(),
 	}
 
 	if progress != nil {
