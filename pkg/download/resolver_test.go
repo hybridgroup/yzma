@@ -510,7 +510,7 @@ func TestDefaultResolverOpenVINOUnsupported(t *testing.T) {
 	}
 }
 
-// llama.cpp changed the CUDA version of its Windows builds at build b10977. Both
+// llama.cpp changed the CUDA version of its Windows builds at builds b10977 and b12169. Both
 // the runtime archive and the llama.cpp build must follow the requested build.
 func TestDefaultResolverWindowsCUDANaming(t *testing.T) {
 	tests := []struct {
@@ -521,6 +521,10 @@ func TestDefaultResolverWindowsCUDANaming(t *testing.T) {
 		{"before the change", "b10976", "13.3"},
 		{"at the change", "b10977", "13.4"},
 		{"after the change", "b11005", "13.4"},
+		{"last 13.4 release", "b12167", "13.4"},
+		{"at the 13.5 change", "b12169", "13.5"},
+		{"first 13.5 release", "b12170", "13.5"},
+		{"after the 13.5 change", "b12283", "13.5"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -552,6 +556,8 @@ func TestDefaultResolverWindowsCUDATaggedRelease(t *testing.T) {
 	}{
 		{"before the change", "b10976", "13.3"},
 		{"at the change", "b10977", "13.4"},
+		{"last 13.4 release", "b12167", "13.4"},
+		{"first 13.5 release", "b12170", "13.5"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

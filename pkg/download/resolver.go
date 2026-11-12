@@ -112,13 +112,16 @@ func (r defaultResolver) resolveAssets(ctx context.Context, target Target) ([]As
 	return assets, body, nil
 }
 
-// llama.cpp changed the CUDA version of its Windows builds at this build.
-const cuda134Build = 10977
+// llama.cpp changed the CUDA version of its Windows builds at these builds.
+const (
+	cuda134Build = 10977
+	cuda135Build = 12169
+)
 
 // windowsCUDAVersion reports the CUDA version in the Windows asset names for tag. A
 // tag that is not a nightly build gets the newest version.
 func windowsCUDAVersion(tag string) string {
-	const current = "13.4"
+	const current = "13.5"
 	if !nightlyPattern.MatchString(tag) {
 		return current
 	}
@@ -126,8 +129,11 @@ func windowsCUDAVersion(tag string) string {
 	if err != nil {
 		return current
 	}
-	if build < cuda134Build {
+	switch {
+	case build < cuda134Build:
 		return "13.3"
+	case build < cuda135Build:
+		return "13.4"
 	}
 	return current
 }
