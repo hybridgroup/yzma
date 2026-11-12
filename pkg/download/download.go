@@ -240,7 +240,7 @@ func get(ctx context.Context, asset Asset, dest string, progress getter.Progress
 
 	// Check if it's a .tar.gz file
 	if strings.HasSuffix(url, ".tar.gz") {
-		return downloadAndExtractTarGz(asset, dest, progress)
+		return downloadAndExtractTarGz(ctx, asset, dest, progress)
 	}
 
 	// Use go-getter for other file types (e.g., .zip). go-getter checks the digest
@@ -251,10 +251,11 @@ func get(ctx context.Context, asset Asset, dest string, progress getter.Progress
 	}
 
 	client := &getter.Client{
-		Ctx:  ctx,
-		Src:  src,
-		Dst:  dest,
-		Mode: getter.ClientModeAny,
+		Ctx:     ctx,
+		Src:     src,
+		Dst:     dest,
+		Mode:    getter.ClientModeAny,
+		Getters: newGetters(),
 	}
 
 	if progress != nil {
@@ -271,6 +272,21 @@ func get(ctx context.Context, asset Asset, dest string, progress getter.Progress
 	return nil
 }
 
+// newGetters returns getter instances owned by one client. The go-getter defaults are
+// shared by the whole process, so concurrent downloads would overwrite each other's client.
+func newGetters() map[string]getter.Getter {
+	httpGetter := &getter.HttpGetter{Netrc: true}
+	return map[string]getter.Getter{
+		"file":  new(getter.FileGetter),
+		"git":   new(getter.GitGetter),
+		"gcs":   new(getter.GCSGetter),
+		"hg":    new(getter.HgGetter),
+		"s3":    new(getter.S3Getter),
+		"http":  httpGetter,
+		"https": httpGetter,
+	}
+}
+
 // isNotFound reports whether go-getter stopped because the server returned 404. It
 // parses the go-getter message, since go-getter has no error value for this.
 func isNotFound(err error) bool {
@@ -278,15 +294,16 @@ func isNotFound(err error) bool {
 }
 
 // downloadAndExtractTarGz downloads a .tar.gz file and extracts it to the destination directory.
-func downloadAndExtractTarGz(asset Asset, dest string, progress getter.ProgressTracker) error {
+func downloadAndExtractTarGz(ctx context.Context, asset Asset, dest string, progress getter.ProgressTracker) error {
 	url := asset.URL
 	downloadFile := filepath.Join(dest, filepath.Base(url))
 
 	client := &getter.Client{
-		Ctx:  context.Background(),
-		Src:  url + "?archive=false",
-		Dst:  dest,
-		Mode: getter.ClientModeAny,
+		Ctx:     ctx,
+		Src:     url + "?archive=false",
+		Dst:     dest,
+		Mode:    getter.ClientModeAny,
+		Getters: newGetters(),
 	}
 
 	if progress != nil {
