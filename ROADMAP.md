@@ -135,7 +135,7 @@ section at the end.
 | `llama_n_threads` | yes | yes |
 | `llama_n_ubatch` | yes | yes |
 | `llama_pooling_type` | yes | yes |
-| `llama_set_abort_callback` | yes | no |
+| `llama_set_abort_callback` | yes | partial |
 | `llama_set_adapter_cvec` | yes | no |
 | `llama_set_causal_attn` | yes | yes |
 | `llama_set_embeddings` | yes | yes |
@@ -310,33 +310,33 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 
 | Function | `yzma` | WebAssembly |
 | --- | :-: | :-: |
-| `mtmd_batch_add_chunk` | yes | no |
-| `mtmd_batch_encode` | yes | no |
-| `mtmd_batch_free` | yes | no |
-| `mtmd_batch_get_output_embd` | yes | no |
-| `mtmd_batch_init` | yes | no |
+| `mtmd_batch_add_chunk` | yes | yes |
+| `mtmd_batch_encode` | yes | yes |
+| `mtmd_batch_free` | yes | yes |
+| `mtmd_batch_get_output_embd` | yes | yes |
+| `mtmd_batch_init` | yes | yes |
 | `mtmd_bitmap_free` | yes | yes |
-| `mtmd_bitmap_get_data` | yes | no |
-| `mtmd_bitmap_get_id` | yes | no |
-| `mtmd_bitmap_get_n_bytes` | yes | no |
-| `mtmd_bitmap_get_nx` | yes | no |
-| `mtmd_bitmap_get_ny` | yes | no |
-| `mtmd_bitmap_init_from_audio` | yes | no |
+| `mtmd_bitmap_get_data` | yes | yes |
+| `mtmd_bitmap_get_id` | yes | yes |
+| `mtmd_bitmap_get_n_bytes` | yes | yes |
+| `mtmd_bitmap_get_nx` | yes | yes |
+| `mtmd_bitmap_get_ny` | yes | yes |
+| `mtmd_bitmap_init_from_audio` | yes | yes |
 | `mtmd_bitmap_init` | yes | yes |
-| `mtmd_bitmap_is_audio` | yes | no |
-| `mtmd_bitmap_set_id` | yes | no |
+| `mtmd_bitmap_is_audio` | yes | yes |
+| `mtmd_bitmap_set_id` | yes | yes |
 | `mtmd_context_params_default` | yes | yes |
-| `mtmd_decode_use_mrope` | yes | no |
-| `mtmd_decode_use_non_causal` | yes | no |
-| `mtmd_default_marker` | yes | no |
-| `mtmd_encode_chunk` | yes | no |
-| `mtmd_encode` | yes | no |
+| `mtmd_decode_use_mrope` | yes | yes |
+| `mtmd_decode_use_non_causal` | yes | yes |
+| `mtmd_default_marker` | yes | yes |
+| `mtmd_encode_chunk` | yes | yes |
+| `mtmd_encode` | yes | yes |
 | `mtmd_free` | yes | yes |
 | `mtmd_gen_audio_get_voice` | yes | no |
 | `mtmd_gen_audio_voice_name` | yes | no |
-| `mtmd_get_audio_sample_rate` | yes | no |
+| `mtmd_get_audio_sample_rate` | yes | yes |
 | `mtmd_get_marker` | yes | yes |
-| `mtmd_get_output_embd` | yes | no |
+| `mtmd_get_output_embd` | yes | yes |
 | `mtmd_helper_bitmap_init_from_buf` | yes | no |
 | `mtmd_helper_bitmap_init_from_file` | yes | no |
 | `mtmd_helper_eval_chunks` | yes | yes |
@@ -355,23 +355,23 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 | `mtmd_helper_video_init_from_buf` | yes | no |
 | `mtmd_helper_video_init_params_default` | yes | no |
 | `mtmd_helper_video_init` | yes | no |
-| `mtmd_image_tokens_get_decoder_pos` | yes | no |
-| `mtmd_image_tokens_get_id` | yes | no |
-| `mtmd_image_tokens_get_n_pos` | yes | no |
-| `mtmd_image_tokens_get_n_tokens` | yes | no |
-| `mtmd_image_tokens_get_nx` | yes | no |
-| `mtmd_image_tokens_get_ny` | yes | no |
+| `mtmd_image_tokens_get_decoder_pos` | yes | yes |
+| `mtmd_image_tokens_get_id` | yes | yes |
+| `mtmd_image_tokens_get_n_pos` | yes | yes |
+| `mtmd_image_tokens_get_n_tokens` | yes | yes |
+| `mtmd_image_tokens_get_nx` | yes | yes |
+| `mtmd_image_tokens_get_ny` | yes | yes |
 | `mtmd_init_from_file` | yes | yes |
-| `mtmd_input_chunk_copy` | yes | no |
-| `mtmd_input_chunk_free` | yes | no |
-| `mtmd_input_chunk_get_id` | yes | no |
-| `mtmd_input_chunk_get_n_pos` | yes | no |
-| `mtmd_input_chunk_get_n_tokens` | yes | no |
-| `mtmd_input_chunk_get_tokens_image` | yes | no |
-| `mtmd_input_chunk_get_tokens_text` | yes | no |
-| `mtmd_input_chunk_get_type` | yes | no |
+| `mtmd_input_chunk_copy` | yes | yes |
+| `mtmd_input_chunk_free` | yes | yes |
+| `mtmd_input_chunk_get_id` | yes | yes |
+| `mtmd_input_chunk_get_n_pos` | yes | yes |
+| `mtmd_input_chunk_get_n_tokens` | yes | yes |
+| `mtmd_input_chunk_get_tokens_image` | yes | yes |
+| `mtmd_input_chunk_get_tokens_text` | yes | yes |
+| `mtmd_input_chunk_get_type` | yes | yes |
 | `mtmd_input_chunks_free` | yes | yes |
-| `mtmd_input_chunks_get` | yes | no |
+| `mtmd_input_chunks_get` | yes | yes |
 | `mtmd_input_chunks_init` | yes | yes |
 | `mtmd_input_chunks_size` | yes | yes |
 | `mtmd_log_set` | yes | no |
@@ -412,7 +412,7 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 The `pkg/llamawasm` package drives a WebAssembly build of `llama.cpp`. It does
 not use the C API directly. A C shim in the
 [llama-cpp-builder](https://github.com/hybridgroup/llama-cpp-builder) repository
-exposes a small, versioned set of calls, currently ABI 11. So a `llama.cpp`
+exposes a small, versioned set of calls, currently ABI 13. So a `llama.cpp`
 function only reaches the browser after the shim exports it.
 
 The WebAssembly column of each table above shows the state of the wrapper.
@@ -423,13 +423,13 @@ The WebAssembly column of each table above shows the state of the wrapper.
 | partial | The WebAssembly build has it with fewer options. See the notes. |
 | no | The shim does not export it. |
 
-180 functions reach WebAssembly, 173 complete and 7 partial, all of them among
-the 273 that have a host wrapper. That is enough for text generation,
-embeddings, images, chat templates, tool calling with a grammar, every host
-sampler, batches with more than one sequence, extended batches with decision
-heads, context shifting when the context
-is full, logits and model metadata, in-memory context state, and the
-performance counters.
+217 functions reach WebAssembly, 209 complete and 8 partial, all of them among
+the 291 that have a host wrapper. That is enough for text generation,
+embeddings, images, audio input, the parts of a multimodal prompt, chat
+templates, tool calling with a grammar, every host sampler, batches with more
+than one sequence, extended batches with decision heads, context shifting when
+the context is full, logits and model metadata, in-memory context state, the
+performance counters, and a stop flag for a long prompt.
 
 ### Notes on the partial wrappers
 
@@ -446,6 +446,11 @@ performance counters.
 - `llama_model_default_params` has `NGpuLayers` only.
 - `llama_context_default_params` has `NCtx`, `NBatch`, `NUbatch`, `NSeqMax`,
   `NThreads`, `PoolingType`, `Embeddings`, and `NoPerf`.
+- `llama_set_abort_callback` takes a bool and not a Go function. The shim
+  holds one flag that `Abort` sets. The CPU backend reads it after each node,
+  and the WebGPU backend does not read it. Only the build with threads shares
+  its memory, so only there can the page set the flag during a decode, through
+  `AbortFlagView`.
 - `llama_batch_init` takes no `embd`. The shim has no call that puts an
   embedding in a batch, so a batch only carries tokens. `llama_batch_free`
   does nothing, because Go owns the batch arrays here.
@@ -454,16 +459,15 @@ performance counters.
 
 In order of value.
 
-1. **Stopping from the page.** `llama_set_abort_callback` cannot take a Go
-   function, but a flag in shared memory that the shim reads could stop a long
-   prompt. `llama_set_warmup` goes with it.
-2. **The rest of `mtmd`.** The shim runs the whole image pipeline in two
-   coarse calls, `mtmd_tokenize` and `mtmd_helper_eval_chunks`. So the calls
-   that build or inspect a single piece are missing, such as the bitmap getters,
-   the chunk and image token accessors, `mtmd_encode`, `mtmd_get_output_embd`,
-   and the batch calls. A browser program cannot place image embeddings itself.
-3. **Multi-turn chat in `llama_chat_apply_template`.** The shim only takes one
+1. **Embeddings in a batch.** `mtmd_encode_chunk` and `mtmd_get_output_embd`
+   give the embeddings of an image, but no shim call puts an embedding in a
+   batch. So a browser program cannot place image embeddings itself.
+2. **Multi-turn chat in `llama_chat_apply_template`.** The shim only takes one
    message for now.
+3. **Audio output.** The `mtmd_helper_gen_audio_*` calls, the voice calls, and
+   the audio stream calls.
+
+`llama_set_warmup` is not planned, because llama.cpp deprecated it.
 
 `llama_sampler_apply` is not planned. It takes a `llama_token_data_array`, and no
 struct can cross the module boundary. A browser program can read the logits with

@@ -59,7 +59,7 @@
 // Set NGpuLayers in [ModelParams] to put layers on the GPU. A CPU build ignores
 // this value.
 //
-// # Images
+// # Images and audio
 //
 // The llama.cpp multimodal library, mtmd, is in every build. [MtmdBitmapInit]
 // takes the pixels of an image, [MtmdTokenize] puts them into a prompt with the
@@ -69,8 +69,16 @@
 // The pixels must be RGB. A page decodes the image with a canvas, so any
 // format the browser reads works and the build needs no image library.
 //
-// Images only. Audio needs the page to decode and resample the samples, and
-// video needs ffmpeg in a subprocess.
+// Audio works the same way. The page decodes and resamples the samples to the
+// rate of [MtmdGetAudioSampleRate], and [MtmdBitmapInitFromAudio] takes them.
+// Video needs ffmpeg in a subprocess, so it is not here.
+//
+// # Stopping a long prompt
+//
+// [SetAbortCallback] connects a context to one abort flag in the shim, and
+// [Abort] sets it. Only the build with threads shares its memory, so only
+// there can the page set the flag during a decode, through [AbortFlagView].
+// The WebGPU backend does not read the flag.
 //
 // # Chat templates and tool calling
 //
@@ -92,9 +100,9 @@
 // A WebAssembly module can address 4 GB and one JavaScript ArrayBuffer holds at
 // most 2 GB. So a model larger than 2 GB must be split.
 //
-// The package has the calls that text generation, embeddings, and images need,
-// and it saves context state in memory. It does not have audio, video,
-// LoRA adapters, state in a file, or quantization.
+// The package has the calls that text generation, embeddings, images, and
+// audio input need, and it saves context state in memory. It does not have
+// audio output, video, LoRA adapters, state in a file, or quantization.
 //
 // The shim has no end of turn token and no grammar sampler. So the message
 // package StopMarkers approximates, and a grammar cannot force a tool call.

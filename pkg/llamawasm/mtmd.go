@@ -5,7 +5,7 @@ package llamawasm
 import "fmt"
 
 // The calls in this file follow the llama.cpp mtmd library, which lets a model
-// read images. The names are the mtmd package names with an Mtmd prefix,
+// read images and audio. The names are the mtmd package names with an Mtmd prefix,
 // because this package also has the llama calls.
 //
 //	mtmd.InitFromFile     -> llamawasm.MtmdInitFromFile
@@ -118,8 +118,8 @@ func MtmdSupportVision(mctx MtmdContext) bool {
 	return call("_yzma_mtmd_support_vision", int(mctx)) == 1
 }
 
-// MtmdSupportAudio reports whether the projector accepts audio. This package
-// cannot send audio, so this call only reports a model property.
+// MtmdSupportAudio reports whether the projector accepts audio. Make an audio
+// bitmap with [MtmdBitmapInitFromAudio].
 func MtmdSupportAudio(mctx MtmdContext) bool {
 	if !Loaded() || !MtmdSupported() {
 		return false
