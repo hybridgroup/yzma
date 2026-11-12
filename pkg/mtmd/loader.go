@@ -44,6 +44,10 @@ func Load(path string) error {
 		return err
 	}
 
+	if err := loadGenAudioFuncs(lib); err != nil {
+		return err
+	}
+
 	return nil
 }
 
