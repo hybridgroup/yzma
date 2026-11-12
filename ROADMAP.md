@@ -162,9 +162,14 @@ the public API. They live in the [`exp/speculative`](./exp/speculative) package.
 
 | Function | `yzma` | WebAssembly |
 | --- | :-: | :-: |
+| `llama_batch_ext_set_embd_state_row` | yes | no |
 | `llama_get_embeddings_nextn` | yes | no |
 | `llama_get_embeddings_nextn_ith` | yes | no |
+| `llama_get_embeddings_nextn_rows` | yes | no |
+| `llama_set_embd_state_src` | yes | no |
 | `llama_set_embeddings_nextn` | yes | no |
+| `llama_set_embeddings_nextn_dev` | yes | no |
+| `llama_set_embeddings_nextn_rows` | yes | no |
 | `llama_set_nextn_layer_offset` | yes | no |
 
 ### Memory Functions
