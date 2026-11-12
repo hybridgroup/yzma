@@ -117,6 +117,7 @@ func Load(path string) error {
 		[]string{
 			"llama_get_embeddings_nextn_rows",
 			"_Z31llama_get_embeddings_nextn_rowsP13llama_contextllPf",
+			"_Z31llama_get_embeddings_nextn_rowsP13llama_contextxxPf",
 			"?llama_get_embeddings_nextn_rows@@YA_NPEAUllama_context@@_J1PEAM@Z",
 		},
 		&ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint64, &ffi.TypeSint64, &ffi.TypePointer)
@@ -125,6 +126,7 @@ func Load(path string) error {
 		[]string{
 			"llama_set_embeddings_nextn_rows",
 			"_Z31llama_set_embeddings_nextn_rowsP13llama_contextllPKf",
+			"_Z31llama_set_embeddings_nextn_rowsP13llama_contextxxPKf",
 			"?llama_set_embeddings_nextn_rows@@YA_NPEAUllama_context@@_J1PEBM@Z",
 		},
 		&ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint64, &ffi.TypeSint64, &ffi.TypePointer)
