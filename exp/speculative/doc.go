@@ -13,4 +13,9 @@
 //
 // Upstream renamed these functions once, from pre_norm to nextn. This package
 // binds the current nextn spelling only.
+//
+// The device row functions keep the target NextN rows on the GPU so an MTP
+// draft context can read them directly. They came later than the host
+// functions, so check [DeviceRowsAvailable] separately from [Available], and
+// keep the host path as a fallback.
 package speculative

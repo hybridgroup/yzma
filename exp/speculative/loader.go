@@ -25,6 +25,21 @@ var (
 	// 				struct llama_context * ctx,
 	// 				int32_t offset);
 	setNextNLayerOffsetFunc ffi.Fun
+
+	// LLAMA_API bool llama_set_embeddings_nextn_dev(struct llama_context * ctx, bool value);
+	setEmbeddingsNextNDevFunc ffi.Fun
+
+	// LLAMA_API bool llama_get_embeddings_nextn_rows(struct llama_context * ctx, int64_t row0, int64_t n_rows, float * out);
+	getEmbeddingsNextNRowsFunc ffi.Fun
+
+	// LLAMA_API bool llama_set_embeddings_nextn_rows(struct llama_context * ctx, int64_t row0, int64_t n_rows, const float * data);
+	setEmbeddingsNextNRowsFunc ffi.Fun
+
+	// LLAMA_API bool llama_set_embd_state_src(struct llama_context * ctx, struct llama_context * src);
+	setEmbdStateSrcFunc ffi.Fun
+
+	// LLAMA_API bool llama_batch_ext_set_embd_state_row(struct llama_batch_ext * batch, int32_t idx, int32_t row);
+	batchExtSetEmbdStateRowFunc ffi.Fun
 )
 
 // prepAny binds the first name that the library exports. It returns the zero
@@ -90,6 +105,46 @@ func Load(path string) error {
 		},
 		&ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32)
 
+	setEmbeddingsNextNDevFunc = prepAny(lib,
+		[]string{
+			"llama_set_embeddings_nextn_dev",
+			"_Z30llama_set_embeddings_nextn_devP13llama_contextb",
+			"?llama_set_embeddings_nextn_dev@@YA_NPEAUllama_context@@_N@Z",
+		},
+		&ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeUint8)
+
+	getEmbeddingsNextNRowsFunc = prepAny(lib,
+		[]string{
+			"llama_get_embeddings_nextn_rows",
+			"_Z31llama_get_embeddings_nextn_rowsP13llama_contextllPf",
+			"?llama_get_embeddings_nextn_rows@@YA_NPEAUllama_context@@_J1PEAM@Z",
+		},
+		&ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint64, &ffi.TypeSint64, &ffi.TypePointer)
+
+	setEmbeddingsNextNRowsFunc = prepAny(lib,
+		[]string{
+			"llama_set_embeddings_nextn_rows",
+			"_Z31llama_set_embeddings_nextn_rowsP13llama_contextllPKf",
+			"?llama_set_embeddings_nextn_rows@@YA_NPEAUllama_context@@_J1PEBM@Z",
+		},
+		&ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint64, &ffi.TypeSint64, &ffi.TypePointer)
+
+	setEmbdStateSrcFunc = prepAny(lib,
+		[]string{
+			"llama_set_embd_state_src",
+			"_Z24llama_set_embd_state_srcP13llama_contextS0_",
+			"?llama_set_embd_state_src@@YA_NPEAUllama_context@@0@Z",
+		},
+		&ffi.TypeUint8, &ffi.TypePointer, &ffi.TypePointer)
+
+	batchExtSetEmbdStateRowFunc = prepAny(lib,
+		[]string{
+			"llama_batch_ext_set_embd_state_row",
+			"_Z34llama_batch_ext_set_embd_state_rowP15llama_batch_extii",
+			"?llama_batch_ext_set_embd_state_row@@YA_NPEAUllama_batch_ext@@HH@Z",
+		},
+		&ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32)
+
 	return nil
 }
 
@@ -100,4 +155,15 @@ func Available() bool {
 		getEmbeddingsNextNFunc.Cif != nil &&
 		getEmbeddingsNextNIthFunc.Cif != nil &&
 		setNextNLayerOffsetFunc.Cif != nil
+}
+
+// DeviceRowsAvailable reports whether the loaded llama.cpp library exports the
+// device row functions. It is separate from [Available] because older builds
+// have the host NextN functions only.
+func DeviceRowsAvailable() bool {
+	return setEmbeddingsNextNDevFunc.Cif != nil &&
+		getEmbeddingsNextNRowsFunc.Cif != nil &&
+		setEmbeddingsNextNRowsFunc.Cif != nil &&
+		setEmbdStateSrcFunc.Cif != nil &&
+		batchExtSetEmbdStateRowFunc.Cif != nil
 }
