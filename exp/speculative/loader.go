@@ -35,8 +35,8 @@ var (
 	// LLAMA_API bool llama_set_embeddings_nextn_rows(struct llama_context * ctx, int64_t row0, int64_t n_rows, const float * data);
 	setEmbeddingsNextNRowsFunc ffi.Fun
 
-	// LLAMA_API bool llama_set_embd_state_src(struct llama_context * ctx, struct llama_context * src);
-	setEmbdStateSrcFunc ffi.Fun
+	// LLAMA_API bool llama_set_ctx_state_src(struct llama_context * ctx, struct llama_context * ctx_src);
+	setCtxStateSrcFunc ffi.Fun
 
 	// LLAMA_API bool llama_batch_ext_set_embd_state_row(struct llama_batch_ext * batch, int32_t idx, int32_t row);
 	batchExtSetEmbdStateRowFunc ffi.Fun
@@ -71,8 +71,8 @@ func Load(path string) error {
 		return err
 	}
 
-	// yzma-checker does not audit these signatures. llama.cpp does not install
-	// src/llama-ext.h, so they are checked by hand against that header.
+	// Newer builds export these from llama.h. The mangled names cover older
+	// builds that had them in src/llama-ext.h.
 	setEmbeddingsNextNFunc = prepAny(lib,
 		[]string{
 			"llama_set_embeddings_nextn",
@@ -131,8 +131,9 @@ func Load(path string) error {
 		},
 		&ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint64, &ffi.TypeSint64, &ffi.TypePointer)
 
-	setEmbdStateSrcFunc = prepAny(lib,
+	setCtxStateSrcFunc = prepAny(lib,
 		[]string{
+			"llama_set_ctx_state_src",
 			"llama_set_embd_state_src",
 			"_Z24llama_set_embd_state_srcP13llama_contextS0_",
 			"?llama_set_embd_state_src@@YA_NPEAUllama_context@@0@Z",
@@ -166,6 +167,6 @@ func DeviceRowsAvailable() bool {
 	return setEmbeddingsNextNDevFunc.Cif != nil &&
 		getEmbeddingsNextNRowsFunc.Cif != nil &&
 		setEmbeddingsNextNRowsFunc.Cif != nil &&
-		setEmbdStateSrcFunc.Cif != nil &&
+		setCtxStateSrcFunc.Cif != nil &&
 		batchExtSetEmbdStateRowFunc.Cif != nil
 }

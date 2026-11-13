@@ -76,25 +76,25 @@ func SetEmbeddingsNextNRows(ctx llama.Context, row0 int64, nEmbd int, data []flo
 	return result.Bool()
 }
 
-// SetEmbdStateSrc makes the MTP draft ctx read batch state rows from the NextN
-// device buffer of src. It returns whether decode accepts batches with state rows.
+// SetCtxStateSrc makes the MTP draft ctx read batch state rows from the NextN
+// device buffer of ctxSrc. It returns whether decode accepts batches with state rows.
 //
-// A src of 0 detaches. It returns false then because no source is left, which
-// is not a failed detach. Keep src alive while ctx uses it, and detach before
+// A ctxSrc of 0 detaches. It returns false then because no source is left,
+// which is not a failed detach. Keep ctxSrc alive while ctx uses it, and detach before
 // freeing either context.
-func SetEmbdStateSrc(ctx, src llama.Context) bool {
-	if ctx == 0 || setEmbdStateSrcFunc.Cif == nil {
+func SetCtxStateSrc(ctx, ctxSrc llama.Context) bool {
+	if ctx == 0 || setCtxStateSrcFunc.Cif == nil {
 		return false
 	}
 
 	var result ffi.Arg
-	setEmbdStateSrcFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&src))
+	setCtxStateSrcFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&ctxSrc))
 
 	return result.Bool()
 }
 
 // BatchExtSetEmbdStateRow sets the state of the entry at idx to a row of the
-// device buffer set with [SetEmbdStateSrc]. Every entry of a batch must have a
+// device buffer set with [SetCtxStateSrc]. Every entry of a batch must have a
 // state row, or none.
 //
 // It returns false when llama.cpp rejects the index or row, or the library

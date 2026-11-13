@@ -23,7 +23,7 @@ var ffiTypeContextParams = ffi.NewType(
 	&ffi.TypeFloat, &ffi.TypeFloat,
 	&ffi.TypeFloat, &ffi.TypeFloat,
 	&ffi.TypeFloat, &ffi.TypeFloat,
-	&ffi.TypeUint32, &ffi.TypeFloat,
+	&ffi.TypeUint32,
 	&ffi.TypePointer, &ffi.TypePointer,
 	&ffi.TypeSint32, &ffi.TypeSint32,
 	&ffi.TypeUint64, &ffi.TypeFloat,
@@ -40,9 +40,6 @@ var (
 
 	// LLAMA_API void llama_free(struct llama_context * ctx);
 	freeFunc ffi.Fun
-
-	// LLAMA_API void llama_set_warmup(struct llama_context * ctx, bool warmup);
-	setWarmupFunc ffi.Fun
 
 	// LLAMA_API int32_t llama_encode(
 	//         		struct llama_context * ctx,
@@ -197,10 +194,6 @@ func loadContextFuncs(lib loader.Lib) error {
 
 	if freeFunc, err = lib.Prep("llama_free", &ffi.TypeVoid, &ffi.TypePointer); err != nil {
 		return loadError("llama_free", err)
-	}
-
-	if setWarmupFunc, err = lib.Prep("llama_set_warmup", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeUint8); err != nil {
-		return loadError("llama_set_warmup", err)
 	}
 
 	if encodeFunc, err = lib.Prep("llama_encode", &ffi.TypeSint32, &ffi.TypePointer, &ffiTypeBatch); err != nil {
@@ -373,18 +366,6 @@ func Free(ctx Context) error {
 	}
 	freeFunc.Call(nil, unsafe.Pointer(&ctx))
 	abortCallbacks.Delete(ctx)
-	return nil
-}
-
-// SetWarmup sets the model context warmup mode on or off.
-//
-// Deprecated: do warmup runs manually instead. It can cause extra graph
-// reallocations with MoE models, and llama.cpp will remove it.
-func SetWarmup(ctx Context, warmup bool) error {
-	if ctx == 0 {
-		return errInvalidContext
-	}
-	setWarmupFunc.Call(nil, unsafe.Pointer(&ctx), &warmup)
 	return nil
 }
 

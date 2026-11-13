@@ -719,8 +719,6 @@ func Warmup(lctx Context, model Model) error {
 
 	vocab := ModelGetVocab(model)
 
-	SetWarmup(lctx, true)
-
 	bos := VocabBOS(vocab)
 	eos := VocabEOS(vocab)
 
@@ -778,7 +776,6 @@ func Warmup(lctx Context, model Model) error {
 	}
 
 	Synchronize(lctx)
-	SetWarmup(lctx, false)
 
 	return nil
 }

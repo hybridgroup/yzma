@@ -17,8 +17,8 @@ func TestNextNDevZeroHandles(t *testing.T) {
 	if SetEmbeddingsNextNRows(0, 0, 4, make([]float32, 4)) {
 		t.Fatal("SetEmbeddingsNextNRows accepted a zero context")
 	}
-	if SetEmbdStateSrc(0, 0) {
-		t.Fatal("SetEmbdStateSrc accepted a zero context")
+	if SetCtxStateSrc(0, 0) {
+		t.Fatal("SetCtxStateSrc accepted a zero context")
 	}
 	if BatchExtSetEmbdStateRow(0, 0, 0) {
 		t.Fatal("BatchExtSetEmbdStateRow accepted a zero batch")
@@ -134,11 +134,11 @@ func TestNextNDevRows(t *testing.T) {
 	}
 
 	// Only an MTP context reads state rows.
-	if SetEmbdStateSrc(ctx, ctx) {
-		t.Fatal("SetEmbdStateSrc accepted a default context")
+	if SetCtxStateSrc(ctx, ctx) {
+		t.Fatal("SetCtxStateSrc accepted a default context")
 	}
-	if SetEmbdStateSrc(ctx, 0) {
-		t.Fatal("SetEmbdStateSrc detach returned true")
+	if SetCtxStateSrc(ctx, 0) {
+		t.Fatal("SetCtxStateSrc detach returned true")
 	}
 }
 
