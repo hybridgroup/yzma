@@ -190,16 +190,16 @@ the public API. They live in the [`exp/speculative`](./exp/speculative) package.
 
 | Function | `yzma` | WebAssembly |
 | --- | :-: | :-: |
-| `llama_batch_ext_add` | yes | no |
-| `llama_batch_ext_add_embd` | yes | no |
+| `llama_batch_ext_add` | yes | yes |
+| `llama_batch_ext_add_embd` | yes | yes |
 | `llama_batch_ext_add_seq` | yes | yes |
 | `llama_batch_ext_add_token` | yes | yes |
 | `llama_batch_ext_clear` | yes | yes |
 | `llama_batch_ext_free` | yes | yes |
 | `llama_batch_ext_init` | yes | yes |
 | `llama_batch_ext_set_decision_order` | yes | yes |
-| `llama_batch_ext_set_embd_state` | yes | no |
-| `llama_batch_ext_set_embd_token` | yes | no |
+| `llama_batch_ext_set_embd_state` | yes | yes |
+| `llama_batch_ext_set_embd_token` | yes | yes |
 | `llama_batch_ext_set_output_embd` | yes | yes |
 | `llama_batch_ext_set_output_logits` | yes | yes |
 | `llama_batch_ext_set_pos` | yes | yes |
@@ -454,20 +454,20 @@ performance counters, and a stop flag for a long prompt.
   and the WebGPU backend does not read it. Only the build with threads shares
   its memory, so only there can the page set the flag during a decode, through
   `AbortFlagView`.
-- `llama_batch_init` takes no `embd`. The shim has no call that puts an
-  embedding in a batch, so a batch only carries tokens. `llama_batch_free`
-  does nothing, because Go owns the batch arrays here.
+- `llama_batch_init` takes no `embd`, so a `llama_batch` only carries tokens.
+  Use the extended batch for embeddings. `llama_batch_free` does nothing,
+  because Go owns the batch arrays here.
+- The extended batch keeps its entries in Go until `llama_process`, so
+  llama.cpp checks the size of an embedding there and not when it is added.
+  Embeddings need a module with ABI version 14.
 
 ### What WebAssembly still needs
 
 In order of value.
 
-1. **Embeddings in a batch.** `mtmd_encode_chunk` and `mtmd_get_output_embd`
-   give the embeddings of an image, but no shim call puts an embedding in a
-   batch. So a browser program cannot place image embeddings itself.
-2. **Multi-turn chat in `llama_chat_apply_template`.** The shim only takes one
+1. **Multi-turn chat in `llama_chat_apply_template`.** The shim only takes one
    message for now.
-3. **Audio output.** The `mtmd_helper_gen_audio_*` calls, the voice calls, and
+2. **Audio output.** The `mtmd_helper_gen_audio_*` calls, the voice calls, and
    the audio stream calls.
 
 `llama_set_warmup` is not planned, because llama.cpp deprecated it.
