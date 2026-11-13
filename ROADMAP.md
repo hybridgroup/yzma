@@ -414,7 +414,7 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 The `pkg/llamawasm` package drives a WebAssembly build of `llama.cpp`. It does
 not use the C API directly. A C shim in the
 [llama-cpp-builder](https://github.com/hybridgroup/llama-cpp-builder) repository
-exposes a small, versioned set of calls, currently ABI 13. So a `llama.cpp`
+exposes a small, versioned set of calls, currently ABI 14. So a `llama.cpp`
 function only reaches the browser after the shim exports it.
 
 The WebAssembly column of each table above shows the state of the wrapper.
