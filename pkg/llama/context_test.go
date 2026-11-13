@@ -115,12 +115,8 @@ func TestWarmup(t *testing.T) {
 	}
 	defer Free(ctx)
 
-	SetWarmup(ctx, true)
-
 	Warmup(ctx, model)
 	t.Log("Warmup completed successfully")
-
-	SetWarmup(ctx, false)
 }
 
 func TestNCtx(t *testing.T) {

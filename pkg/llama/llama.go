@@ -389,7 +389,6 @@ type ContextParams struct {
 	YarnBetaFast       float32            // YaRN low correction dim
 	YarnBetaSlow       float32            // YaRN high correction dim
 	YarnOrigCtx        uint32             // YaRN original context size
-	DefragThold        float32            // defragment the KV cache if holes/size > thold
 	CbEval             uintptr            // evaluation callback
 	CbEvalUserData     uintptr            // user data for evaluation callback
 	TypeK              GGMLType           // data type for K cache

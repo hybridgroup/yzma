@@ -648,10 +648,10 @@ measurement rather than an assertion:
   spans it already computed. Four today:
 
   ```
-  llama_set_warmup (llama.h:1006)
-  mtmd_encode (mtmd.h:294)
-  mtmd_image_tokens_get_nx (mtmd.h:255)
-  mtmd_image_tokens_get_ny (mtmd.h:257)
+  mtmd_encode (mtmd.h:352)
+  mtmd_helper_support_video (mtmd-helper.h:223)
+  mtmd_image_tokens_get_nx (mtmd.h:301)
+  mtmd_image_tokens_get_ny (mtmd.h:303)
   ```
 
   The count is always printed; `-v` adds the names and their header lines.

@@ -140,7 +140,6 @@ section at the end.
 | `llama_set_causal_attn` | yes | yes |
 | `llama_set_embeddings` | yes | yes |
 | `llama_set_n_threads` | yes | yes |
-| `llama_set_warmup` | yes | no |
 | `llama_synchronize` | yes | yes |
 
 ### Backend Sampling Functions (Experimental)
@@ -157,8 +156,8 @@ section at the end.
 
 ### Speculative Decoding Functions (Experimental)
 
-These come from the `src/llama-ext.h` staging header of `llama.cpp`, not from
-the public API. They live in the [`exp/speculative`](./exp/speculative) package.
+These moved from the `src/llama-ext.h` staging header of `llama.cpp` into
+`llama.h`. They live in the [`exp/speculative`](./exp/speculative) package.
 
 | Function | `yzma` | WebAssembly |
 | --- | :-: | :-: |
@@ -166,7 +165,7 @@ the public API. They live in the [`exp/speculative`](./exp/speculative) package.
 | `llama_get_embeddings_nextn` | yes | no |
 | `llama_get_embeddings_nextn_ith` | yes | no |
 | `llama_get_embeddings_nextn_rows` | yes | no |
-| `llama_set_embd_state_src` | yes | no |
+| `llama_set_ctx_state_src` | yes | no |
 | `llama_set_embeddings_nextn` | yes | no |
 | `llama_set_embeddings_nextn_dev` | yes | no |
 | `llama_set_embeddings_nextn_rows` | yes | no |
@@ -469,8 +468,6 @@ In order of value.
    message for now.
 2. **Audio output.** The `mtmd_helper_gen_audio_*` calls, the voice calls, and
    the audio stream calls.
-
-`llama_set_warmup` is not planned, because llama.cpp deprecated it.
 
 `llama_sampler_apply` is not planned. It takes a `llama_token_data_array`, and no
 struct can cross the module boundary. A browser program can read the logits with
