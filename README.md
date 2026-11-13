@@ -235,6 +235,7 @@ Sometimes there are breaking changes to `llama.cpp` that require an update to `y
 | v0.7.0 | v1.30.0   |
 | v0.8.0 | v1.31.0   |
 | v0.9.0 | v1.32.0   |
+| v1.0.0 | v1.33.0   |
 
 A tagged release of `yzma` installs its own `llama.cpp` release by default, so `yzma install` without the `-version` flag gets the version in this table. Use `-version latest` to get the most recent nightly build instead. A build from the `main` branch always uses the most recent nightly build.
 
@@ -259,7 +260,8 @@ Here are some of the known compatible versions for the nightly builds of `llama.
 | b10780 - b11410  | v1.26.0 - v1.28.0   |
 | b11411 - b11479  | v1.29.0 - v1.29.1   |
 | b11480 - b11959  | v1.30.0   |
-| b11960+  | v1.31.0+   |
+| b11960 - b12190  | v1.31.0 - v1.32.0   |
+| b12347+  | v1.33.0+   |
 
 ## Benchmarks
 
