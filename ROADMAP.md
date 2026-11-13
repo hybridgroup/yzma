@@ -349,6 +349,9 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 | `mtmd_helper_gen_audio_set_input` | yes | no |
 | `mtmd_helper_gen_audio_step_gen` | yes | no |
 | `mtmd_helper_gen_audio_step_prompt` | yes | no |
+| `mtmd_helper_resampler_free` | yes | no |
+| `mtmd_helper_resampler_init` | yes | no |
+| `mtmd_helper_resampler_process` | yes | no |
 | `mtmd_helper_support_video` | yes | no |
 | `mtmd_helper_video_free` | yes | no |
 | `mtmd_helper_video_get_info` | yes | no |
