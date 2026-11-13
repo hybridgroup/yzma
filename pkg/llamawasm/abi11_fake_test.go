@@ -143,8 +143,8 @@ func TestBatchExtRejects(t *testing.T) {
 	if err := BatchExtSetPos(bt, 3, 0); !errors.Is(err, ErrBatchExtRejected) {
 		t.Errorf("an index out of range gave %v", err)
 	}
-	if err := BatchExtSetPos(bt, 0, 0, 1); !errors.Is(err, ErrBatchExtRejected) {
-		t.Errorf("two positions gave %v", err)
+	if err := BatchExtSetPos(bt, 0, 0, 1, 2, 3, 4); !errors.Is(err, ErrBatchExtRejected) {
+		t.Errorf("five positions gave %v", err)
 	}
 	if _, err := Process(Context(7), ProcessTypeDecode, bt); !errors.Is(err, ErrBatchExtRejected) {
 		t.Errorf("entries with no position gave %v", err)

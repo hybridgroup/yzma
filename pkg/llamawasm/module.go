@@ -19,7 +19,7 @@ import (
 // checks for it before each use.
 const (
 	abiVersionMin = 1  // 1 has the calls for text generation and embeddings
-	abiVersion    = 13 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
+	abiVersion    = 14 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
 	//                    bounds of the tokens of an image, 5 the rest of the
 	//                    vocabulary and of the samplers, 6 batches with
 	//                    positions and the calls for the memory of a sequence,
@@ -29,7 +29,8 @@ const (
 	//                    10 contexts with a unified cache and a cap on outputs,
 	//                    11 yzma_process for an extended batch, 12
 	//                    yzma_model_decision_label, 13 the abort flag and
-	//                    the rest of the image and audio calls of mtmd
+	//                    the rest of the image and audio calls of mtmd,
+	//                    14 embeddings in an extended batch
 )
 
 // Error codes that the shim returns. These match the values in
@@ -693,18 +694,21 @@ func (s *scratch) release() {
 // tokenScratch holds input tokens, textScratch holds an input string, and
 // pieceScratch holds output bytes.
 // posScratch, seqScratch, and logitScratch hold the other arrays of a batch,
-// which go into the module beside the tokens. outScratch is different and holds
+// which go into the module beside the tokens. embdInScratch and descScratch
+// hold the embeddings of an extended batch. outScratch is different and holds
 // the logits and embeddings that come out of the module.
 var (
-	tokenScratch scratch
-	textScratch  scratch
-	pieceScratch scratch
-	embdScratch  scratch
-	errScratch   scratch
-	posScratch   scratch
-	nSeqScratch  scratch
-	seqScratch   scratch
-	logitScratch scratch
-	orderScratch scratch
-	outScratch   scratch
+	tokenScratch  scratch
+	textScratch   scratch
+	pieceScratch  scratch
+	embdScratch   scratch
+	errScratch    scratch
+	posScratch    scratch
+	nSeqScratch   scratch
+	seqScratch    scratch
+	logitScratch  scratch
+	orderScratch  scratch
+	embdInScratch scratch
+	descScratch   scratch
+	outScratch    scratch
 )

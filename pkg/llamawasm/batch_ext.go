@@ -8,22 +8,25 @@ import (
 )
 
 // BatchExt is an extended batch. The entries stay in Go until [Process]
-// sends them to the module, so a token embedding cannot be an entry here.
+// sends them to the module, so llama.cpp checks the embedding sizes there.
 type BatchExt struct {
 	b *batchExt
 }
 
 type batchExt struct {
-	ctx     Context
-	cap     int
-	nSeqMax int
-	tokens  []Token
-	pos     []Pos
-	posSet  []bool
-	seqs    [][]SeqId
-	outputs []int8
-	order   []int32
-	ordered bool
+	ctx       Context
+	cap       int
+	nSeqMax   int
+	tokens    []Token
+	pos       [][mropeSections]Pos
+	posSet    []bool
+	embd      [][]float32
+	state     [][]float32
+	needsEmbd bool
+	seqs      [][]SeqId
+	outputs   []int8
+	order     []int32
+	ordered   bool
 }
 
 // ProcessType selects how [Process] runs a [BatchExt].
@@ -58,8 +61,14 @@ var (
 	// ErrNoBatchExt means the module predates the extended batch, which arrived in ABI version 11.
 	ErrNoBatchExt = errors.New("llamawasm: this llama.cpp module has no extended batch, install a newer build")
 
+	// ErrNoBatchExtEmbd means the module predates embeddings in an extended batch, which arrived in ABI version 14.
+	ErrNoBatchExtEmbd = errors.New("llamawasm: this llama.cpp module has no embeddings in an extended batch, install a newer build")
+
 	errInvalidBatchExt = errors.New("invalid extended batch")
 )
+
+// mropeSections is the maximum number of positions of an entry, one for each M-RoPE section.
+const mropeSections = 4
 
 // BatchExtInit creates an extended batch for the context.
 // It holds up to [NBatch] entries and accepts sequence IDs below [NSeqMax].
@@ -94,9 +103,25 @@ func BatchExtClear(batch BatchExt) error {
 	}
 	b.tokens, b.pos, b.posSet = b.tokens[:0], b.pos[:0], b.posSet[:0]
 	b.seqs, b.outputs, b.order = b.seqs[:0], b.outputs[:0], b.order[:0]
-	b.ordered = false
+	b.embd, b.state = b.embd[:0], b.state[:0]
+	b.ordered, b.needsEmbd = false, false
 
 	return nil
+}
+
+// BatchExtAdd adds an entry with no token and no embedding, and returns its index.
+// Set its position with [BatchExtSetPos] before processing the batch.
+func BatchExtAdd(batch BatchExt, seqID SeqId) (int32, error) {
+	b := batch.b
+	if b == nil {
+		return 0, errInvalidBatchExt
+	}
+	if idx, err := b.canAdd(seqID); err != nil {
+		return idx, err
+	}
+	b.needsEmbd = true
+
+	return b.add(seqID, TokenNull, nil), nil
 }
 
 // BatchExtAddToken adds a token and returns its index.
@@ -106,24 +131,64 @@ func BatchExtAddToken(batch BatchExt, seqID SeqId, token Token) (int32, error) {
 	if b == nil {
 		return 0, errInvalidBatchExt
 	}
-	if len(b.tokens) >= b.cap {
-		return -1, ErrBatchFull
-	}
 	if token < 0 {
 		return -2, ErrBatchExtInvalidToken
 	}
-	if seqID < 0 || int(seqID) >= b.nSeqMax {
-		return -3, ErrBatchExtInvalidSeqID
+	if idx, err := b.canAdd(seqID); err != nil {
+		return idx, err
 	}
 
-	b.tokens = append(b.tokens, token)
-	b.pos = append(b.pos, 0)
-	b.posSet = append(b.posSet, false)
-	b.seqs = append(b.seqs, []SeqId{seqID})
-	b.outputs = append(b.outputs, 0)
-	b.order = append(b.order, 0)
+	return b.add(seqID, token, nil), nil
+}
 
-	return int32(len(b.tokens) - 1), nil
+// BatchExtAddEmbd adds a token embedding made of rows of nEmbd floats, and returns its index.
+// The data is copied. Set its position with [BatchExtSetPos] before processing the batch.
+func BatchExtAddEmbd(batch BatchExt, seqID SeqId, data []float32, nEmbd int) (int32, error) {
+	b := batch.b
+	if b == nil {
+		return 0, errInvalidBatchExt
+	}
+	if !validEmbd(data, nEmbd) {
+		return -2, ErrBatchExtInvalidToken
+	}
+	if idx, err := b.canAdd(seqID); err != nil {
+		return idx, err
+	}
+	b.needsEmbd = true
+
+	return b.add(seqID, TokenNull, append([]float32(nil), data...)), nil
+}
+
+// BatchExtSetEmbdToken sets the token embedding for the entry at idx.
+// Use it after [BatchExtAddToken] to give an entry both a token ID and an embedding.
+func BatchExtSetEmbdToken(batch BatchExt, idx int32, data []float32, nEmbd int) error {
+	b, err := batch.entry(idx)
+	if err != nil {
+		return err
+	}
+	if !validEmbd(data, nEmbd) || b.embd[idx] != nil {
+		return fmt.Errorf("%w: set token embedding at index %d", ErrBatchExtRejected, idx)
+	}
+	b.embd[idx] = append([]float32(nil), data...)
+	b.needsEmbd = true
+
+	return nil
+}
+
+// BatchExtSetEmbdState sets the hidden state from a previous stage for the entry at idx.
+// Only a context that takes a state, such as MTP, accepts it, and [Process] reports the error otherwise.
+func BatchExtSetEmbdState(batch BatchExt, idx int32, data []float32, nEmbd int) error {
+	b, err := batch.entry(idx)
+	if err != nil {
+		return err
+	}
+	if !validEmbd(data, nEmbd) || b.state[idx] != nil {
+		return fmt.Errorf("%w: set state embedding at index %d", ErrBatchExtRejected, idx)
+	}
+	b.state[idx] = append([]float32(nil), data...)
+	b.needsEmbd = true
+
+	return nil
 }
 
 // BatchExtAddSeq adds the entry at idx to another sequence at the same position.
@@ -161,16 +226,19 @@ func BatchExtSetOutputLogits(batch BatchExt, idx int32, value bool) error {
 	return nil
 }
 
-// BatchExtSetPos sets the position of the entry at idx. A token uses one position.
+// BatchExtSetPos sets the position of the entry at idx.
+// A token uses one position. An embedding for an M-RoPE model uses one per section, up to 4.
 func BatchExtSetPos(batch BatchExt, idx int32, pos ...Pos) error {
 	b, err := batch.entry(idx)
 	if err != nil {
 		return err
 	}
-	if len(pos) != 1 {
-		return fmt.Errorf("%w: %d positions, want 1", ErrBatchExtRejected, len(pos))
+	if len(pos) == 0 || len(pos) > mropeSections {
+		return fmt.Errorf("%w: %d positions, want 1 to %d", ErrBatchExtRejected, len(pos), mropeSections)
 	}
-	b.pos[idx], b.posSet[idx] = pos[0], true
+	b.pos[idx] = [mropeSections]Pos{}
+	copy(b.pos[idx][:], pos)
+	b.posSet[idx] = true
 
 	return nil
 }
@@ -209,6 +277,9 @@ func Process(ctx Context, typ ProcessType, batch BatchExt) (int32, error) {
 	if i := indexFalse(b.posSet); i >= 0 {
 		return 0, fmt.Errorf("%w: index %d has no position", ErrBatchExtRejected, i)
 	}
+	if b.needsEmbd && !has("_yzma_process_embd") {
+		return 0, ErrNoBatchExtEmbd
+	}
 
 	nSeqMax := 1
 	for _, s := range b.seqs {
@@ -227,11 +298,19 @@ func Process(ctx Context, typ ProcessType, batch BatchExt) (int32, error) {
 	}
 	writeTokens(ptr, b.tokens)
 
-	posPtr, err := posScratch.reserve(n * 4)
+	nPos := 1
+	if b.needsEmbd {
+		nPos = mropeSections
+	}
+	pos := make([]Pos, 0, n*nPos)
+	for _, p := range b.pos {
+		pos = append(pos, p[:nPos]...)
+	}
+	posPtr, err := posScratch.reserve(len(pos) * 4)
 	if err != nil {
 		return 0, err
 	}
-	writeInt32s(posPtr, b.pos)
+	writeInt32s(posPtr, pos)
 
 	nSeqPtr, err := nSeqScratch.reserve(n * 4)
 	if err != nil {
@@ -259,7 +338,62 @@ func Process(ctx Context, typ ProcessType, batch BatchExt) (int32, error) {
 		writeInt32s(orderPtr, b.order)
 	}
 
-	return callErr("_yzma_process", int(ctx), int(typ), ptr, posPtr, nSeqPtr, seqPtr, nSeqMax, outPtr, orderPtr, n)
+	if !b.needsEmbd {
+		return callErr("_yzma_process", int(ctx), int(typ), ptr, posPtr, nSeqPtr, seqPtr, nSeqMax, outPtr, orderPtr, n)
+	}
+
+	var floats []float32
+	desc := make([]int32, 0, n*4)
+	for i := range n {
+		for _, e := range [][]float32{b.embd[i], b.state[i]} {
+			desc = append(desc, int32(len(floats)), int32(len(e)))
+			floats = append(floats, e...)
+		}
+	}
+
+	embdPtr := 0
+	if len(floats) > 0 {
+		if embdPtr, err = embdInScratch.reserve(len(floats) * 4); err != nil {
+			return 0, err
+		}
+		writeFloats(embdPtr, floats)
+	}
+	descPtr, err := descScratch.reserve(len(desc) * 4)
+	if err != nil {
+		return 0, err
+	}
+	writeInt32s(descPtr, desc)
+
+	return callErr("_yzma_process_embd", int(ctx), int(typ), ptr, posPtr, nSeqPtr, seqPtr, nSeqMax, outPtr, orderPtr, embdPtr, descPtr, n)
+}
+
+// canAdd checks that the batch takes one more entry for seqID.
+// It returns the llama.cpp error code with the error.
+func (b *batchExt) canAdd(seqID SeqId) (int32, error) {
+	if len(b.tokens) >= b.cap {
+		return -1, ErrBatchFull
+	}
+	if seqID < 0 || int(seqID) >= b.nSeqMax {
+		return -3, ErrBatchExtInvalidSeqID
+	}
+	return 0, nil
+}
+
+func (b *batchExt) add(seqID SeqId, token Token, embd []float32) int32 {
+	b.tokens = append(b.tokens, token)
+	b.pos = append(b.pos, [mropeSections]Pos{})
+	b.posSet = append(b.posSet, false)
+	b.seqs = append(b.seqs, []SeqId{seqID})
+	b.outputs = append(b.outputs, 0)
+	b.order = append(b.order, 0)
+	b.embd = append(b.embd, embd)
+	b.state = append(b.state, nil)
+
+	return int32(len(b.tokens) - 1)
+}
+
+func validEmbd(data []float32, nEmbd int) bool {
+	return nEmbd > 0 && len(data) > 0 && len(data)%nEmbd == 0
 }
 
 // entry returns the batch data when idx is an entry of the batch.

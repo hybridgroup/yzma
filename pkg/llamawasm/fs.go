@@ -190,7 +190,8 @@ func ReleaseScratch() {
 	}
 	for _, s := range []*scratch{
 		&tokenScratch, &textScratch, &pieceScratch, &embdScratch, &errScratch,
-		&posScratch, &nSeqScratch, &seqScratch, &logitScratch, &outScratch,
+		&posScratch, &nSeqScratch, &seqScratch, &logitScratch, &orderScratch,
+		&embdInScratch, &descScratch, &outScratch,
 	} {
 		s.release()
 	}
