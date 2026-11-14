@@ -28,6 +28,7 @@ type VideoInfo struct {
 //	int64_t timestamp_interval  (8 bytes, offset 16)
 //	bool no_soundtrack          (1 byte,  offset 24)
 //	<7 bytes implicit padding>
+//	const struct mtmd_helper_video_decoder * decoder (8 bytes, offset 32)
 type VideoInitParams struct {
 	// FPSTarget is the desired output fps. A value <= 0 uses the video's native fps.
 	FPSTarget float32
@@ -41,6 +42,8 @@ type VideoInitParams struct {
 	TimestampIntervalMs int64
 	// NoSoundtrack decodes frames only, also for models that hear the soundtrack of a video.
 	NoSoundtrack bool
+	// Decoder points to a C struct mtmd_helper_video_decoder. 0 means the built-in ffmpeg decoder.
+	Decoder uintptr
 }
 
 var (
@@ -48,7 +51,7 @@ var (
 	ffiTypeVideoInfo = ffi.NewType(&ffi.TypeUint32, &ffi.TypeUint32, &ffi.TypeFloat, &ffi.TypeSint32)
 
 	// ffiTypeVideoInitParams mirrors struct mtmd_helper_video_init_params
-	ffiTypeVideoInitParams = ffi.NewType(&ffi.TypeFloat, &ffi.TypePointer, &ffi.TypeSint64, &ffi.TypeUint8)
+	ffiTypeVideoInitParams = ffi.NewType(&ffi.TypeFloat, &ffi.TypePointer, &ffi.TypeSint64, &ffi.TypeUint8, &ffi.TypePointer)
 )
 
 var (
@@ -109,6 +112,8 @@ func loadVideoFuncs(lib loader.Lib) error {
 
 // SupportVideo reports whether the build of libmtmd includes video support
 // (i.e. was compiled with MTMD_VIDEO). Requires ffmpeg/ffprobe on the system PATH at runtime.
+//
+// Deprecated: use HelperGetCapabilities instead.
 func SupportVideo(ctx Context) bool {
 	if ctx == 0 {
 		return false
