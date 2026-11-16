@@ -14,8 +14,8 @@ import (
 
 func TestHelperGenAudioInputLayout(t *testing.T) {
 	var in HelperGenAudioInput
-	if size := unsafe.Sizeof(in); size != 72 {
-		t.Fatalf("HelperGenAudioInput size %d does not match C size 72", size)
+	if size := unsafe.Sizeof(in); size != 80 {
+		t.Fatalf("HelperGenAudioInput size %d does not match C size 80", size)
 	}
 	offsets := []struct {
 		name string
@@ -33,7 +33,9 @@ func TestHelperGenAudioInputLayout(t *testing.T) {
 		{"TopP", unsafe.Offsetof(in.TopP), 52},
 		{"Temp", unsafe.Offsetof(in.Temp), 56},
 		{"Seed", unsafe.Offsetof(in.Seed), 60},
-		{"OutType", unsafe.Offsetof(in.OutType), 64},
+		{"Speed", unsafe.Offsetof(in.Speed), 64},
+		{"Loudness", unsafe.Offsetof(in.Loudness), 68},
+		{"OutType", unsafe.Offsetof(in.OutType), 72},
 	}
 	for _, o := range offsets {
 		if o.got != o.want {
@@ -83,6 +85,7 @@ func TestHelperGenAudioZeroHandles(t *testing.T) {
 		t.Fatalf("HelperGenAudioInputDefault failed: %v", err)
 	}
 	if input.TopK != 50 || input.TopP != 1 || input.Temp != -1 || input.Seed != math.MaxUint32 ||
+		input.Speed != 1 || input.Loudness != 0 ||
 		input.OutType != HelperGenAudioOutTypeWAV || input.Stream || input.Prompt != nil {
 		t.Fatalf("unexpected default input %+v", input)
 	}

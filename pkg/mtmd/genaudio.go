@@ -40,7 +40,7 @@ const (
 	HelperGenAudioOutMixed
 )
 
-// HelperGenAudioInput mirrors the C struct mtmd_helper_gen_audio_inp of llama.cpp b12219 and later.
+// HelperGenAudioInput mirrors the C struct mtmd_helper_gen_audio_inp of llama.cpp b12424 and later.
 // Use SetPrompt and SetLang to fill the string fields.
 type HelperGenAudioInput struct {
 	// Stream means HelperGenAudioGetOutput must be called after each HelperGenAudioStepGen.
@@ -61,8 +61,12 @@ type HelperGenAudioInput struct {
 	// Temp is the audio frame temperature. Below 0 is the model default and 0 is greedy.
 	Temp float32
 	// Seed is the random seed. math.MaxUint32 gives a random one.
-	Seed    uint32
-	OutType HelperGenAudioOutType
+	Seed uint32
+	// Speed is the speaking speed relative to the model pace. 1 is the model default.
+	Speed float32
+	// Loudness is the target loudness in LUFS, below 0. 0 is the model default.
+	Loudness float32
+	OutType  HelperGenAudioOutType
 }
 
 // SetPrompt copies text into the input as the prompt.
@@ -95,7 +99,7 @@ var (
 	// ffiTypeHelperGenAudioInput mirrors struct mtmd_helper_gen_audio_inp
 	ffiTypeHelperGenAudioInput = ffi.NewType(&ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypePointer, &ffiTypeSize,
 		&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer,
-		&ffi.TypeSint32, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeUint32, &ffi.TypeSint32)
+		&ffi.TypeSint32, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeUint32, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeSint32)
 
 	// MTMD_API struct mtmd_helper_gen_audio_inp mtmd_helper_gen_audio_inp_default(void);
 	helperGenAudioInpDefaultFunc ffi.Fun
