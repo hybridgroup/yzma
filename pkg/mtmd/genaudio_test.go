@@ -14,8 +14,8 @@ import (
 
 func TestHelperGenAudioInputLayout(t *testing.T) {
 	var in HelperGenAudioInput
-	if size := unsafe.Sizeof(in); size != 80 {
-		t.Fatalf("HelperGenAudioInput size %d does not match C size 80", size)
+	if size := unsafe.Sizeof(in); size != 96 {
+		t.Fatalf("HelperGenAudioInput size %d does not match C size 96", size)
 	}
 	offsets := []struct {
 		name string
@@ -28,14 +28,17 @@ func TestHelperGenAudioInputLayout(t *testing.T) {
 		{"NPast", unsafe.Offsetof(in.NPast), 24},
 		{"OutMode", unsafe.Offsetof(in.OutMode), 28},
 		{"SpeakerRef", unsafe.Offsetof(in.SpeakerRef), 32},
-		{"Lang", unsafe.Offsetof(in.Lang), 40},
-		{"TopK", unsafe.Offsetof(in.TopK), 48},
-		{"TopP", unsafe.Offsetof(in.TopP), 52},
-		{"Temp", unsafe.Offsetof(in.Temp), 56},
-		{"Seed", unsafe.Offsetof(in.Seed), 60},
-		{"Speed", unsafe.Offsetof(in.Speed), 64},
-		{"Loudness", unsafe.Offsetof(in.Loudness), 68},
-		{"OutType", unsafe.Offsetof(in.OutType), 72},
+		{"SpeakerRefText", unsafe.Offsetof(in.SpeakerRefText), 40},
+		{"Lang", unsafe.Offsetof(in.Lang), 48},
+		{"TopK", unsafe.Offsetof(in.TopK), 56},
+		{"TopP", unsafe.Offsetof(in.TopP), 60},
+		{"Temp", unsafe.Offsetof(in.Temp), 64},
+		{"Seed", unsafe.Offsetof(in.Seed), 68},
+		{"Speed", unsafe.Offsetof(in.Speed), 72},
+		{"Loudness", unsafe.Offsetof(in.Loudness), 76},
+		{"CFGScale", unsafe.Offsetof(in.CFGScale), 80},
+		{"FlowSteps", unsafe.Offsetof(in.FlowSteps), 84},
+		{"OutType", unsafe.Offsetof(in.OutType), 88},
 	}
 	for _, o := range offsets {
 		if o.got != o.want {
@@ -53,6 +56,13 @@ func TestHelperGenAudioInputStrings(t *testing.T) {
 	in.SetPrompt("")
 	if in.Prompt != nil || in.PromptLen != 0 {
 		t.Fatal("SetPrompt with empty text did not clear the prompt")
+	}
+
+	if err := in.SetSpeakerRefText("hi there"); err != nil || in.SpeakerRefText == nil {
+		t.Fatalf("SetSpeakerRefText failed: %v", err)
+	}
+	if err := in.SetSpeakerRefText(""); err != nil || in.SpeakerRefText != nil {
+		t.Fatal("SetSpeakerRefText with empty text did not clear it")
 	}
 
 	if err := in.SetLang("english"); err != nil || in.Lang == nil {
@@ -85,7 +95,7 @@ func TestHelperGenAudioZeroHandles(t *testing.T) {
 		t.Fatalf("HelperGenAudioInputDefault failed: %v", err)
 	}
 	if input.TopK != 50 || input.TopP != 1 || input.Temp != -1 || input.Seed != math.MaxUint32 ||
-		input.Speed != 1 || input.Loudness != 0 ||
+		input.Speed != 1 || input.Loudness != 0 || input.CFGScale != 0 || input.FlowSteps != 0 ||
 		input.OutType != HelperGenAudioOutTypeWAV || input.Stream || input.Prompt != nil {
 		t.Fatalf("unexpected default input %+v", input)
 	}
