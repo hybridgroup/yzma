@@ -68,9 +68,17 @@ jobs:
             yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/ggml-org/models-moved/resolve/main/tinyllamas/split/stories15M-q8_0-00003-of-00003.gguf
             yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/ggml-org/Julia-1-GGUF/resolve/main/Julia-1-Q8_0.gguf
             yzma model get -y --show-progress=false -o $GITHUB_WORKSPACE/models -u https://huggingface.co/ggml-org/Laya-GGUF/resolve/main/Laya-Q8_0.gguf
+      - name: Cache test video
+        id: cache-video
+        uses: actions/cache@v4
+        with:
+          path: llama.webm
+          key: test-video-v1
+          enableCrossOsArchive: true
       - name: Get test video
+        if: steps.cache-video.outputs.cache-hit != 'true'
         run: |
-            curl https://upload.wikimedia.org/wikipedia/commons/a/a1/Llama_in_ueno_zoo_-_2009_Aug.webm -o llama.webm
+            curl -fsSL --retry 3 -A "yzma-ci (https://github.com/hybridgroup/yzma)" https://upload.wikimedia.org/wikipedia/commons/a/a1/Llama_in_ueno_zoo_-_2009_Aug.webm -o llama.webm
       - name: Run unit tests
         run: |
           export YZMA_TEST_MODEL=$GITHUB_WORKSPACE/models/SmolLM-135M.Q2_K.gguf
