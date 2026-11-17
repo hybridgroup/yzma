@@ -40,8 +40,8 @@ const (
 	HelperGenAudioOutMixed
 )
 
-// HelperGenAudioInput mirrors the C struct mtmd_helper_gen_audio_inp of llama.cpp b12424 and later.
-// Use SetPrompt and SetLang to fill the string fields.
+// HelperGenAudioInput mirrors the C struct mtmd_helper_gen_audio_inp of llama.cpp b12458 and later.
+// Use SetPrompt, SetSpeakerRefText and SetLang to fill the string fields.
 type HelperGenAudioInput struct {
 	// Stream means HelperGenAudioGetOutput must be called after each HelperGenAudioStepGen.
 	Stream bool
@@ -54,6 +54,8 @@ type HelperGenAudioInput struct {
 	OutMode HelperGenAudioOutMode
 	// SpeakerRef is an optional audio clip to clone or a voice from GenAudioGetVoice.
 	SpeakerRef Bitmap
+	// SpeakerRefText is an optional transcript of SpeakerRef. It must stay valid until HelperGenAudioSetInput returns.
+	SpeakerRefText *byte
 	// Lang is optional. It must stay valid until HelperGenAudioSetInput returns.
 	Lang *byte
 	TopK int32
@@ -66,7 +68,11 @@ type HelperGenAudioInput struct {
 	Speed float32
 	// Loudness is the target loudness in LUFS, below 0. 0 is the model default.
 	Loudness float32
-	OutType  HelperGenAudioOutType
+	// CFGScale is the classifier free guidance scale, 1 is no guidance. 0 is the model default.
+	CFGScale float32
+	// FlowSteps is the number of flow matching solver steps. 0 is the model default.
+	FlowSteps int32
+	OutType   HelperGenAudioOutType
 }
 
 // SetPrompt copies text into the input as the prompt.
@@ -79,6 +85,20 @@ func (in *HelperGenAudioInput) SetPrompt(text string) {
 	buf := []byte(text)
 	in.Prompt = &buf[0]
 	in.PromptLen = uint64(len(buf))
+}
+
+// SetSpeakerRefText copies text into the input as the speaker reference transcript. Empty text clears it.
+func (in *HelperGenAudioInput) SetSpeakerRefText(text string) error {
+	if text == "" {
+		in.SpeakerRefText = nil
+		return nil
+	}
+	p, err := utils.BytePtrFromString(text)
+	if err != nil {
+		return err
+	}
+	in.SpeakerRefText = p
+	return nil
 }
 
 // SetLang copies lang into the input. An empty lang clears it.
@@ -98,8 +118,9 @@ func (in *HelperGenAudioInput) SetLang(lang string) error {
 var (
 	// ffiTypeHelperGenAudioInput mirrors struct mtmd_helper_gen_audio_inp
 	ffiTypeHelperGenAudioInput = ffi.NewType(&ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypePointer, &ffiTypeSize,
-		&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer,
-		&ffi.TypeSint32, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeUint32, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeSint32)
+		&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer,
+		&ffi.TypeSint32, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeUint32, &ffi.TypeFloat, &ffi.TypeFloat,
+		&ffi.TypeFloat, &ffi.TypeSint32, &ffi.TypeSint32)
 
 	// MTMD_API struct mtmd_helper_gen_audio_inp mtmd_helper_gen_audio_inp_default(void);
 	helperGenAudioInpDefaultFunc ffi.Fun

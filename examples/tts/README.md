@@ -4,7 +4,7 @@ Uses `yzma` with a text to speech model. It speaks the text prompt and writes th
 
 The model uses its first preset voice unless you name one with `-voice`. A model with no preset voices speaks with its own default voice.
 
-Requires `llama.cpp` b12424 or later.
+Requires `llama.cpp` b12458 or later.
 
 ## Running
 
