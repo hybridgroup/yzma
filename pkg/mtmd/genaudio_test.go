@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"os"
+	"strings"
 	"testing"
 	"unsafe"
 
@@ -130,6 +131,22 @@ func TestHelperGenAudioZeroHandles(t *testing.T) {
 	}
 }
 
+func TestGenAudioG2PZeroHandle(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	if !hasGenAudioG2P {
+		if _, err := GenAudioG2P(0, "hello"); !errors.Is(err, ErrNoGenAudioG2P) {
+			t.Fatalf("GenAudioG2P without the symbol returned %v", err)
+		}
+		t.Skip("mtmd_gen_audio_g2p not in this library")
+	}
+
+	if _, err := GenAudioG2P(0, "hello"); err == nil {
+		t.Fatal("GenAudioG2P with zero context did not fail")
+	}
+}
+
 func TestHelperGenAudioUnsupportedModel(t *testing.T) {
 	modelFile := testModelFileName(t)
 	mmprojFile := testMMProjFileName(t)
@@ -167,6 +184,15 @@ func TestHelperGenAudioUnsupportedModel(t *testing.T) {
 	if err != nil || voice != 0 {
 		BitmapFree(voice)
 		t.Fatalf("GenAudioGetVoice on a model without voices returned %v, %v", voice, err)
+	}
+
+	if hasGenAudioG2P {
+		if _, err := GenAudioG2P(ctx, "a\x00b"); err == nil {
+			t.Fatal("GenAudioG2P with a NUL byte did not fail")
+		}
+		if phones, err := GenAudioG2P(ctx, "hello"); err != nil || phones != "" {
+			t.Fatalf("GenAudioG2P on a model without g2p returned %q, %v", phones, err)
+		}
 	}
 
 	gen, err := HelperGenAudioInit(lctx, ctx)
@@ -231,6 +257,17 @@ func TestHelperGenAudio(t *testing.T) {
 	if unknown, err := GenAudioGetVoice(ctx, "no such voice"); err != nil || unknown != 0 {
 		BitmapFree(unknown)
 		t.Fatalf("GenAudioGetVoice for an unknown voice returned %v, %v", unknown, err)
+	}
+
+	if hasGenAudioG2P {
+		phones, err := GenAudioG2P(ctx, "yzmatastic")
+		if err != nil {
+			t.Fatalf("GenAudioG2P failed: %v", err)
+		}
+		t.Logf("GenAudioG2P(yzmatastic) = %q", phones)
+		if _, err := GenAudioG2P(ctx, strings.Repeat("abc", 300)); err != nil {
+			t.Fatalf("GenAudioG2P for a long word failed: %v", err)
+		}
 	}
 
 	gen, err := HelperGenAudioInit(lctx, ctx)

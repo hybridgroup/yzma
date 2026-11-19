@@ -987,3 +987,93 @@ func countClosures() int {
 	progressClosures.Range(func(any, any) bool { n++; return true })
 	return n
 }
+
+func TestModelMetaArr(t *testing.T) {
+	testSetup(t)
+	defer testCleanup(t)
+
+	if !hasModelMetaArr {
+		if _, err := ModelMetaArrN(0, "tokenizer.tts_dicts"); !errors.Is(err, ErrModelNoMetaArr) {
+			t.Fatalf("ModelMetaArrN without the symbols returned %v", err)
+		}
+		if _, _, err := ModelMetaArrStr(0, "tokenizer.tts_dicts", 0); !errors.Is(err, ErrModelNoMetaArr) {
+			t.Fatalf("ModelMetaArrStr without the symbols returned %v", err)
+		}
+		t.Skip("llama_model_meta_arr_n not in this library")
+	}
+
+	if _, err := ModelMetaArrN(0, "tokenizer.tts_dicts"); err == nil {
+		t.Fatal("ModelMetaArrN with zero model did not fail")
+	}
+	if _, _, err := ModelMetaArrStr(0, "tokenizer.tts_dicts", 0); err == nil {
+		t.Fatal("ModelMetaArrStr with zero model did not fail")
+	}
+
+	model, err := ModelLoadFromFile(testModelFileName(t), ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	if _, err := ModelMetaArrN(model, "a\x00b"); err == nil {
+		t.Fatal("ModelMetaArrN with a NUL byte did not fail")
+	}
+	if _, _, err := ModelMetaArrStr(model, "a\x00b", 0); err == nil {
+		t.Fatal("ModelMetaArrStr with a NUL byte did not fail")
+	}
+	if n, err := ModelMetaArrN(model, "tokenizer.tts_dicts"); err != nil || n != -1 {
+		t.Fatalf("ModelMetaArrN for a missing array returned %d, %v", n, err)
+	}
+	if s, ok, err := ModelMetaArrStr(model, "tokenizer.tts_dicts", 0); err != nil || ok || s != "" {
+		t.Fatalf("ModelMetaArrStr for a missing array returned %q, %v, %v", s, ok, err)
+	}
+}
+
+func TestModelMetaArrTTSDicts(t *testing.T) {
+	modelFile := os.Getenv("YZMA_TEST_GENAUDIO_MODEL")
+	if modelFile == "" {
+		t.Skip("no YZMA_TEST_GENAUDIO_MODEL skipping test")
+	}
+	testSetup(t)
+	defer testCleanup(t)
+
+	if !hasModelMetaArr {
+		t.Skip("llama_model_meta_arr_n not in this library")
+	}
+
+	model, err := ModelLoadFromFile(modelFile, ModelDefaultParams())
+	if err != nil {
+		t.Fatalf("ModelLoadFromFile failed: %v", err)
+	}
+	defer ModelFree(model)
+
+	n, err := ModelMetaArrN(model, "tokenizer.tts_dicts")
+	if err != nil {
+		t.Fatalf("ModelMetaArrN failed: %v", err)
+	}
+	if n < 0 {
+		t.Skip("model has no tokenizer.tts_dicts")
+	}
+	for i := range n {
+		name, ok, err := ModelMetaArrStr(model, "tokenizer.tts_dicts", i)
+		if err != nil || !ok {
+			t.Fatalf("ModelMetaArrStr(%d) returned %q, %v, %v", i, name, ok, err)
+		}
+		nk, _ := ModelMetaArrN(model, "tokenizer.tts_dict."+name+".keys")
+		nv, _ := ModelMetaArrN(model, "tokenizer.tts_dict."+name+".values")
+		if nk < 0 || nk != nv {
+			t.Fatalf("dict %q has %d keys and %d values", name, nk, nv)
+		}
+		for j := range nk {
+			if _, ok, err := ModelMetaArrStr(model, "tokenizer.tts_dict."+name+".values", j); err != nil || !ok {
+				t.Fatalf("dict %q value %d returned %v, %v", name, j, ok, err)
+			}
+		}
+	}
+	if _, ok, _ := ModelMetaArrStr(model, "tokenizer.tts_dicts", n); ok {
+		t.Fatal("ModelMetaArrStr past the end did not return false")
+	}
+	if _, ok, _ := ModelMetaArrStr(model, "tokenizer.tts_dicts", -1); ok {
+		t.Fatal("ModelMetaArrStr with a negative index did not return false")
+	}
+}

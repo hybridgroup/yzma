@@ -31,6 +31,9 @@ var (
 // ErrModelNoDecisionLabel means the llama.cpp library does not export llama_model_decision_label.
 var ErrModelNoDecisionLabel = errors.New("llama_model_decision_label not found in library")
 
+// ErrModelNoMetaArr means the llama.cpp library does not export llama_model_meta_arr_n and llama_model_meta_arr_str.
+var ErrModelNoMetaArr = errors.New("llama_model_meta_arr_n not found in library")
+
 var (
 	// LLAMA_API struct llama_model_params          llama_model_default_params(void);
 	modelDefaultParamsFunc ffi.Fun
@@ -148,6 +151,13 @@ var (
 	// Get sampling metadata key name. Returns nullptr if the key is invalid
 	// LLAMA_API const char * llama_model_meta_key_str(enum llama_model_meta_key key);
 	modelMetaKeyStrFunc ffi.Fun
+
+	// LLAMA_API int32_t llama_model_meta_arr_n(const struct llama_model * model, const char * key);
+	modelMetaArrNFunc ffi.Fun
+
+	// LLAMA_API const char * llama_model_meta_arr_str(const struct llama_model * model, const char * key, int32_t i);
+	modelMetaArrStrFunc ffi.Fun
+	hasModelMetaArr     bool
 
 	// LLAMA_API struct llama_model_quantize_params llama_model_quantize_default_params(void);
 	modelQuantizeDefaultParamsFunc ffi.Fun
@@ -319,6 +329,14 @@ func loadModelFuncs(lib loader.Lib) error {
 
 	if modelMetaKeyStrFunc, err = lib.Prep("llama_model_meta_key_str", &ffi.TypePointer, &ffi.TypeSint32); err != nil {
 		return loadError("llama_model_meta_key_str", err)
+	}
+
+	// Older libraries do not have the array metadata API, so it is optional.
+	hasModelMetaArr = false
+	if modelMetaArrNFunc, err = lib.Prep("llama_model_meta_arr_n", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer); err == nil {
+		if modelMetaArrStrFunc, err = lib.Prep("llama_model_meta_arr_str", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32); err == nil {
+			hasModelMetaArr = true
+		}
 	}
 
 	if modelQuantizeDefaultParamsFunc, err = lib.Prep("llama_model_quantize_default_params", &ffiTypeModelQuantizeParams); err != nil {
@@ -895,6 +913,47 @@ func ModelMetaKeyStr(key ModelMetaKey) string {
 		return ""
 	}
 	return utils.BytePtrToString(ptr)
+}
+
+// ModelMetaArrN returns the number of elements in the metadata string array key, or -1 if there is no such array.
+// Only the tokenizer.tts_dicts and tokenizer.tts_dict.* arrays are available.
+func ModelMetaArrN(model Model, key string) (int32, error) {
+	if !hasModelMetaArr {
+		return -1, ErrModelNoMetaArr
+	}
+	if model == 0 {
+		return -1, errors.New("invalid model handle")
+	}
+	keyPtr, err := utils.BytePtrFromString(key)
+	if err != nil {
+		return -1, err
+	}
+
+	var result ffi.Arg
+	modelMetaArrNFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model), unsafe.Pointer(&keyPtr))
+	return int32(result), nil
+}
+
+// ModelMetaArrStr returns element i of the metadata string array key.
+// It returns false when there is no such array or i is out of range.
+func ModelMetaArrStr(model Model, key string, i int32) (string, bool, error) {
+	if !hasModelMetaArr {
+		return "", false, ErrModelNoMetaArr
+	}
+	if model == 0 {
+		return "", false, errors.New("invalid model handle")
+	}
+	keyPtr, err := utils.BytePtrFromString(key)
+	if err != nil {
+		return "", false, err
+	}
+
+	var ptr *byte
+	modelMetaArrStrFunc.Call(unsafe.Pointer(&ptr), unsafe.Pointer(&model), unsafe.Pointer(&keyPtr), &i)
+	if ptr == nil {
+		return "", false, nil
+	}
+	return utils.BytePtrToString(ptr), true, nil
 }
 
 // SetTensorBufOverrides sets tensor buffer overrides for Mixture of Experts (MoE) execution.
