@@ -50,6 +50,8 @@ section at the end.
 | `llama_model_is_recurrent` | yes | yes |
 | `llama_model_load_from_file` | yes | yes |
 | `llama_model_load_from_splits` | yes | no |
+| `llama_model_meta_arr_n` | yes | no |
+| `llama_model_meta_arr_str` | yes | no |
 | `llama_model_meta_count` | yes | yes |
 | `llama_model_meta_key_by_index` | yes | yes |
 | `llama_model_meta_key_str` | yes | yes |
@@ -331,6 +333,7 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 | `mtmd_encode_chunk` | yes | yes |
 | `mtmd_encode` | yes | yes |
 | `mtmd_free` | yes | yes |
+| `mtmd_gen_audio_g2p` | yes | no |
 | `mtmd_gen_audio_get_voice` | yes | no |
 | `mtmd_gen_audio_voice_name` | yes | no |
 | `mtmd_get_audio_sample_rate` | yes | yes |

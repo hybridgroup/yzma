@@ -14,6 +14,9 @@ import (
 // ErrNoGenAudio is returned when libmtmd does not have the audio generation API.
 var ErrNoGenAudio = errors.New("mtmd_helper_gen_audio not found in library")
 
+// ErrNoGenAudioG2P is returned when libmtmd does not have mtmd_gen_audio_g2p.
+var ErrNoGenAudioG2P = errors.New("mtmd_gen_audio_g2p not found in library")
+
 // HelperGenAudio is an opaque handle to a stateful audio generation helper.
 // Free it before its llama and mtmd contexts, and never call it at the same time as other users of them.
 type HelperGenAudio uintptr
@@ -157,14 +160,22 @@ var (
 	// MTMD_API mtmd_bitmap * mtmd_gen_audio_get_voice(const mtmd_context * ctx, const char * name);
 	genAudioGetVoiceFunc ffi.Fun
 
+	// MTMD_API int32_t mtmd_gen_audio_g2p(const mtmd_context * ctx, const char * word, char * buf, size_t buf_size);
+	genAudioG2PFunc ffi.Fun
+
 	hasHelperGenAudio bool
 	hasGenAudioVoice  bool
+	hasGenAudioG2P    bool
 )
 
 func loadGenAudioFuncs(lib loader.Lib) error {
 	// Older libraries do not have the audio generation API, so it is optional.
 	hasHelperGenAudio = loadHelperGenAudioFuncs(lib)
 	hasGenAudioVoice = loadGenAudioVoiceFuncs(lib)
+
+	var err error
+	genAudioG2PFunc, err = lib.Prep("mtmd_gen_audio_g2p", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffiTypeSize)
+	hasGenAudioG2P = err == nil
 	return nil
 }
 
@@ -433,4 +444,37 @@ func GenAudioGetVoice(ctx Context, name string) (Bitmap, error) {
 	}
 	genAudioGetVoiceFunc.Call(unsafe.Pointer(&bitmap), unsafe.Pointer(&ctx), unsafe.Pointer(&namePtr))
 	return bitmap, nil
+}
+
+const (
+	genAudioG2PBufSize = 256
+	genAudioG2PMaxSize = 64 * 1024
+)
+
+// GenAudioG2P returns the pronunciation of word from the letter to sound model of the mmproj.
+// The phonemes are separated by spaces in the notation of the model, CMUdict for tiny-voca.
+// It returns an empty string when the model has no letter to sound model or no pronunciation for word.
+func GenAudioG2P(ctx Context, word string) (string, error) {
+	if !hasGenAudioG2P {
+		return "", ErrNoGenAudioG2P
+	}
+	if ctx == 0 {
+		return "", errors.New("invalid mtmd context handle")
+	}
+	wordPtr, err := utils.BytePtrFromString(word)
+	if err != nil {
+		return "", err
+	}
+
+	for size := genAudioG2PBufSize; size <= genAudioG2PMaxSize; size *= 2 {
+		buf := make([]byte, size)
+		bufPtr := unsafe.SliceData(buf)
+		bufLen := uint64(size)
+		var result ffi.Arg
+		genAudioG2PFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), unsafe.Pointer(&wordPtr), unsafe.Pointer(&bufPtr), &bufLen)
+		if n := int32(result); n >= 0 && int(n) < size {
+			return string(buf[:n]), nil
+		}
+	}
+	return "", fmt.Errorf("mtmd_gen_audio_g2p output for %q is over %d bytes", word, genAudioG2PMaxSize)
 }
