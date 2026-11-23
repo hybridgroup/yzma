@@ -51,16 +51,16 @@ func LoadLibrary(path, lib string) (Lib, error) {
 // GetLibraryFilename returns the full path to the library file for the given path and library name.
 // The library name should be the "short name" (e.g., "llama", "gguf", "mtmd").
 // The function returns the appropriate filename based on the current OS:
-//   - Linux/FreeBSD: lib<name>.so
+//   - Linux/FreeBSD/Android: lib<name>.so
 //   - Windows: <name>.dll
-//   - Darwin: lib<name>.dylib
+//   - Darwin/iOS: lib<name>.dylib
 func GetLibraryFilename(path, lib string) string {
 	switch runtime.GOOS {
-	case "linux", "freebsd":
+	case "linux", "freebsd", "android":
 		return filepath.Join(path, fmt.Sprintf("lib%s.so", lib))
 	case "windows":
 		return filepath.Join(path, fmt.Sprintf("%s.dll", lib))
-	case "darwin":
+	case "darwin", "ios":
 		return filepath.Join(path, fmt.Sprintf("lib%s.dylib", lib))
 	default:
 		return filepath.Join(path, lib)
