@@ -111,12 +111,12 @@ func TestGetLibraryFilename_CurrentOS(t *testing.T) {
 	result := GetLibraryFilename(path, lib)
 
 	switch runtime.GOOS {
-	case "linux", "freebsd":
+	case "linux", "freebsd", "android":
 		expected := filepath.Join(path, "libtestlib.so")
 		if result != expected {
 			t.Errorf("expected '%s', got '%s'", expected, result)
 		}
-	case "darwin":
+	case "darwin", "ios":
 		expected := filepath.Join(path, "libtestlib.dylib")
 		if result != expected {
 			t.Errorf("expected '%s', got '%s'", expected, result)
