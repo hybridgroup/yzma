@@ -25,6 +25,8 @@ type HelperCap struct {
 
 	// AudioStream is realtime transcription.
 	AudioStream bool
+	// AudioDuplex means the model speaks while it listens, like Hibiki.
+	AudioDuplex bool
 
 	TextGen  bool
 	AudioGen bool
@@ -35,7 +37,7 @@ type HelperCap struct {
 var (
 	// ffiTypeHelperCap mirrors struct mtmd_helper_cap
 	ffiTypeHelperCap = ffi.NewType(&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8,
-		&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8)
+		&ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8)
 
 	// MTMD_API struct mtmd_helper_cap mtmd_helper_get_capabilities(const struct llama_model * model, const struct mtmd_context * mctx);
 	helperGetCapabilitiesFunc ffi.Fun
