@@ -46,6 +46,8 @@ var (
 	ErrBatchExtRejected = errors.New("batch rejected the value")
 	// ErrBatchExtNoDecisionOrder means the llama.cpp library does not export llama_batch_ext_set_decision_order.
 	ErrBatchExtNoDecisionOrder = errors.New("llama_batch_ext_set_decision_order not found in library")
+	// ErrBatchExtNoDecisionGroup means the llama.cpp library does not export llama_batch_ext_set_decision_group.
+	ErrBatchExtNoDecisionGroup = errors.New("llama_batch_ext_set_decision_group not found in library")
 
 	errInvalidBatchExt = errors.New("invalid extended batch")
 )
@@ -102,6 +104,10 @@ var (
 	// LLAMA_API bool llama_batch_ext_set_decision_order(struct llama_batch_ext * batch, int32_t idx, enum llama_decision_order order);
 	batchExtSetDecisionOrderFunc ffi.Fun
 	hasBatchExtSetDecisionOrder  bool
+
+	// LLAMA_API bool llama_batch_ext_set_decision_group(struct llama_batch_ext * batch, int32_t idx, int32_t group);
+	batchExtSetDecisionGroupFunc ffi.Fun
+	hasBatchExtSetDecisionGroup  bool
 
 	// LLAMA_API int32_t llama_process(struct llama_context * ctx, enum llama_process_type type, struct llama_batch_ext * batch);
 	processFunc ffi.Fun
@@ -166,6 +172,17 @@ func loadBatchExtFuncs(lib loader.Lib) error {
 	} {
 		if batchExtSetDecisionOrderFunc, err = lib.Prep(name, &ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32); err == nil {
 			hasBatchExtSetDecisionOrder = true
+			break
+		}
+	}
+
+	for _, name := range []string{
+		"llama_batch_ext_set_decision_group",
+		"_Z34llama_batch_ext_set_decision_groupP15llama_batch_extii",
+		"?llama_batch_ext_set_decision_group@@YA_NPEAUllama_batch_ext@@HH@Z",
+	} {
+		if batchExtSetDecisionGroupFunc, err = lib.Prep(name, &ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32); err == nil {
+			hasBatchExtSetDecisionGroup = true
 			break
 		}
 	}
@@ -358,6 +375,21 @@ func BatchExtSetDecisionOrder(batch BatchExt, idx int32, order DecisionOrder) er
 	batchExtSetDecisionOrderFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&batch), &idx, &order)
 
 	return setResult(result, "set decision order at index %d", idx)
+}
+
+// BatchExtSetDecisionGroup packs questions after a shared state in one sequence, for contexts without memory only.
+// Group 0 is the shared state and group k > 0 is the k-th question. It returns [ErrBatchExtNoDecisionGroup] when the library does not have the function.
+func BatchExtSetDecisionGroup(batch BatchExt, idx int32, group int32) error {
+	if batch == 0 {
+		return errInvalidBatchExt
+	}
+	if !hasBatchExtSetDecisionGroup {
+		return ErrBatchExtNoDecisionGroup
+	}
+	var result ffi.Arg
+	batchExtSetDecisionGroupFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&batch), &idx, &group)
+
+	return setResult(result, "set decision group at index %d", idx)
 }
 
 // Process encodes or decodes the batch. The return values are the same as [Decode].

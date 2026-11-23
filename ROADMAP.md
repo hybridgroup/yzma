@@ -198,6 +198,7 @@ These moved from the `src/llama-ext.h` staging header of `llama.cpp` into
 | `llama_batch_ext_clear` | yes | yes |
 | `llama_batch_ext_free` | yes | yes |
 | `llama_batch_ext_init` | yes | yes |
+| `llama_batch_ext_set_decision_group` | yes | no |
 | `llama_batch_ext_set_decision_order` | yes | yes |
 | `llama_batch_ext_set_embd_state` | yes | yes |
 | `llama_batch_ext_set_embd_token` | yes | yes |
