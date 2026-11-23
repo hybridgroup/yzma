@@ -9,8 +9,8 @@ import (
 )
 
 func TestHelperCapLayout(t *testing.T) {
-	if size := unsafe.Sizeof(HelperCap{}); size != 8 {
-		t.Fatalf("HelperCap size %d does not match C size 8", size)
+	if size := unsafe.Sizeof(HelperCap{}); size != 9 {
+		t.Fatalf("HelperCap size %d does not match C size 9", size)
 	}
 }
 
