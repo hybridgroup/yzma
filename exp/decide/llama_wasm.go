@@ -186,6 +186,16 @@ func (b *backend) decodeOrdered(ids []token, pos0 int, seq seqID, order []int32)
 	return nil
 }
 
+// decodeGrouped is not available, the module has no decision groups.
+func (b *backend) decodeGrouped([]token, []int32, []int) error {
+	return errors.New("decide: decision groups are not supported in the browser")
+}
+
+// hasDecisionGroup is false, the module has no decision groups.
+func (b *backend) hasDecisionGroup() bool {
+	return false
+}
+
 // logits returns the output logits at batch index i.
 func (b *backend) logits(i int32) ([]float32, error) {
 	return llama.GetLogitsIth(b.ctx, i, b.nVocab)
