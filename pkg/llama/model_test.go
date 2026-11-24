@@ -695,6 +695,12 @@ func TestModelLoadCallback(t *testing.T) {
 	}
 }
 
+func TestModelQuantizeParamsLayout(t *testing.T) {
+	if size := unsafe.Sizeof(ModelQuantizeParams{}); size != 136 {
+		t.Fatalf("ModelQuantizeParams size %d does not match C size 136", size)
+	}
+}
+
 func TestModelQuantizeDefaultParams(t *testing.T) {
 	testSetup(t)
 	defer testCleanup(t)

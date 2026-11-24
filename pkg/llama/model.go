@@ -25,7 +25,9 @@ var (
 	ffiTypeModelQuantizeParams = ffi.NewType(&ffi.TypeSint32, &ffi.TypeSint32,
 		&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8, &ffi.TypeUint8,
 		&ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer,
-		&ffiTypeSize)
+		&ffiTypeSize, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypePointer,
+		&ffi.TypeFloat, &ffi.TypeSint64, &ffi.TypePointer, &ffi.TypePointer,
+		&ffi.TypePointer, &ffi.TypePointer)
 )
 
 // ErrModelNoDecisionLabel means the llama.cpp library does not export llama_model_decision_label.
