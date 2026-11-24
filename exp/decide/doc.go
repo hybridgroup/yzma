@@ -57,7 +57,10 @@
 // scores an option by the highest logit of the forms of its label. It also
 // takes a nil state. Lfm3-d1 and lfm3-d1-omni read the labels the same way,
 // but their attention is not causal, a score is the median level, and the
-// confidence is the top probability.
+// confidence is the top probability. [Decider.DecideMany] reads up to 16 of
+// their questions after the state in one pass, as llama-server does, so an
+// answer depends on the other questions. This needs a llama.cpp build with
+// decision groups, and in the browser each question is read on its own.
 //
 // Nimble reads the labels A to Z and then AA to ZZ, and its prompt lists all
 // the questions of [Decider.DecideMany]. Granite-switch reads them too, with

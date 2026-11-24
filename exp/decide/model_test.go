@@ -548,12 +548,14 @@ func TestVllmDecision2Model(t *testing.T) {
 	testTypedModel(t, "YZMA_TEST_VLLM_DECISION2_MODEL", 0.5, false)
 }
 
+// lfm3-d1 packs the questions after the state, so Decide gives other answers.
 func TestLfm3D1Model(t *testing.T) {
-	testTypedModel(t, "YZMA_TEST_LFM3_D1_MODEL", 0.5, false)
+	testTypedModel(t, "YZMA_TEST_LFM3_D1_MODEL", 0.5, true)
 }
 
+// lfm3-d1 packs the questions after the state, so Decide gives other answers.
 func TestLfm3D1OmniModel(t *testing.T) {
-	testTypedModel(t, "YZMA_TEST_LFM3_D1_OMNI_MODEL", 0.5, false)
+	testTypedModel(t, "YZMA_TEST_LFM3_D1_OMNI_MODEL", 0.5, true)
 }
 
 func TestLfm2D1OmniModel(t *testing.T) {

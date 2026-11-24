@@ -72,6 +72,7 @@ func Open(modelPath string, opts Options) (*Decider, error) {
 	d.family = t
 	d.entropyConfidence = t.kind == typeVllmDecision2 || t.kind == typeVllmD3
 	d.medianScore = t.isLfm3()
+	t.pack = t.isLfm3() && d.b.hasDecisionGroup()
 	// Clef reads the options of a choice question sorted, so their order does not matter.
 	if t.kind == typeClef {
 		d.bothOrders = false
@@ -106,6 +107,8 @@ type typed struct {
 	// quotes in user text, longest first. quotedFirst has their first bytes.
 	quoted      []string
 	quotedFirst string
+	// pack reads the lfm3-d1 questions in sets, see packed.
+	pack bool
 }
 
 func (t *typed) isLfm3() bool {
@@ -480,6 +483,7 @@ func (t *typed) decide(d *Decider, state any, qs []Question, _ string, many bool
 	}
 	plans := make([]plan, len(qs))
 	var rs []*rendered
+	var suffixes []string
 	for i, q := range qs {
 		// The vllm-d3 and h2o-lightning prompts have a default question.
 		names, err := q.names(t.kind == typeVllmD3 || t.kind == typeH2OLightning)
@@ -508,6 +512,13 @@ func (t *typed) decide(d *Decider, state any, qs []Question, _ string, many bool
 			if err != nil {
 				return nil, questionErr(many, i, err)
 			}
+			if t.pack {
+				suffix, err := t.packSuffix(q, opts, labels, qs)
+				if err != nil {
+					return nil, questionErr(many, i, err)
+				}
+				suffixes = append(suffixes, suffix)
+			}
 			var r *rendered
 			if t.kind == typeLfm2D1Omni {
 				r, err = t.d1OmniRead(text, len(opts))
@@ -525,11 +536,17 @@ func (t *typed) decide(d *Decider, state any, qs []Question, _ string, many bool
 		plans[i] = p
 	}
 
-	mode := manySeparate
-	if many {
-		mode = d.manyMode
+	var vals [][][]float64
+	var packTokens []int
+	if t.pack {
+		vals, packTokens, err = t.packed(d, rs, suffixes, s == nil)
+	} else {
+		mode := manySeparate
+		if many {
+			mode = d.manyMode
+		}
+		vals, err = d.score(rs, mode)
 	}
-	vals, err := d.score(rs, mode)
 	if err != nil {
 		return nil, err
 	}
@@ -541,7 +558,11 @@ func (t *typed) decide(d *Decider, state any, qs []Question, _ string, many bool
 		tokens := 0
 		for v, opts := range p.variants {
 			r := p.first + v
-			tokens += len(rs[r].ids)
+			if packTokens != nil {
+				tokens += packTokens[r]
+			} else {
+				tokens += len(rs[r].ids)
+			}
 			logits, err := t.raw(vals[r], qs[i].Type)
 			if err != nil {
 				return nil, questionErr(many, i, err)
