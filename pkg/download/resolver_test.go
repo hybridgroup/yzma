@@ -546,6 +546,58 @@ func TestDefaultResolverWindowsCUDANaming(t *testing.T) {
 	}
 }
 
+// From build b12728 the Windows CUDA build comes from llama-cpp-builder, with the
+// upstream CPU build for the rest of the libraries.
+func TestDefaultResolverWindowsCUDABuilder(t *testing.T) {
+	tests := []struct {
+		name     string
+		version  string
+		upstream string
+		builder  bool
+	}{
+		{"last upstream build", "b12727", "", false},
+		{"first builder build", "b12728", "", true},
+		{"later build", "b12800", "", true},
+		{"tagged release before the change", "v0.7.0", "b12651", false},
+		{"tagged release after the change", "v1.1.0", "b12730", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			urls, err := DefaultResolver.Resolve(Target{
+				Arch: AMD64, OS: Windows, Processor: CUDA, Version: tt.version, UpstreamVersion: tt.upstream,
+			})
+			if err != nil {
+				t.Fatalf("Resolve() failed: %v", err)
+			}
+			upstream := tt.upstream
+			if upstream == "" {
+				upstream = tt.version
+			}
+			if !tt.builder {
+				if len(urls) != 2 || !strings.Contains(urls[1], "ggml-org/llama.cpp/releases/download/"+upstream+"/") {
+					t.Fatalf("Resolve() = %v, want the upstream CUDA build", urls)
+				}
+				return
+			}
+			location := "https://github.com/ggml-org/llama.cpp/releases/download/" + upstream + "/"
+			builder := "https://github.com/hybridgroup/llama-cpp-builder/releases/download/" + tt.version + "/"
+			want := []string{
+				location + "llama-" + upstream + "-bin-win-cpu-x64.zip",
+				builder + "cudart-llama-" + tt.version + "-bin-win-cuda-13-x64.zip",
+				builder + "llama-" + tt.version + "-bin-win-cuda-13-x64.zip",
+			}
+			if len(urls) != len(want) {
+				t.Fatalf("Resolve() = %v, want %v", urls, want)
+			}
+			for i := range want {
+				if urls[i] != want[i] {
+					t.Fatalf("Resolve() = %v, want %v", urls, want)
+				}
+			}
+		})
+	}
+}
+
 // A tagged release keeps its binaries under a nightly build tag. That tag decides
 // the CUDA version in the Windows asset names.
 func TestDefaultResolverWindowsCUDATaggedRelease(t *testing.T) {
