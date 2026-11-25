@@ -12,6 +12,11 @@ func PrintSystemInfo() string {
 	return callString("_yzma_print_system_info", 1024)
 }
 
+// Version returns the version of the llama.cpp module. A module before ABI version 15 returns an empty string.
+func Version() string {
+	return callString("_yzma_version", 64)
+}
+
 // FtypeName returns the name of a quantization type, as returned by ModelFtype.
 func FtypeName(ftype Ftype) string {
 	return callString("_yzma_ftype_name", 64, int(ftype))

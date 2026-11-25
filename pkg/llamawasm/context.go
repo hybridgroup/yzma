@@ -130,6 +130,27 @@ func SetCausalAttn(ctx Context, causal bool) error {
 	return setContextFlag("_yzma_set_causal_attn", ctx, causal)
 }
 
+// GetCausalAttn reports whether the context uses causal attention.
+// A module before ABI version 15 returns false.
+func GetCausalAttn(ctx Context) bool {
+	if !has("_yzma_get_causal_attn") {
+		return false
+	}
+	return call("_yzma_get_causal_attn", int(ctx)) == 1
+}
+
+// GetModel returns the model of the context. A module before ABI version 15 returns 0.
+func GetModel(ctx Context) Model {
+	if !has("_yzma_get_model") {
+		return 0
+	}
+	h := call("_yzma_get_model", int(ctx))
+	if h < 0 {
+		return 0
+	}
+	return Model(h)
+}
+
 // setContextFlag sends a boolean flag to the context.
 func setContextFlag(name string, ctx Context, on bool) error {
 	if !Loaded() {

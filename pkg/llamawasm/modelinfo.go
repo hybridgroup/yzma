@@ -148,6 +148,56 @@ func ModelMetaValStr(model Model, key string) (string, bool) {
 	return metaString("_yzma_model_meta_val_str", 32768, int(model), keyPtr)
 }
 
+// ModelMetaArrN returns the number of elements in the metadata string array key, or -1 if there is no such array.
+// Only the tokenizer.tts_dicts and tokenizer.tts_dict.* arrays are available.
+func ModelMetaArrN(model Model, key string) (int32, error) {
+	if !has("_yzma_model_meta_arr_n") {
+		return -1, ErrModelNoMetaArr
+	}
+	keyPtr, freeKey, err := allocString(key)
+	if err != nil {
+		return -1, err
+	}
+	defer freeKey()
+
+	n := call("_yzma_model_meta_arr_n", int(model), keyPtr)
+	if n < -1 {
+		return -1, shimError("_yzma_model_meta_arr_n", n)
+	}
+	return n, nil
+}
+
+// ModelMetaArrStr returns element i of the metadata string array key.
+// It returns false when there is no such array or i is out of range.
+func ModelMetaArrStr(model Model, key string, i int32) (string, bool, error) {
+	const name = "_yzma_model_meta_arr_str"
+	if !has(name) {
+		return "", false, ErrModelNoMetaArr
+	}
+	keyPtr, freeKey, err := allocString(key)
+	if err != nil {
+		return "", false, err
+	}
+	defer freeKey()
+
+	for size := 256; ; size *= 4 {
+		ptr, err := pieceScratch.reserve(size)
+		if err != nil {
+			return "", false, err
+		}
+		n := call(name, int(model), keyPtr, int(i), ptr, size)
+		switch {
+		case n == errTooSmall && size < 1<<20:
+			continue
+		case n == -1:
+			return "", false, nil
+		case n < 0:
+			return "", false, shimError(name, n)
+		}
+		return string(readBytes(ptr, int(n))), true, nil
+	}
+}
+
 // ModelMetaKeyStr returns the name of a metadata key, or an empty string if
 // the key is unknown.
 func ModelMetaKeyStr(key ModelMetaKey) string {

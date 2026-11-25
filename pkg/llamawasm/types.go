@@ -28,6 +28,21 @@ type (
 	Sampler int32
 )
 
+// TokenData is a candidate token for [SamplerApply]. It matches llama.TokenData.
+type TokenData struct {
+	Id    Token
+	Logit float32
+	P     float32
+}
+
+// TokenDataArray is the list of candidates for [SamplerApply]. It matches llama.TokenDataArray.
+type TokenDataArray struct {
+	Data     *TokenData
+	Size     uint64
+	Selected int64
+	Sorted   uint8
+}
+
 // TokenNull is the value for a missing token. It matches llama.TokenNull.
 const TokenNull Token = -1
 

@@ -29,7 +29,7 @@ section at the end.
 | `llama_supports_mmap` | yes | no |
 | `llama_supports_rpc` | yes | no |
 | `llama_time_us` | yes | yes |
-| `llama_version` | yes | no |
+| `llama_version` | yes | yes |
 
 ### Model Functions
 
@@ -50,8 +50,8 @@ section at the end.
 | `llama_model_is_recurrent` | yes | yes |
 | `llama_model_load_from_file` | yes | yes |
 | `llama_model_load_from_splits` | yes | no |
-| `llama_model_meta_arr_n` | yes | no |
-| `llama_model_meta_arr_str` | yes | no |
+| `llama_model_meta_arr_n` | yes | yes |
+| `llama_model_meta_arr_str` | yes | yes |
 | `llama_model_meta_count` | yes | yes |
 | `llama_model_meta_key_by_index` | yes | yes |
 | `llama_model_meta_key_str` | yes | yes |
@@ -122,7 +122,7 @@ section at the end.
 | `llama_detach_threadpool` | yes | no |
 | `llama_encode` | yes | yes |
 | `llama_free` | yes | yes |
-| `llama_get_causal_attn` | yes | no |
+| `llama_get_causal_attn` | yes | yes |
 | `llama_get_embeddings_ith` | yes | yes |
 | `llama_get_embeddings_layer_inp` | yes | no |
 | `llama_get_embeddings_seq` | yes | yes |
@@ -130,7 +130,7 @@ section at the end.
 | `llama_get_logits_ith` | yes | yes |
 | `llama_get_logits` | yes | yes |
 | `llama_get_memory` | yes | no |
-| `llama_get_model` | yes | no |
+| `llama_get_model` | yes | yes |
 | `llama_n_batch` | yes | yes |
 | `llama_n_ctx_seq` | yes | yes |
 | `llama_n_ctx` | yes | yes |
@@ -205,7 +205,7 @@ These moved from the `src/llama-ext.h` staging header of `llama.cpp` into
 | `llama_batch_ext_clear` | yes | yes |
 | `llama_batch_ext_free` | yes | yes |
 | `llama_batch_ext_init` | yes | yes |
-| `llama_batch_ext_set_decision_group` | yes | no |
+| `llama_batch_ext_set_decision_group` | yes | yes |
 | `llama_batch_ext_set_decision_order` | yes | yes |
 | `llama_batch_ext_set_embd_state` | yes | yes |
 | `llama_batch_ext_set_embd_token` | yes | yes |
@@ -222,7 +222,7 @@ These moved from the `src/llama-ext.h` staging header of `llama.cpp` into
 | Function | `yzma` | WebAssembly |
 | --- | :-: | :-: |
 | `llama_sampler_accept` | yes | yes |
-| `llama_sampler_apply` | yes | no |
+| `llama_sampler_apply` | yes | yes |
 | `llama_sampler_chain_add` | yes | yes |
 | `llama_sampler_chain_default_params` | yes | yes |
 | `llama_sampler_chain_get` | yes | yes |
@@ -425,7 +425,7 @@ Note that these functions are considered by `llama.cpp` to be experimental, and 
 The `pkg/llamawasm` package drives a WebAssembly build of `llama.cpp`. It does
 not use the C API directly. A C shim in the
 [llama-cpp-builder](https://github.com/hybridgroup/llama-cpp-builder) repository
-exposes a small, versioned set of calls, currently ABI 14. So a `llama.cpp`
+exposes a small, versioned set of calls, currently ABI 15. So a `llama.cpp`
 function only reaches the browser after the shim exports it.
 
 The WebAssembly column of each table above shows the state of the wrapper.
@@ -436,8 +436,8 @@ The WebAssembly column of each table above shows the state of the wrapper.
 | partial | The WebAssembly build has it with fewer options. See the notes. |
 | no | The shim does not export it. |
 
-217 functions reach WebAssembly, 209 complete and 8 partial, all of them among
-the 291 that have a host wrapper. That is enough for text generation,
+228 functions reach WebAssembly, 220 complete and 8 partial, all of them among
+the 304 that have a host wrapper. That is enough for text generation,
 embeddings, images, audio input, the parts of a multimodal prompt, chat
 templates, tool calling with a grammar, every host sampler, batches with more
 than one sequence, extended batches with decision heads, context shifting when
