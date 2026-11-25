@@ -27,6 +27,8 @@ type batchExt struct {
 	outputs   []int8
 	order     []int32
 	ordered   bool
+	group     []int32
+	grouped   bool
 }
 
 // ProcessType selects how [Process] runs a [BatchExt].
@@ -60,6 +62,9 @@ var (
 
 	// ErrNoBatchExt means the module predates the extended batch, which arrived in ABI version 11.
 	ErrNoBatchExt = errors.New("llamawasm: this llama.cpp module has no extended batch, install a newer build")
+
+	// ErrBatchExtNoDecisionGroup means the module predates decision groups, which arrived in ABI version 15.
+	ErrBatchExtNoDecisionGroup = errors.New("llamawasm: this llama.cpp module has no decision groups, install a newer build")
 
 	// ErrNoBatchExtEmbd means the module predates embeddings in an extended batch, which arrived in ABI version 14.
 	ErrNoBatchExtEmbd = errors.New("llamawasm: this llama.cpp module has no embeddings in an extended batch, install a newer build")
@@ -102,9 +107,9 @@ func BatchExtClear(batch BatchExt) error {
 		return errInvalidBatchExt
 	}
 	b.tokens, b.pos, b.posSet = b.tokens[:0], b.pos[:0], b.posSet[:0]
-	b.seqs, b.outputs, b.order = b.seqs[:0], b.outputs[:0], b.order[:0]
+	b.seqs, b.outputs, b.order, b.group = b.seqs[:0], b.outputs[:0], b.order[:0], b.group[:0]
 	b.embd, b.state = b.embd[:0], b.state[:0]
-	b.ordered, b.needsEmbd = false, false
+	b.ordered, b.grouped, b.needsEmbd = false, false, false
 
 	return nil
 }
@@ -258,6 +263,25 @@ func BatchExtSetDecisionOrder(batch BatchExt, idx int32, order DecisionOrder) er
 	return nil
 }
 
+// BatchExtSetDecisionGroup packs questions after a shared state in one sequence, for contexts without memory only.
+// Group 0 is the shared state and group k > 0 is the k-th question. It returns [ErrBatchExtNoDecisionGroup] when the module does not have it.
+func BatchExtSetDecisionGroup(batch BatchExt, idx int32, group int32) error {
+	if !has("_yzma_process_ext") {
+		return ErrBatchExtNoDecisionGroup
+	}
+	b, err := batch.entry(idx)
+	if err != nil {
+		return err
+	}
+	if group < 0 {
+		return fmt.Errorf("%w: set decision group at index %d", ErrBatchExtRejected, idx)
+	}
+	b.group[idx] = group
+	b.grouped = true
+
+	return nil
+}
+
 // Process encodes or decodes the batch. The return values are the same as [Decode].
 func Process(ctx Context, typ ProcessType, batch BatchExt) (int32, error) {
 	if !Loaded() {
@@ -279,6 +303,9 @@ func Process(ctx Context, typ ProcessType, batch BatchExt) (int32, error) {
 	}
 	if b.needsEmbd && !has("_yzma_process_embd") {
 		return 0, ErrNoBatchExtEmbd
+	}
+	if b.grouped && !has("_yzma_process_ext") {
+		return 0, ErrBatchExtNoDecisionGroup
 	}
 
 	nSeqMax := 1
@@ -338,7 +365,19 @@ func Process(ctx Context, typ ProcessType, batch BatchExt) (int32, error) {
 		writeInt32s(orderPtr, b.order)
 	}
 
+	groupPtr := 0
+	if b.grouped {
+		if groupPtr, err = groupScratch.reserve(n * 4); err != nil {
+			return 0, err
+		}
+		writeInt32s(groupPtr, b.group)
+	}
+
 	if !b.needsEmbd {
+		if b.grouped {
+			return callErr("_yzma_process_ext", int(ctx), int(typ), ptr, posPtr, nPos, nSeqPtr, seqPtr, nSeqMax,
+				outPtr, orderPtr, groupPtr, 0, 0, n)
+		}
 		return callErr("_yzma_process", int(ctx), int(typ), ptr, posPtr, nSeqPtr, seqPtr, nSeqMax, outPtr, orderPtr, n)
 	}
 
@@ -364,6 +403,10 @@ func Process(ctx Context, typ ProcessType, batch BatchExt) (int32, error) {
 	}
 	writeInt32s(descPtr, desc)
 
+	if b.grouped {
+		return callErr("_yzma_process_ext", int(ctx), int(typ), ptr, posPtr, nPos, nSeqPtr, seqPtr, nSeqMax,
+			outPtr, orderPtr, groupPtr, embdPtr, descPtr, n)
+	}
 	return callErr("_yzma_process_embd", int(ctx), int(typ), ptr, posPtr, nSeqPtr, seqPtr, nSeqMax, outPtr, orderPtr, embdPtr, descPtr, n)
 }
 
@@ -386,6 +429,7 @@ func (b *batchExt) add(seqID SeqId, token Token, embd []float32) int32 {
 	b.seqs = append(b.seqs, []SeqId{seqID})
 	b.outputs = append(b.outputs, 0)
 	b.order = append(b.order, 0)
+	b.group = append(b.group, 0)
 	b.embd = append(b.embd, embd)
 	b.state = append(b.state, nil)
 

@@ -60,7 +60,8 @@
 // confidence is the top probability. [Decider.DecideMany] reads up to 16 of
 // their questions after the state in one pass, as llama-server does, so an
 // answer depends on the other questions. This needs a llama.cpp build with
-// decision groups, and in the browser each question is read on its own.
+// decision groups, and in the browser ABI version 15 of the llama.cpp module.
+// Without them each question is read on its own.
 //
 // Nimble reads the labels A to Z and then AA to ZZ, and its prompt lists all
 // the questions of [Decider.DecideMany]. Granite-switch reads them too, with

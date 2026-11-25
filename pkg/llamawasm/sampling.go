@@ -2,6 +2,8 @@
 
 package llamawasm
 
+import "unsafe"
+
 // SamplerChainInit creates a sampler chain.
 func SamplerChainInit(params SamplerChainParams) Sampler {
 	if !Loaded() {
@@ -325,6 +327,49 @@ func SamplerReset(smpl Sampler) {
 		return
 	}
 	callVoid("_yzma_sampler_reset", int(smpl))
+}
+
+// SamplerApply applies the sampler to the candidates in curP. It updates the
+// candidates, Size, Selected and Sorted. A module before ABI version 15 leaves curP as it is.
+func SamplerApply(smpl Sampler, curP *TokenDataArray) {
+	if curP == nil || curP.Data == nil || curP.Size == 0 || !has("_yzma_sampler_apply") {
+		return
+	}
+	data := unsafe.Slice(curP.Data, curP.Size)
+	n := len(data)
+
+	ptr, err := applyScratch.reserve(n*12 + 8)
+	if err != nil {
+		return
+	}
+	idsPtr, logitsPtr, pPtr, statePtr := ptr, ptr+n*4, ptr+n*8, ptr+n*12
+
+	ids := make([]Token, n)
+	logits := make([]float32, n)
+	p := make([]float32, n)
+	for i, d := range data {
+		ids[i], logits[i], p[i] = d.Id, d.Logit, d.P
+	}
+	writeTokens(idsPtr, ids)
+	writeFloats(logitsPtr, logits)
+	writeFloats(pPtr, p)
+	writeInt32s(statePtr, []int32{int32(curP.Selected), int32(curP.Sorted)})
+
+	size := call("_yzma_sampler_apply", int(smpl), idsPtr, logitsPtr, pPtr, statePtr, n)
+	if size < 0 || int(size) > n {
+		return
+	}
+
+	ids = readTokens(idsPtr, int(size))
+	logits = readFloats(logitsPtr, int(size))
+	p = readFloats(pPtr, int(size))
+	state := readTokens(statePtr, 2)
+	for i := range int(size) {
+		data[i] = TokenData{Id: ids[i], Logit: logits[i], P: p[i]}
+	}
+	curP.Size = uint64(size)
+	curP.Selected = int64(state[0])
+	curP.Sorted = uint8(state[1])
 }
 
 // SamplerFree frees a sampler or a sampler chain.

@@ -186,14 +186,58 @@ func (b *backend) decodeOrdered(ids []token, pos0 int, seq seqID, order []int32)
 	return nil
 }
 
-// decodeGrouped is not available, the module has no decision groups.
-func (b *backend) decodeGrouped([]token, []int32, []int) error {
-	return errors.New("decide: decision groups are not supported in the browser")
+// decodeGrouped decodes ids at positions 0 onward in sequence 0 with the
+// decision group of each token, and asks for the logits at slots.
+func (b *backend) decodeGrouped(ids []token, group []int32, slots []int) error {
+	bt, err := llama.BatchExtInit(b.ctx)
+	if err != nil {
+		return err
+	}
+	defer llama.BatchExtFree(bt)
+
+	for i, tok := range ids {
+		idx, err := llama.BatchExtAddToken(bt, 0, tok)
+		if err != nil {
+			return err
+		}
+		if err := llama.BatchExtSetPos(bt, idx, llama.Pos(i)); err != nil {
+			return err
+		}
+		if group[i] != 0 {
+			if err := llama.BatchExtSetDecisionGroup(bt, idx, group[i]); err != nil {
+				return fmt.Errorf("decide: %w", err)
+			}
+		}
+	}
+	for _, s := range slots {
+		if err := llama.BatchExtSetOutputLogits(bt, int32(s), true); err != nil {
+			return err
+		}
+	}
+
+	ret, err := llama.Process(b.ctx, llama.ProcessTypeDecode, bt)
+	if err != nil {
+		return err
+	}
+	if ret != 0 {
+		return fmt.Errorf("decide: decode returned %d", ret)
+	}
+	return nil
 }
 
-// hasDecisionGroup is false, the module has no decision groups.
+// hasDecisionGroup reports whether the module can pack questions with decision groups.
 func (b *backend) hasDecisionGroup() bool {
-	return false
+	bt, err := llama.BatchExtInit(b.ctx)
+	if err != nil {
+		return false
+	}
+	defer llama.BatchExtFree(bt)
+
+	idx, err := llama.BatchExtAddToken(bt, 0, 0)
+	if err != nil {
+		return false
+	}
+	return llama.BatchExtSetDecisionGroup(bt, idx, 1) == nil
 }
 
 // logits returns the output logits at batch index i.

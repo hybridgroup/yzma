@@ -19,7 +19,7 @@ import (
 // checks for it before each use.
 const (
 	abiVersionMin = 1  // 1 has the calls for text generation and embeddings
-	abiVersion    = 14 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
+	abiVersion    = 15 // 2 adds yzma_gpu_device, 3 the multimodal calls, 4 the
 	//                    bounds of the tokens of an image, 5 the rest of the
 	//                    vocabulary and of the samplers, 6 batches with
 	//                    positions and the calls for the memory of a sequence,
@@ -30,7 +30,8 @@ const (
 	//                    11 yzma_process for an extended batch, 12
 	//                    yzma_model_decision_label, 13 the abort flag and
 	//                    the rest of the image and audio calls of mtmd,
-	//                    14 embeddings in an extended batch
+	//                    14 embeddings in an extended batch, 15 decision
+	//                    groups, SamplerApply, and a few accessors
 )
 
 // Error codes that the shim returns. These match the values in
@@ -73,6 +74,10 @@ var (
 	// ErrNoDecisionLabel means the module predates the labels of a decision
 	// model, which arrived in ABI version 12.
 	ErrNoDecisionLabel = errors.New("llamawasm: this llama.cpp module has no labels of a decision model, install a newer build")
+
+	// ErrModelNoMetaArr means the module predates the metadata arrays, which
+	// arrived in ABI version 15. The name matches llama.ErrModelNoMetaArr.
+	ErrModelNoMetaArr = errors.New("llamawasm: this llama.cpp module has no metadata arrays, install a newer build")
 
 	// ErrNoAbort means the module predates the abort flag, which arrived in
 	// ABI version 13.
@@ -710,5 +715,7 @@ var (
 	orderScratch  scratch
 	embdInScratch scratch
 	descScratch   scratch
+	groupScratch  scratch
+	applyScratch  scratch
 	outScratch    scratch
 )
