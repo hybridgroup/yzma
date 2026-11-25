@@ -74,6 +74,8 @@ section at the end.
 | `llama_model_rope_type` | yes | yes |
 | `llama_model_save_to_file` | yes | no |
 | `llama_model_size` | yes | yes |
+| `llama_model_target_layer_ids_n` | yes | no |
+| `llama_model_target_layer_ids` | yes | no |
 | `llama_split_path` | yes | no |
 | `llama_split_prefix` | yes | no |
 
@@ -122,6 +124,7 @@ section at the end.
 | `llama_free` | yes | yes |
 | `llama_get_causal_attn` | yes | no |
 | `llama_get_embeddings_ith` | yes | yes |
+| `llama_get_embeddings_layer_inp` | yes | no |
 | `llama_get_embeddings_seq` | yes | yes |
 | `llama_get_embeddings` | yes | yes |
 | `llama_get_logits_ith` | yes | yes |
@@ -141,8 +144,11 @@ section at the end.
 | `llama_set_adapter_cvec` | yes | no |
 | `llama_set_causal_attn` | yes | yes |
 | `llama_set_embeddings` | yes | yes |
+| `llama_set_embeddings_layer_inp_dev` | yes | no |
+| `llama_set_embeddings_layer_inp` | yes | no |
 | `llama_set_n_threads` | yes | yes |
 | `llama_synchronize` | yes | yes |
+| `llama_supports_embd_row` | yes | no |
 
 ### Backend Sampling Functions (Experimental)
 
@@ -193,6 +199,7 @@ These moved from the `src/llama-ext.h` staging header of `llama.cpp` into
 | --- | :-: | :-: |
 | `llama_batch_ext_add` | yes | yes |
 | `llama_batch_ext_add_embd` | yes | yes |
+| `llama_batch_ext_add_embd_row` | yes | no |
 | `llama_batch_ext_add_seq` | yes | yes |
 | `llama_batch_ext_add_token` | yes | yes |
 | `llama_batch_ext_clear` | yes | yes |

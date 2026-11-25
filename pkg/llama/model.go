@@ -3,6 +3,7 @@ package llama
 import (
 	"errors"
 	"os"
+	"slices"
 	"sync"
 	"unsafe"
 
@@ -90,6 +91,12 @@ var (
 
 	// LLAMA_API int32_t llama_model_n_layer_nextn(const struct llama_model * model);
 	modelNLayerNextNFunc ffi.Fun
+
+	// LLAMA_API const int32_t * llama_model_target_layer_ids(const struct llama_model * model);
+	modelTargetLayerIDsFunc ffi.Fun
+
+	// LLAMA_API uint32_t llama_model_target_layer_ids_n(const struct llama_model * model);
+	modelTargetLayerIDsNFunc ffi.Fun
 
 	// LLAMA_API int32_t llama_model_n_head     (const struct llama_model * model);
 	modelNHeadFunc ffi.Fun
@@ -246,6 +253,14 @@ func loadModelFuncs(lib loader.Lib) error {
 
 	if modelNLayerNextNFunc, err = lib.Prep("llama_model_n_layer_nextn", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
 		return loadError("llama_model_n_layer_nextn", err)
+	}
+
+	if modelTargetLayerIDsFunc, err = lib.Prep("llama_model_target_layer_ids", &ffi.TypePointer, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_target_layer_ids", err)
+	}
+
+	if modelTargetLayerIDsNFunc, err = lib.Prep("llama_model_target_layer_ids_n", &ffi.TypeUint32, &ffi.TypePointer); err != nil {
+		return loadError("llama_model_target_layer_ids_n", err)
 	}
 
 	if modelNHeadFunc, err = lib.Prep("llama_model_n_head", &ffi.TypeSint32, &ffi.TypePointer); err != nil {
@@ -560,6 +575,27 @@ func ModelNLayerNextN(model Model) int32 {
 	modelNLayerNextNFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&model))
 
 	return int32(result)
+}
+
+// ModelTargetLayerIDs returns a copy of the target model layer IDs that a draft model reads features from.
+// It returns nil when the model declares none.
+func ModelTargetLayerIDs(model Model) []int32 {
+	if model == 0 {
+		return nil
+	}
+	var n ffi.Arg
+	modelTargetLayerIDsNFunc.Call(unsafe.Pointer(&n), unsafe.Pointer(&model))
+	if uint32(n) == 0 {
+		return nil
+	}
+
+	var ids *int32
+	modelTargetLayerIDsFunc.Call(unsafe.Pointer(&ids), unsafe.Pointer(&model))
+	if ids == nil {
+		return nil
+	}
+
+	return slices.Clone(unsafe.Slice(ids, uint32(n)))
 }
 
 // ModelNHead returns the number of attention heads in the Model.
