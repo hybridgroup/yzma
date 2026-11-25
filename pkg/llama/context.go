@@ -2,6 +2,7 @@ package llama
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"unsafe"
 
@@ -120,6 +121,18 @@ var (
 
 	// LLAMA_API void llama_set_embeddings(struct llama_context * ctx, bool embeddings);
 	setEmbeddingsFunc ffi.Fun
+
+	// LLAMA_API void llama_set_embeddings_layer_inp(struct llama_context * ctx, uint32_t lid, bool value);
+	setEmbeddingsLayerInpFunc ffi.Fun
+
+	// LLAMA_API float * llama_get_embeddings_layer_inp(struct llama_context * ctx, uint32_t lid);
+	getEmbeddingsLayerInpFunc ffi.Fun
+
+	// LLAMA_API void llama_set_embeddings_layer_inp_dev(struct llama_context * ctx, bool value);
+	setEmbeddingsLayerInpDevFunc ffi.Fun
+
+	// LLAMA_API bool llama_supports_embd_row(const struct llama_context * ctx);
+	supportsEmbdRowFunc ffi.Fun
 
 	// LLAMA_API void llama_set_causal_attn(struct llama_context * ctx, bool causal_attn);
 	setCausalAttnFunc ffi.Fun
@@ -268,6 +281,22 @@ func loadContextFuncs(lib loader.Lib) error {
 		return loadError("llama_set_embeddings", err)
 	}
 
+	if setEmbeddingsLayerInpFunc, err = lib.Prep("llama_set_embeddings_layer_inp", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeUint32, &ffi.TypeUint8); err != nil {
+		return loadError("llama_set_embeddings_layer_inp", err)
+	}
+
+	if getEmbeddingsLayerInpFunc, err = lib.Prep("llama_get_embeddings_layer_inp", &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeUint32); err != nil {
+		return loadError("llama_get_embeddings_layer_inp", err)
+	}
+
+	if setEmbeddingsLayerInpDevFunc, err = lib.Prep("llama_set_embeddings_layer_inp_dev", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeUint8); err != nil {
+		return loadError("llama_set_embeddings_layer_inp_dev", err)
+	}
+
+	if supportsEmbdRowFunc, err = lib.Prep("llama_supports_embd_row", &ffi.TypeUint8, &ffi.TypePointer); err != nil {
+		return loadError("llama_supports_embd_row", err)
+	}
+
 	if setCausalAttnFunc, err = lib.Prep("llama_set_causal_attn", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeUint8); err != nil {
 		return loadError("llama_set_causal_attn", err)
 	}
@@ -345,6 +374,7 @@ func loadContextFuncs(lib loader.Lib) error {
 
 var (
 	errInvalidContext = errors.New("invalid context")
+	errInvalidLayer   = errors.New("invalid layer")
 )
 
 // ContextDefaultParams returns the default params to initialize a model context.
@@ -574,6 +604,67 @@ func SetEmbeddings(ctx Context, embeddings bool) {
 		return
 	}
 	setEmbeddingsFunc.Call(nil, unsafe.Pointer(&ctx), &embeddings)
+}
+
+// SetEmbeddingsLayerInp sets whether decode outputs the input embeddings of layer lid, from 0 to [ModelNLayer].
+// Most architectures fill only layers below [ModelNLayer], and decode aborts if the model does not fill an enabled layer.
+func SetEmbeddingsLayerInp(ctx Context, lid uint32, value bool) error {
+	if ctx == 0 {
+		return errInvalidContext
+	}
+	if err := checkLayerInp(ctx, lid); err != nil {
+		return err
+	}
+	setEmbeddingsLayerInpFunc.Call(nil, unsafe.Pointer(&ctx), &lid, &value)
+
+	return nil
+}
+
+// GetEmbeddingsLayerInp returns the input embeddings of layer lid from the last decode, nTokens rows of nEmbd floats in batch order.
+// The slice is owned by the context and is overwritten by the next decode. llama.cpp aborts if the layer was not enabled for that decode.
+func GetEmbeddingsLayerInp(ctx Context, lid uint32, nTokens, nEmbd int) ([]float32, error) {
+	if ctx == 0 {
+		return nil, errInvalidContext
+	}
+	if err := checkLayerInp(ctx, lid); err != nil {
+		return nil, err
+	}
+	var result *float32
+	getEmbeddingsLayerInpFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx), &lid)
+	if result == nil || nTokens <= 0 || nEmbd <= 0 {
+		return nil, nil
+	}
+
+	return unsafe.Slice(result, nTokens*nEmbd), nil
+}
+
+// SetEmbeddingsLayerInpDev sets whether the enabled layer inputs go to a device buffer instead of host memory.
+// Row r of the buffer holds batch entry r with layers in ascending ID order. Read it with [BatchExtAddEmbdRow].
+func SetEmbeddingsLayerInpDev(ctx Context, value bool) {
+	if ctx == 0 {
+		return
+	}
+	setEmbeddingsLayerInpDevFunc.Call(nil, unsafe.Pointer(&ctx), &value)
+}
+
+// SupportsEmbdRow reports whether decode on ctx accepts entries added with [BatchExtAddEmbdRow].
+// It needs a DFlash or DSpark draft context whose other context has a layer input device buffer.
+func SupportsEmbdRow(ctx Context) bool {
+	if ctx == 0 {
+		return false
+	}
+	var result ffi.Arg
+	supportsEmbdRowFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&ctx))
+
+	return result.Bool()
+}
+
+func checkLayerInp(ctx Context, lid uint32) error {
+	if n := ModelNLayer(GetModel(ctx)); n < 0 || lid > uint32(n) {
+		return fmt.Errorf("%w: layer %d of %d", errInvalidLayer, lid, n)
+	}
+
+	return nil
 }
 
 // SetCausalAttn sets whether to use causal attention or not.

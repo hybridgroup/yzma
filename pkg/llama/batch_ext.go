@@ -83,6 +83,9 @@ var (
 	// LLAMA_API int32_t llama_batch_ext_add_embd (struct llama_batch_ext * batch, llama_seq_id seq_id, struct llama_embd embd);
 	batchExtAddEmbdFunc ffi.Fun
 
+	// LLAMA_API int32_t llama_batch_ext_add_embd_row(struct llama_batch_ext * batch, llama_seq_id seq_id, int32_t row);
+	batchExtAddEmbdRowFunc ffi.Fun
+
 	// LLAMA_API bool llama_batch_ext_add_seq(struct llama_batch_ext * batch, int32_t idx, llama_seq_id seq_id);
 	batchExtAddSeqFunc ffi.Fun
 
@@ -138,6 +141,10 @@ func loadBatchExtFuncs(lib loader.Lib) error {
 
 	if batchExtAddEmbdFunc, err = lib.Prep("llama_batch_ext_add_embd", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32, &ffiTypeEmbd); err != nil {
 		return loadError("llama_batch_ext_add_embd", err)
+	}
+
+	if batchExtAddEmbdRowFunc, err = lib.Prep("llama_batch_ext_add_embd_row", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32); err != nil {
+		return loadError("llama_batch_ext_add_embd_row", err)
 	}
 
 	if batchExtAddSeqFunc, err = lib.Prep("llama_batch_ext_add_seq", &ffi.TypeUint8, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32); err != nil {
@@ -267,6 +274,18 @@ func BatchExtAddEmbd(batch BatchExt, seqID SeqId, data []float32, nEmbd int) (in
 	var result ffi.Arg
 	batchExtAddEmbdFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&batch), &seqID, unsafe.Pointer(&e))
 	runtime.KeepAlive(data)
+
+	return addResult(int32(result))
+}
+
+// BatchExtAddEmbdRow adds an entry whose embedding is that row of the layer input device buffer of the other context, and returns its index.
+// All entries of the batch must be of this kind. Check [SupportsEmbdRow] first and set positions with [BatchExtSetPos].
+func BatchExtAddEmbdRow(batch BatchExt, seqID SeqId, row int32) (int32, error) {
+	if batch == 0 {
+		return 0, errInvalidBatchExt
+	}
+	var result ffi.Arg
+	batchExtAddEmbdRowFunc.Call(unsafe.Pointer(&result), unsafe.Pointer(&batch), &seqID, &row)
 
 	return addResult(int32(result))
 }
