@@ -138,6 +138,23 @@ func windowsCUDAVersion(tag string) string {
 	return current
 }
 
+// windowsCUDABuilderBuild is the first build with a Windows CUDA build from
+// llama-cpp-builder. It has device code for older GPUs, so they need no new driver.
+const windowsCUDABuilderBuild = 12728
+
+// windowsCUDAFromBuilder reports whether the Windows CUDA build for the nightly tag
+// upstream comes from llama-cpp-builder. A tag that is not a nightly build does.
+func windowsCUDAFromBuilder(upstream string) bool {
+	if !nightlyPattern.MatchString(upstream) {
+		return true
+	}
+	build, err := strconv.Atoi(upstream[1:])
+	if err != nil {
+		return true
+	}
+	return build >= windowsCUDABuilderBuild
+}
+
 // llama.cpp renamed its ROCm assets at these two builds.
 const (
 	rocmRenameBuild = 10356
@@ -394,6 +411,16 @@ func defaultResolve(target Target) ([]string, error) {
 		case CUDA, CUDA12, CUDA13:
 			if arch == ARM64 {
 				return nil, errors.New("precompiled binaries for Windows ARM64 CUDA are not available")
+			}
+			if windowsCUDAFromBuilder(tag) {
+				// The builder ships ggml-cuda.dll and the CUDA runtime, and the rest comes from the upstream CPU build.
+				extra = append(extra,
+					fmt.Sprintf("%s/llama-%s-bin-win-cpu-x64.zip", location, tag),
+					fmt.Sprintf("%s/cudart-llama-%s-bin-win-cuda-13-x64.zip", builderLocation, version),
+				)
+				location, tag = builderLocation, version
+				filename = fmt.Sprintf("llama-%s-bin-win-cuda-13-x64.zip", tag)
+				break
 			}
 			// also requires the CUDA RT files
 			cuda := windowsCUDAVersion(tag)
